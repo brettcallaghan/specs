@@ -4,10 +4,14 @@
 package corpus_test
 
 import (
+	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
+	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
+	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
 // citingBody renders a conforming FRD whose body cites slug.
@@ -169,4 +173,119 @@ func TestACitationOfAnUnreadableMemberIsAttributedToItsParseFailure(t *testing.T
 			t.Errorf("%d reference/unresolved findings for [[%s]], want 1: a citation of no member's slug is still broken", unresolved[slug], slug)
 		}
 	}
+}
+
+// recoveredDuplicateCases pair a parsed member declaring adr-001 with a
+// member whose frontmatter fails while it still legibly declares the same
+// slug, in each way a block can fail and in a second letter case. Each
+// case names the broken file's source and where its slug value sits.
+func recoveredDuplicateCases() map[string]struct {
+	broken    string
+	slug      string
+	line, col uint64
+} {
+	good := document("adr", "adr-001", "Example")
+	return map[string]struct {
+		broken    string
+		slug      string
+		line, col uint64
+	}{
+		"yaml fails": {
+			broken: strings.Replace(good, "status: approved", "status: [approved", 1),
+			slug:   "adr-001", line: 4, col: 7,
+		},
+		"typed decode fails": {
+			broken: strings.Replace(good, "status: approved", "status: actve", 1),
+			slug:   "adr-001", line: 4, col: 7,
+		},
+		"slugs differ in case": {
+			broken: strings.NewReplacer("status: approved", "status: [approved", "slug: adr-001", "slug: ADR-001").
+				Replace(good),
+			slug: "ADR-001", line: 4, col: 7,
+		},
+	}
+}
+
+// A slug recovered from a member whose frontmatter fails takes part in
+// duplicate detection exactly as a parsed one does, cold and warm, and on
+// a shared slug the parsed member answers lookups even though the broken
+// one sorts first in path order.
+//
+// AC: AC-SPEC-003.3, AC-SPEC-003.4, AC-SPEC-003.7
+func TestARecoveredSlugCollidesWithAParsedMemberDeclaringIt(t *testing.T) {
+	const (
+		broken = "specs/adrs/a-broken.md"
+		good   = "specs/adrs/b-good.md"
+	)
+	for name, tc := range recoveredDuplicateCases() {
+		t.Run(name, func(t *testing.T) {
+			repo := t.TempDir()
+			write(t, repo, broken, tc.broken)
+			write(t, repo, good, document("adr", "adr-001", "Example"))
+			write(t, repo, "specs/frds/frd-citing.md", citingBody("adr-001"))
+
+			opts := checkingOptions(repo)
+			dest := corpus.IndexPath(opts, "")
+			cold, warm, err := corpus.Open(opts, dest)
+			if err != nil || warm {
+				t.Fatalf("Open cold: warm=%v err=%v", warm, err)
+			}
+			if err := corpus.Write(cold.Index(), dest, nil); err != nil {
+				t.Fatalf("Write: %v", err)
+			}
+			served, warm, err := corpus.Open(opts, dest)
+			if err != nil || !warm {
+				t.Fatalf("Open warm: warm=%v err=%v", warm, err)
+			}
+
+			for label, c := range map[string]*corpus.Corpus{"cold": cold, "warm": served} {
+				duplicates := map[string]specmodel.Finding{}
+				for _, f := range c.Findings() {
+					if f.Rule == finding.RuleDuplicateSlug {
+						duplicates[f.Path] = f
+					}
+				}
+				if len(duplicates) != 2 {
+					t.Fatalf("%s: slug/duplicate findings on %v, want one on each of %s and %s",
+						label, keysOf(duplicates), broken, good)
+				}
+				if f := duplicates[broken]; !strings.Contains(f.Message, good) ||
+					f.Span.StartLine != tc.line || f.Span.StartColumn != tc.col {
+					t.Errorf("%s: finding on the broken member = %q at %d:%d, want naming %s at %d:%d",
+						label, f.Message, f.Span.StartLine, f.Span.StartColumn, good, tc.line, tc.col)
+				}
+				if f := duplicates[good]; !strings.Contains(f.Message, broken) {
+					t.Errorf("%s: finding on the parsed member = %q, want naming %s", label, f.Message, broken)
+				}
+
+				declared, found := c.Slug("adr-001")
+				if !found || declared.Path != good {
+					t.Errorf("%s: slug adr-001 answers %q (found %v), want the parsed member %s",
+						label, declared.Path, found, good)
+				}
+				for _, ref := range c.Index().References {
+					if ref.Slug != "adr-001" {
+						continue
+					}
+					resolved, ok := ref.Resolution.AsResolved()
+					if !ok || resolved.TargetPath != good {
+						t.Errorf("%s: [[adr-001]] resolved to %+v, want %s", label, ref.Resolution, good)
+					}
+				}
+			}
+			if !reflect.DeepEqual(cold.Findings(), served.Findings()) {
+				t.Errorf("findings differ:\n cold %+v\n warm %+v", cold.Findings(), served.Findings())
+			}
+		})
+	}
+}
+
+// keysOf returns m's keys, sorted.
+func keysOf[V any](m map[string]V) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }

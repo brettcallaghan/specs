@@ -325,3 +325,19 @@ func DeclaredSlug(entry specmodel.IndexEntry) string {
 	}
 	return ""
 }
+
+// HoldsSlugOver reports whether candidate, rather than held, should answer
+// a slug lookup where both declare the same slug. A member whose
+// frontmatter parsed beats one whose slug was only recovered from a block
+// that did not (AC-SPEC-003.7), whatever their paths: its slug is the
+// validated one, and the checks run against a reference's target read
+// that target's frontmatter. Between two of the same kind the one first
+// in path order holds the slug. Every site that picks one entry per slug
+// asks this, so a lookup answers the same way wherever it is made.
+func HoldsSlugOver(candidate, held specmodel.IndexEntry) bool {
+	candidateParsed, heldParsed := candidate.Frontmatter != nil, held.Frontmatter != nil
+	if candidateParsed != heldParsed {
+		return candidateParsed
+	}
+	return candidate.Path < held.Path
+}

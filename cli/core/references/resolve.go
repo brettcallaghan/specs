@@ -69,8 +69,9 @@ type targets struct {
 // newTargets indexes one corpus's members and non-members by what a
 // reference could match them on.
 //
-// Where two files answer to the same key the one first in path order
-// wins, resolved by comparison rather than by arrival, so the result does
+// Where two members answer to the same key, a member whose frontmatter
+// parsed wins over one whose slug was recovered, and otherwise the one
+// first in path order wins, resolved by comparison rather than by arrival, so the result does
 // not depend on the order index happens to hold its collections in.
 // Members and non-members are keyed in separate maps because a member
 // always wins: a slug that a member declares has resolved, whatever else
@@ -80,13 +81,16 @@ func newTargets(index specmodel.SpecIndex) targets {
 		members:    make(map[string]string, len(index.Entries)),
 		nonMembers: make(map[string]specmodel.ReferenceNonMember, len(index.Entries)),
 	}
+	holders := make(map[string]int, len(index.Entries))
 
-	for _, entry := range index.Entries {
+	for i, entry := range index.Entries {
 		// A member whose frontmatter failed to parse but whose slug is
 		// still legible declares that slug, and a reference to it resolves
-		// as it would to a member that parsed (AC-SPEC-003.7).
+		// as it would to a member that parsed (AC-SPEC-003.7) — unless a
+		// member that parsed declares it too; see [envelope.HoldsSlugOver].
 		if key := lookupKey(envelope.DeclaredSlug(entry)); key != "" {
-			if held, seen := built.members[key]; !seen || entry.Path < held {
+			if held, seen := holders[key]; !seen || envelope.HoldsSlugOver(entry, index.Entries[held]) {
+				holders[key] = i
 				built.members[key] = entry.Path
 			}
 		}

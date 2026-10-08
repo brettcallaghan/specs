@@ -595,3 +595,46 @@ func TestTopLevelScalarReadsALegibleValueFromABlockThatDoesNotParse(t *testing.T
 		})
 	}
 }
+
+// TopLevelScalarAt places a value where Parse places the same property's
+// value in a block that parses, and still places it in one that does not.
+//
+// AC: AC-SPEC-003.3, AC-SPEC-003.7
+func TestTopLevelScalarAtLocatesTheValueAsParseWould(t *testing.T) {
+	for name, line := range map[string]string{
+		"plain":         "slug: adr-012",
+		"wide gap":      "slug:    adr-012",
+		"double-quoted": `slug: "adr-012"`,
+		"single-quoted": "slug: 'adr-012'",
+		"with comment":  "slug: adr-012 # the decision",
+	} {
+		t.Run(name, func(t *testing.T) {
+			src := []byte("---\ntitle: T\n" + line + "\ntype: adr\n---\n")
+			doc, err := frontmatter.Parse(src)
+			if err != nil {
+				t.Fatalf("Parse: %v", err)
+			}
+			property, ok := doc.Property("slug")
+			if !ok {
+				t.Fatal("Parse found no slug")
+			}
+			_, at, found := frontmatter.TopLevelScalarAt(src, "slug")
+			if !found {
+				t.Fatal("TopLevelScalarAt found no slug")
+			}
+			if at != property.Position {
+				t.Errorf("TopLevelScalarAt span = %+v, Parse = %+v", at, property.Position)
+			}
+		})
+	}
+
+	src := []byte("---\r\ntitle: [unclosed\r\nslug: adr-012\r\n---\r\n")
+	value, at, found := frontmatter.TopLevelScalarAt(src, "slug")
+	if !found || value != "adr-012" {
+		t.Fatalf("TopLevelScalarAt = (%q, %v), want adr-012", value, found)
+	}
+	if at.StartLine != 3 || at.StartColumn != 7 || string(src[at.Offset:at.Offset+at.Length]) != "adr-012" {
+		t.Errorf("span = %+v covering %q, want line 3 column 7 covering adr-012",
+			at, src[at.Offset:at.Offset+at.Length])
+	}
+}

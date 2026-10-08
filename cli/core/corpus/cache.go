@@ -414,7 +414,7 @@ func fromIndex(index specmodel.SpecIndex, opts Options) (*Corpus, error) {
 		if key == "" {
 			continue
 		}
-		if _, seen := c.bySlug[key]; !seen {
+		if held, seen := c.bySlug[key]; !seen || envelope.HoldsSlugOver(entry, c.index.Entries[held]) {
 			c.bySlug[key] = i
 		}
 	}
@@ -441,13 +441,15 @@ func fromIndex(index specmodel.SpecIndex, opts Options) (*Corpus, error) {
 // index that shares its slug with another — the only members a
 // duplicate-slug finding is raised against, and so the only ones whose
 // source has to be read to place that finding.
+//
+// A slug recovered from a member whose frontmatter failed to parse
+// collides as a parsed one does (AC-SPEC-003.7), so entries are grouped
+// by the slug they declare, through the same reader every slug lookup
+// uses, and each is placed exactly where the cold build placed it.
 func (c *Corpus) collidingMembers() ([]member, error) {
 	groups := map[string][]int{}
 	for i, entry := range c.index.Entries {
-		if entry.Frontmatter == nil {
-			continue
-		}
-		slug := string(envelope.Of(entry.Frontmatter).Slug)
+		slug := envelope.DeclaredSlug(entry)
 		if slug == "" {
 			continue
 		}
@@ -461,20 +463,47 @@ func (c *Corpus) collidingMembers() ([]member, error) {
 			continue
 		}
 		for _, i := range group {
-			entry := c.index.Entries[i]
-			doc, ok := c.document(entry.Path)
-			if !ok {
-				return nil, fmt.Errorf(
-					"corpus: the persisted index names %s, whose source cannot be read", entry.Path)
+			m, err := c.collidingMember(c.index.Entries[i])
+			if err != nil {
+				return nil, err
 			}
-			members = append(members, member{
-				path:   entry.Path,
-				slug:   string(envelope.Of(entry.Frontmatter).Slug),
-				slugAt: slugSpan(doc),
-				doc:    doc,
-			})
+			members = append(members, m)
 		}
 	}
 	sort.Slice(members, func(i, j int) bool { return members[i].path < members[j].path })
 	return members, nil
+}
+
+// collidingMember reads back the member facts one colliding entry's
+// duplicate-slug finding needs: its declared slug and where that slug
+// sits in its source.
+func (c *Corpus) collidingMember(entry specmodel.IndexEntry) (member, error) {
+	if entry.Frontmatter != nil {
+		doc, ok := c.document(entry.Path)
+		if !ok {
+			return member{}, fmt.Errorf(
+				"corpus: the persisted index names %s, whose source cannot be read", entry.Path)
+		}
+		return member{
+			path:   entry.Path,
+			slug:   string(envelope.Of(entry.Frontmatter).Slug),
+			slugAt: slugSpan(doc),
+			doc:    doc,
+		}, nil
+	}
+
+	// A recovered slug. The block either parsed as YAML and failed its
+	// typed decode, where the slug sits at its parsed property, or did not
+	// parse at all, where it is located by line — the two ways the cold
+	// build recovered it.
+	src, err := c.readSource(entry.Path)
+	if err != nil {
+		return member{}, fmt.Errorf(
+			"corpus: the persisted index names %s, whose source cannot be read", entry.Path)
+	}
+	if doc, perr := frontmatter.Parse(src); perr == nil && doc != nil {
+		return recoveredMember(entry, slugSpan(doc)), nil
+	}
+	_, at, _ := frontmatter.TopLevelScalarAt(src, slugProperty)
+	return recoveredMember(entry, at), nil
 }

@@ -146,7 +146,8 @@ type Corpus struct {
 // member is one corpus member during a build, carrying the facts
 // duplicate detection and later checking need and the index does not
 // model: the slug as the document declared it, where that slug sits in
-// the file, and the parsed document itself.
+// the file, and the parsed document itself — nil for a member whose slug
+// was recovered from frontmatter that failed to parse.
 type member struct {
 	path   string
 	slug   string
@@ -400,9 +401,11 @@ type builder struct {
 	members []member
 
 	byPath map[string]int
-	// alsoKnown maps a lowercased slug to the index of the first entry
-	// declaring it, which is what makes the slug query case-insensitive
-	// in the same way duplicate detection is (AC-SPEC-003.4).
+	// alsoKnown maps a lowercased slug to the index of the entry that
+	// answers for it — the one [envelope.HoldsSlugOver] prefers among
+	// those declaring it — which is what makes the slug query
+	// case-insensitive in the same way duplicate detection is
+	// (AC-SPEC-003.4).
 	alsoKnown map[string]int
 	// docs is every member's parsed frontmatter document, keyed by
 	// reported path, carried onto the built Corpus for Check to read.
@@ -465,13 +468,15 @@ func (b *builder) classify(reported string, src []byte) {
 		// written correctly on its own line unreadable, so a legible one
 		// is still recorded as declared (AC-SPEC-003.7).
 		headings, records := headingsOf(src, nil, b.recordTags)
-		b.addEntry(specmodel.IndexEntry{
+		recovered, at, found := frontmatter.TopLevelScalarAt(src, slugProperty)
+		entry := specmodel.IndexEntry{
 			Path:          reported,
 			ParseError:    perr,
-			RecoveredSlug: legible(frontmatter.TopLevelScalar(src, slugProperty)),
+			RecoveredSlug: legible(recovered, found),
 			Headings:      headings,
 			RecordBlocks:  records,
-		}, member{})
+		}
+		b.addEntry(entry, recoveredMember(entry, at))
 
 	case doc == nil:
 		// No frontmatter block at all (AC-SPEC-001.3).
@@ -519,13 +524,14 @@ func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter
 		// The slug property parsed with the rest of the block, so a
 		// legible one is still recorded as declared (AC-SPEC-003.7).
 		headings, records := headingsOf(src, doc, b.recordTags)
-		b.addEntry(specmodel.IndexEntry{
+		entry := specmodel.IndexEntry{
 			Path:          reported,
 			ParseError:    perr,
 			RecoveredSlug: legible(stringProperty(doc, slugProperty)),
 			Headings:      headings,
 			RecordBlocks:  records,
-		}, member{})
+		}
+		b.addEntry(entry, recoveredMember(entry, slugSpan(doc)))
 		return
 	}
 
@@ -623,9 +629,22 @@ func (b *builder) extractReferences(reported string, src []byte, doc *frontmatte
 	})...)
 }
 
+// recoveredMember is the member facts duplicate detection needs for an
+// entry whose frontmatter failed to parse: the slug recovered from it,
+// placed at at, where one was legible, and the zero member otherwise.
+// A recovered slug collides with another member's exactly as a parsed one
+// would (AC-SPEC-003.3, AC-SPEC-003.7); the parse failure is a second,
+// separate finding. There is no parsed document to carry.
+func recoveredMember(entry specmodel.IndexEntry, at specmodel.Span) member {
+	if entry.RecoveredSlug == nil {
+		return member{}
+	}
+	return member{path: entry.Path, slug: *entry.RecoveredSlug, slugAt: at}
+}
+
 // addEntry records one entry, and the member facts duplicate detection
-// will need. A zero member — an entry with a parse failure — declares no
-// slug and takes part in no slug comparison.
+// will need. A zero member — an entry with a parse failure and no legible
+// slug — declares no slug and takes part in no slug comparison.
 func (b *builder) addEntry(entry specmodel.IndexEntry, m member) {
 	// Every collection on the entry is non-nil for the reason
 	// [specindex.New] gives for the index's own: an entry with no
@@ -669,7 +688,7 @@ func (b *builder) finish(opts Options) *Corpus {
 		if key == "" {
 			continue
 		}
-		if _, seen := b.alsoKnown[key]; !seen {
+		if held, seen := b.alsoKnown[key]; !seen || envelope.HoldsSlugOver(entry, b.index.Entries[held]) {
 			b.alsoKnown[key] = i
 		}
 	}

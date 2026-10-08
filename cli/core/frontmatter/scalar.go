@@ -6,6 +6,7 @@ import (
 	"github.com/goccy/go-yaml"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/span"
+	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
 // TopLevelScalar reads the value of the top-level property name from
@@ -29,13 +30,25 @@ import (
 // The first line declaring the key decides: a duplicate key is a YAML
 // error in its own right and never makes a second value legible.
 func TopLevelScalar(src []byte, name string) (string, bool) {
+	value, _, found := TopLevelScalarAt(src, name)
+	return value, found
+}
+
+// TopLevelScalarAt is [TopLevelScalar] that also returns where the value
+// sits in src: the value's source text on its line, from its first
+// non-blank byte to its last, which is what [Property.Position] covers
+// for the same line in a block that parsed.
+func TopLevelScalarAt(src []byte, name string) (string, specmodel.Span, bool) {
 	region, found := Locate(src)
 	if !found {
-		return "", false
+		return "", specmodel.Span{}, false
 	}
 	prefix := name + ":"
-	for _, line := range strings.Split(string(span.Slice(src, region.Inner)), "\n") {
-		line = strings.TrimSuffix(line, "\r")
+	offset := int(region.Inner.Offset)
+	for _, line := range strings.SplitAfter(string(span.Slice(src, region.Inner)), "\n") {
+		start := offset
+		offset += len(line)
+		line = strings.TrimSuffix(strings.TrimSuffix(line, "\n"), "\r")
 		rest, ok := strings.CutPrefix(line, prefix)
 		if !ok {
 			continue
@@ -44,13 +57,15 @@ func TopLevelScalar(src []byte, name string) (string, bool) {
 			// "slugs:" or "slug_x:" — a different key sharing the prefix.
 			continue
 		}
-		value, ok := singleLineScalar(strings.TrimSpace(rest))
+		text := strings.TrimSpace(rest)
+		value, ok := singleLineScalar(text)
 		if !ok || value == "" {
-			return "", false
+			return "", specmodel.Span{}, false
 		}
-		return value, true
+		valueStart := start + len(prefix) + (len(rest) - len(strings.TrimLeft(rest, " \t")))
+		return value, span.Of(src, valueStart, len(text)), true
 	}
-	return "", false
+	return "", specmodel.Span{}, false
 }
 
 // singleLineScalar reads text as one YAML scalar written on one line.

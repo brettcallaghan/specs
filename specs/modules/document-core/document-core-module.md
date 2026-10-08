@@ -427,7 +427,10 @@ the key begins its line unindented, and the value is a non-empty
 single-line scalar, plain or quoted, with an optional trailing comment;
 anything else is no value rather than a guess. It takes the property's
 name from its caller and knows no envelope vocabulary: the Corpus asks
-it for `slug`.
+it for `slug`. `TopLevelScalarAt` reads the same value and also returns its
+span — the value's source text on its line, which is what a parsed
+property's `Position` covers — so a duplicate-slug finding against a
+recovered slug points at the value (AC-SPEC-003.3).
 
 Six semantics are pinned by the implementation:
 
@@ -1937,7 +1940,7 @@ with nothing parsed at all, which is what keeps a reference query and the
 inbound half of a single-document check inside the AC-SPEC-009.1 and
 AC-SPEC-009.2 budgets (AC-SPECREF-003.4).
 
-Six semantics are pinned by the implementation:
+Eight semantics are pinned by the implementation:
 
 - **Every read passes through one choke point, and that choke point
   normalizes line endings.** A candidate's bytes are read through the
@@ -1968,7 +1971,8 @@ Six semantics are pinned by the implementation:
   YAML parsed and the typed decode failed — a status outside the
   vocabulary — the slug is read from the parsed `slug` property; where
   the YAML itself failed inside a delimited block, Frontmatter's
-  `TopLevelScalar` reads it by line. Either way a non-empty string is
+  `TopLevelScalarAt` reads it, and where its value sits, by line. Either
+  way a non-empty string is
   recorded as the entry's `recovered_slug`, and every slug lookup reads an
   entry's slug through `envelope.DeclaredSlug` — the envelope's slug,
   else the recovered one — so the slug query, reference resolution and a
@@ -1979,8 +1983,22 @@ Six semantics are pinned by the implementation:
   read a target's typed frontmatter — retired target, type mismatch,
   pairing — skip a target without one, so a reference reaching a
   recovered member raises none of them; the slug-pattern and schema
-  checks, and duplicate detection, still run only on members that
-  parsed.
+  checks still run only on members that parsed.
+- **A recovered slug takes part in duplicate detection** exactly as a
+  parsed one does (AC-SPEC-003.3, AC-SPEC-003.7): a member whose
+  frontmatter failed and a member declaring the same slug each get a
+  `slug/duplicate` finding naming the other, the recovered one placed at
+  its slug value's position, alongside the separate `frontmatter/parse`
+  failure. The warm path groups entries by `envelope.DeclaredSlug` and
+  places a recovered slug from the source by the same rule, so its
+  findings match the cold build's.
+- **A parsed member wins a slug lookup over a recovered one.** Where both
+  declare one slug, the slug query, reference resolution and the warm
+  index's slug table all answer the member whose frontmatter parsed,
+  whatever their path order; between two of the same kind the first in
+  path order wins. One rule, `envelope.HoldsSlugOver`, decides it at
+  every site, so a reference to a shared slug still reaches a target the
+  retired-target, type-mismatch and pairing checks can read.
 - **A `.md` file with frontmatter declaring no `type` at all is
   `unknown-type` with no declared value reported.** It is not a document
   the active profile governs, and reporting an empty `type` would claim

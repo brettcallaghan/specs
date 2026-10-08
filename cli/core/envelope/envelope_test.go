@@ -165,3 +165,34 @@ func TestADecodeFailureNamesTheOffendingProperty(t *testing.T) {
 		t.Errorf("PropertyError = {%q, %q}, want {status, actve}", propertyErr.Property, propertyErr.Value)
 	}
 }
+
+// A parsed member holds a slug over a recovered one whatever their paths;
+// between two of a kind, the first in path order holds it.
+//
+// AC: AC-SPEC-003.7
+func TestHoldsSlugOverPrefersAParsedMemberThenPathOrder(t *testing.T) {
+	recovered := "adr-001"
+	parsed := func(path string) specmodel.IndexEntry {
+		return specmodel.IndexEntry{Path: path, Frontmatter: &specmodel.TypedFrontmatter{}}
+	}
+	broken := func(path string) specmodel.IndexEntry {
+		return specmodel.IndexEntry{Path: path, RecoveredSlug: &recovered}
+	}
+	cases := []struct {
+		name            string
+		candidate, held specmodel.IndexEntry
+		want            bool
+	}{
+		{"parsed later in path order beats recovered", parsed("b.md"), broken("a.md"), true},
+		{"recovered earlier in path order loses to parsed", broken("a.md"), parsed("b.md"), false},
+		{"parsed: lower path wins", parsed("a.md"), parsed("b.md"), true},
+		{"parsed: higher path loses", parsed("b.md"), parsed("a.md"), false},
+		{"recovered: lower path wins", broken("a.md"), broken("b.md"), true},
+		{"recovered: higher path loses", broken("b.md"), broken("a.md"), false},
+	}
+	for _, tc := range cases {
+		if got := HoldsSlugOver(tc.candidate, tc.held); got != tc.want {
+			t.Errorf("%s: HoldsSlugOver = %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}
