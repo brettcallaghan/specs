@@ -1,0 +1,5 @@
+description = "next-id for a numbered type no member uses yet answers number 1 and the slug it forms, zero-padded to the type's width"
+cites = ["AC-SPEC-007.1", "AC-SPEC-011.4"]
+artifacts = ["checks.log"]
+args = ["next-id", "adr"]
+exit_code = 0

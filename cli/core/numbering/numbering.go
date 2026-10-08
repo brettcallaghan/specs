@@ -11,6 +11,7 @@ package numbering
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -68,6 +69,18 @@ func Next(index specmodel.SpecIndex, docType string, rules map[string]corpus.Doc
 		}
 	}
 	return highest + 1, nil
+}
+
+// Format writes n as the identifier slug docType forms for it: the type,
+// a hyphen, and n zero-padded to the type's registered NumberWidth —
+// `adr-031` for 31 under a width of 3, `adr-1000` for 1000. It errors
+// ErrNotNumbered on the same condition [Next] does.
+func Format(docType string, n int, rules map[string]corpus.DocumentTypeRules) (string, error) {
+	typeRules, ok := rules[docType]
+	if !ok || !typeRules.Numbered {
+		return "", ErrNotNumbered
+	}
+	return fmt.Sprintf("%s-%0*d", docType, max(typeRules.NumberWidth, 0), n), nil
 }
 
 // leadingNumber reports the integer value of the run of ASCII digits

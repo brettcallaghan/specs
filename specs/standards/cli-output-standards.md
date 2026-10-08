@@ -367,7 +367,7 @@ repository's corpus.
 | `refs <slug>[#<anchor>]` | a YAML mapping of the properties the query established, the references a sequence of mappings beneath it; `--json` the same values in the same order | the compact view by default, today's answer under `--full` |
 | `list` | a YAML mapping whose one key is the sequence of documents; `--json` the same values in the same order | conforms |
 | `slug-exists <slug>` | a sentence, `adr-001: found at specs/adrs/adr-001-html-comments-for-instructions.md`; no `--json` | a mapping carrying `slug`, `declared` and `path`, with `--json` |
-| `next-id <type>` | a bare number, `31`; no `--json` | a mapping carrying `number` and `slug`, with `--json`; the bare number is a value with no name |
+| `next-id <type>` | a YAML mapping carrying `number` and then `slug`, `number: 32` and `slug: adr-032`; `--json` the same values in the same order | conforms |
 | `check [path]` | a YAML mapping of `checks` (only the checks the run was asked for) and `findings`; `--json` the same values in the same order | conforms |
 | `feature`, `criterion` | a YAML mapping whose one key, `features` or `criteria`, holds a list of records whatever the arguments select, one identifier included; `--json` the same values in the same order | conforms |
 | `links <path>` | the rewritten document | conforms — a document payload, written as itself |

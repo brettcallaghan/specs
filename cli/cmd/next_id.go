@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -16,28 +17,42 @@ import (
 // identifier for a numbered document type, per AC-SPEC-007.1
 // (AC-SPEC-011.4).
 func newNextIDCmd(streams *ioStreams, configPath *string) *cobra.Command {
+	var jsonOut bool
 	cmd := &cobra.Command{
 		Use:   "next-id <type>",
 		Short: "Return the next identifier for a numbered document type",
-		Long: "next-id returns one greater than the highest number in use for the " +
-			"given document type anywhere in the corpus, per the active profile's " +
-			"numbered-type registration.",
+		Long: "next-id answers the next identifier for the given document type: a " +
+			"YAML mapping holding number, one greater than the highest number in use " +
+			"for that type anywhere in the corpus, and slug, the slug that number " +
+			"forms under the type's registered width (adr-032). --json writes the " +
+			"same values as JSON. A type the active profile does not register as " +
+			"numbered is refused.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
-			return runNextID(streams, *configPath, args[0])
+			return runNextID(streams, *configPath, args[0], jsonOut)
 		},
 	}
+	cmd.Flags().BoolVar(&jsonOut, "json", false,
+		"write the answer as JSON instead of YAML")
 	return cmd
 }
 
-// runNextID answers [numbering.Next] for docType and renders the result.
+// nextIDResult is next-id's answer: the next number and the slug it forms
+// (AC-SPEC-007.1).
+type nextIDResult struct {
+	Number int    `json:"number"`
+	Slug   string `json:"slug"`
+}
+
+// runNextID answers [numbering.Next] for docType, formats the slug that
+// number forms with [numbering.Format], and renders both.
 //
 // docType not being registered as numbered is an invocation error
 // (exit 2), naming every numbered type, rather than a fact about the
 // corpus: the numbered types are a set the profile registers, and no
 // document an author writes makes an unnumbered type numbered
 // ([[cli-exit-status-standards]]'s "A value outside a registered set").
-func runNextID(streams *ioStreams, configPath, docType string) error {
+func runNextID(streams *ioStreams, configPath, docType string, jsonOut bool) error {
 	cfg, findings, err := Load(configPath, BuiltinRegistry())
 	if err != nil {
 		return err
@@ -56,16 +71,34 @@ func runNextID(streams *ioStreams, configPath, docType string) error {
 		return err
 	}
 
-	next, err := numbering.Next(c.Index(), docType, cfg.Profile.DocumentTypes())
-	if err != nil {
-		if errors.Is(err, numbering.ErrNotNumbered) {
-			return invocationError("%q is not registered as a numbered document type; numbered: %s",
-				docType, numberedTypes(cfg.Profile.DocumentTypes()))
+	rules := cfg.Profile.DocumentTypes()
+	next, err := numbering.Next(c.Index(), docType, rules)
+	if err == nil {
+		var slug string
+		slug, err = numbering.Format(docType, next, rules)
+		if err == nil {
+			return renderNextID(streams, nextIDResult{Number: next, Slug: slug}, jsonOut)
 		}
-		return fmt.Errorf("deriving the next identifier: %w", err)
 	}
+	if errors.Is(err, numbering.ErrNotNumbered) {
+		return invocationError("%q is not registered as a numbered document type; numbered: %s",
+			docType, numberedTypes(rules))
+	}
+	return fmt.Errorf("deriving the next identifier: %w", err)
+}
 
-	fmt.Fprintln(streams.out, next)
+// renderNextID writes the answer as YAML, or as JSON under --json, with
+// the same keys in the same order.
+func renderNextID(streams *ioStreams, result nextIDResult, asJSON bool) error {
+	if asJSON {
+		data, err := json.Marshal(result)
+		if err != nil {
+			return internalError("rendering the next identifier as JSON: %v", err)
+		}
+		fmt.Fprintf(streams.out, "%s\n", data)
+		return nil
+	}
+	fmt.Fprint(streams.out, renderYAML(result))
 	return nil
 }
 

@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
+	"github.com/brettcallaghan/agent-plugins/cli/core/numbering"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 	"github.com/brettcallaghan/agent-plugins/cli/profile"
 )
@@ -214,5 +215,35 @@ func TestConventionsSuppliesTheLineWidthDefault(t *testing.T) {
 	}
 	if *conventions.LineWidth != 80 {
 		t.Errorf("LineWidth = %d, want %d, per template-authoring-standards.md", *conventions.LineWidth, 80)
+	}
+}
+
+// Every numbered type's registered width formats a slug its own slug
+// pattern accepts, from the first number to one wider than the width, so
+// the width and the pattern cannot drift apart.
+//
+// AC: AC-SPEC-007.1
+func TestEveryNumberedTypeFormatsASlugItsPatternAccepts(t *testing.T) {
+	types := profile.New().DocumentTypes()
+	numbered := 0
+	for name, rules := range types {
+		if !rules.Numbered {
+			continue
+		}
+		numbered++
+		pattern := regexp.MustCompile(rules.SlugPattern)
+		for _, n := range []int{1, 31, 1000} {
+			slug, err := numbering.Format(name, n, types)
+			if err != nil {
+				t.Errorf("Format(%q, %d): %v", name, n, err)
+				continue
+			}
+			if !pattern.MatchString(slug) {
+				t.Errorf("Format(%q, %d) = %q, which %s's slug pattern %s rejects", name, n, slug, name, rules.SlugPattern)
+			}
+		}
+	}
+	if numbered == 0 {
+		t.Fatal("the profile registers no numbered type; this test proves nothing")
 	}
 }

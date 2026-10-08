@@ -328,6 +328,13 @@ type DocumentTypeRules struct {
 	// the highest in use anywhere in the corpus, regardless of directory.
 	Numbered bool
 
+	// NumberWidth is the minimum number of digits a numbered type's
+	// identifier is written with, zero-padded: 3 writes 31 as `031`. 0
+	// writes the number unpadded. It is how the next identifier is
+	// formatted into a slug, and it must agree with SlugPattern; the
+	// pattern is not read to derive it.
+	NumberWidth int
+
 	// ReferenceProperties are the frontmatter properties of this type
 	// that hold document slugs.
 	//

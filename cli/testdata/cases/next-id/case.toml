@@ -1,5 +1,5 @@
-description = "next-id returns one greater than the highest number in use for the named type"
-cites = ["AC-SPEC-011.4"]
+description = "next-id answers a mapping holding number, one greater than the highest number in use for the named type, and slug, the slug that number forms under the type's registered width"
+cites = ["AC-SPEC-007.1", "AC-SPEC-011.4"]
 artifacts = ["checks.log"]
 args = ["next-id", "adr"]
 exit_code = 0

@@ -1918,7 +1918,13 @@ corpus that member sits. An index with no member of the type — an empty
 corpus included — has a highest-in-use of zero, so `Next` returns 1. A
 type the table does not register as numbered, whether absent from it or
 present with `Numbered` false, returns `ErrNotNumbered` rather than an
-answer derived from the wrong query.
+answer derived from the wrong query. `Format` writes a number back into
+the slug it forms for the type — the type, a hyphen, and the number
+zero-padded to the type's `DocumentTypeRules.NumberWidth` (`adr-031` at
+width 3; unpadded at 0; never truncated, so `adr-1000`) — and refuses an
+unnumbered type the same way. The width is the profile's to register
+rather than derived from the slug pattern, and the profile's own tests
+hold every numbered type's formatted slug to its pattern.
 
 ### Findings
 

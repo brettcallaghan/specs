@@ -7,7 +7,7 @@ description: The plugin that supplies this framework's document
 slug: module-spec-profile
 type: module-blueprint
 status: approved
-updated_at: 2026-10-07T00:00:00Z
+updated_at: 2026-10-08T00:00:00Z
 kind: standard
 visibility: internal
 source_paths:
@@ -231,7 +231,7 @@ members are the whole of what this framework tells the host:
 | Member | Registers |
 |---|---|
 | `Schema()` | the embedded union schema over every document type |
-| `DocumentTypes()` | per type, its slug pattern and whether it is numbered (authored); its reference-bearing properties and its one typed reference (derived from the schema and authored, respectively); no pairings |
+| `DocumentTypes()` | per type, its slug pattern, whether it is numbered and, for a numbered type, the width its number is zero-padded to (authored — `adr` alone is numbered, at width 3, so `next-id adr` forms `adr-032`); its reference-bearing properties and its one typed reference (derived from the schema and authored, respectively); no pairings |
 | `Conventions()` | the `line_width` default of 80 codepoints |
 | `Lifecycle()` | the whole status vocabulary, `retired` as the only retired status, every other status as live, and `superseded_by` as the successor property |
 | `FeatureTags()` | the feature and criterion identifier patterns, the owning-document tag prefix `frd-`, the `code`/`number` capture groups the two identifier patterns share, and the qualifier tags `negative`, `manual`, and the `level-` prefixed vocabulary `unit`, `integration`, `e2e` |
