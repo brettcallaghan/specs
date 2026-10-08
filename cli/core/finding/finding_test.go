@@ -168,11 +168,14 @@ func TestEveryFindingIsSelfContained(t *testing.T) {
 			name: "ambiguous anchor",
 			finding: finding.AmbiguousAnchor("specs/adrs/adr-011.md", position, "References", "module-document-core.md",
 				[]specmodel.AnchorMatch{
-					{Text: "References", Span: position},
-					{Text: "References", Span: position},
+					{Text: "References", HeadingPath: "document-core#components#references", Span: position},
+					{Text: "References", HeadingPath: "document-core#references", Span: position},
 				}),
-			rule:     finding.RuleAmbiguousAnchor,
-			contains: []string{"References", "module-document-core.md", "2"},
+			rule: finding.RuleAmbiguousAnchor,
+			// AC-SPECANCH-002.5: every match named by the heading path
+			// that selects it alone, and its line.
+			contains: []string{"References", "module-document-core.md", "2",
+				"document-core#components#references (line ", "document-core#references (line "},
 			detail: func(t *testing.T, d specmodel.FindingDetail) {
 				v, ok := d.AsAmbiguousAnchor()
 				if !ok {

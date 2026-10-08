@@ -23,6 +23,7 @@ references:
       state: resolved
       heading:
         text: Decision
+        heading_path: adr-900-old-approach#decision
         span:
           offset: 246
           length: 12
@@ -50,6 +51,7 @@ references:
       state: resolved
       heading:
         text: Decision
+        heading_path: adr-900-old-approach#decision
         span:
           offset: 246
           length: 12

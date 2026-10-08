@@ -2,6 +2,7 @@ matches:
   - path: docs/adrs/adr-001-first.md
     text: "ADR-001: First"
     identifier: adr-001-first
+    heading_path: adr-001-first
     level: 1
     section:
       offset: 196
@@ -13,6 +14,7 @@ matches:
   - path: docs/adrs/adr-001-first.md
     text: Overview
     identifier: overview
+    heading_path: adr-001-first#overview
     level: 2
     section:
       offset: 209
@@ -24,6 +26,7 @@ matches:
   - path: docs/adrs/adr-001-first.md
     text: Decision
     identifier: decision
+    heading_path: adr-001-first#decision
     level: 2
     section:
       offset: 252
@@ -35,6 +38,7 @@ matches:
   - path: docs/adrs/adr-001-first.md
     text: Detail
     identifier: detail
+    heading_path: adr-001-first#decision#detail
     level: 3
     section:
       offset: 287
@@ -46,6 +50,7 @@ matches:
   - path: docs/adrs/adr-001-first.md
     text: Key Decisions
     identifier: key-decisions
+    heading_path: adr-001-first#key-decisions
     level: 2
     section:
       offset: 356

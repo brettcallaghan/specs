@@ -1,0 +1,5 @@
+description = "a heading path copied from an answer pastes back as a selection and selects the same heading"
+cites = ["AC-SPECSTR-003.9", "AC-SPECSTR-003.10"]
+artifacts = ["checks.log"]
+args = ["headings", "adr-500-roster#adr-500-roster#components#references"]
+exit_code = 0

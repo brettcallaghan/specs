@@ -396,17 +396,22 @@ func UnresolvedAnchor(path string, at specmodel.Span, anchor, targetPath string)
 	}
 }
 
-// AmbiguousAnchor reports an anchor whose identifier is the identifier of
-// more than one heading of its target document, naming every match
-// (AC-SPECANCH-002.5). Raised against the referring document, like
-// [UnresolvedAnchor].
+// AmbiguousAnchor reports an anchor that selects more than one heading of
+// its target document, naming every match by the heading path that
+// selects it alone and the line it is written on (AC-SPECANCH-002.5).
+// Raised against the referring document, like [UnresolvedAnchor].
 func AmbiguousAnchor(path string, at specmodel.Span, anchor, targetPath string, matches []specmodel.AnchorMatch) specmodel.Finding {
+	named := make([]string, len(matches))
+	for i, match := range matches {
+		named[i] = fmt.Sprintf("%s (line %d)", match.HeadingPath, match.Span.StartLine)
+	}
 	return specmodel.Finding{
 		Rule:     RuleAmbiguousAnchor,
 		Severity: SeverityError,
 		Path:     path,
 		Span:     at,
-		Message:  fmt.Sprintf("%q matches %d headings in %s", anchor, len(matches), targetPath),
+		Message: fmt.Sprintf("%q matches %d headings in %s: %s",
+			anchor, len(matches), targetPath, strings.Join(named, ", ")),
 		Detail: specmodel.NewFindingDetailAmbiguousAnchor(specmodel.FindingAmbiguousAnchor{
 			Anchor:     anchor,
 			TargetPath: targetPath,

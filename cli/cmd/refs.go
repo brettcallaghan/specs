@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
+	"github.com/brettcallaghan/agent-plugins/cli/core/references"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
@@ -164,7 +165,7 @@ func runRefs(streams *ioStreams, configPath string, asked selection, outbound, f
 		} else {
 			found = c.InboundReferences(entry.Path)
 		}
-		result.References = matches(found, asked.heading)
+		result.References = matches(found, asked.heading, entry.Headings)
 	}
 
 	if full {
@@ -179,17 +180,32 @@ func runRefs(streams *ioStreams, configPath string, asked selection, outbound, f
 
 // matches turns the references the corpus returned into the query's
 // answer: all of them where no anchor was asked for, and otherwise only
-// those whose anchor resolves to the named heading.
+// those whose anchor resolves to a heading of the queried document that
+// the asked anchor selects — headings, that document's own.
+//
+// The asked anchor is a heading path query like any anchor
+// (AC-SPECANCH-002.10), so it is matched against the document's headings
+// by the same rule, and a reference is compared with what it selected by
+// the position of the heading line rather than by text: two headings of
+// one name are two headings.
 //
 // The order is the corpus's throughout, so two runs over an unchanged
 // corpus print identical bytes.
-func matches(found []specmodel.Reference, anchor string) []refsMatch {
+func matches(found []specmodel.Reference, anchor string, headings []specmodel.Heading) []refsMatch {
 	answer := []refsMatch{}
-	wanted := markdown.Identifier(anchor)
+	selected := map[uint64]bool{}
+	if anchor != "" {
+		paths := references.HeadingPaths(headings)
+		for i, heading := range headings {
+			if markdown.MatchesPath(anchor, paths[i]) {
+				selected[heading.Span.Offset] = true
+			}
+		}
+	}
 
 	for _, reference := range found {
 		ambiguous := ambiguousAnchor(reference)
-		if anchor != "" && !reachesHeading(reference, wanted) {
+		if anchor != "" && !reachesHeading(reference, selected) {
 			continue
 		}
 		answer = append(answer, refsMatch{Reference: reference, AmbiguousAnchor: ambiguous})
@@ -197,8 +213,8 @@ func matches(found []specmodel.Reference, anchor string) []refsMatch {
 	return answer
 }
 
-// reachesHeading reports whether reference's anchor resolved to the
-// heading whose identifier is wanted.
+// reachesHeading reports whether reference's anchor resolved to one of
+// the selected headings, each named by the offset of its heading line.
 //
 // The question is asked of the resolution rather than of the anchor's own
 // text: the References component decided what this anchor reaches, and a
@@ -206,16 +222,16 @@ func matches(found []specmodel.Reference, anchor string) []refsMatch {
 // anchor reaches every heading it matched — it resolves to none of them,
 // and the author renaming one of them is exactly the reader who has to
 // see the reference (AC-SPECANCH-003.4).
-func reachesHeading(reference specmodel.Reference, wanted string) bool {
+func reachesHeading(reference specmodel.Reference, selected map[uint64]bool) bool {
 	if reference.AnchorResolution == nil {
 		return false
 	}
 	if resolved, ok := reference.AnchorResolution.AsResolved(); ok {
-		return markdown.Identifier(resolved.Heading.Text) == wanted
+		return selected[resolved.Heading.Span.Offset]
 	}
 	if ambiguous, ok := reference.AnchorResolution.AsAmbiguous(); ok {
 		for _, match := range ambiguous.Matches {
-			if markdown.Identifier(match.Text) == wanted {
+			if selected[match.Span.Offset] {
 				return true
 			}
 		}

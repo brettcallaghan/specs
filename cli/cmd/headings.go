@@ -12,6 +12,7 @@ import (
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
 	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
+	"github.com/brettcallaghan/agent-plugins/cli/core/references"
 	"github.com/brettcallaghan/agent-plugins/cli/core/span"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
@@ -38,7 +39,11 @@ func newHeadingsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			"absent operand selects every heading in the corpus. A document half " +
 			"holding a path separator or ending in .md is read as a repository-relative " +
 			"path, and otherwise as a slug. A heading is matched on its identifier, so " +
-			"letter case and punctuation do not decide a match, and a matched heading " +
+			"letter case and punctuation do not decide a match. The heading half may be " +
+			"a path of headings separated by #, outermost first, each nested within " +
+			"the one before it at any depth, so <document>#Components#References " +
+			"selects the References heading beneath Components; every match carries " +
+			"its heading path, which pastes back as such a selection. A matched heading " +
 			"is returned with every heading nested inside its section. Given --emit, " +
 			"the content each match stands over is written as itself instead.",
 		Args: cobra.MaximumNArgs(1),
@@ -72,11 +77,17 @@ var errNoEmitWithJSON = errors.New("--json cannot be combined with --emit")
 // content itself: the index records no section content, and --emit reads
 // the text back through this span.
 type headingMatch struct {
-	Path       string         `json:"path"`
-	Text       string         `json:"text"`
-	Identifier string         `json:"identifier"`
-	Level      uint64         `json:"level"`
-	Section    specmodel.Span `json:"section"`
+	Path       string `json:"path"`
+	Text       string `json:"text"`
+	Identifier string `json:"identifier"`
+	// HeadingPath is the identifier of each enclosing heading from the
+	// outermost down, then the heading's own, joined by "#"
+	// (AC-SPECSTR-003.9). Written as a selection's heading half it
+	// selects this heading alone, unless a sibling shares its text all
+	// the way up.
+	HeadingPath string         `json:"heading_path"`
+	Level       uint64         `json:"level"`
+	Section     specmodel.Span `json:"section"`
 }
 
 // headingsResult is the answer: the matches and nothing else.
@@ -169,7 +180,6 @@ func runHeadings(streams *ioStreams, configPath, operand string, emit, jsonOut b
 // reason the index itself is byte-identical (AC-SPEC-009.7).
 func selectHeadings(index specmodel.SpecIndex, sel selection) []headingMatch {
 	matches := []headingMatch{}
-	wanted := markdown.Identifier(sel.heading)
 
 	for _, entry := range index.Entries {
 		if !sel.selects(entry) {
@@ -180,8 +190,13 @@ func selectHeadings(index specmodel.SpecIndex, sel selection) []headingMatch {
 		// heading reached both as a match and as one nested inside
 		// another match is reported once.
 		chosen := make([]bool, len(entry.Headings))
+		paths := references.HeadingPaths(entry.Headings)
 		for i, heading := range entry.Headings {
-			if sel.heading != "" && markdown.Identifier(heading.Text) != wanted {
+			// The heading half is a heading path query: one segment is
+			// matched on its identifier, and several select the heading
+			// named by the last beneath each earlier one, at any depth
+			// (AC-SPECSTR-003.10, AC-SPECSTR-003.11).
+			if sel.heading != "" && !markdown.MatchesPath(sel.heading, paths[i]) {
 				continue
 			}
 			chosen[i] = true
@@ -202,11 +217,12 @@ func selectHeadings(index specmodel.SpecIndex, sel selection) []headingMatch {
 				continue
 			}
 			matches = append(matches, headingMatch{
-				Path:       entry.Path,
-				Text:       heading.Text,
-				Identifier: markdown.Identifier(heading.Text),
-				Level:      heading.Level,
-				Section:    heading.SectionSpan,
+				Path:        entry.Path,
+				Text:        heading.Text,
+				Identifier:  paths[i][len(paths[i])-1],
+				HeadingPath: markdown.JoinPath(paths[i]),
+				Level:       heading.Level,
+				Section:     heading.SectionSpan,
 			})
 		}
 	}

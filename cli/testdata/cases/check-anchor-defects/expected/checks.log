@@ -95,13 +95,14 @@ findings:
       start_column: 43
       end_line: 13
       end_column: 68
-    message: "\"References\" matches 2 headings in docs/adrs/adr-400-target.md"
+    message: "\"References\" matches 2 headings in docs/adrs/adr-400-target.md: adr-400-the-cited-document#references (line 16), adr-400-the-cited-document#references#references (line 20)"
     detail:
       kind: ambiguous-anchor
       anchor: References
       target_path: docs/adrs/adr-400-target.md
       matches:
         - text: References
+          heading_path: adr-400-the-cited-document#references
           span:
             offset: 330
             length: 14
@@ -110,6 +111,7 @@ findings:
             end_line: 17
             end_column: 1
         - text: references
+          heading_path: adr-400-the-cited-document#references#references
           span:
             offset: 372
             length: 15

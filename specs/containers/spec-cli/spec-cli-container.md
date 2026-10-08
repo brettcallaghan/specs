@@ -297,10 +297,15 @@ AC-SPEC-007.2 defines for `slug-exists` — are told apart by the
 An anchor qualifies the argument rather than changing what it looks up:
 the same inbound set is narrowed to the references whose anchor
 resolves to that heading, the blast radius of renaming it
-(AC-SPECANCH-003.1). Which heading an anchor reached is read off the
-reference's own `anchor_resolution` — the References component settled
-it during resolution — so this command derives nothing about anchors and
-cannot disagree with the checks. A reference whose anchor matched more
+(AC-SPECANCH-003.1). The asked anchor may be a path of headings, like any
+anchor (AC-SPECANCH-002.10): it is matched against the document's own
+headings by Markdown Structure's `MatchesPath`, and a reference reaches
+the query when the heading its `anchor_resolution` records — or one of
+its ambiguous matches — is one the asked anchor selected, compared by
+the heading line's position, since two headings of one name are two
+headings. Which heading a reference reached is read off its own
+`anchor_resolution` — the References component settled it during
+resolution — so this command cannot disagree with the checks. A reference whose anchor matched more
 than one heading resolves to none of them and is listed for each of
 them, carrying `ambiguous_anchor` (AC-SPECANCH-003.4); an anchor no
 reference reaches answers with the empty collection and exits zero
@@ -460,16 +465,24 @@ one corpus lookup and the result into stdout and an exit status, with no
 selection or matching logic of its own.
 
 `headings` answers a heading selection with every match's file path,
-heading text, heading identifier, level and the span of the content
-beneath it (AC-SPECSTR-003.1). The selection is one operand written
+heading text, heading identifier, heading path, level and the span of the
+content beneath it (AC-SPECSTR-003.1). The selection is one operand written
 `<document>#<heading>`, either half omittable: `<document>` alone selects
 every heading in that document, `#<heading>` that heading in every corpus
 member, and an absent operand every heading in the corpus
 (AC-SPECSTR-003.3). A document half holding a path separator or ending in
 `.md` is read as a repository-relative path and otherwise as a slug. A
 heading is matched on the identifier `markdown.Identifier` derives, so
-letter case and punctuation do not decide a match (AC-SPECSTR-003.2), and
-a matched heading is returned with every heading nested inside its
+letter case and punctuation do not decide a match (AC-SPECSTR-003.2). The
+heading half may be a path of headings separated by `#` —
+`module-document-core#Components#References` — selecting the heading
+named by the last segment beneath a heading named by each earlier one, in
+order and at any depth (AC-SPECSTR-003.10, AC-SPECSTR-003.11), through
+Markdown Structure's `MatchesPath`, the matcher anchor resolution uses.
+Each match's `heading_path` is the identifier of every enclosing heading
+from the outermost down, then its own, joined by `#` (AC-SPECSTR-003.9),
+so it tells two same-named headings apart and pastes back as a selection.
+A matched heading is returned with every heading nested inside its
 section, each carrying its own level (AC-SPECSTR-003.4). `--emit` writes
 the content each match stands over instead, read back through the
 recorded span and written as itself with no envelope (AC-SPECSTR-003.5) —

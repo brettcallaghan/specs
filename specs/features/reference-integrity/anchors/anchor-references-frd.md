@@ -55,9 +55,6 @@ deliberately, not overlooked:
   [[frd-spec-reference-integrity]]. A reference whose slug resolves to
   nothing is reported there; this feature says nothing further about it,
   so one broken reference never produces two findings.
-- **Nested heading paths.** `#Components#Element Registry` is one
-  anchor, which names no heading and therefore reports. Resolving a path
-  of nested headings is deferred.
 - **Block anchors.** A caret carries no special meaning: the caret in
   `#^decision-table` disappears in normalization, leaving an ordinary
   anchor. No feature extracts block identifiers to resolve one against.

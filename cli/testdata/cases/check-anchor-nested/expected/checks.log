@@ -1,0 +1,121 @@
+checks:
+  - rule: c4/ambiguous-node
+    outcome: passed
+  - rule: c4/bidirectional
+    outcome: passed
+  - rule: c4/contract-mismatch
+    outcome: passed
+  - rule: c4/contract-unresolved
+    outcome: passed
+  - rule: c4/drawing-conflict
+    outcome: passed
+  - rule: c4/duplicate-edge
+    outcome: passed
+  - rule: c4/interaction-conflict
+    outcome: passed
+  - rule: c4/parse
+    outcome: passed
+  - rule: c4/tag-separator
+    outcome: passed
+  - rule: c4/undeclared-node
+    outcome: passed
+  - rule: corpus/empty
+    outcome: passed
+  - rule: frontmatter/missing-property
+    outcome: passed
+  - rule: frontmatter/parse
+    outcome: passed
+  - rule: frontmatter/schema
+    outcome: passed
+  - rule: gherkin/criterion-code-mismatch
+    outcome: passed
+  - rule: gherkin/criterion-empty
+    outcome: passed
+  - rule: gherkin/criterion-untagged
+    outcome: passed
+  - rule: gherkin/examples-partially-tagged
+    outcome: passed
+  - rule: gherkin/feature-untagged
+    outcome: passed
+  - rule: gherkin/identifier-duplicate
+    outcome: passed
+  - rule: gherkin/identifier-malformed
+    outcome: passed
+  - rule: gherkin/identifier-multiple
+    outcome: passed
+  - rule: gherkin/owner-mismatch
+    outcome: passed
+  - rule: gherkin/owner-missing
+    outcome: passed
+  - rule: gherkin/owner-unresolved
+    outcome: passed
+  - rule: gherkin/parse
+    outcome: passed
+  - rule: gherkin/scenario-prose
+    outcome: passed
+  - rule: reference/ambiguous-anchor
+    outcome: failed
+  - rule: reference/pairing-incomplete
+    outcome: passed
+  - rule: reference/retired-target
+    outcome: passed
+  - rule: reference/type-mismatch
+    outcome: passed
+  - rule: reference/unresolved
+    outcome: passed
+  - rule: reference/unresolved-anchor
+    outcome: failed
+  - rule: slug/duplicate
+    outcome: passed
+  - rule: slug/pattern-mismatch
+    outcome: passed
+findings:
+  - rule: reference/unresolved-anchor
+    severity: error
+    path: docs/adrs/adr-501-citing.md
+    span:
+      offset: 289
+      length: 30
+      start_line: 14
+      start_column: 33
+      end_line: 14
+      end_column: 63
+    message: no heading named "Components#Nope" in docs/adrs/adr-500-roster.md
+    detail:
+      kind: unresolved-anchor
+      anchor: Components#Nope
+      target_path: docs/adrs/adr-500-roster.md
+  - rule: reference/ambiguous-anchor
+    severity: error
+    path: docs/adrs/adr-501-citing.md
+    span:
+      offset: 369
+      length: 41
+      start_line: 16
+      start_column: 46
+      end_line: 16
+      end_column: 87
+    message: "\"ADR-500: Roster#References\" matches 2 headings in docs/adrs/adr-500-roster.md: adr-500-roster#components#references (line 14), adr-500-roster#references (line 26)"
+    detail:
+      kind: ambiguous-anchor
+      anchor: "ADR-500: Roster#References"
+      target_path: docs/adrs/adr-500-roster.md
+      matches:
+        - text: References
+          heading_path: adr-500-roster#components#references
+          span:
+            offset: 243
+            length: 15
+            start_line: 14
+            start_column: 1
+            end_line: 15
+            end_column: 1
+        - text: References
+          heading_path: adr-500-roster#references
+          span:
+            offset: 362
+            length: 14
+            start_line: 26
+            start_column: 1
+            end_line: 27
+            end_column: 1

@@ -3052,6 +3052,12 @@ type AnchorMatch struct {
 	// The heading's text as authored, without the `#` markers that open the
 	// line.
 	Text string `json:"text"`
+	// The heading's heading path: the identifier of each enclosing heading
+	// from the outermost down, followed by its own, joined by `#`. Written as
+	// a selection or an anchor, it names this heading alone unless two
+	// sibling headings share identical text all the way up, and then no path
+	// can.
+	HeadingPath string `json:"heading_path"`
 	// Where the heading line itself is written.
 	Span Span `json:"span"`
 }
@@ -3066,6 +3072,11 @@ func (v *AnchorMatch) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Text); err != nil {
 		return prefixField("text", err)
 	}
+	if m, ok := raw["heading_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("AnchorMatch: required field \"heading_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.HeadingPath); err != nil {
+		return prefixField("heading_path", err)
+	}
 	if m, ok := raw["span"]; !ok || string(m) == "null" {
 		return fmt.Errorf("AnchorMatch: required field \"span\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Span); err != nil {
@@ -3074,7 +3085,7 @@ func (v *AnchorMatch) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "text", "span":
+		case "text", "heading_path", "span":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key

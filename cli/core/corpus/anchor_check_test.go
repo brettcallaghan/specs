@@ -285,3 +285,65 @@ func TestCheckForReportsTheNamedDocumentsOwnBrokenAnchor(t *testing.T) {
 		t.Error("finding carries an empty span")
 	}
 }
+
+// An anchor written as a path of headings resolves through its enclosing
+// headings: it selects the heading named by its last segment beneath each
+// earlier one, so it can name one of two same-named headings that a
+// single-segment anchor finds ambiguous. A path no heading satisfies is
+// unresolved, and one that several satisfy is ambiguous, each match named
+// by its full heading path and line.
+//
+// AC: AC-SPECANCH-002.10, AC-SPECANCH-002.5
+func TestANestedAnchorResolvesThroughItsEnclosingHeadings(t *testing.T) {
+	target := sectioned("adr", "adr-002", "Second",
+		"## Components", "### References", "### Findings", "#### Detail", "## References")
+
+	cases := []struct {
+		name   string
+		anchor string
+		rule   specmodel.RuleId
+		names  []string
+	}{
+		{"a path naming one of two same-named headings resolves", "Components#References", "", nil},
+		{"an intermediate ancestor may be left out", "Second#Detail", "", nil},
+		{"the full heading path resolves", "second#components#references", "", nil},
+		{"a path no heading satisfies is unresolved", "Components#Nope", finding.RuleUnresolvedAnchor, nil},
+		{"out-of-order segments are unresolved", "References#Components", finding.RuleUnresolvedAnchor, nil},
+		{"a path several headings satisfy is ambiguous", "Second#References", finding.RuleAmbiguousAnchor,
+			[]string{"second#components#references (line ", "second#references (line "}},
+		{"a single segment several match names every heading path", "References", finding.RuleAmbiguousAnchor,
+			[]string{"second#components#references (line ", "second#references (line "}},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			repo := t.TempDir()
+			write(t, repo, "specs/adrs/adr-002.md", target)
+			write(t, repo, "specs/adrs/adr-001.md", citing("adr", "adr-001", "First", "See [[adr-002#"+c.anchor+"]]."))
+
+			got := anchorFindingsOf(checkedAnchors(t, repo))
+			if c.rule == "" {
+				if len(got) != 0 {
+					t.Fatalf("[[adr-002#%s]] raised %+v, want it to resolve", c.anchor, got)
+				}
+				return
+			}
+			if len(got) != 1 || got[0].Rule != c.rule {
+				t.Fatalf("[[adr-002#%s]] raised %+v, want one %s", c.anchor, got, c.rule)
+			}
+			for _, name := range c.names {
+				if !strings.Contains(got[0].Message, name) {
+					t.Errorf("message %q does not name %q", got[0].Message, name)
+				}
+			}
+			if c.rule == finding.RuleAmbiguousAnchor {
+				detail, _ := got[0].Detail.AsAmbiguousAnchor()
+				for _, match := range detail.Matches {
+					if !strings.HasPrefix(match.HeadingPath, "second#") {
+						t.Errorf("match %+v carries no heading path", match)
+					}
+				}
+			}
+		})
+	}
+}

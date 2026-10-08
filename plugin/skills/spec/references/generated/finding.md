@@ -427,6 +427,7 @@ record blocks.
 | Property | Type | Documentation |
 |----------|------|---------------|
 | text | String | The heading's text as authored, without the `#` markers that open the line. |
+| heading_path | String | The heading's heading path: the identifier of each enclosing heading from the outermost down, followed by its own, joined by `#`. Written as a selection or an anchor, it names this heading alone unless two sibling headings share identical text all the way up, and then no path can. |
 | span | [Span](index.md#span) | Where the heading line itself is written. |
 
 

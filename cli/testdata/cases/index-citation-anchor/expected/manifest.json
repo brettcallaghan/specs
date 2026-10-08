@@ -124,6 +124,7 @@
         "state": "resolved",
         "heading": {
           "text": "Decision",
+          "heading_path": "adr-012-decision#decision",
           "span": {
             "offset": 203,
             "length": 12,
@@ -137,5 +138,5 @@
     }
   ],
   "features": [],
-  "input_hash": "sha256:f80d9650bf025a943c8e03a2248db564977e88a4afe9b8a87d746a4dd4e5a60a"
+  "input_hash": "sha256:dd62859998c7b73f3f194883adbd288626c7728dde2e2c93f7a7bf50eb4730e5"
 }

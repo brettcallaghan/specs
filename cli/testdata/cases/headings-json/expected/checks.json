@@ -1,1 +1,1 @@
-{"matches":[{"path":"docs/adrs/adr-001-first.md","text":"Overview","identifier":"overview","level":2,"section":{"offset":209,"length":31,"start_line":13,"start_column":1,"end_line":16,"end_column":1}}]}
+{"matches":[{"path":"docs/adrs/adr-001-first.md","text":"Overview","identifier":"overview","heading_path":"adr-001-first#overview","level":2,"section":{"offset":209,"length":31,"start_line":13,"start_column":1,"end_line":16,"end_column":1}}]}

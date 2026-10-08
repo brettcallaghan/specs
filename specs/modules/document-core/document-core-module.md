@@ -594,6 +594,29 @@ than recorded on a `Heading`, and the index model carries no identifier
 property for the same reason: it is recomputable from the text and is
 therefore not state.
 
+Two more pure functions name a heading among same-named ones, working on
+an `Outline` — a heading's text and level, which a parsed `Heading` and
+an indexed one both carry — so the package takes no dependency on the
+index model. `HeadingPaths` returns each heading's heading path: the
+identifier of every enclosing heading from the outermost down, then its
+own (AC-SPECSTR-003.9), `JoinPath` writing it with `#` between segments.
+A heading encloses the headings after it up to the next one at its own
+level or higher, the nesting its section follows, so a skipped level
+changes nothing and a document with no top-level heading has paths that
+begin at its shallowest. `MatchesPath` decides whether a query — one or
+more `#`-separated segments, each compared on its identifier — selects
+a heading by its path: the last segment must be the heading's own
+identifier and every earlier one an enclosing heading's, in order from
+the outermost, at any depth (AC-SPECSTR-003.11, AC-SPECANCH-002.10). One
+segment is exactly an identifier comparison, so every selection and
+anchor written before paths existed answers as it did; a full heading
+path pastes back as a query selecting the same heading; and a query
+holding an empty segment selects nothing. The `headings` query and
+anchor resolution both match through `MatchesPath`, over paths derived
+by one conversion of the recorded headings (`references.HeadingPaths`),
+so a selection and an anchor written alike cannot select different
+headings.
+
 The comment-block location remains **not yet built**: no
 `cli/core/markdown` surface locates an HTML comment block yet.
 
@@ -1006,6 +1029,16 @@ recording headings ([[frd-spec-structure]]):
   same derivation Markdown Structure exposes and Markdown Links consumes
   for its own fragment — an anchor this component resolves is an anchor
   an exported copy can target.
+- **An anchor written as a path of headings resolves through its
+  enclosing headings** (AC-SPECANCH-002.10): `#Components#References`
+  selects the `References` heading beneath `Components` at any depth, by
+  Markdown Structure's `MatchesPath`, so one of two same-named headings
+  can be named without renaming either. It is unresolved where no heading
+  satisfies every segment and ambiguous where several do, by the same
+  rule as a single-segment anchor. Every match the resolution records
+  carries its `heading_path`, and a resolved nested anchor's markdown
+  link fragment is its last heading's, since a fragment can address only
+  one heading.
 - **Exactly one match resolves the anchor to that heading; more than one
   resolves it to no heading and carries every match** (AC-SPECANCH-002.5),
   so the reader is told which headings to disambiguate rather than only
@@ -1549,10 +1582,11 @@ identifiers of its own.** `reference/unresolved-anchor` fires at
 severity `error` when a reference's anchor matches no heading of a
 target whose headings are known, naming the target document and the
 anchor as authored (AC-SPECANCH-002.1); `reference/ambiguous-anchor`
-fires at `error` when the anchor's identifier is the identifier of more
-than one heading, carrying every match with its span, since the reader
-has to know which headings to disambiguate rather than only that a
-collision exists (AC-SPECANCH-002.5). Where the target's headings were
+fires at `error` when the anchor selects more than one heading,
+carrying every match with its span and heading path and naming each
+match's heading path and line in its message, since the reader has to
+know which headings to disambiguate — and the path that selects each
+one alone — rather than only that a collision exists (AC-SPECANCH-002.5). Where the target's headings were
 never recorded, `reference/unresolved-anchor` reports at
 `unverified` instead: the tool could not look, which is not the claim
 that it looked and found nothing (AC-SPECANCH-002.4) — the one rule
@@ -1986,7 +2020,7 @@ is:
   the anchor as authored and the target document's path
   (AC-SPECANCH-002.1); and an ambiguous anchor, with the anchor as
   authored, the target document's path and every heading it matches with
-  its span (AC-SPECANCH-002.5). The message is derivable from the
+  its heading path and span (AC-SPECANCH-002.5). The message is derivable from the
   variant, so a consumer branches on structure rather than parsing
   prose.
 - **`Severity`** — `error`, `warning` and `unverified`, the three
