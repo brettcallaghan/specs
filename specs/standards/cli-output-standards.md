@@ -370,11 +370,11 @@ repository's corpus.
 | `slug-exists <slug>` | a YAML mapping carrying `slug`, `declared` and `path` (`null` where undeclared); `--json` the same values in the same order | conforms |
 | `next-id <type>` | a YAML mapping carrying `number` and then `slug`, `number: 32` and `slug: adr-032`; `--json` the same values in the same order | conforms |
 | `check [path]` | a YAML mapping of `checks` (only the checks the run was asked for) and `findings`; `--json` the same values in the same order | conforms |
-| `feature`, `criterion` | a YAML mapping whose one key, `features` or `criteria`, holds a list of records whatever the arguments select, one identifier included; `--json` the same values in the same order | conforms |
+| `feature`, `criterion` | a YAML mapping whose key `features` or `criteria` holds a list of records whatever the arguments select, one identifier included, preceded by `declared` where the arguments name a subject; `--json` the same values in the same order | conforms |
 | `links <path>` | the rewritten document | conforms — a document payload, written as itself |
 | `index` | the artifact, or the bare path it wrote | the artifact is out of scope; the printed path is an answer |
-| `headings <selection>` | a YAML mapping whose one key is the sequence of matches, each carrying its heading path; `--json` the same values in the same order; `--emit` the one matched section as itself, and refused with exit `2` when several match | conforms. Its rendering is the source of the `renderYAML` the other commands adopt |
-| `c4 [--root <slug>]` | a YAML mapping of the C4 model; `--json` the same values in the same order | conforms — written against these standards, and renders through `renderYAML` unchanged |
+| `headings <selection>` | a YAML mapping whose key `matches` is the sequence of matches, each carrying its heading path, preceded by `declared` where the selection names a document; `--json` the same values in the same order; `--emit` the one matched section as itself, and refused with exit `2` when several match | conforms. Its rendering is the source of the `renderYAML` the other commands adopt |
+| `c4 [--root <slug>]` | a YAML mapping of the C4 model, carrying `root_declared` under `--root`; `--json` the same values in the same order | conforms — written against these standards, and renders through `renderYAML` unchanged |
 
 Migration is per command and belongs to whichever feature next touches
 it. Every command carries snapshot cases under `cli/testdata/cases/`,

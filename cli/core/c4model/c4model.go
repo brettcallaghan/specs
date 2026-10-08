@@ -17,7 +17,6 @@ package c4model
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"regexp"
 	"sort"
@@ -47,15 +46,6 @@ type Input struct {
 	Root string
 }
 
-// UnknownRootError reports a root slug that names no element.
-type UnknownRootError struct {
-	Slug string
-}
-
-func (e *UnknownRootError) Error() string {
-	return fmt.Sprintf("%s names no element", e.Slug)
-}
-
 // Build assembles the corpus's C4 model.
 //
 // Every system-level element is placed in the model's systems, every
@@ -64,6 +54,12 @@ func (e *UnknownRootError) Error() string {
 // ordered by slug, and every collection of slugs likewise. No element is
 // created from a diagram node. An element with no slug is identified by
 // nothing and is left out.
+//
+// A non-empty Root narrows the model and sets its root_declared: true
+// when the root names an element, and false when none has that slug, in
+// which case the model holds no element and no relationship. A root the
+// corpus does not declare is an answer about the corpus, not an error
+// (AC-C4-004.6). A whole-corpus model carries no root_declared.
 func Build(in Input) (*specmodel.C4Model, error) {
 	set, err := c4elements.Build(in.Elements)
 	if err != nil {
@@ -78,9 +74,26 @@ func Build(in Input) (*specmodel.C4Model, error) {
 	}
 	root, ok := set.Element(in.Root)
 	if !ok || root.Slug == "" {
-		return nil, &UnknownRootError{Slug: in.Root}
+		return emptyModel(in.Workspace, false), nil
 	}
 	return a.narrow(a.model(), root), nil
+}
+
+// emptyModel is a model holding no element and no relationship, every
+// collection the empty list rather than null, with rootDeclared as its
+// root_declared.
+func emptyModel(workspace string, rootDeclared bool) *specmodel.C4Model {
+	return &specmodel.C4Model{
+		SchemaVersion:         SchemaVersion,
+		Workspace:             workspace,
+		RootDeclared:          &rootDeclared,
+		SoftwareSystems:       []specmodel.C4System{},
+		OrphanedContainers:    []specmodel.C4Container{},
+		OrphanedComponents:    []specmodel.C4Component{},
+		Modules:               []specmodel.C4Module{},
+		Relationships:         []specmodel.C4Relationship{},
+		ExcludedRelationships: []specmodel.C4ExcludedRelationship{},
+	}
 }
 
 // assembly is one run of [Build].

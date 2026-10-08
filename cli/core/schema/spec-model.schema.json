@@ -672,6 +672,13 @@
           },
           "type": "array"
         },
+        "root_declared": {
+          "description": "Whether the root the model was narrowed to names an element: present\nexactly when the model was narrowed by a root, and false when no\nelement has that slug, every collection then empty. Absent from a\nwhole-corpus model, which names no root.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "schema_version": {
           "description": "The version of this shape. Pinned to one value so a consumer can\nrefuse an artifact it does not understand.",
           "pattern": "^0\\.1$",

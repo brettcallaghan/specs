@@ -2,12 +2,9 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
-
-	"github.com/brettcallaghan/agent-plugins/cli/core/c4model"
 )
 
 // newC4Cmd builds the `c4` subcommand: emit the corpus's C4 model — the
@@ -33,8 +30,9 @@ func newC4Cmd(streams *ioStreams, configPath *string) *cobra.Command {
 			"from the configuration, and its collections are ordered so that an " +
 			"unchanged corpus emits the same bytes. It exits zero whatever the model " +
 			"holds: judging the diagrams is check's job. --root narrows the model to " +
-			"one element and its descendants; a slug naming no element is reported on " +
-			"standard error with a non-zero exit and nothing on standard output.",
+			"one element and its descendants, and the model then carries root_declared; " +
+			"a slug naming no element is answered with root_declared false and every " +
+			"collection empty, and exits zero.",
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runC4(streams, *configPath, root, jsonOut)
@@ -51,9 +49,8 @@ func newC4Cmd(streams *ioStreams, configPath *string) *cobra.Command {
 //
 // Warm, through the shared [openCorpus], for the reason `check` and `list`
 // are: the model is a projection of what the index already records. An
-// unknown --root comes back from Document Core as an error naming the
-// slug, which is written to standard error with exit 1; nothing has
-// reached standard output by then.
+// unknown --root is an answer Document Core gives, a model holding nothing
+// with root_declared false (AC-C4-004.6), so it is rendered like any other.
 func runC4(streams *ioStreams, configPath, root string, jsonOut bool) error {
 	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
@@ -73,17 +70,8 @@ func runC4(streams *ioStreams, configPath, root string, jsonOut bool) error {
 		return err
 	}
 
-	// An unknown --root still exits 1 with its message on standard
-	// error and nothing on standard output. It is caught here because,
-	// returned, it would be an unclassified error and exit 4.
 	model, err := c.C4Model(cfg.Workspace, root)
 	if err != nil {
-		var unknown *c4model.UnknownRootError
-		if errors.As(err, &unknown) {
-			fmt.Fprintln(streams.err, unknown.Error())
-			streams.exitCode = statusGateFailed
-			return nil
-		}
 		return err
 	}
 

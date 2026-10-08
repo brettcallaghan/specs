@@ -78,11 +78,17 @@ var errNoAnchorWithOutbound = errors.New("--outbound takes a slug, not a slug qu
 // unanchored query answers with the properties it established and no key
 // standing for a question nobody asked.
 type refsResult struct {
-	Slug       string      `json:"slug"`
-	Anchor     string      `json:"anchor,omitempty"`
-	Direction  string      `json:"direction"`
-	Declared   bool        `json:"declared"`
-	References []refsMatch `json:"references"`
+	Slug      string `json:"slug"`
+	Anchor    string `json:"anchor,omitempty"`
+	Direction string `json:"direction"`
+	Declared  bool   `json:"declared"`
+	// AnchorDeclared states whether the asked anchor names a heading of
+	// the declared document, by the rule an anchor reference resolves by
+	// (AC-SPECANCH-003.6); false where it names none, and false where the
+	// slug itself is undeclared. Present exactly when the argument
+	// carries an anchor, as Anchor is.
+	AnchorDeclared *bool       `json:"anchor_declared,omitempty"`
+	References     []refsMatch `json:"references"`
 }
 
 // refsMatch is one reference the query answers with: the reference as the
@@ -158,6 +164,9 @@ func runRefs(streams *ioStreams, configPath string, asked selection, outbound, f
 		Declared:   declared,
 		References: []refsMatch{},
 	}
+	if asked.heading != "" {
+		result.AnchorDeclared = anchorDeclared(declared, asked.heading, entry.Headings)
+	}
 	if declared {
 		var found []specmodel.Reference
 		if outbound {
@@ -211,6 +220,20 @@ func matches(found []specmodel.Reference, anchor string, headings []specmodel.He
 		answer = append(answer, refsMatch{Reference: reference, AmbiguousAnchor: ambiguous})
 	}
 	return answer
+}
+
+// anchorDeclared reports whether anchor names some heading of the
+// queried document — headings, its own — selected by the same heading
+// path rule an anchor reference resolves by (AC-SPECANCH-002.2,
+// AC-SPECANCH-002.10). An undeclared document has no headings to name.
+func anchorDeclared(documentDeclared bool, anchor string, headings []specmodel.Heading) *bool {
+	found := false
+	if documentDeclared {
+		for _, chosen := range markdown.SelectPaths(anchor, references.HeadingPaths(headings)) {
+			found = found || chosen
+		}
+	}
+	return &found
 }
 
 // reachesHeading reports whether reference's anchor resolved to one of
@@ -273,11 +296,12 @@ func renderRefs(streams *ioStreams, result any, asJSON bool) error {
 // one entry per referring document (AC-SPECREF-003.6), per
 // [[cli-output-standards]]'s "refs: the compact view and --full".
 type refsCompactResult struct {
-	Slug       string         `json:"slug"`
-	Anchor     string         `json:"anchor,omitempty"`
-	Direction  string         `json:"direction"`
-	Declared   bool           `json:"declared"`
-	References []refsDocument `json:"references"`
+	Slug           string         `json:"slug"`
+	Anchor         string         `json:"anchor,omitempty"`
+	Direction      string         `json:"direction"`
+	Declared       bool           `json:"declared"`
+	AnchorDeclared *bool          `json:"anchor_declared,omitempty"`
+	References     []refsDocument `json:"references"`
 }
 
 // refsDocument is one referring document's entry in the compact view.
@@ -314,11 +338,12 @@ type refsResolutionState struct {
 // an unchanged corpus print identical bytes.
 func compactRefs(result refsResult) (refsCompactResult, error) {
 	compact := refsCompactResult{
-		Slug:       result.Slug,
-		Anchor:     result.Anchor,
-		Direction:  result.Direction,
-		Declared:   result.Declared,
-		References: []refsDocument{},
+		Slug:           result.Slug,
+		Anchor:         result.Anchor,
+		Direction:      result.Direction,
+		Declared:       result.Declared,
+		AnchorDeclared: result.AnchorDeclared,
+		References:     []refsDocument{},
 	}
 	position := map[string]int{}
 	for _, match := range result.References {

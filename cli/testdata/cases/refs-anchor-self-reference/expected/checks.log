@@ -2,6 +2,7 @@ slug: adr-402-self-citing
 anchor: Decision
 direction: inbound
 declared: true
+anchor_declared: true
 references:
   - path: docs/adrs/adr-402-self-citing.md
     references:

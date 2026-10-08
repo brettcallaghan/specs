@@ -2,4 +2,5 @@ slug: adr-900-old-approach
 anchor: Rationale
 direction: inbound
 declared: true
+anchor_declared: false
 references: []

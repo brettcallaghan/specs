@@ -925,12 +925,15 @@ there; an orphaned root stays in its orphaned collection. Only the
 relationships whose two endpoints are both in the narrowed set are kept,
 and only the excluded relationships whose statement sits in the
 blueprint of an element in it. Derived properties keep their
-whole-corpus values. A root naming no element is reported as naming no
-element, and no model is returned.
+whole-corpus values. A narrowed model carries `root_declared`: true for
+a root naming an element, and false for one naming none, the model then
+holding every collection empty — a root the corpus does not declare is an
+answer, not an error (AC-C4-004.6).
 
 **Built** — `cli/core/c4model`, reached through `Corpus.C4Model`, for the
 element tree, relationships, reserved tags, exclusions and the subtree
-query; a root naming no element is a `c4model.UnknownRootError`. The source scan that keeps
+query; a root naming no element answers a model with `root_declared`
+false. The source scan that keeps
 `cli/core/corpus` free of registered vocabulary covers this package: the
 properties it copies are named by the registered vocabulary or by the
 model's own field names.
@@ -1387,6 +1390,15 @@ member, `OutboundReferences` and `InboundReferences` for the two
 directions of the reference graph, `FeatureFailures` for every Gherkin
 source that would not parse, and `FindingsFor` to narrow a
 whole-corpus result to one file.
+
+`Feature`, `FeaturesByCode` and `Criterion` match an identifier or code
+regardless of letter case and return the record as declared
+(AC-GHK-007.7). `CriteriaByTag` accepts a qualifier with or without
+Gherkin's leading `@` (AC-GHK-007.9) and returns an error wrapping
+`ErrUnregisteredQualifier` — quoting the value and listing every
+registered qualifier, the shape of `ErrUnregisteredType` — for a
+qualifier the active profile does not register, since no document could
+make it valid (AC-GHK-007.8).
 
 **`DocumentSummaries` is the listing query**, beside `Features` and
 `CriteriaOf` on the same query surface and for the same reason those are

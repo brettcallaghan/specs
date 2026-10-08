@@ -31,8 +31,8 @@ func (c *Corpus) C4Elements() (*c4elements.Set, error) {
 // [Corpus.C4Elements] returns.
 //
 // A non-empty root narrows the model to the element it names and its
-// descendants; a root naming no element returns a
-// [*c4model.UnknownRootError] and no model.
+// descendants and sets root_declared; a root naming no element answers a
+// model holding nothing, with root_declared false.
 func (c *Corpus) C4Model(workspace, root string) (*specmodel.C4Model, error) {
 	return c4model.Build(c4model.Input{Elements: c.c4Input(), Workspace: workspace, Root: root})
 }

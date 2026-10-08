@@ -43,8 +43,11 @@ func newCriterionCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			"--tag <qualifier> every criterion carrying one qualifier. The answer is a " +
 			"YAML mapping whose one key, criteria, holds a list of the matching " +
 			"records in every case, one identifier included; --json writes the same " +
-			"values as JSON. An identifier no " +
-			"criterion declares is reported as such and exits non-zero. " +
+			"values as JSON. Given an identifier or --of, the answer also carries " +
+			"declared, false with an empty list where the corpus declares no such " +
+			"criterion or feature; that is an answer, and exits 0. A --tag value " +
+			"the profile does not register is refused, naming every registered " +
+			"qualifier. " +
 			"criterion --changed compares the current corpus, uncommitted edits " +
 			"included, against the corpus at the merge-base of HEAD and the " +
 			"repository's default branch, or of HEAD and the revision --since names, " +
@@ -88,7 +91,7 @@ func newCriterionCmd(streams *ioStreams, configPath *string) *cobra.Command {
 	cmd.Flags().StringVar(&of, "of", "",
 		"list every criterion beneath this feature")
 	cmd.Flags().StringVar(&tag, "tag", "",
-		"list every criterion carrying this qualifier")
+		"list every criterion carrying this qualifier, written with or without a leading @")
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
 		"write the answer as JSON instead of YAML")
 	return cmd
@@ -246,12 +249,12 @@ func revisionError(err error) error {
 // re-walking the corpus when its inputs are unchanged (AC-GHK-007.6).
 //
 // An identifier argument selects one criterion by
-// [corpus.Corpus.Criterion]; naming no record is reported distinctly and
-// exits non-zero (AC-GHK-007.4). Otherwise --of selects every criterion
-// [corpus.Corpus.CriteriaOf] one feature, or --tag every criterion
-// [corpus.Corpus.CriteriaByTag] one qualifier — both are selections, and
-// an empty selection exits zero rather than being confused with an
-// unknown identifier.
+// [corpus.Corpus.Criterion], --of every criterion
+// [corpus.Corpus.CriteriaOf] one feature, and --tag every criterion
+// [corpus.Corpus.CriteriaByTag] one qualifier. An identifier or feature
+// the corpus does not declare is answered with the empty selection and
+// declared false, exiting zero (AC-GHK-007.4); a qualifier the profile
+// does not register is an invocation error (AC-GHK-007.8).
 func runCriterionQuery(streams *ioStreams, configPath string, args []string, of, tag string, jsonOut bool) error {
 	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
@@ -272,43 +275,56 @@ func runCriterionQuery(streams *ioStreams, configPath string, args []string, of,
 	}
 
 	if len(args) == 1 {
-		id := args[0]
-		criterion, found := c.Criterion(specmodel.CriterionId(id))
+		criterion, found := c.Criterion(specmodel.CriterionId(args[0]))
 		if !found {
-			fmt.Fprintf(streams.err, "%s: not found\n", id)
-			streams.exitCode = statusGateFailed
-			return nil
+			return renderCriteria(streams, nil, declared(false), jsonOut)
 		}
-		return renderCriteria(streams, []specmodel.Criterion{criterion}, jsonOut)
+		return renderCriteria(streams, []specmodel.Criterion{criterion}, declared(true), jsonOut)
 	}
 
-	var criteria []specmodel.Criterion
 	if of != "" {
-		criteria = c.CriteriaOf(specmodel.FeatureId(of))
-	} else {
-		criteria = c.CriteriaByTag(tag)
+		// The feature is the subject --of names, so declared is whether
+		// the corpus declares it: a declared feature with no criteria
+		// answers declared true and an empty list.
+		_, found := c.Feature(specmodel.FeatureId(of))
+		return renderCriteria(streams, c.CriteriaOf(specmodel.FeatureId(of)), declared(found), jsonOut)
 	}
-	return renderCriteria(streams, criteria, jsonOut)
+
+	criteria, err := c.CriteriaByTag(tag)
+	if errors.Is(err, corpus.ErrUnregisteredQualifier) {
+		return invocationError("%w", withoutPrefix(err, "corpus: "))
+	}
+	if err != nil {
+		return err
+	}
+	return renderCriteria(streams, criteria, nil, jsonOut)
 }
 
 // criteriaResult is the criterion query's answer: the matching records
-// and nothing else, under the one key `criteria`, whatever the arguments
-// selected — one identifier, --of or --tag — so a caller never branches
-// on what it passed ([[cli-output-standards]]'s "One shape per command").
-// Criteria is never nil, so an empty selection renders as `criteria: []`.
+// under the one key `criteria`, whatever the arguments selected — one
+// identifier, --of or --tag — so a caller never branches on what it
+// passed ([[cli-output-standards]]'s "One shape per command"). Criteria is
+// never nil, so an empty selection renders as `criteria: []`.
+//
+// Declared states whether the subject the invocation named — the
+// criterion identifier, or the feature --of names — is one the corpus
+// declares (AC-GHK-007.4). It is present exactly when a subject is named,
+// and absent under --tag, whose qualifier is a registered value rather
+// than a subject.
 type criteriaResult struct {
+	Declared *bool                 `json:"declared,omitempty"`
 	Criteria []specmodel.Criterion `json:"criteria"`
 }
 
 // renderCriteria writes the answer as YAML, or as JSON under --json, both
 // carrying the same values in the same order (AC-GHK-007.2, AC-GHK-007.5).
-// An empty selection is an answer, never the non-zero "not found" an
-// unknown identifier produces (AC-GHK-007.4).
-func renderCriteria(streams *ioStreams, criteria []specmodel.Criterion, asJSON bool) error {
+// A subject the corpus does not declare is an answer too — the empty
+// selection with declared false, exiting zero (AC-GHK-007.4).
+func renderCriteria(streams *ioStreams, criteria []specmodel.Criterion, isDeclared *bool, asJSON bool) error {
 	if criteria == nil {
 		criteria = []specmodel.Criterion{}
 	}
-	result := criteriaResult{Criteria: criteria}
+	result := criteriaResult{Declared: isDeclared, Criteria: criteria}
 	if asJSON {
 		data, err := json.Marshal(result)
 		if err != nil {

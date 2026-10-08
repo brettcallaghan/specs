@@ -95,15 +95,23 @@ type headingMatch struct {
 	Section     specmodel.Span `json:"section"`
 }
 
-// headingsResult is the answer: the matches and nothing else.
+// headingsResult is the answer: the matches, and whether the document the
+// selection names is one the corpus declares.
 //
 // No count, no echo of the selection and no outcome line, per
 // [[cli-output-standards]]'s "the answer is the properties the command
 // established... and SHALL contain nothing else". Matches is never nil,
 // so an empty answer renders as `matches: []` rather than as null — the
 // empty collection that AC-SPECSTR-003.6 requires be an answer.
+//
+// Declared is present exactly when the selection has a document half, and
+// is false when no corpus member is that document (AC-SPECSTR-003.8), so
+// a heading that matches nothing reads apart from a document that does
+// not exist. A selection with no document half names no document and
+// carries no such key.
 type headingsResult struct {
-	Matches []headingMatch `json:"matches"`
+	Declared *bool          `json:"declared,omitempty"`
+	Matches  []headingMatch `json:"matches"`
 }
 
 // selection is a parsed `<document>#<heading>` operand. An empty half
@@ -174,7 +182,22 @@ func runHeadings(streams *ioStreams, configPath, operand string, emit, jsonOut b
 	if emit {
 		return emitSection(streams, opts.RepoRoot, operand, matches, direct)
 	}
-	return renderHeadings(streams, headingsResult{Matches: matches}, jsonOut)
+	result := headingsResult{Matches: matches}
+	if sel.document != "" {
+		result.Declared = declared(sel.declaredIn(c.Index()))
+	}
+	return renderHeadings(streams, result, jsonOut)
+}
+
+// declaredIn reports whether some corpus member is the document the
+// selection's document half names.
+func (s selection) declaredIn(index specmodel.SpecIndex) bool {
+	for _, entry := range index.Entries {
+		if s.selects(entry) {
+			return true
+		}
+	}
+	return false
 }
 
 // selectHeadings answers sel from the index, in document order within a

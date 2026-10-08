@@ -2,6 +2,7 @@ slug: adr-900-old-approach
 anchor: Decision
 direction: inbound
 declared: true
+anchor_declared: true
 references:
   - path: docs/adrs/adr-800-current.md
     references:

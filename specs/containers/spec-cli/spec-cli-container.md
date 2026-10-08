@@ -309,7 +309,11 @@ resolution — so this command cannot disagree with the checks. A reference whos
 than one heading resolves to none of them and is listed for each of
 them, carrying `ambiguous_anchor` (AC-SPECANCH-003.4); an anchor no
 reference reaches answers with the empty collection and exits zero
-(AC-SPECANCH-003.3). `--outbound` takes no anchor and refuses one: an
+(AC-SPECANCH-003.3). An anchored query also carries `anchor_declared`
+beside `declared`, in the compact and `--full` views alike: true when the
+anchor selects some heading of the document by that same rule, false when
+it selects none or the slug is undeclared, so an uncited heading reads
+apart from one that does not exist (AC-SPECANCH-003.6). `--outbound` takes no anchor and refuses one: an
 anchor names a heading of the *cited* document, and the outbound
 direction asks what the given document cites.
 
@@ -389,11 +393,13 @@ the arguments select: a mapping whose one key, `features`, holds a list
 of the matching generated `specmodel.Feature` records, one identifier's
 lookup included, rendered as YAML by `renderYAML` by default and as JSON
 under `--json` with the same values in the same order (AC-GHK-007.1,
-AC-GHK-007.5, [[cli-output-standards]]). An identifier naming no
-feature is reported distinctly on standard error and exits 1
-(AC-GHK-007.4); `--code` naming a group nothing carries is an
-empty selection instead, `features: []`, and exits zero — a selector is not an identifier,
-so it cannot itself be "unknown". `--code` and `--json` cannot be
+AC-GHK-007.5, [[cli-output-standards]]). Given an identifier or
+`--code`, the mapping also carries `declared` before `features`: an
+identifier naming no feature, or a code no feature carries, is answered
+with `declared: false` and `features: []`, and exits zero — a subject the
+corpus does not hold is an answer, and `declared` is what tells it apart
+from an empty selection (AC-GHK-007.4). With neither, no subject is named
+and the key is absent. `--code` and `--json` cannot be
 combined with `--emit`, and an identifier and `--code` cannot both be
 given: the command's `Args` validator and `RunE` branch on `--emit` before
 either flag-conversion path runs, so the two never share logic.
@@ -445,13 +451,18 @@ registration `--emit`'s `criterionTags` reads in the write direction
 (AC-GHK-007.3). The answer has the same one shape: a mapping whose one
 key, `criteria`, holds a list of the matching generated
 `specmodel.Criterion` records, one identifier's lookup included, as YAML
-by default and as JSON under `--json` (AC-GHK-007.2, AC-GHK-007.5). An
-identifier naming no criterion is reported distinctly on standard error
-and exits 1 (AC-GHK-007.4); `--of`
-naming a feature nothing declares, or `--tag` naming a qualifier no
-criterion carries, is an empty selection instead, `criteria: []`, and
-exits zero for the
-same reason `--code` does on `feature`. `--changed` cannot be combined
+by default and as JSON under `--json` (AC-GHK-007.2, AC-GHK-007.5).
+Given an identifier or `--of`, the mapping also carries `declared` for
+that criterion or feature, as `feature` does: an undeclared one answers
+`declared: false` and `criteria: []`, and exits zero (AC-GHK-007.4).
+`--tag` names a registered value, not a subject, and carries no
+`declared`: a qualifier no criterion carries is an empty selection, a
+qualifier written with Gherkin's leading `@` matches as the bare name
+does (AC-GHK-007.9), and a qualifier the profile does not register is an
+invocation error — `CriteriaByTag` returns
+`corpus.ErrUnregisteredQualifier`, and the value and every registered
+qualifier reach standard error with nothing on standard output and exit
+2 (AC-GHK-007.8). `--changed` cannot be combined
 with an identifier, `--of` or `--tag`; an identifier cannot be
 combined with `--of` or `--tag`; and `--of` and `--tag` cannot both be
 given — `criterion`'s `RunE` validates these combinations before either
@@ -500,7 +511,10 @@ for a delimiter, so a selection matching more than one heading is refused
 under `--emit` with exit `2`, nothing on standard output, and each match
 named on standard error as `<path>#<heading_path>`, a selection that
 matches it alone (AC-SPECSTR-003.7). A selection matching nothing renders the empty
-collection and exits zero (AC-SPECSTR-003.6). Like the queries beside it,
+collection and exits zero (AC-SPECSTR-003.6). A selection with a document
+half also carries `declared` before `matches`, false when no corpus
+member is that document, so a missing heading reads apart from a missing
+document (AC-SPECSTR-003.8); a selection with none carries no such key. Like the queries beside it,
 it opens the corpus warm and holds no domain logic: the heading tree and
 the identifier derivation are Markdown Structure's.
 
@@ -576,9 +590,11 @@ same values in the same order (AC-C4-004.1, AC-C4-004.2). The model
 carries `schema_version` and the workspace name (AC-C4-004.3), and two
 runs over an unchanged corpus emit the same bytes (AC-C4-004.4). It exits
 zero whatever the model holds, excluded relationships and `c4/*` findings
-included (AC-C4-004.7). A `--root` naming no element is reported by
-Document Core; the message naming the slug reaches standard error,
-nothing reaches standard output, and the run exits 1 (AC-C4-004.6).
+included (AC-C4-004.7). A model narrowed by `--root` carries
+`root_declared`: true when the slug names an element, and false when it
+names none, the model then holding every collection empty — an answer
+Document Core gives, exiting zero with nothing on standard error
+(AC-C4-004.6). A whole-corpus model carries no `root_declared`.
 
 A bare invocation or `--help` lists the subcommands with their one-line
 synopses and, per subcommand, its own flags — cobra's default rendering

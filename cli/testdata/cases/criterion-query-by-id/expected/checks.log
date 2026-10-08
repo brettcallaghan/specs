@@ -1,3 +1,4 @@
+declared: true
 criteria:
   - id: AC-CHK-001.1
     path: docs/features/frd-checkout.md

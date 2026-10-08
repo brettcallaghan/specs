@@ -1,3 +1,4 @@
+declared: true
 matches:
   - path: docs/adrs/adr-500-roster.md
     text: Detail

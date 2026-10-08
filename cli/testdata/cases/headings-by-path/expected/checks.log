@@ -1,3 +1,4 @@
+declared: true
 matches:
   - path: docs/adrs/adr-001-first.md
     text: "ADR-001: First"

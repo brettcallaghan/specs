@@ -1,5 +1,5 @@
-description = "feature <id> for an identifier no corpus member declares reports that distinctly and exits non-zero"
+description = "feature <id> for an identifier no corpus member declares answers the empty list with declared: false, and exits zero"
 cites = ["AC-GHK-007.4"]
-artifacts = ["checks.err"]
+artifacts = ["checks.log", "checks.err"]
 args = ["feature", "FEAT-CHK-999"]
-exit_code = 1
+exit_code = 0

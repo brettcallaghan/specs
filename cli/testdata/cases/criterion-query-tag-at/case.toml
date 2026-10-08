@@ -1,0 +1,5 @@
+description = "criterion --tag written with Gherkin's leading @ answers exactly as the bare qualifier does"
+cites = ["AC-GHK-007.9"]
+artifacts = ["checks.log"]
+args = ["criterion", "--tag", "@manual"]
+exit_code = 0

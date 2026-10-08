@@ -1,3 +1,4 @@
+declared: true
 features:
   - id: FEAT-CHK-001
     code: CHK

@@ -2,6 +2,7 @@ slug: adr-500-roster
 anchor: Components#References
 direction: inbound
 declared: true
+anchor_declared: true
 references:
   - path: docs/adrs/adr-501-citing.md
     references:

@@ -33,6 +33,14 @@ struct C4Model {
   workspace: String
 
   """
+  Whether the root the model was narrowed to names an element: present
+  exactly when the model was narrowed by a root, and false when no
+  element has that slug, every collection then empty. Absent from a
+  whole-corpus model, which names no root.
+  """
+  root_declared: Bool?
+
+  """
   Systems documented by a system blueprint, each holding the containers
   that declare it.
 

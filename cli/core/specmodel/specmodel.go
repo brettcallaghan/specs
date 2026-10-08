@@ -35,6 +35,11 @@ type C4Model struct {
 	// The workspace the model was emitted from, as configured in
 	// `specs.toml`. Models from several repositories are told apart by it.
 	Workspace string `json:"workspace"`
+	// Whether the root the model was narrowed to names an element: present
+	// exactly when the model was narrowed by a root, and false when no
+	// element has that slug, every collection then empty. Absent from a
+	// whole-corpus model, which names no root.
+	RootDeclared *bool `json:"root_declared,omitempty"`
 	// Systems documented by a system blueprint, each holding the containers
 	// that declare it.
 	//
@@ -76,6 +81,11 @@ func (v *C4Model) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Workspace); err != nil {
 		return prefixField("workspace", err)
 	}
+	if m, ok := raw["root_declared"]; ok {
+		if err := json.Unmarshal(m, &v.RootDeclared); err != nil {
+			return prefixField("root_declared", err)
+		}
+	}
 	if m, ok := raw["software_systems"]; !ok || string(m) == "null" {
 		return fmt.Errorf("C4Model: required field \"software_systems\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.SoftwareSystems); err != nil {
@@ -109,7 +119,7 @@ func (v *C4Model) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "schema_version", "workspace", "software_systems", "orphaned_containers", "orphaned_components", "modules", "relationships", "excluded_relationships":
+		case "schema_version", "workspace", "root_declared", "software_systems", "orphaned_containers", "orphaned_components", "modules", "relationships", "excluded_relationships":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key

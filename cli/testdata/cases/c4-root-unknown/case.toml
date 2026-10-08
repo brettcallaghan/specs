@@ -1,5 +1,5 @@
-description = "c4 --root naming no element writes the slug to standard error, nothing to standard output, and exits non-zero"
+description = "c4 --root naming no element answers a model whose every collection is empty with root_declared: false, writes nothing to standard error, and exits zero"
 cites = ["AC-C4-004.6"]
 artifacts = ["checks.log", "checks.err"]
 args = ["c4", "--root", "no-such-element"]
-exit_code = 1
+exit_code = 0

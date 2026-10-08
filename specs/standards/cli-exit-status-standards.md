@@ -260,7 +260,10 @@ Measured with a binary built from `main` at `31b3079`, run against this
 repository's corpus; the `headings` row at `12b2eda`. The
 `headings … --emit` row was re-measured on the change that refuses a
 selection matching more than one heading: exit `2`, nothing on standard
-output, both matches named on standard error. The last row was
+output, both matches named on standard error. The four not-declared and
+qualifier rows were re-measured on the change that answers an undeclared
+subject: each as its "today" cell reads, nothing on standard error for
+the `0` rows. The last row was
 re-measured on the change that moved `criterion --changed` onto a git
 base, in a directory outside any repository: exit `3`, nothing on
 standard output. The missing-enum row was re-measured on the change that
@@ -275,10 +278,10 @@ exit `0` with the answer written.
 | `list --type nope`, `check --only nope`, `next-id frd` | `1` | `2` |
 | `check specs/nope.md` | `1` | `2` |
 | `--config nope.toml list` | `1` | `3` |
-| `criterion AC-X-1` | `1` | `0`, with the subject marked not declared |
-| `c4 --root zzz` | `1` | `0`, with the subject marked not declared |
-| `criterion --tag zzz` | `0`, empty | `2` — qualifiers are a registered set |
-| `slug-exists zzz`, `feature --code ZZ`, `headings 'zzz#q'` | `0` | `0`, with the subject marked not declared |
+| `criterion AC-X-1` | `0`, `declared: false` | `0`, with the subject marked not declared |
+| `c4 --root zzz` | `0`, `root_declared: false` | `0`, with the subject marked not declared |
+| `criterion --tag zzz` | `2`, the value and every registered qualifier on standard error | `2` — qualifiers are a registered set |
+| `slug-exists zzz`, `feature --code ZZ`, `headings 'zzz#q'` | `0`, `declared: false` | `0`, with the subject marked not declared |
 | `list --json` or `index` on a document missing a required enum | `0`, the artifact written | `0` and the artifact written |
 | a panic | `2` (Go's default) | `4` |
 | `headings 'module-document-core#references' --emit`, two matches | `2`, each match named on standard error | `2`, each match named on standard error |

@@ -84,14 +84,21 @@ func (c *Corpus) CriteriaOf(featureId specmodel.FeatureId) []specmodel.Criterion
 // qualifier tag, per the active profile's registered vocabulary
 // (AC-GHK-007.3).
 //
-// tag is matched against [FeatureTagRules.Qualifiers] exactly as it is
-// registered — the host holds no qualifier spelling of its own — so a tag
-// the active profile does not register matches nothing, the same empty
-// selection a registered tag with no carriers answers.
-func (c *Corpus) CriteriaByTag(tag string) []specmodel.Criterion {
-	qualifier, ok := findQualifier(c.profile.FeatureTags().Qualifiers, tag)
+// tag may be written as Gherkin writes it, with one leading "@"
+// (AC-GHK-007.9); the rest is matched against [FeatureTagRules.Qualifiers]
+// exactly as it is registered — the host holds no qualifier spelling of its
+// own. A tag the active profile does not register is a malformed question
+// rather than an empty selection, since no document can make it valid: it
+// returns an error wrapping [ErrUnregisteredQualifier] that quotes the tag
+// and lists every registered qualifier in registration order
+// (AC-GHK-007.8). A registered tag no criterion carries answers an empty
+// selection and no error.
+func (c *Corpus) CriteriaByTag(tag string) ([]specmodel.Criterion, error) {
+	qualifiers := c.profile.FeatureTags().Qualifiers
+	name := strings.TrimPrefix(tag, "@")
+	qualifier, ok := findQualifier(qualifiers, name)
 	if !ok {
-		return nil
+		return nil, unregisteredQualifier(name, qualifiers)
 	}
 	var matched []specmodel.Criterion
 	for _, feature := range c.index.Features {
@@ -101,7 +108,26 @@ func (c *Corpus) CriteriaByTag(tag string) []specmodel.Criterion {
 			}
 		}
 	}
-	return matched
+	return matched, nil
+}
+
+// ErrUnregisteredQualifier reports a qualifier tag the active profile does
+// not register. Callers test for it with [errors.Is]; the wrapped error
+// carries the tag and the qualifiers that are registered.
+var ErrUnregisteredQualifier = errors.New("not a registered qualifier")
+
+// unregisteredQualifier builds the error for a qualifier the profile does
+// not register, in the same shape as an unregistered document type.
+func unregisteredQualifier(name string, qualifiers []QualifierTag) error {
+	registered := make([]string, 0, len(qualifiers))
+	for _, q := range qualifiers {
+		registered = append(registered, q.Tag)
+	}
+	list := "none are registered"
+	if len(registered) > 0 {
+		list = strings.Join(registered, ", ")
+	}
+	return fmt.Errorf("corpus: %q is %w; registered: %s", name, ErrUnregisteredQualifier, list)
 }
 
 // findQualifier returns the registration among qualifiers whose Tag is

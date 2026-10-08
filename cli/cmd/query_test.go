@@ -162,11 +162,11 @@ func TestFeatureQueryIsServedFromTheWarmIndexWithoutRewalking(t *testing.T) {
 
 	exitCode, stdout, stderr := runInFixture(t, dir, []string{"feature", "FEAT-PLANTED-999"})
 	if exitCode != 0 {
-		t.Fatalf("exit code = %d, want 0 (the corpus was re-walked rather than served warm)\nstderr: %s", exitCode, stderr)
+		t.Fatalf("exit code = %d, want 0\nstderr: %s", exitCode, stderr)
 	}
-	if !strings.HasPrefix(stdout, "features:\n") ||
+	if !strings.HasPrefix(stdout, "declared: true\nfeatures:\n") ||
 		!strings.Contains(stdout, "FEAT-PLANTED-999") || !strings.Contains(stdout, "AC-PLANTED-999.1") {
-		t.Errorf("stdout = %q, want the features answer carrying the planted feature and its criterion", stdout)
+		t.Errorf("stdout = %q, want declared: true and the planted feature and its criterion; a re-walked corpus answers declared: false", stdout)
 	}
 }
 
@@ -191,9 +191,9 @@ func TestCriterionQueryIsServedFromTheWarmIndexWithoutRewalking(t *testing.T) {
 
 	exitCode, stdout, stderr := runInFixture(t, dir, []string{"criterion", "AC-PLANTED-999.1"})
 	if exitCode != 0 {
-		t.Fatalf("exit code = %d, want 0 (the corpus was re-walked rather than served warm)\nstderr: %s", exitCode, stderr)
+		t.Fatalf("exit code = %d, want 0\nstderr: %s", exitCode, stderr)
 	}
-	if !strings.HasPrefix(stdout, "criteria:\n") || !strings.Contains(stdout, "AC-PLANTED-999.1") {
-		t.Errorf("stdout = %q, want the criteria answer carrying the planted criterion", stdout)
+	if !strings.HasPrefix(stdout, "declared: true\ncriteria:\n") || !strings.Contains(stdout, "AC-PLANTED-999.1") {
+		t.Errorf("stdout = %q, want declared: true and the planted criterion; a re-walked corpus answers declared: false", stdout)
 	}
 }

@@ -1,5 +1,6 @@
 schema_version: "0.1"
 workspace: acme
+root_declared: true
 software_systems:
   - description: A fixture for the c4 command.
     slug: system-one

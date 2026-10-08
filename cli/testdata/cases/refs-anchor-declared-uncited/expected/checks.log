@@ -1,0 +1,6 @@
+slug: adr-900-old-approach
+anchor: "ADR-900: Old Approach"
+direction: inbound
+declared: true
+anchor_declared: true
+references: []

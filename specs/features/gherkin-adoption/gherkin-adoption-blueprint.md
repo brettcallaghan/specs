@@ -459,10 +459,15 @@ container already has and add no latency budget of their own.
   corpus, `specs criterion --of <feature-id>` every criterion beneath one
   feature, and `specs criterion --tag <qualifier>` every criterion
   carrying one qualifier (AC-GHK-003.3, AC-GHK-007.3).
-- WHEN an identifier names no record, the command SHALL report that
-  nothing declares it (AC-GHK-007.4).
-- WHEN an identifier names no record, the command SHALL exit non-zero,
-  which is what distinguishes an unknown name from an empty selection.
+- WHEN an identifier, a `--code` or an `--of` feature names no record,
+  the command SHALL answer the empty list with `declared: false` and exit
+  zero; `declared` is what distinguishes an unknown name from an empty
+  selection (AC-GHK-007.4).
+- WHEN `--tag` names a qualifier the profile does not register, the
+  command SHALL write the value and every registered qualifier to
+  standard error, nothing to standard output, and exit 2 (AC-GHK-007.8);
+  a qualifier written with a leading `@` SHALL match as the bare name
+  does (AC-GHK-007.9).
 - `--json` SHALL write the matching records as the generated JSON to
   standard output (AC-GHK-007.5).
 - WHERE the index's inputs are unchanged, both commands SHALL answer from

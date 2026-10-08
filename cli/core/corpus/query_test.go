@@ -556,3 +556,36 @@ func TestCriteriaOfALowerCaseFeatureIdentifierAreThatFeaturesCriteria(t *testing
 		t.Errorf("CriteriaOf(feat-chk-001) = %v, want the one criterion AC-CHK-001.1", criteria)
 	}
 }
+
+// A registered qualifier selects its carriers whether or not it is written
+// with Gherkin's leading "@", and a qualifier the profile does not
+// register is a malformed question: an error naming it and every
+// registered qualifier, never an empty selection.
+//
+// AC: AC-GHK-007.8, AC-GHK-007.9
+func TestCriteriaByTagAcceptsALeadingAtAndRefusesAnUnregisteredQualifier(t *testing.T) {
+	built := identifierCorpus(t)
+
+	for _, tag := range []string{"negative", "@negative"} {
+		criteria, err := built.CriteriaByTag(tag)
+		if err != nil {
+			t.Fatalf("CriteriaByTag(%q): %v", tag, err)
+		}
+		if len(criteria) != 1 || criteria[0].Id != "AC-CHK-001.1" {
+			t.Errorf("CriteriaByTag(%q) = %v, want the one criterion AC-CHK-001.1", tag, criteria)
+		}
+	}
+
+	criteria, err := built.CriteriaByTag("zzz")
+	if !errors.Is(err, corpus.ErrUnregisteredQualifier) {
+		t.Fatalf("CriteriaByTag(zzz) error = %v, want one matching ErrUnregisteredQualifier", err)
+	}
+	if criteria != nil {
+		t.Errorf("CriteriaByTag(zzz) = %v alongside the error, want none", criteria)
+	}
+	for _, want := range []string{`"zzz"`, "negative, manual, level-unit"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q does not carry %q", err, want)
+		}
+	}
+}

@@ -36,8 +36,9 @@ func newFeatureCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			"feature with no argument every feature in the corpus. The answer is a " +
 			"YAML mapping whose one key, features, holds a list of the matching " +
 			"records in every case, one identifier included; --json writes the same " +
-			"values as JSON. An identifier no feature " +
-			"declares is reported as such and exits non-zero. " +
+			"values as JSON. Given an identifier or --code, the answer also carries " +
+			"declared, false with an empty list where the corpus declares no such " +
+			"feature or code; that is an answer, and exits 0. " +
 			"feature <id> --emit writes the named feature as a valid Gherkin .feature " +
 			"file, carrying its tags, description and criteria, to standard output " +
 			"by default and to the path --out names.",
@@ -142,12 +143,12 @@ func runFeatureEmit(streams *ioStreams, configPath, id, out string) error {
 // next-id and refs, so a query answers from the persisted index without
 // re-walking the corpus when its inputs are unchanged (AC-GHK-007.6).
 //
-// An identifier argument selects one feature by [corpus.Corpus.Feature];
-// naming no record is reported distinctly and exits non-zero
-// (AC-GHK-007.4). Otherwise --code selects every feature
-// [corpus.Corpus.FeaturesByCode] grouped under it, or, given neither, every
-// feature in the corpus — both are selections, and an empty selection
-// exits zero rather than being confused with an unknown identifier.
+// An identifier argument selects one feature by [corpus.Corpus.Feature],
+// --code every feature [corpus.Corpus.FeaturesByCode] groups under it,
+// and neither every feature in the corpus. An identifier or code the
+// corpus does not declare is answered with the empty selection and
+// declared false, exiting zero (AC-GHK-007.4), so "nothing matches" and
+// "nothing by that name exists" read apart.
 func runFeatureQuery(streams *ioStreams, configPath string, args []string, code string, jsonOut bool) error {
 	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
@@ -168,44 +169,50 @@ func runFeatureQuery(streams *ioStreams, configPath string, args []string, code 
 	}
 
 	if len(args) == 1 {
-		id := args[0]
-		feature, found := c.Feature(specmodel.FeatureId(id))
+		feature, found := c.Feature(specmodel.FeatureId(args[0]))
 		if !found {
-			fmt.Fprintf(streams.err, "%s: not found\n", id)
-			streams.exitCode = statusGateFailed
-			return nil
+			return renderFeatures(streams, nil, declared(false), jsonOut)
 		}
-		return renderFeatures(streams, []specmodel.Feature{feature}, jsonOut)
+		return renderFeatures(streams, []specmodel.Feature{feature}, declared(true), jsonOut)
 	}
 
-	var features []specmodel.Feature
 	if code != "" {
-		features = c.FeaturesByCode(specmodel.FeatureCode(code))
-	} else {
-		features = c.Features()
+		features := c.FeaturesByCode(specmodel.FeatureCode(code))
+		return renderFeatures(streams, features, declared(len(features) > 0), jsonOut)
 	}
-	return renderFeatures(streams, features, jsonOut)
+	return renderFeatures(streams, c.Features(), nil, jsonOut)
 }
 
-// featuresResult is the feature query's answer: the matching records and
-// nothing else, under the one key `features`, whatever the arguments
-// selected — one identifier, a code, or every feature — so a caller never
-// branches on what it passed ([[cli-output-standards]]'s "One shape per
-// command"). Features is never nil, so an empty selection renders as
-// `features: []`.
+// featuresResult is the feature query's answer: the matching records
+// under the one key `features`, whatever the arguments selected — one
+// identifier, a code, or every feature — so a caller never branches on
+// what it passed ([[cli-output-standards]]'s "One shape per command").
+// Features is never nil, so an empty selection renders as `features: []`.
+//
+// Declared states whether the subject the invocation named — an
+// identifier, or a code, which is declared exactly when some feature
+// carries it — is one the corpus declares (AC-GHK-007.4). It is present
+// exactly when a subject is named, true or false, and absent for the
+// listing of every feature, which names none; it precedes the collection
+// it qualifies, as refs' declared does.
 type featuresResult struct {
+	Declared *bool               `json:"declared,omitempty"`
 	Features []specmodel.Feature `json:"features"`
 }
 
+// declared is the not-declared property's value for a query that names a
+// subject: a pointer, so that a query naming none can leave it absent.
+func declared(found bool) *bool { return &found }
+
 // renderFeatures writes the answer as YAML, or as JSON under --json, both
 // carrying the same values in the same order (AC-GHK-007.1, AC-GHK-007.5).
-// An empty selection is an answer, never the non-zero "not found" an
-// unknown identifier produces (AC-GHK-007.4).
-func renderFeatures(streams *ioStreams, features []specmodel.Feature, asJSON bool) error {
+// A subject the corpus does not declare is an answer too — the empty
+// selection with declared false, exiting zero (AC-GHK-007.4).
+func renderFeatures(streams *ioStreams, features []specmodel.Feature, isDeclared *bool, asJSON bool) error {
 	if features == nil {
 		features = []specmodel.Feature{}
 	}
-	result := featuresResult{Features: features}
+	result := featuresResult{Declared: isDeclared, Features: features}
 	if asJSON {
 		data, err := json.Marshal(result)
 		if err != nil {

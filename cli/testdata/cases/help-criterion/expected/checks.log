@@ -1,4 +1,4 @@
-criterion <id> returns that criterion's record. criterion --of <feature-id> returns every criterion beneath one feature, and criterion --tag <qualifier> every criterion carrying one qualifier. The answer is a YAML mapping whose one key, criteria, holds a list of the matching records in every case, one identifier included; --json writes the same values as JSON. An identifier no criterion declares is reported as such and exits non-zero. criterion --changed compares the current corpus, uncommitted edits included, against the corpus at the merge-base of HEAD and the repository's default branch, or of HEAD and the revision --since names, and lists every acceptance criterion whose content hash differs, classifying each as changed, added or removed. Its answer is a YAML mapping holding base (the revision and the merge-base commit) and then criteria; it exits 0 whatever it lists, or 1 on a non-empty list under --exit-code. It needs git on PATH.
+criterion <id> returns that criterion's record. criterion --of <feature-id> returns every criterion beneath one feature, and criterion --tag <qualifier> every criterion carrying one qualifier. The answer is a YAML mapping whose one key, criteria, holds a list of the matching records in every case, one identifier included; --json writes the same values as JSON. Given an identifier or --of, the answer also carries declared, false with an empty list where the corpus declares no such criterion or feature; that is an answer, and exits 0. A --tag value the profile does not register is refused, naming every registered qualifier. criterion --changed compares the current corpus, uncommitted edits included, against the corpus at the merge-base of HEAD and the repository's default branch, or of HEAD and the revision --since names, and lists every acceptance criterion whose content hash differs, classifying each as changed, added or removed. Its answer is a YAML mapping holding base (the revision and the merge-base commit) and then criteria; it exits 0 whatever it lists, or 1 on a non-empty list under --exit-code. It needs git on PATH.
 
 Usage:
   specs criterion [<id>] [flags]
@@ -10,7 +10,7 @@ Flags:
       --json           write the answer as JSON instead of YAML
       --of string      list every criterion beneath this feature
       --since string   with --changed, compare against the merge-base of HEAD and this branch, tag or commit instead of the default branch
-      --tag string     list every criterion carrying this qualifier
+      --tag string     list every criterion carrying this qualifier, written with or without a leading @
 
 Global Flags:
       --config string   path to specs.toml (default: the nearest specs.toml in the working directory or above it, up to the repository root)
