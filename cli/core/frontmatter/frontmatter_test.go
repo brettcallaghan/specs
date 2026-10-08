@@ -733,6 +733,33 @@ func TestAnInlineCommentAfterTabsIsLocatedAtItsHash(t *testing.T) {
 	}
 }
 
+// A comment after an anchor or tag whose collection follows on the next
+// lines cuts nothing short: the anchor's name lexes as
+// a string but is not a value. A comment after an anchored plain scalar
+// still does.
+//
+// AC: AC-SPEC-003.9, AC-SPEC-003.10
+func TestACommentAfterAnAnchoredCollectionIsNotInline(t *testing.T) {
+	for _, tc := range []struct {
+		yaml string
+		want int
+	}{
+		{"a: &anc # note\n  - x\n", 0},
+		{"a: &anc # note\n  k: v\n", 0},
+		{"a: !!seq # note\n  - x\n", 0},
+		{"a: &anc v # note\n", 1},
+	} {
+		src := "---\n" + tc.yaml + "---\nbody\n"
+		doc, perr := frontmatter.Parse([]byte(src))
+		if perr != nil {
+			t.Fatalf("Parse(%q): %v", src, perr)
+		}
+		if got := doc.InlineComments(); len(got) != tc.want {
+			t.Errorf("InlineComments(%q) = %+v, want %d", src, got, tc.want)
+		}
+	}
+}
+
 // A full-line comment directly after a block scalar is not an inline
 // comment, whichever of the four block indicators introduces it, and nor
 // is a comment on the indicator's own line.
