@@ -257,13 +257,13 @@ func TestBinaryWritesTheIndexToStandardOutput(t *testing.T) {
 	}
 }
 
-// TestBinaryReportsAMissingConfigurationAndExitsNonZero covers the first
+// TestBinaryReportsAMissingConfigurationAndExitsThree covers the first
 // thing an adopter gets wrong, through the process boundary: run the tool
 // somewhere with no specs.toml. The status matters as much as the
 // message, because this is the shape a CI job sees.
 //
 // AC: AC-SPEC-008.3
-func TestBinaryReportsAMissingConfigurationAndExitsNonZero(t *testing.T) {
+func TestBinaryReportsAMissingConfigurationAndExitsThree(t *testing.T) {
 	bin := buildSpec(t)
 	dir := t.TempDir() // deliberately empty: no specs.toml anywhere
 
@@ -277,8 +277,11 @@ func TestBinaryReportsAMissingConfigurationAndExitsNonZero(t *testing.T) {
 	if !asExitError(err, &exit) {
 		t.Fatalf("running the binary: %v", err)
 	}
-	if exit.ExitCode() == 0 {
-		t.Errorf("process exit status = 0, want non-zero")
+	// 3, not merely non-zero: a missing configuration is the
+	// repository's to fix, and a CI step branches on that class
+	// (cli-exit-status-standards).
+	if exit.ExitCode() != 3 {
+		t.Errorf("process exit status = %d, want 3 (environment error)", exit.ExitCode())
 	}
 	if !containsPath(string(out), "specs.toml") {
 		t.Errorf("the failure does not name the path it looked for, which AC-SPEC-008.3 requires:\n%s", out)

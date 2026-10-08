@@ -36,7 +36,7 @@ func runSlugExists(streams *ioStreams, configPath, slug string) error {
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, false)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)

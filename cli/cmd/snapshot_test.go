@@ -152,9 +152,31 @@ func runSnapshotCaseWith(t *testing.T, dir string, materialize func(src, dst str
 			exitCode, manifest.ExitCode, stdout.String(), stderr.String())
 	}
 
+	checkFailedRunAnswersNothing(t, stdout.String(), manifest)
 	checkChecksLog(t, dir, stdout.String(), manifest)
 	checkChecksErr(t, dir, stderr.String(), manifest)
 	checkManifest(t, dir, work, manifest.Args, stdout.String(), manifest)
+}
+
+// checkFailedRunAnswersNothing enforces [[cli-exit-status-standards]]'s
+// "A failed invocation answers nothing" for every case that declares a
+// status of 2, 3 or 4: standard output must be empty, and a case naming
+// a stdout artifact for such a status is asserting an answer the run is
+// forbidden to give, so the declaration itself is a failure.
+func checkFailedRunAnswersNothing(t *testing.T, stdout string, manifest caseManifest) {
+	t.Helper()
+
+	if manifest.ExitCode < 2 || manifest.ExitCode > 4 {
+		return
+	}
+	for _, name := range stdoutArtifacts {
+		if slices.Contains(manifest.Artifacts, name) {
+			t.Errorf("case.toml declares %s with exit_code %d; a run exiting 2, 3 or 4 writes nothing to standard output, so there is no answer to compare", name, manifest.ExitCode)
+		}
+	}
+	if stdout != "" {
+		t.Errorf("exit_code %d with %d bytes on standard output; a run exiting 2, 3 or 4 must write nothing there:\n%s", manifest.ExitCode, len(stdout), stdout)
+	}
 }
 
 // checkChecksErr compares actual standard error against

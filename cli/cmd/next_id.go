@@ -3,9 +3,12 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
 	"github.com/brettcallaghan/agent-plugins/cli/core/numbering"
 )
 
@@ -29,17 +32,18 @@ func newNextIDCmd(streams *ioStreams, configPath *string) *cobra.Command {
 
 // runNextID answers [numbering.Next] for docType and renders the result.
 //
-// docType not being registered as numbered is reported as a failure
-// (exit 1) rather than as a fact about the corpus: unlike slug-exists,
-// there is no valid identifier this command could otherwise print, so
-// the caller asked a question this configuration cannot answer at all.
+// docType not being registered as numbered is an invocation error
+// (exit 2), naming every numbered type, rather than a fact about the
+// corpus: the numbered types are a set the profile registers, and no
+// document an author writes makes an unnumbered type numbered
+// ([[cli-exit-status-standards]]'s "A value outside a registered set").
 func runNextID(streams *ioStreams, configPath, docType string) error {
 	cfg, findings, err := Load(configPath, BuiltinRegistry())
 	if err != nil {
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, false)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -55,13 +59,29 @@ func runNextID(streams *ioStreams, configPath, docType string) error {
 	next, err := numbering.Next(c.Index(), docType, cfg.Profile.DocumentTypes())
 	if err != nil {
 		if errors.Is(err, numbering.ErrNotNumbered) {
-			fmt.Fprintf(streams.err, "%q is not registered as a numbered document type\n", docType)
-			streams.exitCode = 1
-			return nil
+			return invocationError("%q is not registered as a numbered document type; numbered: %s",
+				docType, numberedTypes(cfg.Profile.DocumentTypes()))
 		}
-		return fmt.Errorf("cmd: deriving the next identifier: %w", err)
+		return fmt.Errorf("deriving the next identifier: %w", err)
 	}
 
 	fmt.Fprintln(streams.out, next)
 	return nil
+}
+
+// numberedTypes lists, sorted, the document types types registers as
+// numbered — the registered set an unnumbered next-id operand is reported
+// against.
+func numberedTypes(types map[string]corpus.DocumentTypeRules) string {
+	var names []string
+	for name, rules := range types {
+		if rules.Numbered {
+			names = append(names, name)
+		}
+	}
+	if len(names) == 0 {
+		return "none are registered"
+	}
+	sort.Strings(names)
+	return strings.Join(names, ", ")
 }

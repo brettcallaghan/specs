@@ -59,6 +59,11 @@ func (e *ErrConfigNotFound) Error() string {
 	return fmt.Sprintf("no specs.toml found at %s", e.Path)
 }
 
+// exitStatus classifies a missing configuration as an environment error
+// (status 3): the invocation was correct, and the repository it ran in
+// lacks the file it needs.
+func (e *ErrConfigNotFound) exitStatus() int { return statusEnvironment }
+
 // Load reads, checks, and resolves the specs.toml file at path, selecting
 // a profile from registry.
 //
@@ -89,7 +94,7 @@ func Load(path string, registry *Registry) (*Config, []specmodel.Finding, error)
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil, nil, &ErrConfigNotFound{Path: path}
 		}
-		return nil, nil, fmt.Errorf("cmd: reading %s: %w", path, err)
+		return nil, nil, fmt.Errorf("reading %s: %w", path, err)
 	}
 
 	raw, syntaxFindings := decodeConfig(path, src)
@@ -120,10 +125,10 @@ func Load(path string, registry *Registry) (*Config, []specmodel.Finding, error)
 	var cfg specmodel.SpecsConfig
 	encoded, err := json.Marshal(raw)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cmd: re-encoding %s: %w", path, err)
+		return nil, nil, fmt.Errorf("re-encoding %s: %w", path, err)
 	}
 	if err := json.Unmarshal(encoded, &cfg); err != nil {
-		return nil, nil, fmt.Errorf("cmd: decoding %s: %w", path, err)
+		return nil, nil, fmt.Errorf("decoding %s: %w", path, err)
 	}
 
 	active, found := registry.Lookup(cfg.Profile.Name)
@@ -133,7 +138,7 @@ func Load(path string, registry *Registry) (*Config, []specmodel.Finding, error)
 		// cfg.Profile.Name is a non-empty string, and the registry lookup
 		// just above would have raised RuleConfigUnknownProfile and made
 		// report.HasErrors() true otherwise.
-		return nil, nil, fmt.Errorf("cmd: %s: profile %q resolved after passing its own check", path, cfg.Profile.Name)
+		return nil, nil, fmt.Errorf("%s: profile %q resolved after passing its own check", path, cfg.Profile.Name)
 	}
 
 	// A registration is compiled in, so a defect in it is not the

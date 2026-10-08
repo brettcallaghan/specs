@@ -2,9 +2,12 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
+
+	"github.com/brettcallaghan/agent-plugins/cli/core/c4model"
 )
 
 // newC4Cmd builds the `c4` subcommand: emit the corpus's C4 model — the
@@ -49,15 +52,15 @@ func newC4Cmd(streams *ioStreams, configPath *string) *cobra.Command {
 // Warm, through the shared [openCorpus], for the reason `check` and `list`
 // are: the model is a projection of what the index already records. An
 // unknown --root comes back from Document Core as an error naming the
-// slug, which [Execute] writes to standard error and turns into exit 1;
-// nothing has reached standard output by then.
+// slug, which is written to standard error with exit 1; nothing has
+// reached standard output by then.
 func runC4(streams *ioStreams, configPath, root string, jsonOut bool) error {
 	cfg, findings, err := Load(configPath, BuiltinRegistry())
 	if err != nil {
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, jsonOut)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -70,15 +73,24 @@ func runC4(streams *ioStreams, configPath, root string, jsonOut bool) error {
 		return err
 	}
 
+	// An unknown --root still exits 1 with its message on standard
+	// error and nothing on standard output. It is caught here because,
+	// returned, it would be an unclassified error and exit 4.
 	model, err := c.C4Model(cfg.Workspace, root)
 	if err != nil {
+		var unknown *c4model.UnknownRootError
+		if errors.As(err, &unknown) {
+			fmt.Fprintln(streams.err, unknown.Error())
+			streams.exitCode = statusGateFailed
+			return nil
+		}
 		return err
 	}
 
 	if jsonOut {
 		data, err := json.Marshal(model)
 		if err != nil {
-			return fmt.Errorf("cmd: rendering the C4 model as JSON: %w", err)
+			return fmt.Errorf("rendering the C4 model as JSON: %w", err)
 		}
 		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil

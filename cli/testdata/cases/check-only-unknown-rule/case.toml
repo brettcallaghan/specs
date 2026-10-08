@@ -1,5 +1,5 @@
-description = "an --only value naming no known check is refused with the value and every known rule identifier on standard error, and exits non-zero without a report, rather than rendering a clean report a misspelt gate would pass"
+description = "an --only value naming no known check is refused with the value and every known rule identifier on standard error, and exits 2 without a report, rather than rendering a clean report a misspelt gate would pass"
 cites = ["AC-SPEC-006.10"]
 artifacts = ["checks.err"]
 args = ["check", "--only", "slug/pattern-mismatch,frontmatter/pars"]
-exit_code = 1
+exit_code = 2

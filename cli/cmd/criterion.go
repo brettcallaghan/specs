@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -45,18 +44,18 @@ func newCriterionCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			if changed {
 				if len(args) != 0 || of != "" || tag != "" || jsonOut {
-					return errors.New("specs criterion: --changed cannot be combined with an identifier, --of, --tag or --json")
+					return invocationError("--changed cannot be combined with an identifier, --of, --tag or --json")
 				}
 				return runCriterionChanged(streams, *configPath)
 			}
 			if len(args) == 1 && (of != "" || tag != "") {
-				return errors.New("specs criterion: an identifier cannot be combined with --of or --tag")
+				return invocationError("an identifier cannot be combined with --of or --tag")
 			}
 			if of != "" && tag != "" {
-				return errors.New("specs criterion: --of and --tag cannot both be given")
+				return invocationError("--of and --tag cannot both be given")
 			}
 			if len(args) == 0 && of == "" && tag == "" {
-				return errors.New("specs criterion: give an identifier, --of, --tag or --changed")
+				return invocationError("give an identifier, --of, --tag or --changed")
 			}
 			return runCriterionQuery(streams, *configPath, args, of, tag, jsonOut)
 		},
@@ -95,7 +94,7 @@ func runCriterionChanged(streams *ioStreams, configPath string) error {
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, false)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -113,7 +112,7 @@ func runCriterionChanged(streams *ioStreams, configPath string) error {
 
 	built, err := corpus.Build(opts)
 	if err != nil {
-		return fmt.Errorf("cmd: building the corpus: %w", err)
+		return fmt.Errorf("building the corpus: %w", err)
 	}
 
 	changes := changedCriteria(persisted, built.Index())
@@ -142,7 +141,7 @@ func runCriterionQuery(streams *ioStreams, configPath string, args []string, of,
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, jsonOut)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -160,7 +159,7 @@ func runCriterionQuery(streams *ioStreams, configPath string, args []string, of,
 		criterion, found := c.Criterion(specmodel.CriterionId(id))
 		if !found {
 			fmt.Fprintf(streams.err, "%s: not found\n", id)
-			streams.exitCode = 1
+			streams.exitCode = statusGateFailed
 			return nil
 		}
 		return renderCriterion(streams, criterion, jsonOut)
@@ -183,7 +182,7 @@ func renderCriterion(streams *ioStreams, criterion specmodel.Criterion, asJSON b
 	if asJSON {
 		data, err := json.Marshal(criterion)
 		if err != nil {
-			return fmt.Errorf("cmd: rendering the criterion as JSON: %w", err)
+			return fmt.Errorf("rendering the criterion as JSON: %w", err)
 		}
 		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil
@@ -205,7 +204,7 @@ func renderCriteria(streams *ioStreams, criteria []specmodel.Criterion, asJSON b
 	if asJSON {
 		data, err := json.Marshal(criteria)
 		if err != nil {
-			return fmt.Errorf("cmd: rendering the criterion selection as JSON: %w", err)
+			return fmt.Errorf("rendering the criterion selection as JSON: %w", err)
 		}
 		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil

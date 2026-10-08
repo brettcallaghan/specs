@@ -1,0 +1,5 @@
+description = "an unknown subcommand is an invocation error: it exits 2, names the command on standard error with no \"Error: \" prefix, and writes nothing to standard output"
+cites = ["AC-SPEC-011.5"]
+artifacts = ["checks.err"]
+args = ["chek"]
+exit_code = 2

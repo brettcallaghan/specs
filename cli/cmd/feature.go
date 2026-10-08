@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -49,12 +48,12 @@ func newFeatureCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			if emit {
 				if code != "" || jsonOut {
-					return errors.New("specs feature: --code and --json cannot be combined with --emit")
+					return invocationError("--code and --json cannot be combined with --emit")
 				}
 				return runFeatureEmit(streams, *configPath, args[0], out)
 			}
 			if code != "" && len(args) == 1 {
-				return errors.New("specs feature: an identifier and --code cannot both be given")
+				return invocationError("an identifier and --code cannot both be given")
 			}
 			return runFeatureQuery(streams, *configPath, args, code, jsonOut)
 		},
@@ -84,7 +83,7 @@ func runFeatureEmit(streams *ioStreams, configPath, id, out string) error {
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, false)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -97,11 +96,13 @@ func runFeatureEmit(streams *ioStreams, configPath, id, out string) error {
 		return err
 	}
 
+	// An identifier no feature declares is an operand this producer
+	// cannot act on (exit 2): unlike the query, --emit has no answer that
+	// could carry "not declared", so writing nothing and saying why is the
+	// whole of what it can do.
 	feature, found := c.Feature(specmodel.FeatureId(id))
 	if !found {
-		fmt.Fprintf(streams.err, "%s: not found\n", id)
-		streams.exitCode = 1
-		return nil
+		return invocationError("%s: not found", id)
 	}
 
 	rules := opts.Profile.FeatureTags()
@@ -110,18 +111,18 @@ func runFeatureEmit(streams *ioStreams, configPath, id, out string) error {
 	if out == "" {
 		_, err := streams.out.Write(data)
 		if err != nil {
-			return fmt.Errorf("cmd: writing the emitted feature to standard output: %w", err)
+			return fmt.Errorf("writing the emitted feature to standard output: %w", err)
 		}
 		return nil
 	}
 
 	if dir := filepath.Dir(out); dir != "." {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return fmt.Errorf("cmd: creating %s: %w", dir, err)
+			return environmentError("%s cannot be written: %s", filepath.ToSlash(out), writeErrorText(err))
 		}
 	}
 	if err := os.WriteFile(out, data, 0o644); err != nil {
-		return fmt.Errorf("cmd: writing %s: %w", out, err)
+		return environmentError("%s cannot be written: %s", filepath.ToSlash(out), writeErrorText(err))
 	}
 	// A file was written: name it, the same convention `index` follows
 	// for the same reason — a human running this interactively sees
@@ -151,7 +152,7 @@ func runFeatureQuery(streams *ioStreams, configPath string, args []string, code 
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, jsonOut)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -169,7 +170,7 @@ func runFeatureQuery(streams *ioStreams, configPath string, args []string, code 
 		feature, found := c.Feature(specmodel.FeatureId(id))
 		if !found {
 			fmt.Fprintf(streams.err, "%s: not found\n", id)
-			streams.exitCode = 1
+			streams.exitCode = statusGateFailed
 			return nil
 		}
 		return renderFeature(streams, feature, jsonOut)
@@ -193,7 +194,7 @@ func renderFeature(streams *ioStreams, feature specmodel.Feature, asJSON bool) e
 	if asJSON {
 		data, err := json.Marshal(feature)
 		if err != nil {
-			return fmt.Errorf("cmd: rendering the feature as JSON: %w", err)
+			return fmt.Errorf("rendering the feature as JSON: %w", err)
 		}
 		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil
@@ -219,7 +220,7 @@ func renderFeatures(streams *ioStreams, features []specmodel.Feature, asJSON boo
 	if asJSON {
 		data, err := json.Marshal(features)
 		if err != nil {
-			return fmt.Errorf("cmd: rendering the feature selection as JSON: %w", err)
+			return fmt.Errorf("rendering the feature selection as JSON: %w", err)
 		}
 		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil

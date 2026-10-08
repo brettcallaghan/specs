@@ -1,5 +1,1 @@
-does-not-exist.yaml:
-  linkmap/invalid  error  1:1  cannot be read: no such file
-
-checks:
-  linkmap/invalid  failed
+does-not-exist.yaml: cannot be read: no such file

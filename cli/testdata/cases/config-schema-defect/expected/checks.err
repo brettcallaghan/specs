@@ -1,0 +1,7 @@
+specs.toml:
+  config/undeclared-key  error  4:1  /workspace/bogus: "bogus" is not a key this configuration defines
+  config/unknown-profile  error  7:8  "nope" is not a registered profile; registered: specs
+
+checks:
+  config/undeclared-key  failed
+  config/unknown-profile  failed

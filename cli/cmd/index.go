@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -53,7 +55,7 @@ func runIndex(streams *ioStreams, configPath, out string) error {
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, false)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -63,12 +65,20 @@ func runIndex(streams *ioStreams, configPath, out string) error {
 
 	built, err := corpus.Build(opts)
 	if err != nil {
-		return fmt.Errorf("cmd: building the index: %w", err)
+		return fmt.Errorf("building the index: %w", err)
 	}
 
 	dest := corpus.IndexPath(opts, out)
 	if err := corpus.Write(built.Index(), dest, streams.out); err != nil {
-		return fmt.Errorf("cmd: writing the index: %w", err)
+		// A destination that cannot be written is the repository's
+		// (exit 3); an index that cannot be encoded is this tool's
+		// (exit 4, the unclassified default), never the corpus's.
+		var pathErr *fs.PathError
+		if errors.As(err, &pathErr) {
+			return environmentError("%s cannot be written: %s",
+				filepath.ToSlash(dest), writeErrorText(pathErr))
+		}
+		return fmt.Errorf("writing the index: %w", err)
 	}
 
 	// A file was written: name it, so a human running this interactively

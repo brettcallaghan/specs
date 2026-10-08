@@ -41,7 +41,7 @@ func newRefsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			asked := parseSelection(args[0])
 			if outbound && asked.heading != "" {
-				return errNoAnchorWithOutbound
+				return invocationError("%w", errNoAnchorWithOutbound)
 			}
 			return runRefs(streams, *configPath, asked, outbound, jsonOut)
 		},
@@ -58,7 +58,7 @@ func newRefsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // and --outbound asks what the given document cites — the anchors on
 // those references belong to other documents' headings, so there is no
 // question "the references out of X into the heading Y of X" answers.
-var errNoAnchorWithOutbound = errors.New("specs refs: --outbound takes a slug, not a slug qualified by an anchor")
+var errNoAnchorWithOutbound = errors.New("--outbound takes a slug, not a slug qualified by an anchor")
 
 // refsResult is what runRefs renders: a mapping of the properties the
 // query established, per [[cli-output-standards]].
@@ -122,7 +122,7 @@ func runRefs(streams *ioStreams, configPath string, asked selection, outbound, j
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, jsonOut)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -230,7 +230,7 @@ func renderRefs(streams *ioStreams, result refsResult, asJSON bool) error {
 	if asJSON {
 		data, err := json.Marshal(result)
 		if err != nil {
-			return fmt.Errorf("cmd: rendering the reference set as JSON: %w", err)
+			return fmt.Errorf("rendering the reference set as JSON: %w", err)
 		}
 		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil

@@ -1,0 +1,7 @@
+[workspace]
+name = "acme"
+root = "docs"
+bogus = 1
+
+[profile]
+name = "nope"

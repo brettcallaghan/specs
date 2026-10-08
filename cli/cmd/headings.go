@@ -48,7 +48,7 @@ func newHeadingsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 				operand = args[0]
 			}
 			if emit && jsonOut {
-				return errNoEmitWithJSON
+				return invocationError("%w", errNoEmitWithJSON)
 			}
 			return runHeadings(streams, *configPath, operand, emit, jsonOut)
 		},
@@ -63,7 +63,7 @@ func newHeadingsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // errNoEmitWithJSON rejects the one flag combination that has no meaning:
 // --emit writes a document payload as itself, which has no JSON form to
 // select.
-var errNoEmitWithJSON = errors.New("specs headings: --json cannot be combined with --emit")
+var errNoEmitWithJSON = errors.New("--json cannot be combined with --emit")
 
 // headingMatch is one heading a selection matched, carrying exactly what
 // AC-SPECSTR-003.1 names.
@@ -139,7 +139,7 @@ func runHeadings(streams *ioStreams, configPath, operand string, emit, jsonOut b
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, jsonOut)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -236,7 +236,7 @@ func renderHeadings(streams *ioStreams, result headingsResult, asJSON bool) erro
 	if asJSON {
 		data, err := json.Marshal(result)
 		if err != nil {
-			return fmt.Errorf("cmd: rendering the headings as JSON: %w", err)
+			return fmt.Errorf("rendering the headings as JSON: %w", err)
 		}
 		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil
@@ -277,13 +277,13 @@ func emitSections(streams *ioStreams, repoRoot string, matches []headingMatch) e
 		if !ok {
 			data, err := os.ReadFile(filepath.Join(repoRoot, filepath.FromSlash(match.Path)))
 			if err != nil {
-				return fmt.Errorf("cmd: reading %s: %w", match.Path, err)
+				return fmt.Errorf("reading %s: %w", match.Path, err)
 			}
 			src = normalizeLineEndings(data)
 			sources[match.Path] = src
 		}
 		if _, err := streams.out.Write(span.Slice(src, match.Section)); err != nil {
-			return fmt.Errorf("cmd: writing the section of %q: %w", match.Text, err)
+			return fmt.Errorf("writing the section of %q: %w", match.Text, err)
 		}
 		writtenPath, writtenEnd = match.Path, match.Section.Offset+match.Section.Length
 	}

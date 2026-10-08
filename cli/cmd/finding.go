@@ -36,6 +36,19 @@ func readErrorText(err error) string {
 	}
 }
 
+// writeErrorText renders why a file could not be written, in wording that
+// does not vary by operating system: the operation and path a
+// [*fs.PathError] carries are dropped, since the caller's message already
+// names the destination, and the cause is rendered as [readErrorText]
+// renders it.
+func writeErrorText(err error) string {
+	var pathErr *fs.PathError
+	if errors.As(err, &pathErr) {
+		return readErrorText(pathErr.Err)
+	}
+	return readErrorText(err)
+}
+
 // The rule identifiers this package's checks raise.
 //
 // They are not [finding.RuleSchemaViolation] and its siblings: those name

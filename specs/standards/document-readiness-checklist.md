@@ -91,7 +91,7 @@ or re-type a document answers the blast-radius question ahead of time,
 and is the cheaper habit.
 
 **Check the path you got back.** `specs check` on a path that names no
-corpus member exits 1 and says so, naming the exclusion reason where the
+corpus member exits 2 and says so, naming the exclusion reason where the
 file exists but was excluded. It never reports a clean document for a
 path the corpus does not hold.
 

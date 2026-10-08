@@ -192,6 +192,34 @@ stdout and an exit status. No file here decides what makes a document
 valid or scores a check; every one of those calls is the whole of what a
 subcommand does with what it receives.
 
+**Built (exit statuses)** — `cli/cmd/exit.go`, per
+[[cli-exit-status-standards]]. Every run exits with one of five statuses
+and no other: `0` success; `1` a gate failed (the corpus author acts);
+`2` an invocation error — an unknown command or flag, a missing or
+surplus argument, a value outside a registered set, an operand the
+command cannot act on (the caller acts); `3` an environment error — no
+`specs.toml`, a `specs.toml` defect, an output path that cannot be
+written (the repository's maintainer acts); `4` an internal error (this
+tool's maintainer acts). A gate failing is not an error: it sets the
+status and returns its findings as the answer. A run ending `2`, `3` or
+`4` returns a classified error instead (`invocationError`,
+`environmentError`, `internalError`); an error cobra raises before any
+command runs is `2`, an unclassified `*fs.PathError` is `3`, and any
+other error nobody classified is `4`, so a missing classification
+surfaces as the bug it is rather than as a plausible status. Document
+Core keeps returning its own sentinel errors; classifying them is this
+component's job, because a future API or MCP wrapper would map the same
+sentinels to its own codes. Standard output is buffered and reaches the
+process only when the run ends `0` or `1`, so a run ending `2`, `3` or
+`4` writes nothing there — not even half an answer written before it
+failed — and writes its reason to standard error, beginning with the
+offending value or condition and carrying no `Error: ` prefix. A panic
+in any command is recovered and exits `4`, its value and stack on
+standard error; an unrecovered Go panic would exit `2` and read as "you
+called me wrong". Where a run meets more than one class, the highest
+wins (`4`, `3`, `2`, `1`). A `specs.toml` defect's findings go to
+standard error as text whatever `--json` says, and the run exits `3`.
+
 `index` always builds fresh (`corpus.Build`, not the warm-cache
 `corpus.Open`) and writes through `corpus.Write`, accepting the
 `--out` option `IndexPath` resolves (AC-SPEC-011.1); a member that
@@ -268,7 +296,10 @@ raises the two reachability findings (`mdlinks.Resolve`), and rewrites
 the document (`mdlinks.Substitute`). Unlike `refs`, which always exits
 zero, `links` writes the rewritten document to standard output only when
 no finding of severity error was raised, and exits 1 otherwise
-(AC-SPECMD-002.2); a run whose only findings are warnings still emits
+(AC-SPECMD-002.2) — except that an operand that cannot be read
+(`document/unreadable`) and a `--map` that cannot be read or parsed
+(`linkmap/invalid`) are operands the command cannot act on, which exit 2
+with the finding's message on standard error; a run whose only findings are warnings still emits
 the document and exits 0 (AC-SPECMD-002.6, AC-SPECMD-002.8). Findings
 and the replacement count go to standard error, never to the stream
 carrying the document (AC-SPECMD-003.2). `links` carries no `--strict`
@@ -292,8 +323,9 @@ owning-document tag, `@frd-<slug>`, even where the feature's own source
 was a fenced block that carried none: the emitted file is a feature
 source in its own right, and per [[adr-021]] constraint 11 a feature
 source names its owner. An identifier naming no feature in the index is
-reported distinctly, the same "not the same as an empty answer"
-discipline `refs` and `slug-exists` apply, and exits non-zero.
+an operand `--emit` cannot act on: it is named on standard error and the
+run exits 2, since a producer has no answer that could carry "not
+declared".
 
 Querying a feature without `--emit` reads the same warm index by a
 different corpus call. `feature <id>` returns that feature's record,
@@ -307,8 +339,8 @@ and never its `Path` (AC-GHK-003.1). `--json` marshals the matching
 `specmodel.Feature` value — or, for a selection, a `specmodel.Feature`
 array — straight through, the same generated-JSON discipline `refs`
 applies to `specmodel.Reference` (AC-GHK-007.5). An identifier naming no
-feature is reported distinctly and exits non-zero, exactly as `--emit`'s
-lookup does (AC-GHK-007.4); `--code` naming a group nothing carries is an
+feature is reported distinctly on standard error and exits 1
+(AC-GHK-007.4); `--code` naming a group nothing carries is an
 empty selection instead, and exits zero — a selector is not an identifier,
 so it cannot itself be "unknown". `--code` and `--json` cannot be
 combined with `--emit`, and an identifier and `--code` cannot both be
@@ -343,7 +375,7 @@ the same `Negative`/`Manual`/`Level` properties and `FeatureTagRules.Qualifiers`
 registration `--emit`'s `criterionTags` reads in the write direction
 (AC-GHK-007.3). `--json` marshals the matching `specmodel.Criterion` value
 or array straight through (AC-GHK-007.5). An identifier naming no
-criterion is reported distinctly and exits non-zero (AC-GHK-007.4); `--of`
+criterion is reported distinctly on standard error and exits 1 (AC-GHK-007.4); `--of`
 naming a feature nothing declares, or `--tag` naming a qualifier no
 criterion carries, is an empty selection instead, and exits zero for the
 same reason `--code` does on `feature`. `--changed` cannot be combined
@@ -431,10 +463,10 @@ YAML one (AC-SPECLIST-004.1, AC-SPECLIST-004.2).
 
 An empty answer is an answer: a filter matching nothing, and a corpus
 holding no members, both render `documents: []` and exit zero
-(AC-SPECLIST-001.7). The one non-zero exit is a `--type` value the active
-profile does not register, which `DocumentSummaries` reports rather than
-answering; the report — the value and the registered type names — reaches
-standard error through cobra and the run exits 1 (AC-SPECLIST-002.4).
+(AC-SPECLIST-001.7). A `--type` value the active profile does not
+register is an invocation error, which `DocumentSummaries` reports rather
+than answering; the report — the value and the registered type names —
+reaches standard error and the run exits 2 (AC-SPECLIST-002.4).
 That is the deliberate departure from [[cli-output-standards]]' empty-answer
 rule, and it is narrow: the rule is about the world, where a corpus with
 no contracts is a fact, whereas an unregistered type is a malformed
@@ -458,9 +490,8 @@ carries `schema_version` and the workspace name (AC-C4-004.3), and two
 runs over an unchanged corpus emit the same bytes (AC-C4-004.4). It exits
 zero whatever the model holds, excluded relationships and `c4/*` findings
 included (AC-C4-004.7). A `--root` naming no element is reported by
-Document Core; the message naming the slug reaches standard error through
-cobra, nothing reaches standard output, and the run exits 1
-(AC-C4-004.6).
+Document Core; the message naming the slug reaches standard error,
+nothing reaches standard output, and the run exits 1 (AC-C4-004.6).
 
 A bare invocation or `--help` lists the subcommands with their one-line
 synopses and, per subcommand, its own flags — cobra's default rendering
