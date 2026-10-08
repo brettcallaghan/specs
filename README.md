@@ -294,7 +294,7 @@ alone is visible rather than averaged away.
 |:---|---:|---:|
 | Unit tests | 4,958 / 5,846 | 84.8% |
 | Snapshot cases | 4,422 / 5,846 | 75.6% |
-| End-to-end (built binary) | 2,585 / 5,846 | 44.2% |
+| End-to-end (built binary) | 2,586 / 5,846 | 44.2% |
 | **All layers combined** | **5,344 / 5,846** | **91.4%** |
 
 | Package | Statements | Covered | Coverage |
