@@ -350,9 +350,11 @@ because a build's exit status depends on it.
 - WHEN a value in a reference-bearing frontmatter property matches no
   corpus member, the check SHALL report the same rule at `error`, with a
   detail naming the property and the value (AC-SPECREF-002.3).
-- WHEN a reference's slug matched a non-member, the check SHALL report
-  the same rule with the non-member detail rather than as a slug
-  matching nothing (AC-SPECREF-002.7).
+- WHEN a reference's slug matched an excluded file, the check SHALL
+  report the same rule with the non-member detail rather than as a slug
+  matching nothing; WHEN it matched a parse failure, the check SHALL
+  report nothing against the referrer, the parse failure being the one
+  finding (AC-SPECREF-002.7, as amended for AC-SPEC-003.8).
 - WHEN a single document is checked, the check SHALL report every
   reference finding wherever it was written, each against the referring
   document at the referrer's own span, in addition to the findings

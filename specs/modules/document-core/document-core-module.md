@@ -971,7 +971,10 @@ Five further semantics are pinned by the resolution half:
   member whose frontmatter could not be read, resolves to `non-member`
   rather than to nothing** (AC-SPECREF-002.7), carrying that file's path
   and the reason or the parse failure. The reader's next step differs:
-  the document is right there and what is wrong is its frontmatter.
+  the document is right there and what is wrong is its frontmatter. The
+  index records the outcome either way; check reports only the
+  exclusion's, because a reference reaching a parse failure depends on
+  that failure, which is already the one finding (AC-SPEC-003.8).
 - **A non-member is matched on its file name without the extension,
   lowercased**, because it is the only handle such a file has — a parse
   failure with no legible slug has no readable frontmatter to declare
@@ -979,11 +982,17 @@ Five further semantics are pinned by the resolution half:
   AC-SPEC-003.7, and keeps the file-name match besides), and a file
   excluded for carrying no frontmatter has none either. The name is
   recorded on the index, so the match is reproducible by anything reading
-  the artifact rather than resting on knowledge only the build held. The
-  consequence is deliberate and one-directional: a non-member whose
-  intended slug differs from its file name matches nothing and reports as
-  an ordinary unresolved reference, which is the answer it received
-  before this rule existed.
+  the artifact rather than resting on knowledge only the build held. A
+  parse failure with no recovered slug is matched by a stem prefix as
+  well: a slug its file name begins with, followed by `-`, reaches it, so
+  `[[adr-012]]` finds `adr-012-reference-conventions.md` under the
+  `<slug>-<title>` naming of numbered types (AC-SPEC-003.8). An exact
+  stem outranks a prefix, and between two prefix matches the first in
+  path order wins. An exclusion is matched on its exact stem only: it
+  never claimed to be a member. The consequence is deliberate: a
+  non-member whose intended slug matches its file name neither way —
+  `frd-spec-index` for `spec-index-frd.md` — matches nothing and reports
+  as an ordinary unresolved reference.
 - **A member always wins over a file named like one**, and where two
   non-members share a name the first in path order is reported, decided
   by comparison rather than by the order the index happens to hold its
@@ -1509,9 +1518,14 @@ here names a document type.
 **They also report every reference the graph recorded as broken.** One
 rule, `reference/unresolved`, covers a body reference matching no corpus
 member, a reference-bearing frontmatter value matching no corpus member,
-and a slug matching a non-member — the last carrying the non-member's
-path and reason rather than reading as an ordinary unresolved slug
-(AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7). A reference
+and a slug matching an excluded file — the last carrying the file's path
+and reason rather than reading as an ordinary unresolved slug
+(AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7). A slug that
+reached a parse failure raises nothing against the referring document:
+it depends on that member's parse failure, which `frontmatter/parse`
+already reports, so one unreadable member is one finding however often
+it is cited (AC-SPEC-003.8). No anchor finding stands in for it, since
+an anchor is checked only against a member. A reference
 finding is located in the *referring* document, at the referrer's own
 span, because that is the file a reader must open to fix it. `CheckFor`
 narrows every finding to the document named, with no exception: it
@@ -1933,7 +1947,7 @@ is:
   variant whose subject is the corpus rather than a document, which is
   why it is not folded into a document-level one; an unresolved
   reference with its slug, its origin and — where the slug matched a
-  file the index excluded or could not parse — that file and the reason
+  file the index excluded — that file and the reason
   (AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7); a retired
   target with its slug and the successor it names, where it names one
   (AC-SPECREF-002.6); an incomplete pairing with both property names and

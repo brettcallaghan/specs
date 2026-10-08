@@ -218,9 +218,14 @@ Three things about `reference/unresolved` decide whether you trust it:
   Heading]]` resolves on `container-x` alone; whether that document has
   such a heading is not asked, and no finding is raised about the anchor.
 - **A target that exists but is not a corpus member reports as such** —
-  "target exists but is not a corpus member: parse failure at line 28"
+  "target exists but is not a corpus member: excluded: no-frontmatter"
   rather than as a slug matching nothing, because the reader's next step
   differs.
+- **A target whose frontmatter does not parse raises nothing against the
+  citing document.** The parse failure is reported once, against the
+  document that has it. A slug reaches such a document by its file name,
+  or by a prefix of it followed by `-`: `[[adr-012]]` reaches
+  `adr-012-reference-conventions.md`.
 
 `reference/retired-target` is the only reference rule that emits
 `warning`. A reference to a retired document still resolves — the reader

@@ -122,3 +122,42 @@ func TestNoSlugIsRecoveredWhereNoneIsLegible(t *testing.T) {
 		})
 	}
 }
+
+// A member whose frontmatter fails with no legible slug is reported once,
+// by its parse failure. A citation that reaches it — by slug, which its
+// file name begins with, or anchored — raises no finding against the
+// citing document, and no anchor finding stands in for the suppressed
+// one; a citation matching nothing is still unresolved.
+//
+// AC: AC-SPEC-003.8, AC-SPECREF-002.7
+func TestACitationOfAnUnreadableMemberIsAttributedToItsParseFailure(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-012-reference-conventions.md",
+		"---\ntitle: [unclosed\nslug: adr-012\ntype: adr\n\n# Reference conventions\n\n## Decision\n\nText.\n")
+	write(t, repo, "specs/frds/frd-citing.md", strings.TrimSuffix(citingBody("adr-012"), "\n")+
+		"\nAnchored: [[adr-012#Decision]]. Missing anchor: [[adr-012#Nowhere]]. Broken: [[adr-404]].\n")
+
+	built := buildChecked(t, repo, checkProfile(permissiveCheckSchema))
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	var parse, unresolved int
+	for _, f := range findings {
+		switch {
+		case f.Rule == finding.RuleFrontmatterParse && f.Path == "specs/adrs/adr-012-reference-conventions.md":
+			parse++
+		case f.Rule == finding.RuleUnresolvedReference && strings.Contains(f.Message, "adr-404"):
+			unresolved++
+		case f.Path == "specs/frds/frd-citing.md":
+			t.Errorf("unexpected %s against the citing document: %s", f.Rule, f.Message)
+		}
+	}
+	if parse != 1 {
+		t.Errorf("%d frontmatter/parse findings on the unreadable member, want 1", parse)
+	}
+	if unresolved != 1 {
+		t.Errorf("%d reference/unresolved findings for [[adr-404]], want 1: a citation matching nothing is still broken", unresolved)
+	}
+}

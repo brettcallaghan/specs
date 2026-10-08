@@ -255,6 +255,13 @@ func unresolvedReferenceFinding(ref specmodel.Reference) (specmodel.Finding, boo
 		return specmodel.Finding{}, false
 	}
 	if nonMember, ok := ref.Resolution.AsNonMember(); ok {
+		// A reference that reached a member whose frontmatter could not be
+		// read depends on that member's parse failure, which is already
+		// reported against it. The citing document is not what is wrong,
+		// so it raises nothing (AC-SPEC-003.8, AC-SPECREF-002.7).
+		if nonMember.ParseError != nil {
+			return specmodel.Finding{}, false
+		}
 		return finding.UnresolvedReference(ref.Path, ref.Span, ref.Text, ref.Slug, ref.Origin, &nonMember), true
 	}
 	if _, ok := ref.Resolution.AsUnresolved(); ok {

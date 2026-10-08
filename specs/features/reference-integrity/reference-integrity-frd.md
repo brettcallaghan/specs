@@ -6,7 +6,7 @@ description: Parses cross-document references from a spec corpus, records
 slug: frd-spec-reference-integrity
 type: frd
 status: approved
-updated_at: 2026-10-08T00:00:00Z
+updated_at: 2026-10-08T12:00:00Z
 sources:
   - "frd-spec-index"
 ---
@@ -126,8 +126,11 @@ deliberately, not overlooked:
   file path.
 - **Unresolved reference** — a reference whose slug matches no corpus
   member. A reference whose slug matches a file the index recorded as
-  excluded or unparsable is unresolved too, but is reported differently
-  (AC-SPECREF-002.7), because the reader's next step differs.
+  excluded is unresolved too, but is reported with that reason
+  (AC-SPECREF-002.7), because the reader's next step differs. A reference
+  whose slug matches a file the index recorded as a parse failure is not
+  reported at all: the citing document is not what is wrong, and the
+  parse failure is the one finding (AC-SPEC-003.8).
 - **Reference-bearing property** — a frontmatter property the active
   profile declares as holding one or more document slugs (for example
   `superseded_by` or `modules`). A profile MAY additionally declare
@@ -327,10 +330,15 @@ Feature: Reference Integrity Checks
     Then the CLI reports a finding of severity warning naming the retired target and its superseded_by value when it has one
 
   @AC-SPECREF-002.7
-  Scenario: A slug matching an excluded or unparsable file is reported with that reason
-    Given a reference whose slug matches a file the index recorded as excluded or as a parse failure rather than a corpus member
+  Scenario Outline: A slug matching a file that is not a corpus member is told apart from one matching nothing
+    Given a reference whose slug matches a file the index recorded as "<recorded>" rather than a corpus member
     When the CLI checks the corpus
-    Then the CLI reports the finding with that reason rather than as a slug matching nothing
+    Then the CLI "<reports>"
+
+    Examples:
+      | recorded        | reports                                                                            |
+      | excluded        | reports the finding with the exclusion's reason rather than as a slug matching nothing |
+      | a parse failure | reports no finding against the citing document, the parse failure being the finding   |
 
   @AC-SPECREF-002.8
   Scenario: Resolution ignores letter case
@@ -378,9 +386,12 @@ no pairing is registered by the profile this framework ships, so the
 check is inert for its own corpus by design (AC-SPECREF-002.5). An
 approved blueprint citing a retired ADR reports
 `reference/retired-target  warning … "adr-009 is retired, superseded by
-adr-013"` (AC-SPECREF-002.6). A reference to a document whose
-frontmatter does not parse reports "target exists but is not a corpus
-member: parse failure at line 28" (AC-SPECREF-002.7). `` `[[ADR-012]]` ``
+adr-013"` (AC-SPECREF-002.6). A reference to a file with no
+frontmatter reports "target exists but is not a corpus member: excluded:
+no-frontmatter", and a reference to a document whose frontmatter does not
+parse reports nothing against the citing document — the parse failure is
+reported once, against the document that has it (AC-SPECREF-002.7,
+AC-SPEC-003.8). `` `[[ADR-012]]` ``
 resolves to the document declaring `slug: adr-012` (AC-SPECREF-002.8). An
 agent changes an ADR's slug and the write-time check on that one file
 reports nothing about the seven documents now pointing at nothing;

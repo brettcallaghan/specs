@@ -2,6 +2,7 @@ package references
 
 import (
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
@@ -58,6 +59,10 @@ type targets struct {
 	// about that file.
 	members    map[string]string
 	nonMembers map[string]specmodel.ReferenceNonMember
+	// unreadable holds, in path order, the parse failures from which no
+	// slug could be recovered: the only non-members a slug also matches
+	// as a prefix of their stem (AC-SPEC-003.8).
+	unreadable []specmodel.ReferenceNonMember
 }
 
 // newTargets indexes one corpus's members and non-members by what a
@@ -93,11 +98,16 @@ func newTargets(index specmodel.SpecIndex) targets {
 		// the only thing a reference can match it on is its name; see
 		// [stem]. A recovered member keeps that match too, for a reference
 		// naming the file rather than the slug.
-		built.addNonMember(specmodel.ReferenceNonMember{
+		nonMember := specmodel.ReferenceNonMember{
 			Path:       entry.Path,
 			ParseError: entry.ParseError,
-		})
+		}
+		built.addNonMember(nonMember)
+		if entry.RecoveredSlug == nil {
+			built.unreadable = append(built.unreadable, nonMember)
+		}
 	}
+	sort.Slice(built.unreadable, func(i, j int) bool { return built.unreadable[i].Path < built.unreadable[j].Path })
 
 	for _, exclusion := range index.Exclusions {
 		reason := exclusion.Reason
@@ -134,6 +144,15 @@ func (t targets) resolve(slug string) specmodel.ReferenceResolution {
 	if nonMember, ok := t.nonMembers[key]; ok {
 		return specmodel.NewReferenceResolutionNonMember(nonMember)
 	}
+	// A numbered document is conventionally named <slug>-<title>.md, so a
+	// slug whose member could not be read is matched as a prefix of its
+	// file name too. Only parse failures are: an excluded file never
+	// claimed to be a member, so nothing it is named for depends on it.
+	for _, nonMember := range t.unreadable {
+		if strings.HasPrefix(stem(nonMember.Path), key+"-") {
+			return specmodel.NewReferenceResolutionNonMember(nonMember)
+		}
+	}
 	return specmodel.NewReferenceResolutionUnresolved(specmodel.ReferenceUnresolved{})
 }
 
@@ -160,13 +179,16 @@ func lookupKey(slug string) string {
 // the match is reproducible by anything reading the artifact rather than
 // resting on knowledge only the build held.
 //
+// A parse failure no slug could be recovered from is also matched by a
+// slug its stem begins with, followed by `-`: `[[adr-012]]` reaches
+// `adr-012-reference-conventions.md`, the `<slug>-<title>` naming of
+// numbered types (AC-SPEC-003.8). An exclusion is matched on its exact
+// stem only.
+//
 // The consequence, recorded deliberately: a non-member whose intended
-// slug differs from its file name matches nothing and reports as an
-// ordinary unresolved reference. That is the answer such a reference
-// received before this rule existed, so the rule only ever improves an
-// outcome — and it improves the case that motivates it, a template or a
-// half-written document sitting in the corpus under the name a reader
-// cited it by.
+// slug matches its file name neither way — `frd-spec-index` for
+// `spec-index-frd.md` — matches nothing and reports as an ordinary
+// unresolved reference.
 func stem(reported string) string {
 	name := path.Base(path.Clean(reported))
 	return strings.ToLower(strings.TrimSuffix(name, path.Ext(name)))
