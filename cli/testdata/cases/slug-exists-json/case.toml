@@ -1,0 +1,5 @@
+description = "slug-exists --json writes the slug as asked, declared and the declaring member's path as one JSON object, the same keys and values in the same order as the YAML answer"
+cites = ["AC-SPEC-007.2", "AC-SPEC-011.3"]
+artifacts = ["checks.json"]
+args = ["slug-exists", "adr-001-example", "--json"]
+exit_code = 0

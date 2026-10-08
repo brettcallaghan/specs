@@ -1,5 +1,5 @@
-description = "slug-exists reports the path of the corpus member declaring the given slug"
-cites = ["AC-SPEC-011.3"]
+description = "slug-exists answers a mapping holding the slug as asked, declared: true and the path of the corpus member declaring it"
+cites = ["AC-SPEC-007.2", "AC-SPEC-011.3"]
 artifacts = ["checks.log"]
 args = ["slug-exists", "adr-001-example"]
 exit_code = 0

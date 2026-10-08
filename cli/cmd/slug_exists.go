@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -9,28 +10,42 @@ import (
 // newSlugExistsCmd builds the `slug-exists` subcommand: answer whether a
 // corpus member declares a given slug, per AC-SPEC-007.2 (AC-SPEC-011.3).
 func newSlugExistsCmd(streams *ioStreams, configPath *string) *cobra.Command {
+	var jsonOut bool
 	cmd := &cobra.Command{
 		Use:   "slug-exists <slug>",
 		Short: "Report whether a corpus member declares the given slug",
-		Long: "slug-exists reports whether any corpus member declares the given " +
-			"slug and, if one does, that member's path. The comparison ignores " +
-			"letter case.",
+		Long: "slug-exists answers whether any corpus member declares the given " +
+			"slug: a YAML mapping holding slug, as asked, declared, true or false, " +
+			"and path, the declaring member's path or null where none declares it. " +
+			"The comparison ignores letter case. It exits 0 either way. --json " +
+			"writes the same values as JSON.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
-			return runSlugExists(streams, *configPath, args[0])
+			return runSlugExists(streams, *configPath, args[0], jsonOut)
 		},
 	}
+	cmd.Flags().BoolVar(&jsonOut, "json", false,
+		"write the answer as JSON instead of YAML")
 	return cmd
 }
 
+// slugExistsResult is slug-exists's answer (AC-SPEC-007.2): the slug as
+// asked, whether a member declares it, and that member's path — null where
+// none does, so the command has one key set whatever it finds.
+type slugExistsResult struct {
+	Slug     string  `json:"slug"`
+	Declared bool    `json:"declared"`
+	Path     *string `json:"path"`
+}
+
 // runSlugExists answers [corpus.Corpus.Slug] for slug and renders the
-// result.
+// result as YAML, or as JSON under --json.
 //
 // It always exits zero: whether a slug is in use is a fact about the
 // corpus, not a failure of the command that asked. The corpus is opened
 // warm (corpus.Open), the same as check, because this is exactly the
 // corpus query FEAT-SPEC-009.1's latency budget is measured against.
-func runSlugExists(streams *ioStreams, configPath, slug string) error {
+func runSlugExists(streams *ioStreams, configPath, slug string, jsonOut bool) error {
 	cfg, findings, err := Load(configPath, BuiltinRegistry())
 	if err != nil {
 		return err
@@ -49,11 +64,20 @@ func runSlugExists(streams *ioStreams, configPath, slug string) error {
 		return err
 	}
 
-	entry, found := c.Slug(slug)
-	if !found {
-		fmt.Fprintf(streams.out, "%s: not found\n", slug)
+	result := slugExistsResult{Slug: slug}
+	if entry, found := c.Slug(slug); found {
+		path := entry.Path
+		result.Declared = true
+		result.Path = &path
+	}
+	if jsonOut {
+		data, err := json.Marshal(result)
+		if err != nil {
+			return internalError("rendering the answer as JSON: %v", err)
+		}
+		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil
 	}
-	fmt.Fprintf(streams.out, "%s: found at %s\n", slug, entry.Path)
+	fmt.Fprint(streams.out, renderYAML(result))
 	return nil
 }

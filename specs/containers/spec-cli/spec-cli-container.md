@@ -249,7 +249,12 @@ diagrams in architecture blueprints — `c4/parse`, `c4/undeclared-node`,
 — so each is selectable with `--only`; the command surface adds no c4
 logic of its own. `slug-exists` and `next-id` open the
 corpus warm and answer `corpus.Corpus.Slug` and `numbering.Next`
-directly (AC-SPEC-011.3, AC-SPEC-011.4). `next-id <type>` answers a
+directly (AC-SPEC-011.3, AC-SPEC-011.4). `slug-exists <slug>` answers a
+mapping holding `slug`, as asked, `declared`, and `path`, the declaring
+member's path or `null` where no member declares it, so the command has
+one key set whatever it finds; the comparison ignores letter case, an
+undeclared slug is an answer and exits 0, and `--json` writes the same
+values in the same order (AC-SPEC-007.2). `next-id <type>` answers a
 mapping holding `number`, from `numbering.Next`, then `slug`, the slug
 `numbering.Format` forms from it under the type's registered width —
 `number: 32`, `slug: adr-032` — as YAML by default and as JSON under
