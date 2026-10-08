@@ -27,15 +27,19 @@ func newFeatureCmd(streams *ioStreams, configPath *string) *cobra.Command {
 	var out string
 	var code string
 	var jsonOut bool
+	var full bool
 
 	cmd := &cobra.Command{
 		Use:   "feature [<id>]",
 		Short: "Query a feature, or emit one as a standalone Gherkin file",
-		Long: "feature <id> returns that feature's record, including its criteria. " +
+		Long: "feature <id> returns that feature's compact summary: its id, code, name, path and " +
+			"criteria_count. The answer is compact by default and --full returns every " +
+			"field, the description and criteria included; --json changes the syntax, " +
+			"never the view. " +
 			"feature --code <CODE> returns every feature grouped under that code, and " +
 			"feature with no argument every feature in the corpus. The answer is a " +
 			"YAML mapping whose one key, features, holds a list of the matching " +
-			"records in every case, one identifier included; --json writes the same " +
+			"features in every case, one identifier included; --json writes the same " +
 			"values as JSON. Given an identifier or --code, the answer also carries " +
 			"declared, false with an empty list where the corpus declares no such " +
 			"feature or code; that is an answer, and exits 0. " +
@@ -53,12 +57,15 @@ func newFeatureCmd(streams *ioStreams, configPath *string) *cobra.Command {
 				if code != "" || jsonOut {
 					return invocationError("--code and --json cannot be combined with --emit")
 				}
+				if full {
+					return invocationError("--full cannot be combined with --emit")
+				}
 				return runFeatureEmit(streams, *configPath, args[0], out)
 			}
 			if code != "" && len(args) == 1 {
 				return invocationError("an identifier and --code cannot both be given")
 			}
-			return runFeatureQuery(streams, *configPath, args, code, jsonOut)
+			return runFeatureQuery(streams, *configPath, args, code, full, jsonOut)
 		},
 	}
 	cmd.Flags().BoolVar(&emit, "emit", false,
@@ -67,6 +74,8 @@ func newFeatureCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		"where to write the emitted file: a path, or omitted for standard output")
 	cmd.Flags().StringVar(&code, "code", "",
 		"list every feature grouped under this code")
+	cmd.Flags().BoolVar(&full, "full", false,
+		"return every field of every feature, its description and criteria included")
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
 		"write the answer as JSON instead of YAML")
 	return cmd
@@ -149,7 +158,7 @@ func runFeatureEmit(streams *ioStreams, configPath, id, out string) error {
 // corpus does not declare is answered with the empty selection and
 // declared false, exiting zero (AC-GHK-007.4), so "nothing matches" and
 // "nothing by that name exists" read apart.
-func runFeatureQuery(streams *ioStreams, configPath string, args []string, code string, jsonOut bool) error {
+func runFeatureQuery(streams *ioStreams, configPath string, args []string, code string, full, jsonOut bool) error {
 	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
@@ -171,16 +180,16 @@ func runFeatureQuery(streams *ioStreams, configPath string, args []string, code 
 	if len(args) == 1 {
 		feature, found := c.Feature(specmodel.FeatureId(args[0]))
 		if !found {
-			return renderFeatures(streams, nil, declared(false), jsonOut)
+			return renderFeatures(streams, nil, declared(false), full, jsonOut)
 		}
-		return renderFeatures(streams, []specmodel.Feature{feature}, declared(true), jsonOut)
+		return renderFeatures(streams, []specmodel.Feature{feature}, declared(true), full, jsonOut)
 	}
 
 	if code != "" {
 		features := c.FeaturesByCode(specmodel.FeatureCode(code))
-		return renderFeatures(streams, features, declared(len(features) > 0), jsonOut)
+		return renderFeatures(streams, features, declared(len(features) > 0), full, jsonOut)
 	}
-	return renderFeatures(streams, c.Features(), nil, jsonOut)
+	return renderFeatures(streams, c.Features(), nil, full, jsonOut)
 }
 
 // featuresResult is the feature query's answer: the matching records
@@ -200,6 +209,47 @@ type featuresResult struct {
 	Features []specmodel.Feature `json:"features"`
 }
 
+// featuresCompactResult is the default answer: the properties the query
+// established, exactly as [featuresResult] carries them, over the
+// features in the compact view of [[cli-output-standards]]
+// (AC-GHK-007.10).
+type featuresCompactResult struct {
+	Declared *bool                   `json:"declared,omitempty"`
+	Features []featureCompactSummary `json:"features"`
+}
+
+// featureCompactSummary keeps what lets a caller choose a feature to
+// fetch in full: which it is and where, and how many criteria it holds.
+// CriteriaCount is derived, and is named apart from the full record's
+// `criteria` so that one key never holds two types.
+type featureCompactSummary struct {
+	Id            specmodel.FeatureId   `json:"id"`
+	Code          specmodel.FeatureCode `json:"code"`
+	Name          string                `json:"name"`
+	Path          string                `json:"path"`
+	CriteriaCount int                   `json:"criteria_count"`
+}
+
+// compactFeatures derives the compact view from the full answer, so the
+// two list the same features in the same order by construction
+// (AC-GHK-007.10).
+func compactFeatures(result featuresResult) featuresCompactResult {
+	compact := featuresCompactResult{
+		Declared: result.Declared,
+		Features: make([]featureCompactSummary, 0, len(result.Features)),
+	}
+	for _, feature := range result.Features {
+		compact.Features = append(compact.Features, featureCompactSummary{
+			Id:            feature.Id,
+			Code:          feature.Code,
+			Name:          feature.Name,
+			Path:          feature.Path,
+			CriteriaCount: len(feature.Criteria),
+		})
+	}
+	return compact
+}
+
 // declared is the not-declared property's value for a query that names a
 // subject: a pointer, so that a query naming none can leave it absent.
 func declared(found bool) *bool { return &found }
@@ -208,11 +258,14 @@ func declared(found bool) *bool { return &found }
 // carrying the same values in the same order (AC-GHK-007.1, AC-GHK-007.5).
 // A subject the corpus does not declare is an answer too — the empty
 // selection with declared false, exiting zero (AC-GHK-007.4).
-func renderFeatures(streams *ioStreams, features []specmodel.Feature, isDeclared *bool, asJSON bool) error {
+func renderFeatures(streams *ioStreams, features []specmodel.Feature, isDeclared *bool, full, asJSON bool) error {
 	if features == nil {
 		features = []specmodel.Feature{}
 	}
-	result := featuresResult{Declared: isDeclared, Features: features}
+	var result any = featuresResult{Declared: isDeclared, Features: features}
+	if !full {
+		result = compactFeatures(featuresResult{Declared: isDeclared, Features: features})
+	}
 	if asJSON {
 		data, err := json.Marshal(result)
 		if err != nil {

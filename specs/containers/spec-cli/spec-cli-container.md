@@ -383,7 +383,7 @@ declared".
 
 Querying a feature without `--emit` reads the same warm index by a
 different corpus call. `feature <id>` returns that feature's record,
-including its criteria, via `corpus.Corpus.Feature` (AC-GHK-007.1);
+via `corpus.Corpus.Feature` (AC-GHK-007.1);
 `feature --code <CODE>` returns every feature `corpus.Corpus.FeaturesByCode`
 groups under that code, and `feature` with no argument and no `--code`
 every feature `corpus.Corpus.Features` holds (AC-GHK-003.3, AC-GHK-007.3).
@@ -392,7 +392,12 @@ form or file it sits in, because the lookup reads the index's `Id` field
 and never its `Path` (AC-GHK-003.1). An identifier and a code match
 regardless of letter case, as a slug does, and the record carries the
 spelling the corpus declares rather than the caller's (AC-GHK-007.7).
-The answer has one shape whatever
+The answer is the compact view by default — each feature's `id`, `code`,
+`name`, `path` and `criteria_count` — and `--full` returns the whole
+record, its description and criteria included, derived from the same
+selection so both list the same features in the same order
+(AC-GHK-007.10, AC-GHK-007.11); `--full` with `--emit` is refused with
+exit `2` (AC-GHK-007.12). The answer has one shape whatever
 the arguments select: a mapping whose one key, `features`, holds a list
 of the matching generated `specmodel.Feature` records, one identifier's
 lookup included, rendered as YAML by `renderYAML` by default and as JSON
@@ -490,9 +495,12 @@ same no-domain-logic discipline `refs` does: each converts its flags into
 one corpus lookup and the result into stdout and an exit status, with no
 selection or matching logic of its own.
 
-`headings` answers a heading selection with every match's file path,
-heading text, heading identifier, heading path, level and the span of the
-content beneath it (AC-SPECSTR-003.1). The selection is one operand written
+`headings` answers a heading selection with every match's `anchor`,
+`ref`, `level` and `start_line` by default (AC-SPECSTR-003.16), and with
+`--full` its file path, heading text, heading identifier, anchor, ref,
+level and the span of the content beneath it (AC-SPECSTR-003.1); both
+views list the same matches in the same order, and `--full` with `--emit`
+is refused with exit `2` (AC-SPECSTR-003.17). The selection is one operand written
 `<document>#<heading>`, either half omittable: `<document>` alone selects
 every heading in that document, `#<heading>` that heading in every corpus
 member, and an absent operand every heading in the corpus

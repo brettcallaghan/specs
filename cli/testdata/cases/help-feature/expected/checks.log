@@ -1,4 +1,4 @@
-feature <id> returns that feature's record, including its criteria. feature --code <CODE> returns every feature grouped under that code, and feature with no argument every feature in the corpus. The answer is a YAML mapping whose one key, features, holds a list of the matching records in every case, one identifier included; --json writes the same values as JSON. Given an identifier or --code, the answer also carries declared, false with an empty list where the corpus declares no such feature or code; that is an answer, and exits 0. feature <id> --emit writes the named feature as a valid Gherkin .feature file, carrying its tags, description and criteria, to standard output by default and to the path --out names.
+feature <id> returns that feature's compact summary: its id, code, name, path and criteria_count. The answer is compact by default and --full returns every field, the description and criteria included; --json changes the syntax, never the view. feature --code <CODE> returns every feature grouped under that code, and feature with no argument every feature in the corpus. The answer is a YAML mapping whose one key, features, holds a list of the matching features in every case, one identifier included; --json writes the same values as JSON. Given an identifier or --code, the answer also carries declared, false with an empty list where the corpus declares no such feature or code; that is an answer, and exits 0. feature <id> --emit writes the named feature as a valid Gherkin .feature file, carrying its tags, description and criteria, to standard output by default and to the path --out names.
 
 Usage:
   specs feature [<id>] [flags]
@@ -6,6 +6,7 @@ Usage:
 Flags:
       --code string   list every feature grouped under this code
       --emit          write the feature as a standalone .feature file instead of querying it
+      --full          return every field of every feature, its description and criteria included
   -h, --help          help for feature
       --json          write the answer as JSON instead of YAML
       --out string    where to write the emitted file: a path, or omitted for standard output

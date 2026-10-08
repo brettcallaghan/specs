@@ -26,7 +26,7 @@ import (
 // this surface is. It is the query that makes agent review auditable as
 // well as cheap: two runs given the same selection read the same spans.
 func newHeadingsCmd(streams *ioStreams, configPath *string) *cobra.Command {
-	var jsonOut, emit, all bool
+	var jsonOut, emit, all, full bool
 
 	cmd := &cobra.Command{
 		Use:   "headings [<document>#<heading>]",
@@ -55,7 +55,9 @@ func newHeadingsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			"reachable only through the span the query without --emit returns. A " +
 			"selection with no heading half matches " +
 			"every heading of the document, so a caller after a whole document reads " +
-			"the file. Members at a status no longer in effect are omitted unless " +
+			"the file. The answer is compact by default (anchor, ref, level and " +
+			"start_line) and --full returns every field, including the span of each " +
+			"section; --json changes the syntax, never the view. Members at a status no longer in effect are omitted unless " +
 			"--all asks for them, except a document the selection names itself.",
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -66,13 +68,18 @@ func newHeadingsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			if emit && jsonOut {
 				return invocationError("%w", errNoEmitWithJSON)
 			}
-			return runHeadings(streams, *configPath, operand, emit, all, jsonOut)
+			if emit && full {
+				return invocationError("%w", errNoFullWithEmit)
+			}
+			return runHeadings(streams, *configPath, operand, emit, all, full, jsonOut)
 		},
 	}
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
 		"write the matches as JSON instead of YAML")
 	cmd.Flags().BoolVar(&all, "all", false,
 		"report headings of members at every status, including ones no longer in effect")
+	cmd.Flags().BoolVar(&full, "full", false,
+		"return every field of every match, including the span of its section")
 	cmd.Flags().BoolVar(&emit, "emit", false,
 		"write the content the one matching heading stands over, instead of the match")
 	return cmd
@@ -82,6 +89,11 @@ func newHeadingsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // --emit writes a document payload as itself, which has no JSON form to
 // select.
 var errNoEmitWithJSON = errors.New("--json cannot be combined with --emit")
+
+// errNoFullWithEmit rejects --full beside --emit for the same reason: an
+// emitted section is a document payload, to which neither view applies
+// (AC-SPECSTR-003.17).
+var errNoFullWithEmit = errors.New("--full cannot be combined with --emit")
 
 // headingMatch is one heading a selection matched, carrying exactly what
 // AC-SPECSTR-003.1 names.
@@ -104,6 +116,12 @@ type headingMatch struct {
 	Ref     string         `json:"ref"`
 	Level   uint64         `json:"level"`
 	Section specmodel.Span `json:"section"`
+
+	// headingLine is the line the heading itself stands on, which the
+	// full match does not carry (its Section begins after that line).
+	// Unexported, so neither rendering writes it; the compact view
+	// reads it as start_line.
+	headingLine uint64
 }
 
 // headingsResult is the answer: the matches, and whether the document the
@@ -168,7 +186,7 @@ func (s selection) isPath() bool {
 //
 // It always exits zero. A selection matching nothing is a fact about the
 // corpus rather than a failure of the invocation (AC-SPECSTR-003.6).
-func runHeadings(streams *ioStreams, configPath, operand string, emit, all, jsonOut bool) error {
+func runHeadings(streams *ioStreams, configPath, operand string, emit, all, full, jsonOut bool) error {
 	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
@@ -204,7 +222,48 @@ func runHeadings(streams *ioStreams, configPath, operand string, emit, all, json
 	if sel.document != "" {
 		result.Declared = declared(sel.declaredIn(c.Index()))
 	}
-	return renderHeadings(streams, result, jsonOut)
+	if full {
+		return renderHeadings(streams, result, jsonOut)
+	}
+	return renderHeadings(streams, compactHeadings(result), jsonOut)
+}
+
+// headingsCompactResult is the default answer: the properties the query
+// established, exactly as [headingsResult] carries them, over the matches
+// in the compact view of [[cli-output-standards]] (AC-SPECSTR-003.16).
+type headingsCompactResult struct {
+	Declared *bool                 `json:"declared,omitempty"`
+	Matches  []headingCompactMatch `json:"matches"`
+}
+
+// headingCompactMatch keeps what a caller needs to locate and re-select a
+// heading: its anchor, its ref, its level and the line the heading itself
+// stands on. The path, text, identifier and the section span are dropped;
+// the ref carries the document and the anchor the identifier.
+type headingCompactMatch struct {
+	Anchor    string `json:"anchor"`
+	Ref       string `json:"ref"`
+	Level     uint64 `json:"level"`
+	StartLine uint64 `json:"start_line"`
+}
+
+// compactHeadings derives the compact view from the full answer, so the
+// two list the same matches in the same order by construction
+// (AC-SPECSTR-003.16).
+func compactHeadings(result headingsResult) headingsCompactResult {
+	compact := headingsCompactResult{
+		Declared: result.Declared,
+		Matches:  make([]headingCompactMatch, 0, len(result.Matches)),
+	}
+	for _, match := range result.Matches {
+		compact.Matches = append(compact.Matches, headingCompactMatch{
+			Anchor:    match.Anchor,
+			Ref:       match.Ref,
+			Level:     match.Level,
+			StartLine: match.headingLine,
+		})
+	}
+	return compact
 }
 
 // declaredIn reports whether some corpus member is the document the
@@ -287,13 +346,14 @@ func selectHeadings(index specmodel.SpecIndex, sel selection, inEffect func(spec
 			}
 			anchor := markdown.JoinPath(paths[i])
 			matches = append(matches, headingMatch{
-				Path:       entry.Path,
-				Text:       heading.Text,
-				Identifier: paths[i][len(paths[i])-1],
-				Anchor:     anchor,
-				Ref:        refPrefix + "#" + anchor,
-				Level:      heading.Level,
-				Section:    heading.SectionSpan,
+				Path:        entry.Path,
+				Text:        heading.Text,
+				Identifier:  paths[i][len(paths[i])-1],
+				Anchor:      anchor,
+				Ref:         refPrefix + "#" + anchor,
+				Level:       heading.Level,
+				Section:     heading.SectionSpan,
+				headingLine: heading.Span.StartLine,
 			})
 			direct = append(direct, named[i])
 		}
@@ -319,7 +379,7 @@ func (s selection) selects(entry specmodel.IndexEntry) bool {
 
 // renderHeadings writes the answer as YAML, or as JSON under --json, both
 // carrying the same values in the same order.
-func renderHeadings(streams *ioStreams, result headingsResult, asJSON bool) error {
+func renderHeadings(streams *ioStreams, result any, asJSON bool) error {
 	if asJSON {
 		data, err := json.Marshal(result)
 		if err != nil {

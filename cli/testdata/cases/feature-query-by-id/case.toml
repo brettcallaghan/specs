@@ -1,5 +1,5 @@
-description = "feature <id> answers with a YAML mapping whose one key, features, holds a one-element list: that feature's record including its criteria, for a feature written as a fenced block"
-cites = ["AC-GHK-007.1"]
+description = "(full view) feature <id> answers with a YAML mapping whose one key, features, holds a one-element list: that feature's record including its criteria, for a feature written as a fenced block"
+cites = ["AC-GHK-007.1", "AC-GHK-007.11"]
 artifacts = ["checks.log"]
-args = ["feature", "FEAT-CHK-001"]
+args = ["feature", "FEAT-CHK-001", "--full"]
 exit_code = 0

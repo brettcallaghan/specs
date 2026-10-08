@@ -368,12 +368,13 @@ is a repository-relative path; otherwise it is a slug. A heading is
 matched on its identifier, so letter case and punctuation do not decide
 a match. The heading half may be a path of headings joined by `#`,
 outermost first, each nested anywhere inside the one before it. Each
-match carries its file `path`, `text`, `identifier`, `anchor`,
-`ref`, `level` and the `section` span of the content beneath it, and is
+match is compact by default: its `anchor`, its `ref`, its `level` and the
+`start_line` its heading stands on. `--full` adds the file `path`, `text`,
+`identifier` and the `section` span of the content beneath it. A match is
 followed by every heading nested inside its section.
 
 ```
-$ specs headings 'module-document-core#Components#References'
+$ specs headings 'module-document-core#Components#References' --full
 declared: true
 matches:
   - path: specs/modules/document-core/document-core-module.md
@@ -387,6 +388,9 @@ matches:
       length: 13357
       start_line: 943
 ```
+
+Without `--full` the same match is `anchor`, `ref`, `level: 3` and the
+`start_line` of the heading line itself.
 
 **`--emit`** writes the section's content as itself instead — the
 cheapest way to read one part of a long document. It requires the
@@ -416,15 +420,18 @@ effect unless `--all` is given, from the answer and from the `--emit`
 refusal's list alike. A selection that names such a document by slug or
 path still answers with its headings.
 
-**`specs feature`** returns features, each with its criteria, from the
-Gherkin in the corpus. `feature <id>` returns that one, `--code <CODE>`
+**`specs feature`** returns features from the Gherkin in the corpus. The
+answer is compact by default — each feature's `id`, `code`, `name`, `path`
+and `criteria_count`; `--full` returns the whole record, description and
+criteria included. `feature <id>` returns that one, `--code <CODE>`
 every feature grouped under that code, and no argument every feature.
 Identifiers and codes match regardless of letter case. The answer is a
 `features` list in every case, preceded by `declared` where the
 arguments name a subject. `feature <id> --emit` writes the feature as a
 standalone Gherkin `.feature` file — tags, description and criteria — to
 standard output, or to the path `--out` names; an unknown id there is
-refused (exit 2), since there is nothing to write.
+refused (exit 2), since there is nothing to write, and `--full` there is
+refused too.
 
 ```
 $ specs feature FEAT-SPEC-010 --emit

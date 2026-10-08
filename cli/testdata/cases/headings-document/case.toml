@@ -1,5 +1,5 @@
-description = "headings <slug> lists that document's headings with path, text, identifier, level and section span"
-cites = ["AC-SPECSTR-003.1", "AC-SPECSTR-003.3"]
+description = "(full view) headings <slug> lists that document's headings with path, text, identifier, level and section span"
+cites = ["AC-SPECSTR-003.1", "AC-SPECSTR-003.3", "AC-SPECSTR-003.1"]
 artifacts = ["checks.log"]
-args = ["headings", "adr-001-first"]
+args = ["headings", "adr-001-first", "--full"]
 exit_code = 0

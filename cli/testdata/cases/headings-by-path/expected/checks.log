@@ -1,67 +1,22 @@
 declared: true
 matches:
-  - path: docs/adrs/adr-001-first.md
-    text: "ADR-001: First"
-    identifier: adr-001-first
-    anchor: adr-001-first
+  - anchor: adr-001-first
     ref: adr-001-first#adr-001-first
     level: 1
-    section:
-      offset: 196
-      length: 184
-      start_line: 11
-      start_column: 1
-      end_line: 27
-      end_column: 1
-  - path: docs/adrs/adr-001-first.md
-    text: Overview
-    identifier: overview
-    anchor: adr-001-first#overview
+    start_line: 10
+  - anchor: adr-001-first#overview
     ref: adr-001-first#adr-001-first#overview
     level: 2
-    section:
-      offset: 209
-      length: 31
-      start_line: 13
-      start_column: 1
-      end_line: 16
-      end_column: 1
-  - path: docs/adrs/adr-001-first.md
-    text: Decision
-    identifier: decision
-    anchor: adr-001-first#decision
+    start_line: 12
+  - anchor: adr-001-first#decision
     ref: adr-001-first#adr-001-first#decision
     level: 2
-    section:
-      offset: 252
-      length: 87
-      start_line: 17
-      start_column: 1
-      end_line: 24
-      end_column: 1
-  - path: docs/adrs/adr-001-first.md
-    text: Detail
-    identifier: detail
-    anchor: adr-001-first#decision#detail
+    start_line: 16
+  - anchor: adr-001-first#decision#detail
     ref: adr-001-first#adr-001-first#decision#detail
     level: 3
-    section:
-      offset: 287
-      length: 52
-      start_line: 21
-      start_column: 1
-      end_line: 24
-      end_column: 1
-  - path: docs/adrs/adr-001-first.md
-    text: Key Decisions
-    identifier: key-decisions
-    anchor: adr-001-first#key-decisions
+    start_line: 20
+  - anchor: adr-001-first#key-decisions
     ref: adr-001-first#adr-001-first#key-decisions
     level: 2
-    section:
-      offset: 356
-      length: 24
-      start_line: 25
-      start_column: 1
-      end_line: 27
-      end_column: 1
+    start_line: 24
