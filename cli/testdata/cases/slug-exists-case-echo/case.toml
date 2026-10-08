@@ -1,0 +1,5 @@
+description = "slug-exists given an upper-case slug answers the slug as the member declares it, lower-case, with declared: true and the declaring member's path (AC-SPEC-007.2)"
+cites = ["AC-SPEC-007.2"]
+artifacts = ["checks.log"]
+args = ["slug-exists", "ADR-001-EXAMPLE"]
+exit_code = 0

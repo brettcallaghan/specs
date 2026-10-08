@@ -193,7 +193,9 @@ slug: adr-032
 
 **`specs slug-exists <slug>`** answers whether any document declares that
 slug, and where. Case-insensitive, because a case-insensitive filesystem
-cannot hold two files that differ only in case. It exits 0 either way.
+cannot hold two files that differ only in case. The slug is written as the
+document declares it where one does, so `ADR-012` answers `adr-012`; where no
+document declares it, the slug is written as given. It exits 0 either way.
 Run it before claiming a slug.
 
 ```
