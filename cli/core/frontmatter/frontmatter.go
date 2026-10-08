@@ -136,9 +136,13 @@ type InlineComment struct {
 	Span specmodel.Span
 }
 
-// InlineComments returns every comment that trails a token on its own
-// line, in source order. A comment on a line holding nothing else is not
-// one: it cuts no value short (AC-SPEC-003.10).
+// InlineComments returns, in source order, every comment that cuts a
+// plain scalar short: one that directly follows, on the same line, a value
+// written without quotes — a string, number, bool, null or infinity — as
+// classified from the parsed tree. A comment on a line holding nothing
+// else, or one after a quoted scalar, a flow collection, a block scalar's
+// header, an alias, or a key, anchor or tag whose value is on the lines
+// below, cuts no value short and is not one (AC-SPEC-003.10).
 func (d *Document) InlineComments() []InlineComment {
 	return d.comments
 }
@@ -191,7 +195,8 @@ func Parse(src []byte) (*Document, *specmodel.ParseError) {
 	}
 
 	inner := span.Slice(src, region.Inner)
-	file, err := parser.ParseBytes(inner, 0)
+	tokens := lexer.Tokenize(string(inner))
+	file, err := parser.Parse(tokens, 0)
 	if err != nil {
 		return nil, syntaxError(src, region, err)
 	}
@@ -226,28 +231,32 @@ func Parse(src []byte) (*Document, *specmodel.ParseError) {
 		doc.Properties = append(doc.Properties, property)
 		doc.values[property.Name] = property.Value
 	}
-	doc.comments = inlineComments(src, region, inner, doc.Properties)
+	plain := map[*token.Token]bool{}
+	collectPlainScalars(body, plain)
+	doc.comments = inlineComments(src, region, tokens, plain, doc.Properties)
 	return doc, nil
 }
 
 // inlineComments finds the comments in the block that cut a plain
-// (unquoted) scalar short: a comment sharing a line with the end of a
-// plain scalar, which is the one place text a reader meant as value is
-// lost. A comment after a key with no value on its line, after a flow
-// collection or a quoted scalar, inside or after a block scalar, or on a
-// line of its own cuts nothing short and is not reported. Each is
-// attributed to the property whose key most closely precedes it. It reads
-// the lexer's tokens rather than parsing with comments retained, so
-// nothing [Parse] reports about values or spans depends on it.
-func inlineComments(src []byte, region span.Region, inner []byte, properties []Property) []InlineComment {
+// (unquoted) scalar short: a comment whose preceding token is the token of
+// a plain scalar in the parsed tree — a string, number, bool, null or
+// infinity written without quotes — which is the one place text a reader
+// meant as value is lost. A comment after a key with no value on its line,
+// after an anchor or tag whose collection follows on the next lines, after
+// an alias, a flow collection or a quoted scalar, inside or after a block
+// scalar, or on a line of its own cuts nothing short and is not reported.
+// Each is attributed to the property whose key most closely precedes it.
+// It reads the tokens [Parse] parsed, so the tree and the comments agree
+// on which token is which.
+func inlineComments(src []byte, region span.Region, tokens token.Tokens, plain map[*token.Token]bool, properties []Property) []InlineComment {
 	var found []InlineComment
-	var prev, beforePrev *token.Token
-	for _, tok := range lexer.Tokenize(string(inner)) {
+	var prev *token.Token
+	for _, tok := range tokens {
 		if tok.Type != token.CommentType {
-			beforePrev, prev = prev, tok
+			prev = tok
 			continue
 		}
-		if !cutsPlainScalar(prev, beforePrev) {
+		if prev == nil || !plain[prev] {
 			continue
 		}
 		start := absolute(region, src, tok)
@@ -272,20 +281,46 @@ func inlineComments(src []byte, region span.Region, inner []byte, properties []P
 	return found
 }
 
-// cutsPlainScalar reports whether the token a comment follows is a plain
-// scalar, the only value a trailing comment can cut short. The content of
-// a block scalar is lexed as a plain string too, so the token before it
-// tells the two apart. The lexer reports the line of a folded scalar's
-// content differently from a literal one's, which is why the comment's
-// own line is tested against the source rather than against it.
-func cutsPlainScalar(prev, beforePrev *token.Token) bool {
-	if prev == nil || prev.Type != token.StringType {
-		return false
+// collectPlainScalars records the token of every plain scalar value in the
+// tree under node. An anchor's or alias's name lexes as a string but is
+// not a value, and a block scalar's content is lexed as a plain string
+// though it is not one, so none of them is recorded.
+func collectPlainScalars(node ast.Node, plain map[*token.Token]bool) {
+	switch n := node.(type) {
+	case *ast.StringNode:
+		if n.Token != nil && n.Token.Type == token.StringType {
+			plain[n.Token] = true
+		}
+	case *ast.IntegerNode:
+		plain[n.Token] = true
+	case *ast.FloatNode:
+		plain[n.Token] = true
+	case *ast.BoolNode:
+		plain[n.Token] = true
+	case *ast.NullNode:
+		plain[n.Token] = true
+	case *ast.InfinityNode:
+		plain[n.Token] = true
+	case *ast.NanNode:
+		plain[n.Token] = true
+	case *ast.MappingNode:
+		for _, v := range n.Values {
+			collectPlainScalars(v, plain)
+		}
+	case *ast.MappingValueNode:
+		collectPlainScalars(n.Key, plain)
+		collectPlainScalars(n.Value, plain)
+	case *ast.MappingKeyNode:
+		collectPlainScalars(n.Value, plain)
+	case *ast.SequenceNode:
+		for _, v := range n.Values {
+			collectPlainScalars(v, plain)
+		}
+	case *ast.TagNode:
+		collectPlainScalars(n.Value, plain)
+	case *ast.AnchorNode:
+		collectPlainScalars(n.Value, plain)
 	}
-	if beforePrev != nil && (beforePrev.Type == token.LiteralType || beforePrev.Type == token.FoldedType) {
-		return false
-	}
-	return true
 }
 
 // ownLine reports whether only whitespace precedes offset on its line.

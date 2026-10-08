@@ -639,8 +639,9 @@ func TestTopLevelScalarAtLocatesTheValueAsParseWould(t *testing.T) {
 	}
 }
 
-// A comment trailing a plain scalar — on the value's own line, or on the
-// last line of a plain scalar running over two — is reported at its "#"
+// A comment trailing a plain scalar of any type — a string, number, bool,
+// null or infinity, on the value's own line, or on the last line of a
+// plain scalar running over two — is reported at its "#"
 // and attributed to its property; a full-line comment, a "#" inside a
 // quoted value, a "#" with no space before it and one inside a block
 // scalar are not comments trailing a value, and a comment after a key
@@ -662,6 +663,12 @@ func TestInlineCommentsAreTheCommentsTrailingAValue(t *testing.T) {
 		"mapped: {a: b} # flow\n" +
 		"slug: \"a\" # note\n" +
 		"single: 'a' # note\n" +
+		"version: 1.2 # beta\n" +
+		"count: 5 # five\n" +
+		"draft: true # for now\n" +
+		"nothing: null # c\n" +
+		"hex: 0x1F # c\n" +
+		"inf: .inf # c\n" +
 		"---\nbody\n"
 	doc, perr := frontmatter.Parse([]byte(src))
 	if perr != nil {
@@ -679,6 +686,12 @@ func TestInlineCommentsAreTheCommentsTrailingAValue(t *testing.T) {
 		{"description", "# b", 4, 16},
 		{"summary", "# three", 7, 7},
 		{"tags", "# y", 11, 7},
+		{"version", "# beta", 18, 14},
+		{"count", "# five", 19, 10},
+		{"draft", "# for now", 20, 13},
+		{"nothing", "# c", 21, 15},
+		{"hex", "# c", 22, 11},
+		{"inf", "# c", 23, 11},
 	}
 	if !reflect.DeepEqual(comments, want) {
 		t.Errorf("InlineComments = %+v, want %+v", comments, want)
