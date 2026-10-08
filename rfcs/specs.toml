@@ -23,7 +23,7 @@ name = "agent-plugins-rfcs"
 root = "."
 
 [profile]
-name = "spec-driven-dev"
+name = "specs"
 
 [conventions]
 line_width = 80

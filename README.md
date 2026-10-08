@@ -260,7 +260,7 @@ name = "agent-plugins"
 root = "specs"
 
 [profile]
-name = "spec-driven-dev"
+name = "specs"
 
 [conventions]
 line_width = 80
@@ -268,7 +268,7 @@ line_width = 80
 
 The engine is framework-agnostic; the document vocabulary comes from a
 **profile** plugged into it — see
-[Module: Spec-Driven Development Profile](specs/modules/spec-profile/spec-profile-module.md).
+[Module: Specs Profile](specs/modules/spec-profile/spec-profile-module.md).
 
 ### Test coverage
 

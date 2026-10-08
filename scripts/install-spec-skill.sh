@@ -22,11 +22,11 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SRC_ROOT="$REPO_ROOT/plugin/skills"
 DEST_ROOT="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills"
-MARKER=".spec-driven-dev-installed"
-MANIFEST="$DEST_ROOT/.spec-driven-dev-manifest"
+MARKER=".specs-installed"
+MANIFEST="$DEST_ROOT/.specs-manifest"
 
 if ! compgen -G "$SRC_ROOT/*/SKILL.md" > /dev/null; then
-  echo "error: no skills found under $SRC_ROOT — run from a checkout of spec-driven-dev" >&2
+  echo "error: no skills found under $SRC_ROOT — run from a checkout of specs" >&2
   exit 1
 fi
 

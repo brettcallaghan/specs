@@ -52,7 +52,7 @@ alias Citation: String ~= `/^[a-z0-9]+(?:-[a-z0-9]+)*(?:#.+)?$/`
 The classification of a specification document.
 
 A document's type selects the schema, slug pattern and required sections
-that govern it. This is the controlled vocabulary the spec-driven-dev
+that govern it. This is the controlled vocabulary the specs
 profile registers; a repository whose documents declare a type outside
 this set is recorded as excluded with reason `unknown-type` rather than
 being checked against the wrong rules.

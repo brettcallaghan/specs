@@ -8211,7 +8211,7 @@ func (v *Section) UnmarshalJSON(data []byte) error {
 // consulting the index. Because the index derives the reverse of every
 // declared edge, a pairing used to enforce a mirror the index already
 // computes can only ever fail on redundant hand-work — so the
-// spec-driven-dev profile registers none, and an adopting profile that
+// specs profile registers none, and an adopting profile that
 // registers one is expected to argue the case. See the Document
 // Relationship Standard.
 type PropertyPairing struct {
@@ -8325,7 +8325,7 @@ type Citation string
 // The classification of a specification document.
 //
 // A document's type selects the schema, slug pattern and required sections
-// that govern it. This is the controlled vocabulary the spec-driven-dev
+// that govern it. This is the controlled vocabulary the specs
 // profile registers; a repository whose documents declare a type outside
 // this set is recorded as excluded with reason `unknown-type` rather than
 // being checked against the wrong rules.

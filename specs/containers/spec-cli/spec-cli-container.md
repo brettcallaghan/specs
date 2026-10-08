@@ -102,7 +102,7 @@ C4Component
     Container_Boundary(cli, "Spec CLI") {
         Component(cmd, "Command Surface", "Go, cobra", "Command tree, flag parsing, output rendering, exit codes")
         Component(core, "Document Core", "Go module", "Corpus indexing and conformance for markdown documents")
-        Component(profile, "Spec-Driven Development Profile", "Go module", "This framework's document vocabulary and rules")
+        Component(profile, "Specs Profile", "Go module", "This framework's document vocabulary and rules")
     }
     Rel(cmd, profile, "Activates and configures")
     Rel(cmd, core, "Invokes indexing, checks and queries")
@@ -142,7 +142,7 @@ into" (AC-SPEC-008.3).
 `Registry` is the profile registry [[contract-specs-configuration]]
 names as the customization seam: it maps a `[profile].name` value to a
 `corpus.Profile`, and `BuiltinRegistry` is the one place in this
-container that imports `cli/profile` to register `spec-driven-dev` as
+container that imports `cli/profile` to register `specs` as
 the built-in. `[profile].name` naming no entry in the registry is
 reported as a finding listing the registered names, not a bare lookup
 failure.
@@ -482,7 +482,7 @@ and span extraction, reference graph construction, numbering, and the
 index and finding models. Knows nothing about this framework's document
 types.
 
-### Spec-Driven Development Profile
+### Specs Profile
 
 See [[module-spec-profile]] (internal). (Go module) — This framework's
 document vocabulary: one union schema over every document type, each
@@ -491,7 +491,7 @@ Registers itself into Document Core through the extension point that
 module defines. Required sections, element record blocks and lifecycle
 rules are designed in that blueprint and not yet registered.
 
-**Command Surface → Spec-Driven Development Profile.** The command
+**Command Surface → Specs Profile.** The command
 surface activates exactly one profile per invocation and hands it the
 configuration it resolved. Which profile is active is a configuration
 decision, not a compile-time one.
@@ -500,7 +500,7 @@ decision, not a compile-time one.
 work is delegated. The command surface converts between the module's
 finding and index models and the process's stdout and exit status.
 
-**Spec-Driven Development Profile → Document Core.** The profile is a
+**Specs Profile → Document Core.** The profile is a
 consumer of Document Core's extension point: it registers document
 types, schemas, patterns and rules, and never the other way round.
 Document Core SHALL NOT import the profile.

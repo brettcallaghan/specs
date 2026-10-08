@@ -28,7 +28,7 @@ name = "acme"
 root = "docs"
 
 [profile]
-name = "spec-driven-dev"
+name = "specs"
 `)
 	mustWriteFile(t, filepath.Join(dir, "docs", "adrs", "adr-900-old-approach.md"), `---
 title: "ADR-900: Old Approach"

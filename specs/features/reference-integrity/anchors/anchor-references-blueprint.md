@@ -55,7 +55,7 @@ heading — so each gets a variant rather than a message string, in
 `cli/core/schema/spec-model.schema.json` and `cli/core/specmodel`;
 the constructors in `cli/core/finding`.
 
-### spec-driven-dev registrations in [[module-spec-profile]] (modified) — SREF
+### specs registrations in [[module-spec-profile]] (modified) — SREF
 
 **Intent:** A reference-bearing frontmatter property is typed `Slug`
 today, and the slug pattern admits no `#`, so a citation carrying an

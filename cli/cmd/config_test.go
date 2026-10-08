@@ -2,9 +2,9 @@
 // profile from a registry.
 //
 // The fixture profile below is a stub rather than cli/profile's real
-// spec-driven-dev, so these tests exercise this package's own resolution
+// specs, so these tests exercise this package's own resolution
 // and checking logic independent of that profile's document vocabulary;
-// TestBuiltinRegistryRegistersSpecDrivenDev is the one test that reaches
+// TestBuiltinRegistryRegistersSpecs is the one test that reaches
 // the real profile, proving the registration itself.
 package cmd_test
 
@@ -41,7 +41,7 @@ func (p stubProfile) RecordBlocks() []corpus.RecordBlockTag              { retur
 func (p stubProfile) Architecture() corpus.ArchitectureRules             { return p.architecture }
 
 // testRegistry registers exactly one profile, "test-profile", with a
-// line_width default of 100 — distinct from spec-driven-dev's 80, so a
+// line_width default of 100 — distinct from specs's 80, so a
 // test asserting the default came from the active profile cannot pass by
 // coincidence.
 func testRegistry() *cmd.Registry {
@@ -350,11 +350,11 @@ func TestLoadReportsATOMLSyntaxError(t *testing.T) {
 }
 
 // BuiltinRegistry holds this framework's own profile, so an adopting
-// repository can select "spec-driven-dev" without registering it itself.
-func TestBuiltinRegistryRegistersSpecDrivenDev(t *testing.T) {
+// repository can select "specs" without registering it itself.
+func TestBuiltinRegistryRegistersSpecs(t *testing.T) {
 	registry := cmd.BuiltinRegistry()
-	if _, ok := registry.Lookup("spec-driven-dev"); !ok {
-		t.Error("BuiltinRegistry does not register spec-driven-dev")
+	if _, ok := registry.Lookup("specs"); !ok {
+		t.Error("BuiltinRegistry does not register specs")
 	}
 }
 

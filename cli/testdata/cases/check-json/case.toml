@@ -1,4 +1,4 @@
-description = "check --json writes the full finding set as JSON to standard output for a clean corpus, which an adopting repository gets from the shipped spec-driven-dev profile without authoring one"
+description = "check --json writes the full finding set as JSON to standard output for a clean corpus, which an adopting repository gets from the shipped specs profile without authoring one"
 cites = ["AC-SPEC-006.5", "AC-SPEC-008.6"]
 artifacts = ["checks.json"]
 args = ["check", "--json"]

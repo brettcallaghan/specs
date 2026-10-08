@@ -30,7 +30,7 @@ name = "acme"
 root = "docs"
 
 [profile]
-name = "spec-driven-dev"
+name = "specs"
 `)
 	for _, member := range []struct{ path, slug, docType, title string }{
 		{"docs/standards/naming-standards.md", "naming-standards", "standards", "Naming standards"},

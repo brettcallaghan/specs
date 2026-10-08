@@ -3,4 +3,4 @@ name = "fixture"
 root = "docs"
 
 [profile]
-name = "spec-driven-dev"
+name = "specs"

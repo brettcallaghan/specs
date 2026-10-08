@@ -18,7 +18,7 @@ name = "acme"
 root = "docs"
 
 [profile]
-name = "spec-driven-dev"
+name = "specs"
 `)
 	for _, doc := range []struct{ path, slug, kind, extra string }{
 		{"docs/systems/two.md", "system-two", "system-blueprint", ""},

@@ -1,7 +1,7 @@
 ---
 title: "Feature Blueprint: Spec Corpus Index and Core Conformance Checks"
 description: Builds the first working slice of the Spec CLI — the index
-  model, the framework-agnostic engine packages, the spec-driven-dev
+  model, the framework-agnostic engine packages, the specs
   profile, and the command surface — realizing the index, metadata
   checks, queries and configuration of frd-spec-index
 slug: feature-spec-index
@@ -36,7 +36,7 @@ ones those features extend.
 
 The delta blocks in dependency order: **IDX** (index model in Strata)
 → **SP** (Spans) → **FIND** (Findings) → **FM** (Frontmatter) → **SR**
-(Schema Registry) → **PROF** (spec-driven-dev profile) →
+(Schema Registry) → **PROF** (specs profile) →
 **CO** (Corpus discovery and index build) → **NUM** (Numbering) →
 **CACHE** (index output and warm cache) → **CFG** (configuration loading
 and checking) → **CLI** (command surface) → **BUILD** (static binary and
@@ -196,7 +196,7 @@ the name, distinct from the generated `cli/core/schema/*.json` outputs);
 bundle `scripts/generate-schemas.sh` emits
 (`cli/core/schema/spec-model.schema.json`).
 
-### spec-driven-dev profile in [[module-spec-profile]] (added) — PROF
+### specs profile in [[module-spec-profile]] (added) — PROF
 
 **Intent:** Supply this framework's vocabulary as one pluggable profile,
 not a per-type registry. The profile carries a single union schema
@@ -223,7 +223,7 @@ sprint's checks consume.
 - The profile SHALL supply the `line_width` default the CLI resolves when
   `specs.toml` omits `[conventions].line_width`
   ([[contract-specs-configuration]] resolution).
-- The profile SHALL register under the name `spec-driven-dev` so an
+- The profile SHALL register under the name `specs` so an
   adopting repository activates it without authoring one (AC-SPEC-008.6).
 
 **Anchors:** new package `cli/profile`; the embedded schema is the
@@ -330,7 +330,7 @@ into the module blueprint at retirement.
 from a **profile registry**, and report configuration defects through the
 same finding machinery as corpus defects. The profile registry is the
 customization seam: it maps `[profile].name` to a `Profile`, holds
-`spec-driven-dev` as the built-in, and is where a second taxonomy is
+`specs` as the built-in, and is where a second taxonomy is
 wired in — a registry of profiles, each carrying its own single schema.
 Configuration is checked, not merely loaded: a malformed config is the
 first thing an adopter gets wrong.
@@ -358,7 +358,7 @@ first thing an adopter gets wrong.
 
 **Anchors:** new package `cli/cmd`; consumes the generated
 `specmodel.SpecsConfig`, the generated config schema, and the profile
-registry into which the PROF delta's `spec-driven-dev` profile registers.
+registry into which the PROF delta's `specs` profile registers.
 
 ### Command Surface in [[container-spec-cli]] (added — command tree) — CLI
 
@@ -557,7 +557,7 @@ the repository currently has no CI (see Tracker Reconciliation).
 ## AC Coverage
 
 Legend: IDX = `SpecIndex` index model; SP = #Spans; FIND = #Findings;
-FM = #Frontmatter; SR = Schema Registry; PROF = spec-driven-dev profile
+FM = #Frontmatter; SR = Schema Registry; PROF = specs profile
 (union schema + type table); CO = #Corpus; NUM = #Numbering;
 CACHE = #Corpus (index output and warm cache); CFG = Command Surface
 (configuration); CLI = Command Surface (command tree); BUILD = static
