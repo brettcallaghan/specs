@@ -185,7 +185,7 @@ func wantYAML(revision, commit string, changes ...change) string {
 	}
 	b.WriteString("criteria:\n")
 	for _, c := range changes {
-		fmt.Fprintf(&b, "  - id: %s\n    classification: %s\n    path: %s\n", c.id, c.classification, c.path)
+		fmt.Fprintf(&b, "  - id: %s\n    name: Criterion %s\n    classification: %s\n    path: %s\n", c.id, c.id, c.classification, c.path)
 	}
 	return b.String()
 }
@@ -193,7 +193,7 @@ func wantYAML(revision, commit string, changes ...change) string {
 func wantJSON(revision, commit string, changes ...change) string {
 	rows := make([]string, 0, len(changes))
 	for _, c := range changes {
-		rows = append(rows, fmt.Sprintf(`{"id":%q,"classification":%q,"path":%q}`, c.id, c.classification, c.path))
+		rows = append(rows, fmt.Sprintf(`{"id":%q,"name":%q,"classification":%q,"path":%q}`, c.id, "Criterion "+c.id, c.classification, c.path))
 	}
 	return fmt.Sprintf(`{"base":{"revision":%q,"commit":%q},"criteria":[%s]}`+"\n", revision, commit, strings.Join(rows, ","))
 }
@@ -479,6 +479,7 @@ func TestComparisonOptionsWithoutChangedAreInvocationErrors(t *testing.T) {
 	assertRefused(t, bin, dir, 2, "--since", "criterion", "--since", "main")
 	assertRefused(t, bin, dir, 2, "--since", "criterion", "AC-CHK-001.1", "--since", "main")
 	assertRefused(t, bin, dir, 2, "--exit-code", "criterion", "--exit-code")
+	assertRefused(t, bin, dir, 2, "--full", "criterion", "AC-CHK-001.1", "--full")
 }
 
 // A spec root outside the work tree cannot be read from its history, and
@@ -551,5 +552,66 @@ func TestChangedPrefersOriginMainOverAStaleLocalMain(t *testing.T) {
 	gitIn(t, dir, "update-ref", "refs/heads/main", second)
 	if _, stderr, _ = runAll(t, bin, dir, "criterion", "--changed"); stderr != "" {
 		t.Errorf("current local main: stderr = %q, want none", stderr)
+	}
+}
+
+// --full adds each listed criterion's record, and the base's record for a
+// changed or removed one; the default answer carries neither. --json
+// mirrors YAML.
+//
+// AC: AC-GHK-008.11, AC-GHK-008.16
+func TestChangedFullCarriesRecords(t *testing.T) {
+	bin := sharedSpec(t)
+	dir, base := newSpecRepo(t,
+		scenario{"AC-CHK-001.1", "the order is placed"},
+		scenario{"AC-CHK-001.2", "payment is refused"})
+	writeFile(t, dir, checkoutPath, frd("frd-checkout", "FEAT-CHK-001",
+		scenario{"AC-CHK-001.1", "the order is placed and confirmed"},
+		scenario{"AC-CHK-001.3", "a receipt is sent"}))
+
+	// Default: names, no records.
+	assertAnswer(t, bin, dir, wantYAML("main", base,
+		change{"AC-CHK-001.1", "changed", checkoutPath},
+		change{"AC-CHK-001.2", "removed", checkoutPath},
+		change{"AC-CHK-001.3", "added", checkoutPath}))
+
+	stdout, stderr, code := runAll(t, bin, dir, "criterion", "--changed", "--full")
+	if code != 0 {
+		t.Fatalf("--full exited %d\n%s", code, stderr)
+	}
+	// Per entry: key order id, name, classification, path, record, base_record.
+	entries := strings.Split(stdout, "  - id: ")[1:]
+	if len(entries) != 3 {
+		t.Fatalf("--full listed %d entries, want 3\n%s", len(entries), stdout)
+	}
+	for i, tc := range []struct {
+		record, baseRecord bool
+		textHas            string
+	}{
+		{true, true, "and confirmed"},
+		{false, true, "payment is refused"},
+		{true, false, "a receipt is sent"},
+	} {
+		e := entries[i]
+		if got := strings.Contains(e, "\n    record:"); got != tc.record {
+			t.Errorf("entry %d: record present = %v, want %v\n%s", i, got, tc.record, e)
+		}
+		if got := strings.Contains(e, "\n    base_record:"); got != tc.baseRecord {
+			t.Errorf("entry %d: base_record present = %v, want %v\n%s", i, got, tc.baseRecord, e)
+		}
+		if !strings.Contains(e, tc.textHas) {
+			t.Errorf("entry %d lacks %q\n%s", i, tc.textHas, e)
+		}
+		if r, b := strings.Index(e, "\n    record:"), strings.Index(e, "\n    base_record:"); r >= 0 && b >= 0 && r > b {
+			t.Errorf("entry %d: record follows base_record", i)
+		}
+		if !(strings.Index(e, "name:") < strings.Index(e, "classification:") && strings.Index(e, "classification:") < strings.Index(e, "path:")) {
+			t.Errorf("entry %d: keys out of order\n%s", i, e)
+		}
+	}
+
+	jsonOut, _, code := runAll(t, bin, dir, "criterion", "--changed", "--full", "--json")
+	if code != 0 || !strings.Contains(jsonOut, `"record":{`) || !strings.Contains(jsonOut, `"base_record":{`) {
+		t.Errorf("--json --full exit %d\n%s", code, jsonOut)
 	}
 }

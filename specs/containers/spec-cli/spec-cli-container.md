@@ -419,7 +419,10 @@ branch, tag or commit `--since` names (AC-GHK-008.4, AC-GHK-008.5,
 AC-GHK-008.10). Where the default branch chosen is remote-tracking and a
 local branch of the same name is behind it, the command writes one
 warning line to standard error and leaves standard output unchanged
-(AC-GHK-008.14, AC-GHK-008.15). Both sides are built by `corpus.Build`. The current side
+(AC-GHK-008.14, AC-GHK-008.15). Each listed criterion carries its `name`
+(AC-GHK-008.11); `--full` adds its `record` and, for a changed or removed
+criterion, its `base_record`, and is refused with exit 2 without
+`--changed` (AC-GHK-008.12, AC-GHK-008.16). Both sides are built by `corpus.Build`. The current side
 walks the working tree, so committed, staged, unstaged and untracked
 documents are all compared (AC-GHK-008.6); the base side walks the spec
 root as the base commit holds it, which

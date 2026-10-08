@@ -31,6 +31,7 @@ func newCriterionCmd(streams *ioStreams, configPath *string) *cobra.Command {
 	var changed bool
 	var since string
 	var exitCode bool
+	var full bool
 	var of string
 	var tag string
 	var jsonOut bool
@@ -55,20 +56,25 @@ func newCriterionCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			"classifying each as changed, added or removed. Its answer is a YAML " +
 			"mapping holding base (the revision and the merge-base commit) and then " +
 			"criteria; it exits 0 whatever it lists, or 1 on a non-empty list under " +
-			"--exit-code. It needs git on PATH.",
+			"--exit-code. Each listed criterion carries its name where it has one; --full " +
+			"adds its record, and the base's record for a changed or removed criterion. " +
+			"It needs git on PATH.",
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(c *cobra.Command, args []string) error {
 			if changed {
 				if len(args) != 0 || of != "" || tag != "" {
 					return invocationError("--changed cannot be combined with an identifier, --of or --tag")
 				}
-				return runCriterionChanged(streams, *configPath, since, exitCode, jsonOut)
+				return runCriterionChanged(streams, *configPath, since, exitCode, full, jsonOut)
 			}
 			if c.Flags().Changed("since") {
 				return invocationError("--since applies only to --changed")
 			}
 			if exitCode {
 				return invocationError("--exit-code applies only to --changed")
+			}
+			if full {
+				return invocationError("--full applies only to --changed")
 			}
 			if len(args) == 1 && (of != "" || tag != "") {
 				return invocationError("an identifier cannot be combined with --of or --tag")
@@ -88,6 +94,8 @@ func newCriterionCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		"with --changed, compare against the merge-base of HEAD and this branch, tag or commit instead of the default branch")
 	cmd.Flags().BoolVar(&exitCode, "exit-code", false,
 		"with --changed, exit 1 when any criterion is listed")
+	cmd.Flags().BoolVar(&full, "full", false,
+		"with --changed, carry each criterion's record, and the base's record for a changed or removed one")
 	cmd.Flags().StringVar(&of, "of", "",
 		"list every criterion beneath this feature")
 	cmd.Flags().StringVar(&tag, "tag", "",
@@ -109,7 +117,7 @@ func newCriterionCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // both sides. Neither side reads, writes or requires specs.json: the
 // persisted index is rebuilt by any query, so it cannot stand for an
 // earlier state (AC-GHK-008.7).
-func runCriterionChanged(streams *ioStreams, configPath, since string, exitCode, jsonOut bool) error {
+func runCriterionChanged(streams *ioStreams, configPath, since string, exitCode, full, jsonOut bool) error {
 	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
@@ -140,7 +148,7 @@ func runCriterionChanged(streams *ioStreams, configPath, since string, exitCode,
 
 	result := criterionChangesResult{
 		Base:     changeBase{Revision: base.Ref, Commit: base.Commit},
-		Criteria: changedCriteria(before, current.Index()),
+		Criteria: changedCriteria(before, current.Index(), full),
 	}
 	if exitCode && len(result.Criteria) > 0 {
 		streams.exitCode = statusGateFailed
@@ -371,10 +379,19 @@ type changeBase struct {
 // removed one. A criterion present in both with an unchanged hash —
 // whatever its position in either corpus — has no criterionChange at all
 // (AC-GHK-008.2).
+//
+// Name is the current name for an added or changed criterion and the
+// base's for a removed one, omitted where the criterion has none
+// (AC-GHK-008.11). Record and BaseRecord are set only under --full: Record
+// for an added or changed criterion, BaseRecord for a changed or removed
+// one (AC-GHK-008.16).
 type criterionChange struct {
 	Id             specmodel.CriterionId `json:"id"`
+	Name           *string               `json:"name,omitempty"`
 	Classification string                `json:"classification"`
 	Path           string                `json:"path"`
+	Record         *specmodel.Criterion  `json:"record,omitempty"`
+	BaseRecord     *specmodel.Criterion  `json:"base_record,omitempty"`
 }
 
 const (
@@ -392,23 +409,36 @@ const (
 //
 // The result is sorted by identifier, so the listing is byte-identical
 // across runs and independent of both corpora's own entry order.
-func changedCriteria(base, current specmodel.SpecIndex) []criterionChange {
-	before := criterionHashes(base)
-	after := criterionHashes(current)
+func changedCriteria(base, current specmodel.SpecIndex, full bool) []criterionChange {
+	before := criterionStates(base)
+	after := criterionStates(current)
 
 	changes := []criterionChange{}
 	for id, now := range after {
 		then, existed := before[id]
 		switch {
 		case !existed:
-			changes = append(changes, criterionChange{Id: id, Classification: classificationAdded, Path: now.path})
-		case then.hash != now.hash:
-			changes = append(changes, criterionChange{Id: id, Classification: classificationChanged, Path: now.path})
+			change := criterionChange{Id: id, Name: now.criterion.Name, Classification: classificationAdded, Path: now.path}
+			if full {
+				change.Record = recordOf(now)
+			}
+			changes = append(changes, change)
+		case then.criterion.ContentHash != now.criterion.ContentHash:
+			change := criterionChange{Id: id, Name: now.criterion.Name, Classification: classificationChanged, Path: now.path}
+			if full {
+				change.Record = recordOf(now)
+				change.BaseRecord = recordOf(then)
+			}
+			changes = append(changes, change)
 		}
 	}
 	for id, then := range before {
 		if _, stillPresent := after[id]; !stillPresent {
-			changes = append(changes, criterionChange{Id: id, Classification: classificationRemoved, Path: then.path})
+			change := criterionChange{Id: id, Name: then.criterion.Name, Classification: classificationRemoved, Path: then.path}
+			if full {
+				change.BaseRecord = recordOf(then)
+			}
+			changes = append(changes, change)
 		}
 	}
 
@@ -416,21 +446,29 @@ func changedCriteria(base, current specmodel.SpecIndex) []criterionChange {
 	return changes
 }
 
-// criterionState is what the comparison reads of one criterion: its
-// content hash, and the path of the document its feature is declared in.
+// criterionState is what the comparison reads of one criterion: the
+// criterion itself, and the path of the document its feature is declared
+// in.
 type criterionState struct {
-	hash specmodel.ContentHash
-	path string
+	criterion specmodel.Criterion
+	path      string
 }
 
-// criterionHashes flattens an index's nested features into a lookup from
+// recordOf is the criterion's record exactly as a query naming its
+// identifier returns it.
+func recordOf(state criterionState) *specmodel.Criterion {
+	record := state.criterion
+	return &record
+}
+
+// criterionStates flattens an index's nested features into a lookup from
 // criterion identifier to its state — the whole of what
 // [changedCriteria] reads from either side of the comparison.
-func criterionHashes(index specmodel.SpecIndex) map[specmodel.CriterionId]criterionState {
+func criterionStates(index specmodel.SpecIndex) map[specmodel.CriterionId]criterionState {
 	states := make(map[specmodel.CriterionId]criterionState)
 	for _, feature := range index.Features {
 		for _, criterion := range feature.Criteria {
-			states[criterion.Id] = criterionState{hash: criterion.ContentHash, path: feature.Path}
+			states[criterion.Id] = criterionState{criterion: criterion, path: feature.Path}
 		}
 	}
 	return states

@@ -448,7 +448,12 @@ name is behind the one chosen, standard error carries `warning: local
 main (<short>) is behind origin/main (<short>); comparing against
 origin/main` and standard output is unchanged. The
 answer holds `base` (the revision and the merge-base commit) and then
-`criteria`. It exits 0 whatever it lists; `--exit-code` makes a
+`criteria`, each carrying `id`, `name` (omitted where the criterion has
+none; the base's name for a removed one), `classification` and `path`.
+**`--full`** adds `record` (the criterion exactly as `specs criterion
+<id>` lists it) for an added or changed criterion and `base_record` (the
+same taken from the base) for a changed or removed one; `--full` without
+`--changed` exits 2. It exits 0 whatever it lists; `--exit-code` makes a
 non-empty list exit 1, for a gate. It needs `git` on `PATH`.
 
 ```
@@ -458,6 +463,7 @@ base:
   commit: 88b49ac97d2d2374d9bea22ca0fc14fadadf32b9
 criteria:
   - id: AC-C4-004.6
+    name: Every node is declared before an edge cites it
     classification: changed
     path: specs/features/spec-c4/spec-c4-frd.md
 ```
