@@ -1,5 +1,5 @@
 description = "a bare invocation lists the four subcommands with a one-line synopsis of each, rather than performing a default action"
-cites = ["AC-SPEC-011.5"]
+cites = ["AC-SPEC-011.5", "AC-SPEC-011.7"]
 artifacts = ["checks.log"]
 args = []
 exit_code = 0

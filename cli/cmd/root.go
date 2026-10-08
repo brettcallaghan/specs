@@ -101,6 +101,8 @@ func newRootCmd(streams *ioStreams) *cobra.Command {
 		"path to specs.toml (default: the nearest specs.toml in the working "+
 			"directory or above it, up to the repository root)")
 
+	installVersionFlag(root)
+
 	root.AddCommand(newIndexCmd(streams, &configPath))
 	root.AddCommand(newCheckCmd(streams, &configPath))
 	root.AddCommand(newSlugExistsCmd(streams, &configPath))

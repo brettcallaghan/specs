@@ -111,6 +111,23 @@ $ specs criterion --tag nonsense        # exit 2
 | `specs criterion [<id>]` | What does this acceptance criterion say — and which changed? |
 | `specs links <path>` | This document with its wikilinks rewritten as markdown links |
 
+**`specs --version`** answers which build is running — what a bug
+report needs. It writes a YAML mapping of `version`, `revision`, `time`
+and `modified` and exits 0, with no subcommand and nothing on standard
+error; it has no `--json` form. `version` is the version stamped into a
+release build, else the module version (`(devel)` for a local build);
+`revision`, `time` and `modified` are the binary's version-control build
+settings, each `null` where the build recorded none (a `go install` of a
+tagged module records none).
+
+```
+$ specs --version
+version: (devel)
+revision: 3f1c0a9e2b7d4c5a8e6f1b0d9c2a7e4f5b6a8c1d
+time: 2026-10-08T20:51:03Z
+modified: false
+```
+
 **`specs check`** validates every document's frontmatter against the
 active profile's schema and slug patterns, reports duplicate slugs, and
 applies the reference, C4, Gherkin and metadata rules in the sections
