@@ -438,7 +438,7 @@ Stated because the absence is a decision rather than an omission.
 
 ## Current conformance
 
-"Prints today" is measured with a binary built at `4676bc4`
+"Prints today" is measured with a binary built at `47d4215`
 (`go build -C cli -o ../build/specs ./specs`), run against this
 repository's corpus. "Not yet conforming" names behavior the amended
 specifications require and that binary does not yet have; each row
@@ -448,7 +448,7 @@ reads "conforms" once its command does.
 |---|---|---|
 | `check [path]` | a YAML mapping of `summary` (`errors`, `warnings`, `unverified`) and then `findings`, with `checks` (only the checks the run was asked for) after them only under `--verbose`; `--json` the same values in the same order | conforms |
 | `list` | a YAML mapping whose one key is the sequence of documents; `--json` the same values in the same order | conforms |
-| `feature` | a YAML mapping whose key `features` holds a list of full feature records whatever the arguments select, one identifier included, preceded by `declared` where the arguments name a subject; `--json` the same values in the same order | conforms — the compact view above by default and the full record under `--full` (AC-GHK-007.10 to AC-GHK-007.12) |
+| `feature` | a YAML mapping whose key `features` holds a list of feature records in the compact view (`id`, `code`, `name`, `path`, `criteria_count`) by default and every field under `--full`, whatever the arguments select, one identifier included, preceded by `declared` where the arguments name a subject; `--json` the same values in the same order | conforms (AC-GHK-007.10 to AC-GHK-007.12) |
 | `next-id <type>` | a YAML mapping carrying `number` and then `slug`, `number: 32` and `slug: adr-032`; `--json` the same values in the same order | conforms |
 | `criterion` | a YAML mapping whose key `criteria` holds a list of records whatever the arguments select, one identifier included, preceded by `declared` where the arguments name a subject; under `--changed`, `base` then `criteria` carrying `id`, `name`, `classification` and `path`, plus `record` and `base_record` under `--full`; `--json` the same values in the same order | conforms |
 | `links <path>` | the rewritten document | conforms — a document payload, written as itself |
