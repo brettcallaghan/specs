@@ -1108,6 +1108,15 @@ Nine semantics are pinned by the extraction half:
   never a place Gherkin content is written. Reading the tag vocabulary
   from Gherkin's exported `FenceTags` rather than a literal keeps the two
   components from drifting when that vocabulary changes.
+- **Gherkin-fenced references are indexed but not rewritten.**
+  `OutsideGherkinFences` takes the same `Options` `Extract` was given
+  and its references, and returns them without every body reference
+  inside a gherkin-tagged fence, order preserved; frontmatter references
+  pass through. It shares the one `goldmark` walk the mask uses, so the
+  two cannot disagree about where a fence ends. A caller rendering the
+  document applies it, because a renderer shows a fence literally; the
+  index never does, so `refs` and the checks still see the reference
+  (AC-GHK-004.1, AC-SPECMD-001.4).
 - **A `.feature` source is extracted the same way a document body is,**
   with no frontmatter and no reference-bearing properties: the whole
   file is body from its first byte, so a wikilink anywhere in it is
@@ -2222,6 +2231,12 @@ replaced (AC-SPECMD-003.1). Three semantics are pinned:
   the References component's output rather than a rule reimplemented
   here: a reference is never handed to `Substitute` for a wikilink
   written inside a code span, an indented block, or a fenced block.
+  `Extract` alone does not give that for a gherkin fence, whose
+  wikilinks the index keeps, so `links` passes `Extract`'s output
+  through `references.OutsideGherkinFences` before `Resolve`: a
+  wikilink in a gherkin fence is left as written, is not counted as
+  rewritten (AC-SPECMD-003.1), and raises no `links/*` finding, exactly
+  like one in any other fenced block.
 - **Only a body-origin reference is rewritten.** A frontmatter-origin
   reference's `Position` covers the property's raw YAML value rather
   than a `[[...]]` construct, so `Substitute` leaves it untouched even

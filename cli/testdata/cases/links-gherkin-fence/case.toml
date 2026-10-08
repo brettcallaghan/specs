@@ -1,0 +1,5 @@
+description = "links <path> rewrites a wikilink written in prose and leaves the same wikilink inside a gherkin fenced block byte-identical, counting only the prose one as rewritten"
+cites = ["AC-SPECMD-001.4", "AC-SPECMD-003.1"]
+artifacts = ["checks.log", "checks.err"]
+args = ["links", "docs/adrs/adr-800-current.md"]
+exit_code = 0

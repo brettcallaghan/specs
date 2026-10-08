@@ -147,6 +147,62 @@ func TestAWikilinkInsideAGherkinFenceIsExtracted(t *testing.T) {
 	}
 }
 
+// A renderer shows a gherkin fence literally, so the filter a rendering
+// caller applies drops a reference written inside one and keeps the same
+// slug written in prose, plus every frontmatter reference, in order —
+// while Extract itself still returns all of them for the index.
+//
+// AC: AC-SPECMD-001.4, AC-GHK-004.1
+func TestOutsideGherkinFencesDropsOnlyFencedBodyReferences(t *testing.T) {
+	src := "---\ntitle: A document\nsupersedes: front-ref\n---\n\n" +
+		"Prose cites [[shared]] first.\n\n" +
+		"```gherkin\n" +
+		"Feature: Refunds follow [[shared]] and [[fenced-only]]\n" +
+		"```\n\n" +
+		"```text\n[[illustration]]\n```\n\n" +
+		"Prose cites [[after]] last.\n"
+	source := []byte(src)
+	front, perr := frontmatter.Parse(source)
+	if perr != nil {
+		t.Fatalf("parsing the fixture's frontmatter: %s", perr.Message)
+	}
+	options := references.Options{
+		Path:                "specs/fixture.md",
+		Source:              source,
+		Frontmatter:         front,
+		ReferenceProperties: []string{"supersedes"},
+	}
+	all := references.Extract(options)
+	if want := []string{"front-ref", "shared", "shared", "fenced-only", "after"}; !equal(slugs(all), want) {
+		t.Fatalf("Extract slugs = %v, want %v", slugs(all), want)
+	}
+
+	kept := references.OutsideGherkinFences(options, all)
+	if want := []string{"front-ref", "shared", "after"}; !equal(slugs(kept), want) {
+		t.Fatalf("OutsideGherkinFences slugs = %v, want %v", slugs(kept), want)
+	}
+	if kept[1].Span != all[1].Span {
+		t.Errorf("the prose reference kept is not the first one written: span %+v, want %+v", kept[1].Span, all[1].Span)
+	}
+}
+
+// A document with no gherkin fence comes back unchanged.
+//
+// AC: AC-SPECMD-001.4
+func TestOutsideGherkinFencesKeepsADocumentWithoutAFence(t *testing.T) {
+	src := "---\ntitle: A document\n---\n\nProse cites [[one]] and [[two]].\n"
+	source := []byte(src)
+	front, perr := frontmatter.Parse(source)
+	if perr != nil {
+		t.Fatalf("parsing the fixture's frontmatter: %s", perr.Message)
+	}
+	options := references.Options{Path: "specs/fixture.md", Source: source, Frontmatter: front}
+	kept := references.OutsideGherkinFences(options, references.Extract(options))
+	if want := []string{"one", "two"}; !equal(slugs(kept), want) {
+		t.Fatalf("slugs = %v, want %v", slugs(kept), want)
+	}
+}
+
 // A reference extracted from inside a fenced gherkin block still carries
 // the span of the wikilink in the whole document, exactly as one written
 // in prose does — the fence changes what is masked, not how a position

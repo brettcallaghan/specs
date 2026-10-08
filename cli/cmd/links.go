@@ -114,12 +114,17 @@ func runLinks(streams *ioStreams, configPath, operand, mapPath string) error {
 		return finishLinks(streams, report, nil, 0)
 	}
 
-	refs := references.Extract(references.Options{
+	extraction := references.Options{
 		Path:                reported,
 		Source:              src,
 		Frontmatter:         doc,
 		ReferenceProperties: referenceProperties(cfg, doc),
-	})
+	}
+	// A wikilink inside a gherkin fence is a reference the index keeps,
+	// but a renderer shows the fence literally, so for the rewritten copy
+	// it is code: not rewritten, not counted, and raising no links/*
+	// finding (AC-SPECMD-001.4).
+	refs := references.OutsideGherkinFences(extraction, references.Extract(extraction))
 	references.Resolve(refs, c.Index())
 
 	var linkMap mdlinks.LinkMap

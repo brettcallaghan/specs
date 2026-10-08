@@ -6,6 +6,7 @@ import (
 	"github.com/yuin/goldmark/text"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/gherkin"
+	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
 // parser is the markdown parser code regions are located with. It is the
@@ -62,9 +63,24 @@ func (r regions) covers(start, stop int) bool {
 // comment blocks to be deleted, so masking them would hide a reference in
 // a document that should not be carrying the block at all.
 func codeRegions(body []byte) regions {
+	code, _ := scanRegions(body)
+	return code
+}
+
+// gherkinFenceRegions returns the byte ranges of body that are the content
+// lines of a fenced block whose info string names a registered Gherkin tag
+// — the lines [codeRegions] deliberately leaves unmasked.
+func gherkinFenceRegions(body []byte) regions {
+	_, fenced := scanRegions(body)
+	return fenced
+}
+
+// scanRegions walks body once and returns both what is code and what is a
+// Gherkin fence's content, so the two can never disagree about where a
+// fence begins or ends.
+func scanRegions(body []byte) (code, gherkinFenced regions) {
 	gherkinFence := tagSet(gherkin.FenceTags())
 
-	var found regions
 	document := parser.Parse(text.NewReader(body))
 
 	err := markdown.Walk(document, func(node markdown.Node, entering bool) (markdown.WalkStatus, error) {
@@ -75,16 +91,18 @@ func codeRegions(body []byte) regions {
 		case *markdown.FencedCodeBlock:
 			var tag string
 			if info := typed.Info; info != nil {
-				found = append(found, regionRange{info.Segment.Start, info.Segment.Stop})
+				code = append(code, regionRange{info.Segment.Start, info.Segment.Stop})
 				tag = string(info.Segment.Value(body))
 			}
-			if !gherkinFence[tag] {
-				found = append(found, linesOf(typed)...)
+			if gherkinFence[tag] {
+				gherkinFenced = append(gherkinFenced, linesOf(typed)...)
+			} else {
+				code = append(code, linesOf(typed)...)
 			}
 		case *markdown.CodeBlock:
-			found = append(found, linesOf(typed)...)
+			code = append(code, linesOf(typed)...)
 		case *markdown.CodeSpan:
-			found = append(found, spanOf(typed)...)
+			code = append(code, spanOf(typed)...)
 		}
 		return markdown.WalkContinue, nil
 	})
@@ -92,9 +110,43 @@ func codeRegions(body []byte) regions {
 		// The walk function above returns no error, so this is
 		// unreachable; it is handled rather than discarded so that a
 		// future walk that can fail cannot fail silently.
-		return found
+		return code, gherkinFenced
 	}
-	return found
+	return code, gherkinFenced
+}
+
+// OutsideGherkinFences returns refs without every body reference written
+// inside a fenced block tagged with a registered Gherkin tag, preserving
+// order. Frontmatter references pass through.
+//
+// [Extract] keeps such a reference, because a wikilink in Gherkin is a
+// reference the index and the checks must see. A caller rendering the
+// document is asking a different question: whether the text is a citation
+// a reader of the rendered copy follows. A renderer shows a fenced block
+// literally, so for that caller a Gherkin fence is code like any other,
+// and this filter is what makes it so. options must describe the same
+// document refs were extracted from.
+func OutsideGherkinFences(options Options, refs []specmodel.Reference) []specmodel.Reference {
+	start := bodyStart(options)
+	if start >= len(options.Source) {
+		return refs
+	}
+	fenced := gherkinFenceRegions(options.Source[start:])
+	if len(fenced) == 0 {
+		return refs
+	}
+
+	kept := make([]specmodel.Reference, 0, len(refs))
+	for _, reference := range refs {
+		if _, body := reference.Origin.AsBody(); body {
+			from := int(reference.Span.Offset) - start
+			if fenced.covers(from, from+int(reference.Span.Length)) {
+				continue
+			}
+		}
+		kept = append(kept, reference)
+	}
+	return kept
 }
 
 // tagSet builds a lookup set from a fence tag vocabulary, so membership is
