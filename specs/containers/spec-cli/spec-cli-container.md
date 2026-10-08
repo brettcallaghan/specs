@@ -285,7 +285,8 @@ diagrams in architecture blueprints — `c4/parse`, `c4/undeclared-node`,
 logic of its own. `slug-exists` and `next-id` open the
 corpus warm and answer `corpus.Corpus.Slug` and `numbering.Next`
 directly (AC-SPEC-011.3, AC-SPEC-011.4). `slug-exists <slug>` answers a
-mapping holding `slug`, as asked, `declared`, and `path`, the declaring
+mapping holding `slug` — as the declaring member writes it where one
+does, and as given where none does — `declared`, and `path`, the declaring
 member's path or `null` where no member declares it, so the command has
 one key set whatever it finds; the comparison ignores letter case, an
 undeclared slug is an answer and exits 0, and `--json` writes the same
