@@ -246,21 +246,26 @@ standard error as text whatever `--json` says, and the run exits `3`.
 `--out` option `IndexPath` resolves (AC-SPEC-011.1); a member that
 failed to parse is recorded in the index like any other, so `index`
 exits zero regardless (AC-SPEC-002.5). `check` opens the corpus warm at
-the default index path and accepts `--json`, `--strict` and `--only`.
-Its answer is the generated `specmodel.FindingReport` — a mapping of
-`checks` and `findings`, nothing else — rendered as YAML by `renderYAML`
-by default and as JSON under `--json`, one model in two syntaxes so the
-two carry the same values in the same order (AC-SPEC-006.5,
-[[cli-output-standards]]). `--only` narrows a report built from
+the default index path and accepts `--json`, `--strict`, `--only` and
+`--verbose`. Its answer is a command-level view over the generated
+`specmodel.FindingReport`: a `summary` counting the findings by severity
+(`errors`, `warnings`, `unverified`, all three always present), then the
+`findings`, then — only under `--verbose` — the report's `checks`, and
+nothing else (AC-SPEC-006.11, AC-SPEC-006.12). It is rendered as YAML by
+`renderYAML` by default and as JSON under `--json`, one value in two
+syntaxes so the two carry the same values in the same order
+(AC-SPEC-006.5, [[cli-output-standards]]). `--only` narrows a report built from
 `finding.NewReport`'s own accounting rather than by filtering text: a
 rule named by `--only` is requested and then marked ran from the
 matching findings (if any), and a rule left out is never requested, so
 `checks` lists exactly the checks the run was asked for, each `passed`,
 `failed` or `unverified`, and an unrequested check is absent rather than
-reported passed (AC-SPEC-006.8, AC-SPEC-006.9). Exit status
+reported passed (AC-SPEC-006.8, AC-SPEC-006.9); the summary counts only
+the requested rules' findings. Exit status
 follows `finding.Report.HasErrors`: any error exits 1 unconditionally;
 warning or unverified findings alone exit 0 unless `--strict` is given
-(AC-SPEC-006.6, AC-SPEC-006.7). `checkRules` declares every rule a run
+(AC-SPEC-006.6, AC-SPEC-006.7), whatever view was rendered
+(AC-SPEC-006.13). `checkRules` declares every rule a run
 can raise, so `--only` can name each and a clean run reports each as
 passed. It holds all ten `c4/*` rules Document Core raises over the C4
 diagrams in architecture blueprints — `c4/parse`, `c4/undeclared-node`,
