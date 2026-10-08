@@ -64,7 +64,7 @@ type caseManifest struct {
 // checks its exit status against case.toml and its output against the
 // expected artifacts the case declares.
 //
-// AC: AC-SPEC-002.5, AC-SPEC-006.5, AC-SPEC-006.6, AC-SPEC-006.7, AC-SPEC-006.8, AC-SPEC-007.2, AC-SPEC-011.1, AC-SPEC-011.2, AC-SPEC-011.3, AC-SPEC-011.4, AC-SPEC-011.5, AC-SPECREF-001.6, AC-SPECREF-002.6, AC-SPECREF-003.1, AC-SPECREF-003.2, AC-SPECREF-003.3, AC-SPECREF-003.5, AC-SPECANCH-002.1, AC-SPECANCH-002.5, AC-SPECANCH-002.9, AC-SPECANCH-003.1, AC-SPECANCH-003.2, AC-SPECANCH-003.3, AC-SPECANCH-003.4, AC-SPECLIST-001.2, AC-SPECLIST-001.3, AC-SPECLIST-001.7, AC-SPECLIST-002.2, AC-SPECLIST-002.4, AC-SPECLIST-003.2, AC-SPECLIST-004.1, AC-SPECLIST-004.2, AC-SPECLIST-004.4, AC-SPECLIST-004.5, AC-C4-DIAG-001.1, AC-C4-DIAG-001.3, AC-C4-DIAG-001.4, AC-C4-DIAG-002.1, AC-C4-DIAG-002.2, AC-C4-DIAG-002.3, AC-C4-DIAG-002.4, AC-C4-DIAG-002.5, AC-C4-DIAG-003.1, AC-C4-DIAG-003.2, AC-C4-DIAG-003.3, AC-C4-DIAG-004.2, AC-C4-DIAG-004.3, AC-C4-DIAG-004.4, AC-C4-DIAG-004.5
+// AC: AC-SPEC-002.5, AC-SPEC-003.7, AC-SPEC-003.8, AC-SPEC-006.5, AC-SPEC-006.6, AC-SPEC-006.7, AC-SPEC-006.8, AC-SPEC-007.2, AC-SPEC-011.1, AC-SPEC-011.2, AC-SPEC-011.3, AC-SPEC-011.4, AC-SPEC-011.5, AC-SPECREF-001.6, AC-SPECREF-002.6, AC-SPECREF-003.1, AC-SPECREF-003.2, AC-SPECREF-003.3, AC-SPECREF-003.5, AC-SPECREF-003.6, AC-SPECREF-003.7, AC-SPECANCH-002.1, AC-SPECANCH-002.5, AC-SPECANCH-002.9, AC-SPECANCH-002.10, AC-SPECANCH-003.1, AC-SPECANCH-003.2, AC-SPECANCH-003.3, AC-SPECANCH-003.4, AC-SPECANCH-003.6, AC-SPECSTR-003.7, AC-SPECSTR-003.8, AC-SPECSTR-003.9, AC-SPECSTR-003.10, AC-SPECSTR-003.11, AC-SPECLIST-001.2, AC-SPECLIST-001.3, AC-SPECLIST-001.7, AC-SPECLIST-002.2, AC-SPECLIST-002.4, AC-SPECLIST-003.2, AC-SPECLIST-004.1, AC-SPECLIST-004.2, AC-SPECLIST-004.4, AC-SPECLIST-004.5, AC-C4-DIAG-001.1, AC-C4-DIAG-001.3, AC-C4-DIAG-001.4, AC-C4-DIAG-002.1, AC-C4-DIAG-002.2, AC-C4-DIAG-002.3, AC-C4-DIAG-002.4, AC-C4-DIAG-002.5, AC-C4-DIAG-003.1, AC-C4-DIAG-003.2, AC-C4-DIAG-003.3, AC-C4-DIAG-004.2, AC-C4-DIAG-004.3, AC-C4-DIAG-004.4, AC-C4-DIAG-004.5
 func TestSnapshotCases(t *testing.T) {
 	entries, err := os.ReadDir(casesDir)
 	if err != nil {
@@ -152,9 +152,31 @@ func runSnapshotCaseWith(t *testing.T, dir string, materialize func(src, dst str
 			exitCode, manifest.ExitCode, stdout.String(), stderr.String())
 	}
 
+	checkFailedRunAnswersNothing(t, stdout.String(), manifest)
 	checkChecksLog(t, dir, stdout.String(), manifest)
 	checkChecksErr(t, dir, stderr.String(), manifest)
 	checkManifest(t, dir, work, manifest.Args, stdout.String(), manifest)
+}
+
+// checkFailedRunAnswersNothing enforces [[cli-exit-status-standards]]'s
+// "A failed invocation answers nothing" for every case that declares a
+// status of 2, 3 or 4: standard output must be empty, and a case naming
+// a stdout artifact for such a status is asserting an answer the run is
+// forbidden to give, so the declaration itself is a failure.
+func checkFailedRunAnswersNothing(t *testing.T, stdout string, manifest caseManifest) {
+	t.Helper()
+
+	if manifest.ExitCode < 2 || manifest.ExitCode > 4 {
+		return
+	}
+	for _, name := range stdoutArtifacts {
+		if slices.Contains(manifest.Artifacts, name) {
+			t.Errorf("case.toml declares %s with exit_code %d; a run exiting 2, 3 or 4 writes nothing to standard output, so there is no answer to compare", name, manifest.ExitCode)
+		}
+	}
+	if stdout != "" {
+		t.Errorf("exit_code %d with %d bytes on standard output; a run exiting 2, 3 or 4 must write nothing there:\n%s", manifest.ExitCode, len(stdout), stdout)
+	}
 }
 
 // checkChecksErr compares actual standard error against

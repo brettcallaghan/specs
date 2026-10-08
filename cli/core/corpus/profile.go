@@ -229,9 +229,10 @@ type FeatureTagRules struct {
 	// Qualifiers are the tags that qualify a criterion, and what each of
 	// them means.
 	//
-	// A tag matching neither identifier pattern and named by no
-	// qualifier is carried on the record and reported by nothing: an
-	// unregistered tag is one the vocabulary says nothing about.
+	// A tag matching neither identifier pattern, carrying no
+	// owning-document prefix and named by no qualifier is carried on the
+	// record with no meaning, and reported by the check as a
+	// gherkin/tag-unregistered warning naming these qualifiers.
 	Qualifiers []QualifierTag
 }
 
@@ -327,6 +328,13 @@ type DocumentTypeRules struct {
 	// Numbering is global per type: the next number is one greater than
 	// the highest in use anywhere in the corpus, regardless of directory.
 	Numbered bool
+
+	// NumberWidth is the minimum number of digits a numbered type's
+	// identifier is written with, zero-padded: 3 writes 31 as `031`. 0
+	// writes the number unpadded. It is how the next identifier is
+	// formatted into a slug, and it must agree with SlugPattern; the
+	// pattern is not read to derive it.
+	NumberWidth int
 
 	// ReferenceProperties are the frontmatter properties of this type
 	// that hold document slugs.

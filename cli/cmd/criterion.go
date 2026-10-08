@@ -4,28 +4,33 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 
 	"github.com/spf13/cobra"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specindex"
+	"github.com/brettcallaghan/agent-plugins/cli/core/revisions"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
 // newCriterionCmd builds the `criterion` subcommand: list acceptance
-// criteria that changed locally (CHG's --changed, AC-GHK-008.1), and query
-// the corpus by criterion identifier, owning feature or qualifier tag
-// (QRY's --of, --tag and --json, AC-GHK-007.2, AC-GHK-007.3).
+// criteria that changed against a git base (--changed, --since and
+// --exit-code, FEAT-GHK-008), and query the corpus by criterion
+// identifier, owning feature or qualifier tag (--of, --tag, AC-GHK-007.2,
+// AC-GHK-007.3). --json applies to both.
 //
 // --changed and the query surface are mutually exclusive: --changed takes
-// no identifier and answers a comparison against the persisted index,
-// the query surface takes zero or one identifier plus the flags below and
-// answers from the corpus directly, and the RunE closure branches between
-// them before either flag-conversion function is called.
+// no identifier and answers a comparison against the corpus at a git
+// revision, the query surface takes zero or one identifier plus the flags
+// below and answers from the corpus directly, and the RunE closure
+// branches between them before either flag-conversion function is
+// called.
 func newCriterionCmd(streams *ioStreams, configPath *string) *cobra.Command {
 	var changed bool
+	var since string
+	var exitCode bool
 	var of string
 	var tag string
 	var jsonOut bool
@@ -35,67 +40,82 @@ func newCriterionCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		Short: "Query an acceptance criterion, or list ones that changed locally",
 		Long: "criterion <id> returns that criterion's record. criterion --of " +
 			"<feature-id> returns every criterion beneath one feature, and criterion " +
-			"--tag <qualifier> every criterion carrying one qualifier. --json writes " +
-			"the matching records as JSON to standard output. An identifier no " +
-			"criterion declares is reported as such and exits non-zero. " +
-			"criterion --changed compares the current corpus against the persisted " +
-			"index and lists every acceptance criterion whose content hash differs, " +
-			"classifying each as changed, added or removed.",
+			"--tag <qualifier> every criterion carrying one qualifier. The answer is a " +
+			"YAML mapping whose one key, criteria, holds a list of the matching " +
+			"records in every case, one identifier included; --json writes the same " +
+			"values as JSON. Given an identifier or --of, the answer also carries " +
+			"declared, false with an empty list where the corpus declares no such " +
+			"criterion or feature; that is an answer, and exits 0. A --tag value " +
+			"the profile does not register is refused, naming every registered " +
+			"qualifier. " +
+			"criterion --changed compares the current corpus, uncommitted edits " +
+			"included, against the corpus at the merge-base of HEAD and the " +
+			"repository's default branch, or of HEAD and the revision --since names, " +
+			"and lists every acceptance criterion whose content hash differs, " +
+			"classifying each as changed, added or removed. Its answer is a YAML " +
+			"mapping holding base (the revision and the merge-base commit) and then " +
+			"criteria; it exits 0 whatever it lists, or 1 on a non-empty list under " +
+			"--exit-code. It needs git on PATH.",
 		Args: cobra.MaximumNArgs(1),
-		RunE: func(_ *cobra.Command, args []string) error {
+		RunE: func(c *cobra.Command, args []string) error {
 			if changed {
-				if len(args) != 0 || of != "" || tag != "" || jsonOut {
-					return errors.New("specs criterion: --changed cannot be combined with an identifier, --of, --tag or --json")
+				if len(args) != 0 || of != "" || tag != "" {
+					return invocationError("--changed cannot be combined with an identifier, --of or --tag")
 				}
-				return runCriterionChanged(streams, *configPath)
+				return runCriterionChanged(streams, *configPath, since, exitCode, jsonOut)
+			}
+			if c.Flags().Changed("since") {
+				return invocationError("--since applies only to --changed")
+			}
+			if exitCode {
+				return invocationError("--exit-code applies only to --changed")
 			}
 			if len(args) == 1 && (of != "" || tag != "") {
-				return errors.New("specs criterion: an identifier cannot be combined with --of or --tag")
+				return invocationError("an identifier cannot be combined with --of or --tag")
 			}
 			if of != "" && tag != "" {
-				return errors.New("specs criterion: --of and --tag cannot both be given")
+				return invocationError("--of and --tag cannot both be given")
 			}
 			if len(args) == 0 && of == "" && tag == "" {
-				return errors.New("specs criterion: give an identifier, --of, --tag or --changed")
+				return invocationError("give an identifier, --of, --tag or --changed")
 			}
 			return runCriterionQuery(streams, *configPath, args, of, tag, jsonOut)
 		},
 	}
 	cmd.Flags().BoolVar(&changed, "changed", false,
-		"list acceptance criteria whose content differs from the persisted index")
+		"list acceptance criteria whose content differs from the corpus at a git base")
+	cmd.Flags().StringVar(&since, "since", "",
+		"with --changed, compare against the merge-base of HEAD and this branch, tag or commit instead of the default branch")
+	cmd.Flags().BoolVar(&exitCode, "exit-code", false,
+		"with --changed, exit 1 when any criterion is listed")
 	cmd.Flags().StringVar(&of, "of", "",
 		"list every criterion beneath this feature")
 	cmd.Flags().StringVar(&tag, "tag", "",
-		"list every criterion carrying this qualifier")
+		"list every criterion carrying this qualifier, written with or without a leading @")
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
-		"write the matching criterion records as JSON to standard output")
+		"write the answer as JSON instead of YAML")
 	return cmd
 }
 
-// runCriterionChanged compares the current corpus against the persisted
-// index and renders the criteria that differ (AC-GHK-008.1).
+// runCriterionChanged compares the current corpus against the corpus at a
+// git base and renders the criteria that differ (FEAT-GHK-008).
 //
-// The persisted side is read with corpus.Load rather than corpus.Open.
-// Open's warm-cache decision is one-sided: when the persisted index's
-// input hash no longer matches, it silently rebuilds and hands back the
-// *current* corpus, discarding the very earlier state this comparison
-// needs (cache.go's openWarm). That is exactly the case --changed exists
-// to report, so this command reads the artifact directly instead of
-// through the cache. The current side always builds fresh
-// (corpus.Build), independent of the cache being warm — a --changed run
-// must see whatever the corpus is right now, not a servable answer.
-//
-// This command writes nothing back: unlike openCorpus's best-effort
-// persist, doing so here would let a --changed run silently replace the
-// baseline it just compared against with the state it is reporting as
-// different from that baseline.
-func runCriterionChanged(streams *ioStreams, configPath string) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+// The current side is corpus.Build over the working tree, so committed,
+// staged, unstaged and untracked documents beneath the spec root are all
+// part of it (AC-GHK-008.6). The base side is corpus.Build over the spec
+// root as the base commit holds it, materialized by the Revisions
+// component into a temporary directory and rebased there at the same
+// repository-relative paths, so an unmoved document reports one path on
+// both sides. Neither side reads, writes or requires specs.json: the
+// persisted index is rebuilt by any query, so it cannot stand for an
+// earlier state (AC-GHK-008.7).
+func runCriterionChanged(streams *ioStreams, configPath, since string, exitCode, jsonOut bool) error {
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, false)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -103,22 +123,121 @@ func runCriterionChanged(streams *ioStreams, configPath string) error {
 		return err
 	}
 
-	indexPath := corpus.IndexPath(opts, "")
-	persisted, ok := loadPersistedIndex(indexPath)
-	if !ok {
-		fmt.Fprintf(streams.out, "no persisted index at %s; run `specs index` first\n",
-			filepath.ToSlash(indexPath))
-		return nil
-	}
-
-	built, err := corpus.Build(opts)
+	current, err := corpus.Build(opts)
 	if err != nil {
-		return fmt.Errorf("cmd: building the corpus: %w", err)
+		return fmt.Errorf("building the corpus: %w", err)
 	}
 
-	changes := changedCriteria(persisted, built.Index())
-	renderCriterionChanges(streams, changes)
-	return nil
+	before, base, err := buildBaseIndex(opts, since)
+	if err != nil {
+		return err
+	}
+
+	result := criterionChangesResult{
+		Base:     changeBase{Revision: base.Ref, Commit: base.Commit},
+		Criteria: changedCriteria(before, current.Index()),
+	}
+	if exitCode && len(result.Criteria) > 0 {
+		streams.exitCode = statusGateFailed
+	}
+	return renderCriterionChanges(streams, result, jsonOut)
+}
+
+// buildBaseIndex builds the corpus at the base the comparison runs
+// against: the merge-base of HEAD and since, or of HEAD and the default
+// branch when since is empty. The materialized copy is removed before it
+// returns, on every path.
+func buildBaseIndex(opts corpus.Options, since string) (specmodel.SpecIndex, revisions.Base, error) {
+	repo, err := revisions.Open(opts.RepoRoot)
+	if err != nil {
+		return specmodel.SpecIndex{}, revisions.Base{}, revisionError(err)
+	}
+
+	top, err := canonicalPath(repo.Root())
+	if err != nil {
+		return specmodel.SpecIndex{}, revisions.Base{}, environmentError("%s cannot be resolved: %v", repo.Root(), err)
+	}
+	repoRel, err := relativeInside(top, opts.RepoRoot)
+	if err != nil {
+		return specmodel.SpecIndex{}, revisions.Base{}, err
+	}
+	specRel, err := relativeInside(top, opts.Root)
+	if err != nil {
+		return specmodel.SpecIndex{}, revisions.Base{}, err
+	}
+
+	base, err := repo.Base(since)
+	if err != nil {
+		return specmodel.SpecIndex{}, revisions.Base{}, revisionError(err)
+	}
+
+	tree, err := repo.Materialize(base.Commit, filepath.ToSlash(specRel))
+	if err != nil {
+		return specmodel.SpecIndex{}, revisions.Base{}, revisionError(err)
+	}
+	defer func() { _ = tree.Close() }()
+
+	baseOpts := opts
+	baseOpts.RepoRoot = filepath.Join(tree.Root(), repoRel)
+	baseOpts.Root = filepath.Join(tree.Root(), specRel)
+	// A spec root added since the base is absent from the copy; an empty
+	// directory makes every criterion in it read as added (AC-GHK-008.3).
+	if err := os.MkdirAll(baseOpts.Root, 0o755); err != nil {
+		return specmodel.SpecIndex{}, revisions.Base{}, environmentError("%s cannot be created: %v", baseOpts.Root, err)
+	}
+
+	built, err := corpus.Build(baseOpts)
+	if err != nil {
+		return specmodel.SpecIndex{}, revisions.Base{}, fmt.Errorf("building the corpus at %s: %w", base.Commit, err)
+	}
+	return built.Index(), base, nil
+}
+
+// canonicalPath is path made absolute with every symbolic link resolved,
+// the form git prints its top level in. Comparing two paths in any other
+// form misreads a temporary directory under a symlink (macOS's /var) as
+// lying outside the work tree.
+func canonicalPath(path string) (string, error) {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+	return filepath.EvalSymlinks(abs)
+}
+
+// relativeInside is path relative to the work tree's top level, or an
+// environment error naming both when path lies outside it
+// (AC-GHK-008.13).
+func relativeInside(top, path string) (string, error) {
+	if abs, err := filepath.Abs(path); err == nil {
+		path = abs
+	}
+	resolved, err := canonicalPath(path)
+	if err != nil {
+		return "", environmentError("%s cannot be resolved: %v", path, err)
+	}
+	rel, err := filepath.Rel(top, resolved)
+	if err != nil || !filepath.IsLocal(rel) {
+		return "", environmentError("%s lies outside the git work tree %s; a comparison reads the spec root from that repository's history, so move the spec root inside it",
+			path, top)
+	}
+	return rel, nil
+}
+
+// revisionError classifies an error from the Revisions component under
+// the exit status its class carries.
+func revisionError(err error) error {
+	var rerr *revisions.Error
+	if !errors.As(err, &rerr) {
+		return err
+	}
+	switch rerr.Class {
+	case revisions.Invocation:
+		return invocationError("%s", rerr.Message)
+	case revisions.Environment:
+		return environmentError("%s", rerr.Message)
+	}
+	return internalError("%s", rerr.Message)
 }
 
 // runCriterionQuery converts args and the --of, --tag and --json flags
@@ -130,19 +249,19 @@ func runCriterionChanged(streams *ioStreams, configPath string) error {
 // re-walking the corpus when its inputs are unchanged (AC-GHK-007.6).
 //
 // An identifier argument selects one criterion by
-// [corpus.Corpus.Criterion]; naming no record is reported distinctly and
-// exits non-zero (AC-GHK-007.4). Otherwise --of selects every criterion
-// [corpus.Corpus.CriteriaOf] one feature, or --tag every criterion
-// [corpus.Corpus.CriteriaByTag] one qualifier — both are selections, and
-// an empty selection exits zero rather than being confused with an
-// unknown identifier.
+// [corpus.Corpus.Criterion], --of every criterion
+// [corpus.Corpus.CriteriaOf] one feature, and --tag every criterion
+// [corpus.Corpus.CriteriaByTag] one qualifier. An identifier or feature
+// the corpus does not declare is answered with the empty selection and
+// declared false, exiting zero (AC-GHK-007.4); a qualifier the profile
+// does not register is an invocation error (AC-GHK-007.8).
 func runCriterionQuery(streams *ioStreams, configPath string, args []string, of, tag string, jsonOut bool) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, jsonOut)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -156,100 +275,93 @@ func runCriterionQuery(streams *ioStreams, configPath string, args []string, of,
 	}
 
 	if len(args) == 1 {
-		id := args[0]
-		criterion, found := c.Criterion(specmodel.CriterionId(id))
+		criterion, found := c.Criterion(specmodel.CriterionId(args[0]))
 		if !found {
-			fmt.Fprintf(streams.err, "%s: not found\n", id)
-			streams.exitCode = 1
-			return nil
+			return renderCriteria(streams, nil, declared(false), jsonOut)
 		}
-		return renderCriterion(streams, criterion, jsonOut)
+		return renderCriteria(streams, []specmodel.Criterion{criterion}, declared(true), jsonOut)
 	}
 
-	var criteria []specmodel.Criterion
 	if of != "" {
-		criteria = c.CriteriaOf(specmodel.FeatureId(of))
-	} else {
-		criteria = c.CriteriaByTag(tag)
+		// The feature is the subject --of names, so declared is whether
+		// the corpus declares it: a declared feature with no criteria
+		// answers declared true and an empty list.
+		_, found := c.Feature(specmodel.FeatureId(of))
+		return renderCriteria(streams, c.CriteriaOf(specmodel.FeatureId(of)), declared(found), jsonOut)
 	}
-	return renderCriteria(streams, criteria, jsonOut)
+
+	criteria, err := c.CriteriaByTag(tag)
+	if errors.Is(err, corpus.ErrUnregisteredQualifier) {
+		return invocationError("%w", withoutPrefix(err, "corpus: "))
+	}
+	if err != nil {
+		return err
+	}
+	return renderCriteria(streams, criteria, nil, jsonOut)
 }
 
-// renderCriterion writes one criterion to streams.out: the generated
-// [specmodel.Criterion] JSON in --json mode, and a single
-// `<id>\t<name>` line otherwise — the same shape [renderCriteria] writes
-// per entry, so a single lookup and a selection of one read alike.
-func renderCriterion(streams *ioStreams, criterion specmodel.Criterion, asJSON bool) error {
-	if asJSON {
-		data, err := json.Marshal(criterion)
-		if err != nil {
-			return fmt.Errorf("cmd: rendering the criterion as JSON: %w", err)
-		}
-		fmt.Fprintf(streams.out, "%s\n", data)
-		return nil
-	}
-	fmt.Fprintf(streams.out, "%s\t%s\n", criterion.Id, criterionName(criterion))
-	return nil
+// criteriaResult is the criterion query's answer: the matching records
+// under the one key `criteria`, whatever the arguments selected — one
+// identifier, --of or --tag — so a caller never branches on what it
+// passed ([[cli-output-standards]]'s "One shape per command"). Criteria is
+// never nil, so an empty selection renders as `criteria: []`.
+//
+// Declared states whether the subject the invocation named — the
+// criterion identifier, or the feature --of names — is one the corpus
+// declares (AC-GHK-007.4). It is present exactly when a subject is named,
+// and absent under --tag, whose qualifier is a registered value rather
+// than a subject.
+type criteriaResult struct {
+	Declared *bool                 `json:"declared,omitempty"`
+	Criteria []specmodel.Criterion `json:"criteria"`
 }
 
-// renderCriteria writes a criterion selection to streams.out: the
-// generated [specmodel.Criterion] JSON array in --json mode
-// (AC-GHK-007.5), and one `<id>\t<name>` line per criterion otherwise. An
-// empty selection writes a fixed sentence in text mode and `[]` in JSON
-// mode — it is a valid answer, never the non-zero "not found" an unknown
-// identifier produces (AC-GHK-007.4).
-func renderCriteria(streams *ioStreams, criteria []specmodel.Criterion, asJSON bool) error {
+// renderCriteria writes the answer as YAML, or as JSON under --json, both
+// carrying the same values in the same order (AC-GHK-007.2, AC-GHK-007.5).
+// A subject the corpus does not declare is an answer too — the empty
+// selection with declared false, exiting zero (AC-GHK-007.4).
+func renderCriteria(streams *ioStreams, criteria []specmodel.Criterion, isDeclared *bool, asJSON bool) error {
 	if criteria == nil {
 		criteria = []specmodel.Criterion{}
 	}
+	result := criteriaResult{Declared: isDeclared, Criteria: criteria}
 	if asJSON {
-		data, err := json.Marshal(criteria)
+		data, err := json.Marshal(result)
 		if err != nil {
-			return fmt.Errorf("cmd: rendering the criterion selection as JSON: %w", err)
+			return fmt.Errorf("rendering the criteria as JSON: %w", err)
 		}
 		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil
 	}
-
-	if len(criteria) == 0 {
-		fmt.Fprintln(streams.out, "no matching criteria")
-		return nil
-	}
-	for _, criterion := range criteria {
-		fmt.Fprintf(streams.out, "%s\t%s\n", criterion.Id, criterionName(criterion))
-	}
+	fmt.Fprint(streams.out, renderYAML(result))
 	return nil
 }
 
-// loadPersistedIndex reads the index at path and reports whether it may
-// be used as the earlier state AC-GHK-008.1 compares against.
-//
-// Every way it can fail to be usable — the file is absent, unreadable,
-// not JSON, or written by an older index shape — is folded into "no
-// persisted index" rather than surfaced as a distinct error, the same
-// generosity corpus.Open's warm path applies when deciding whether to
-// trust the cache. Unlike that path, a hash mismatch here is not a
-// reason to treat the index as unusable — a differing input hash is
-// what this command exists to explain, not a condition it rebuilds
-// around.
-func loadPersistedIndex(path string) (specmodel.SpecIndex, bool) {
-	index, err := corpus.Load(path)
-	if err != nil {
-		return specmodel.SpecIndex{}, false
-	}
-	if index.SchemaVersion != specindex.SchemaVersion {
-		return specmodel.SpecIndex{}, false
-	}
-	return index, true
+// criterionChangesResult is the change listing's answer: the base it was
+// compared against, then the criteria that differ (AC-GHK-008.11).
+// Criteria is never nil, so an empty listing renders as `criteria: []`.
+type criterionChangesResult struct {
+	Base     changeBase        `json:"base"`
+	Criteria []criterionChange `json:"criteria"`
 }
 
-// criterionChange is one criterion's classification against the earlier
-// index: "changed", "added" or "removed", per AC-GHK-008.3. A criterion
-// present in both with an unchanged hash — whatever its position in
-// either corpus — has no criterionChange at all (AC-GHK-008.2).
+// changeBase names the base: the revision as --since named it, or the
+// default branch found, and the merge-base commit's full object name.
+type changeBase struct {
+	Revision string `json:"revision"`
+	Commit   string `json:"commit"`
+}
+
+// criterionChange is one criterion's classification against the base:
+// "changed", "added" or "removed", per AC-GHK-008.3, and the path of the
+// document holding it — in the current corpus, or in the base for a
+// removed one. A criterion present in both with an unchanged hash —
+// whatever its position in either corpus — has no criterionChange at all
+// (AC-GHK-008.2).
 type criterionChange struct {
-	Id             specmodel.CriterionId
-	Classification string
+	Id             specmodel.CriterionId `json:"id"`
+	Classification string                `json:"classification"`
+	Path           string                `json:"path"`
 }
 
 const (
@@ -258,32 +370,32 @@ const (
 	classificationRemoved = "removed"
 )
 
-// changedCriteria compares persisted against current by criterion
-// identifier and content hash, classifying each difference by whether
-// the identifier is present in both, only in current, or only in
-// persisted (AC-GHK-008.1, AC-GHK-008.3). Position is never read: two
-// criteria with the same identifier and the same content hash are the
-// same criterion, wherever each corpus places it (AC-GHK-008.2).
+// changedCriteria compares base against current by criterion identifier
+// and content hash, classifying each difference by whether the identifier
+// is present in both, only in current, or only in base (AC-GHK-008.1,
+// AC-GHK-008.3). Position is never read: two criteria with the same
+// identifier and the same content hash are the same criterion, wherever
+// each corpus places it (AC-GHK-008.2).
 //
 // The result is sorted by identifier, so the listing is byte-identical
 // across runs and independent of both corpora's own entry order.
-func changedCriteria(persisted, current specmodel.SpecIndex) []criterionChange {
-	before := criterionHashes(persisted)
+func changedCriteria(base, current specmodel.SpecIndex) []criterionChange {
+	before := criterionHashes(base)
 	after := criterionHashes(current)
 
-	var changes []criterionChange
-	for id, afterHash := range after {
-		beforeHash, existed := before[id]
+	changes := []criterionChange{}
+	for id, now := range after {
+		then, existed := before[id]
 		switch {
 		case !existed:
-			changes = append(changes, criterionChange{Id: id, Classification: classificationAdded})
-		case beforeHash != afterHash:
-			changes = append(changes, criterionChange{Id: id, Classification: classificationChanged})
+			changes = append(changes, criterionChange{Id: id, Classification: classificationAdded, Path: now.path})
+		case then.hash != now.hash:
+			changes = append(changes, criterionChange{Id: id, Classification: classificationChanged, Path: now.path})
 		}
 	}
-	for id := range before {
+	for id, then := range before {
 		if _, stillPresent := after[id]; !stillPresent {
-			changes = append(changes, criterionChange{Id: id, Classification: classificationRemoved})
+			changes = append(changes, criterionChange{Id: id, Classification: classificationRemoved, Path: then.path})
 		}
 	}
 
@@ -291,30 +403,37 @@ func changedCriteria(persisted, current specmodel.SpecIndex) []criterionChange {
 	return changes
 }
 
-// criterionHashes flattens an index's nested features into a lookup from
-// criterion identifier to content hash — the whole of what
-// [changedCriteria] reads from either side of the comparison.
-func criterionHashes(index specmodel.SpecIndex) map[specmodel.CriterionId]specmodel.ContentHash {
-	hashes := make(map[specmodel.CriterionId]specmodel.ContentHash)
-	for _, feature := range index.Features {
-		for _, criterion := range feature.Criteria {
-			hashes[criterion.Id] = criterion.ContentHash
-		}
-	}
-	return hashes
+// criterionState is what the comparison reads of one criterion: its
+// content hash, and the path of the document its feature is declared in.
+type criterionState struct {
+	hash specmodel.ContentHash
+	path string
 }
 
-// renderCriterionChanges writes one line per change to streams.out —
-// classification, then identifier, tab-separated — or a fixed sentence
-// when the comparison found none. There is no --json rendering here:
-// that belongs to QRY's --json, which spans this command's whole query
-// surface rather than one flag's output.
-func renderCriterionChanges(streams *ioStreams, changes []criterionChange) {
-	if len(changes) == 0 {
-		fmt.Fprintln(streams.out, "no local changes")
-		return
+// criterionHashes flattens an index's nested features into a lookup from
+// criterion identifier to its state — the whole of what
+// [changedCriteria] reads from either side of the comparison.
+func criterionHashes(index specmodel.SpecIndex) map[specmodel.CriterionId]criterionState {
+	states := make(map[specmodel.CriterionId]criterionState)
+	for _, feature := range index.Features {
+		for _, criterion := range feature.Criteria {
+			states[criterion.Id] = criterionState{hash: criterion.ContentHash, path: feature.Path}
+		}
 	}
-	for _, c := range changes {
-		fmt.Fprintf(streams.out, "%s\t%s\n", c.Classification, c.Id)
+	return states
+}
+
+// renderCriterionChanges writes the answer as YAML, or as JSON under
+// --json, both carrying the same values in the same order.
+func renderCriterionChanges(streams *ioStreams, result criterionChangesResult, asJSON bool) error {
+	if asJSON {
+		data, err := json.Marshal(result)
+		if err != nil {
+			return internalError("rendering the change listing as JSON: %v", err)
+		}
+		fmt.Fprintf(streams.out, "%s\n", data)
+		return nil
 	}
+	fmt.Fprint(streams.out, renderYAML(result))
+	return nil
 }

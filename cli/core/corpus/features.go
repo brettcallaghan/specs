@@ -165,9 +165,9 @@ func (v vocabulary) owningSlug(tags []string) specmodel.Slug {
 }
 
 // qualify populates the criterion properties a profile's qualifier tags
-// carry. A tag the profile registers nothing for reaches no property,
-// which is what makes an unregistered tag one the vocabulary says nothing
-// about (AC-GHK-002.8).
+// carry. A tag the profile registers nothing for reaches no property; the
+// check reports it as gherkin/tag-unregistered (AC-GHK-002.8), so a
+// misspelt qualifier is not lost in silence.
 func (v vocabulary) qualify(record *specmodel.Criterion, tags []string) {
 	for _, tag := range tags {
 		qualifier, registered := v.qualifiers[tag]
@@ -308,11 +308,18 @@ func (b *builder) visitFeatureSource(reported string, src []byte, readErr error)
 // its criteria's tags carry, and records it. Path, DocumentSlug and
 // Source are already set on parsed.Record by [blockFeatures] or
 // [featureFileFeature].
+//
+// Each criterion also carries where it lives — its feature's path and
+// identifier — and every tag written on it, so one criterion's record
+// locates it without a second query (AC-GHK-005.2).
 func (b *builder) addFeature(parsed *gherkin.Feature) {
 	record := parsed.Record
 	record.Criteria = make([]specmodel.Criterion, 0, len(parsed.Criteria))
 	for _, criterion := range parsed.Criteria {
 		nested := criterion.Record
+		nested.Path = record.Path
+		nested.FeatureId = record.Id
+		nested.Tags = append([]string{}, criterion.Tags...)
 		b.vocabulary.qualify(&nested, criterion.Tags)
 		record.Criteria = append(record.Criteria, nested)
 	}

@@ -748,14 +748,13 @@ func TestCheckReportsANonMemberReferenceWithItsReason(t *testing.T) {
 	}
 }
 
-// Unresolved references are the one rule CheckFor does not narrow to the
-// file named: they surface wherever they were written, because the
-// document that breaks a reference is never the document that holds it
-// (AC-SPECREF-002.9). Every other rule stays scoped to the named file, so
-// this is an exception rather than the narrowing being abandoned.
+// CheckFor reports the named document's own findings and nothing located
+// in another document — not another file's unresolved reference, and not
+// another file's slug-pattern violation (AC-SPECREF-002.9). A file's own
+// unresolved reference is still reported when it is the file named.
 //
 // AC: AC-SPECREF-002.9
-func TestCheckForReportsUnresolvedReferencesWhereverTheyWereWritten(t *testing.T) {
+func TestCheckForReportsNoFindingLocatedInAnotherDocument(t *testing.T) {
 	repo := t.TempDir()
 	write(t, repo, "specs/adrs/adr-001.md", citing("adr", "adr-001", "First", "Refines [[adr-404]]."))
 	write(t, repo, "specs/adrs/adr-abc.md", document("adr", "adr-abc", "Unpatterned"))
@@ -767,18 +766,12 @@ func TestCheckForReportsUnresolvedReferencesWhereverTheyWereWritten(t *testing.T
 	if err != nil {
 		t.Fatalf("CheckFor: %v", err)
 	}
-	if got := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md"); len(got) != 1 {
-		t.Errorf("CheckFor(adr-002) reported %d of adr-001's unresolved references, want 1: %+v", len(got), findings)
-	}
-	// adr-abc's slug does not match the profile's pattern, and that
-	// finding belongs to a file this check did not name: the narrowing is
-	// intact for every rule but the one above.
-	if got := findingsWithRule(findings, finding.RuleSlugPattern, "specs/adrs/adr-abc.md"); len(got) != 0 {
-		t.Errorf("CheckFor(adr-002) reported another file's slug-pattern violation: %+v", got)
+	for _, f := range findings {
+		if f.Path != "specs/adrs/adr-002.md" {
+			t.Errorf("CheckFor(adr-002) reported a finding located in %s: %s %s", f.Path, f.Rule, f.Message)
+		}
 	}
 
-	// A file's own unresolved reference is still reported when it is the
-	// file named, and is not reported twice for matching both arms.
 	findings, err = built.CheckFor("specs/adrs/adr-001.md")
 	if err != nil {
 		t.Fatalf("CheckFor: %v", err)
@@ -790,9 +783,11 @@ func TestCheckForReportsUnresolvedReferencesWhereverTheyWereWritten(t *testing.T
 
 // AC-SPECREF-002.9's own scenario, end to end and through the real cache:
 // an agent renames a document's slug, and the write-time check on that one
-// file reports the references the rename broke — against the referring
-// document, at the referrer's own span, which is the file and the line a
-// reader has to open to fix it.
+// file reports nothing about the references the rename broke elsewhere —
+// a reference held by another document that no longer resolves to the
+// named one is that document's finding. A check of the referrer reports
+// it, at the referrer's own span, which is the file and the line a reader
+// has to open to fix it (AC-SPECREF-002.11).
 //
 // The break is produced by editing a real file on disk, because that is
 // what the criterion describes and it is the only state production can
@@ -806,7 +801,7 @@ func TestCheckForReportsUnresolvedReferencesWhereverTheyWereWritten(t *testing.T
 // (agent-plugins-fe1).
 //
 // AC: AC-SPECREF-002.9
-func TestCheckForReportsTheReferencesARenamedSlugBroke(t *testing.T) {
+func TestCheckForReportsNothingARenamedSlugBrokeElsewhere(t *testing.T) {
 	repo := t.TempDir()
 	write(t, repo, "specs/adrs/adr-001.md", citing("adr", "adr-001", "First", "Refines [[adr-002]]."))
 	write(t, repo, "specs/adrs/adr-002.md", document("adr", "adr-002", "Second"))
@@ -845,10 +840,19 @@ func TestCheckForReportsTheReferencesARenamedSlugBroke(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CheckFor after the rename: %v", err)
 	}
+	for _, f := range findings {
+		if f.Path != "specs/adrs/adr-002.md" {
+			t.Errorf("CheckFor(adr-002) reported a finding located in %s: %s %s", f.Path, f.Rule, f.Message)
+		}
+	}
 
+	findings, err = opened.CheckFor("specs/adrs/adr-001.md")
+	if err != nil {
+		t.Fatalf("CheckFor(adr-001) after the rename: %v", err)
+	}
 	broken := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md")
 	if len(broken) != 1 {
-		t.Fatalf("got %d reference/unresolved findings against the referrer, want 1: %+v", len(broken), findings)
+		t.Fatalf("got %d reference/unresolved findings in the referrer, want 1: %+v", len(broken), findings)
 	}
 	detail, ok := broken[0].Detail.Value.(specmodel.FindingUnresolvedReference)
 	if !ok {
@@ -1298,21 +1302,12 @@ func TestCheckRaisesNoTypeMismatchFindingWhenTheTargetDeclaresTheExpectedType(t 
 	}
 }
 
-// Every LIFE finding survives CheckFor's narrowing on the same terms
-// reference/unresolved does, because every one of them is raised against
-// the document holding the reference rather than the document the
-// reference is about (AC-SPECREF-002.11).
-//
-// Retiring a document is the case that motivates it: checking the
-// document just retired must name the live documents still citing it,
-// which is the write-time equivalent of the slug rename AC-SPECREF-002.9
-// covers. This test asserted the opposite until agent-plugins-bk4 — that
-// the finding was narrowed away — which is what let a single-document
-// check print "reference/retired-target passed" over findings it had
-// discarded.
+// A check of the document just retired reports no retired-target finding
+// located in a document citing it; a check of the citing document reports
+// it (AC-SPECREF-002.9, AC-SPECREF-002.11).
 //
 // AC: AC-SPECREF-002.11
-func TestCheckForReportsLifecycleFindingsAgainstTheReferringDocument(t *testing.T) {
+func TestCheckForReportsLifecycleFindingsOnlyInTheReferringDocument(t *testing.T) {
 	repo := t.TempDir()
 	write(t, repo, "specs/adrs/adr-900.md", statusDocument("adr", "adr-900", "Old decision", "retired"))
 	write(t, repo, "specs/adrs/adr-800.md",
@@ -1320,24 +1315,93 @@ func TestCheckForReportsLifecycleFindingsAgainstTheReferringDocument(t *testing.
 
 	built := buildChecked(t, repo, lifecycleCheckProfile())
 
-	// The document that was retired: the finding lands on its referrer,
-	// and checking the retired document is what an author does before
-	// flipping status.
 	findings, err := built.CheckFor("specs/adrs/adr-900.md")
 	if err != nil {
 		t.Fatalf("CheckFor: %v", err)
 	}
-	if got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-800.md"); len(got) != 1 {
-		t.Errorf("CheckFor(adr-900) reported %d retired-target findings against the referrer, want 1: %+v", len(got), findings)
+	if got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-800.md"); len(got) != 0 {
+		t.Errorf("CheckFor(adr-900) reported %d retired-target findings located in the referrer, want 0: %+v", len(got), findings)
 	}
 
-	// The referrer itself still reports its own finding, exactly once.
 	findings, err = built.CheckFor("specs/adrs/adr-800.md")
 	if err != nil {
 		t.Fatalf("CheckFor: %v", err)
 	}
 	if got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-800.md"); len(got) != 1 {
 		t.Errorf("CheckFor(adr-800) reported %d of its own retired-target findings, want 1: %+v", len(got), findings)
+	}
+}
+
+// A single-document check reports every reference finding located in the
+// named document exactly as a corpus check reports it for that document:
+// an unresolved reference, a reference to a retired target and a
+// type-mismatched reference (AC-SPECREF-002.11).
+//
+// AC: AC-SPECREF-002.11
+func TestCheckForReportsTheNamedDocumentsReferenceFindingsAsACorpusCheckDoes(t *testing.T) {
+	cases := []struct {
+		name    string
+		profile corpus.Profile
+		files   map[string]string
+		named   string
+		rule    specmodel.RuleId
+	}{
+		{
+			name:    "unresolved",
+			profile: referenceCheckProfile("superseded_by"),
+			files: map[string]string{
+				"specs/adrs/adr-001.md": citing("adr", "adr-001", "First", "Refines [[adr-404]]."),
+			},
+			named: "specs/adrs/adr-001.md",
+			rule:  finding.RuleUnresolvedReference,
+		},
+		{
+			name:    "retired target",
+			profile: lifecycleCheckProfile(),
+			files: map[string]string{
+				"specs/adrs/adr-900.md": statusDocument("adr", "adr-900", "Old decision", "retired"),
+				"specs/adrs/adr-800.md": citing("adr", "adr-800", "Citing", "Refines [[adr-900]]."),
+			},
+			named: "specs/adrs/adr-800.md",
+			rule:  finding.RuleRetiredTarget,
+		},
+		{
+			name:    "type mismatch",
+			profile: typeMismatchCheckProfile(),
+			files: map[string]string{
+				"specs/features/feature-checkout.md": statusDocument("feature-blueprint", "feature-checkout", "Checkout", "approved", "frd: adr-009"),
+				"specs/adrs/adr-009.md":              document("adr", "adr-009", "Checkout decision"),
+			},
+			named: "specs/features/feature-checkout.md",
+			rule:  finding.RuleTypeMismatch,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := t.TempDir()
+			for path, content := range tc.files {
+				write(t, repo, path, content)
+			}
+			built := buildChecked(t, repo, tc.profile)
+
+			all, err := built.Check()
+			if err != nil {
+				t.Fatalf("Check: %v", err)
+			}
+			narrowed, err := built.CheckFor(tc.named)
+			if err != nil {
+				t.Fatalf("CheckFor: %v", err)
+			}
+
+			want := findingsWithRule(all, tc.rule, tc.named)
+			got := findingsWithRule(narrowed, tc.rule, tc.named)
+			if len(want) != 1 {
+				t.Fatalf("the corpus check reported %d %s findings in %s, want 1: %+v", len(want), tc.rule, tc.named, all)
+			}
+			if fmt.Sprint(got) != fmt.Sprint(want) {
+				t.Errorf("CheckFor(%s) reported %+v, want what the corpus check reports: %+v", tc.named, got, want)
+			}
+		})
 	}
 }
 

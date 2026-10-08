@@ -20,6 +20,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -31,53 +32,27 @@ import (
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
-// defaultConfigPath is where the CLI looks for specs.toml when the
-// caller does not override it with --config: the current working
-// directory, which AC-SPEC-008.1 calls "the repository root" — this tool
-// is invoked from there, and nothing in this sprint walks upward looking
-// for one.
-const defaultConfigPath = "specs.toml"
-
 // ioStreams carries the two output streams a run writes to and the exit
-// status the run decided on.
+// status a gate decided on.
 //
-// exitCode exists because a cobra RunE can only signal failure through a
-// non-nil error, which cobra then renders as "Error: ...". Most of this
-// package's exit statuses are not errors — a check run finding
-// non-conformance is a successful run reporting a true fact — so a
-// successful RunE (nil error) sets exitCode directly instead, and
-// [Execute] reads it back after Execute returns.
+// out is a buffer [execute] owns: it reaches the process's standard
+// output only when the run ends 0 or 1, so a command never needs to hold
+// back an answer in case it fails later.
+//
+// exitCode exists because a gate failing is not an error. A check run
+// finding non-conformance is a successful run reporting a true fact, so
+// its RunE returns nil and sets exitCode to statusGateFailed; a run
+// ending 2, 3 or 4 returns a classified error instead (exit.go).
 type ioStreams struct {
 	out io.Writer
 	err io.Writer
-	// exitCode is read by Execute once cobra's own Execute call returns
-	// nil. It starts at zero, the correct status for every command that
-	// never sets it explicitly (index and slug-exists on the ordinary
-	// path, help, and so on).
+	// exitCode is the status a gate set. It starts at statusOK, the
+	// correct status for every command that never sets it.
 	exitCode int
-}
-
-// Execute parses args against the command tree and runs the selected
-// subcommand, writing to stdout and stderr and returning the process exit
-// status.
-//
-// It is the one function main calls. A non-nil error from cobra's own
-// Execute — an unknown subcommand, a bad flag, or a RunE returning an
-// unexpected internal error such as a schema that fails to compile —
-// always exits 1; cobra has already written the error to stderr. Every
-// other exit status, including every one FEAT-SPEC-006 defines, comes back
-// through streams.exitCode instead.
-func Execute(args []string, stdout, stderr io.Writer) int {
-	streams := &ioStreams{out: stdout, err: stderr}
-	root := newRootCmd(streams)
-	root.SetArgs(args)
-	root.SetOut(stdout)
-	root.SetErr(stderr)
-
-	if err := root.Execute(); err != nil {
-		return 1
-	}
-	return streams.exitCode
+	// entered is set when a RunE starts (see markEntry), so [execute] can
+	// tell an error cobra raised while parsing the invocation from one a
+	// command returned.
+	entered bool
 }
 
 // newRootCmd builds the command tree: index, check, slug-exists, next-id,
@@ -102,7 +77,9 @@ func newRootCmd(streams *ioStreams) *cobra.Command {
 		Short: "Index and check a specification corpus",
 		Long: "specs indexes a specification corpus and reports conformance findings " +
 			"against the rules the active profile registers. Configuration is read " +
-			"from specs.toml at the repository root.",
+			"from the nearest specs.toml in the working directory or a directory " +
+			"above it, searching up to the repository root, or from the file " +
+			"--config names.",
 		SilenceUsage: true,
 		// Args is left unset (rather than cobra.NoArgs) precisely so a
 		// bare invocation is accepted and falls through to the default
@@ -117,8 +94,12 @@ func newRootCmd(streams *ioStreams) *cobra.Command {
 	// for cobra's own addition), so it is turned off rather than left to
 	// appear as an uncounted extra.
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.PersistentFlags().StringVar(&configPath, "config", defaultConfigPath,
-		"path to the repository's specs.toml")
+	// The default is empty, which means "discover": loadConfig searches
+	// for the nearest specs.toml inside the command, never here, so help
+	// and argument errors work in a directory holding none.
+	root.PersistentFlags().StringVar(&configPath, "config", "",
+		"path to specs.toml (default: the nearest specs.toml in the working "+
+			"directory or above it, up to the repository root)")
 
 	root.AddCommand(newIndexCmd(streams, &configPath))
 	root.AddCommand(newCheckCmd(streams, &configPath))
@@ -147,7 +128,7 @@ func newRootCmd(streams *ioStreams) *cobra.Command {
 func corpusOptions(cfg *Config, configPath string) (corpus.Options, error) {
 	absConfig, err := filepath.Abs(configPath)
 	if err != nil {
-		return corpus.Options{}, fmt.Errorf("cmd: resolving %s: %w", configPath, err)
+		return corpus.Options{}, fmt.Errorf("resolving %s: %w", configPath, err)
 	}
 	return corpus.Options{
 		RepoRoot:  filepath.Dir(absConfig),
@@ -171,14 +152,15 @@ func corpusOptions(cfg *Config, configPath string) (corpus.Options, error) {
 // read-only checkout, a race with a concurrent writer, a full disk: none
 // of them make the answer this command already computed any less
 // correct, and a query that failed because it could not update a cache
-// would be a worse tool than one that is merely slow. AC-SPEC-010.4's
-// atomic replace is [corpus.Write]'s, so a concurrent reader never sees
-// a partial file.
+// would be a worse tool than one that is merely slow, so a failed write
+// changes neither the exit status nor either stream (AC-SPEC-010.7).
+// AC-SPEC-010.4's atomic replace is [corpus.Write]'s, so a concurrent
+// reader never sees a partial file.
 func openCorpus(opts corpus.Options) (*corpus.Corpus, error) {
 	dest := corpus.IndexPath(opts, "")
 	c, warm, err := corpus.Open(opts, dest)
 	if err != nil {
-		return nil, fmt.Errorf("cmd: opening the corpus: %w", err)
+		return nil, fmt.Errorf("opening the corpus: %w", err)
 	}
 	if !warm {
 		_ = corpus.Write(c.Index(), dest, nil)
@@ -186,43 +168,40 @@ func openCorpus(opts corpus.Options) (*corpus.Corpus, error) {
 	return c, nil
 }
 
-// renderReport writes report to streams.out as JSON when asJSON is set,
-// and as human-readable text otherwise.
-//
-// The two renderings are [finding.Report.JSON] and [finding.Report.Text]
-// — this package selects one, per the Design guidance not to format
-// findings itself. AC-SPEC-006.5 is what requires the JSON rendering to
-// be available at all; this function is what "the command surface turns
-// findings into the JSON that AC-SPEC-006.5 requires"
-// (spec-cli-container.md) means in code.
+// renderReport writes a check run's answer — the generated
+// [specmodel.FindingReport], its checks and findings — to streams.out as
+// YAML, or as JSON when asJSON is set (AC-SPEC-006.5). One model, two
+// syntaxes, so the two renderings carry the same values in the same
+// order by construction ([[cli-output-standards]]).
 func renderReport(streams *ioStreams, report *finding.Report, asJSON bool) error {
+	model := report.Model()
 	if asJSON {
-		data, err := report.JSON()
+		data, err := json.Marshal(model)
 		if err != nil {
-			return fmt.Errorf("cmd: rendering the finding report as JSON: %w", err)
+			return fmt.Errorf("rendering the finding report as JSON: %w", err)
 		}
 		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil
 	}
-	fmt.Fprint(streams.out, report.Text())
+	fmt.Fprint(streams.out, renderYAML(model))
 	return nil
 }
 
-// reportAndExit renders findings — always through a [finding.Report], per
-// the Design guidance to use the finding envelope rather than format
-// findings by hand — and sets streams.exitCode to 1.
+// reportConfigDefects writes specs.toml's findings to standard error and
+// sets streams.exitCode to statusEnvironment.
 //
-// It is used for a specs.toml defect: every finding [Load] returns is
-// severity error (cmd/config.go), so a report built from them always
-// exits non-zero, and rendering them through the same machinery a corpus
-// check's findings go through means a caller does not need a second
-// output shape to parse.
-func reportAndExit(streams *ioStreams, findings []specmodel.Finding, asJSON bool) error {
+// Every finding [Load] returns is a defect in the repository's own
+// configuration — a schema violation, an unknown [profile].name, a
+// registration defect — which the caller cannot fix by changing the
+// invocation, so the run exits 3 and answers nothing. The findings go to
+// standard error as text whatever --json says: standard error is not a
+// structured channel, and [[cli-output-standards]] governs standard
+// output only. They are still rendered through a [finding.Report], so
+// their wording is the finding machinery's and not this package's.
+func reportConfigDefects(streams *ioStreams, findings []specmodel.Finding) error {
 	report := finding.NewReport()
 	report.Add(findings...)
-	if err := renderReport(streams, report, asJSON); err != nil {
-		return err
-	}
-	streams.exitCode = 1
+	fmt.Fprint(streams.err, report.Text())
+	streams.exitCode = statusEnvironment
 	return nil
 }

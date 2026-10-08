@@ -7,7 +7,7 @@ description: A subcommand that emits the corpus's C4 model — its systems,
 slug: frd-spec-c4
 type: frd
 status: approved
-updated_at: 2026-10-06T17:45:00Z
+updated_at: 2026-10-08T00:00:00Z
 sources: []
 ---
 
@@ -359,13 +359,15 @@ Feature: Output
   Emitting the model never fails on corpus content: what cannot be placed is
   reported in the artifact, and judging it is the diagram checks' job.
 
-  YAML is the default, as for every other query command, and --json selects
-  JSON. There is no other format flag.
+  YAML is the default, as [[cli-output-standards]] requires of every
+  structured answer, and --json selects JSON. There is no other format flag.
 
   Under --root the model keeps its shape. The root's ancestors appear only
   as the path down to it, holding no other children, and an excluded
   relationship
-  is kept when its statement sits in a document inside the subtree.
+  is kept when its statement sits in a document inside the subtree. A root
+  naming no element is a fact about the corpus, not a failed invocation, so
+  it is answered with an empty model that says the root is not declared.
 
   @AC-C4-004.1
   Scenario: The artifact is YAML by default
@@ -405,7 +407,8 @@ Feature: Output
   @AC-C4-004.6
   Scenario: An unknown root is reported
     When the user runs specs c4 with --root naming a slug that is not an element
-    Then the command names the slug on standard error and exits non-zero
+    Then standard output is a model holding no element or relationship, with a property stating that the root is not declared
+    And the command exits with status zero
 
   @AC-C4-004.7
   Scenario: Excluded relationships do not fail the command
@@ -428,6 +431,7 @@ Feature: Output
   block parsing and registration, which this feature depends on
 - [[cli-output-standards]] — YAML by default, `--json`, and stable order;
   its command table gains a `c4` row when the command lands
+- [[cli-exit-status-standards]] — why a root naming no element exits zero
 - [[container-spec-cli]] — the CLI and the Architecture Catalogue that
   consumes its artifacts
 - `schemas/c4.strata` — the declared shape of the emitted model

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -151,18 +152,18 @@ type listResult struct {
 //
 // It exits zero for any answer, including an empty one — a filter
 // matching nothing is a fact about the corpus rather than a failure of
-// the invocation. The one non-zero exit is a `--type` value the active
-// profile does not register, which the query reports rather than
-// answering: cobra writes that report to standard error and [Execute]
-// returns 1 (AC-SPECLIST-002.4). Answering it with an empty collection
-// instead would make a typo indistinguishable from an empty category.
+// the invocation. A `--type` value the active profile does not register
+// is an invocation error (exit 2), reported on standard error with every
+// registered type rather than answered (AC-SPECLIST-002.4): answering it
+// with an empty collection would make a typo indistinguishable from an
+// empty category.
 func runList(streams *ioStreams, configPath string, types []string, all, jsonOut bool) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, jsonOut)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -180,6 +181,9 @@ func runList(streams *ioStreams, configPath string, types []string, all, jsonOut
 		AllStatuses: all,
 	})
 	if err != nil {
+		if errors.Is(err, corpus.ErrUnregisteredType) {
+			return invocationError("%w", withoutPrefix(err, "corpus: "))
+		}
 		return err
 	}
 
@@ -199,7 +203,7 @@ func renderList(streams *ioStreams, result listResult, asJSON bool) error {
 	if asJSON {
 		data, err := json.Marshal(result)
 		if err != nil {
-			return fmt.Errorf("cmd: rendering the summaries as JSON: %w", err)
+			return fmt.Errorf("rendering the summaries as JSON: %w", err)
 		}
 		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil

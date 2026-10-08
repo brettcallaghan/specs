@@ -1,0 +1,5 @@
+description = "refs <slug> --full returns every field of every reference, each with its file path and span"
+cites = ["AC-SPECREF-003.3"]
+artifacts = ["checks.log"]
+args = ["refs", "adr-900-old-approach", "--full"]
+exit_code = 0

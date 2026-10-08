@@ -1,5 +1,6 @@
 schema_version: "0.1"
 workspace: acme
+root_declared: true
 software_systems: []
 orphaned_containers: []
 orphaned_components: []

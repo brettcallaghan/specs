@@ -1,0 +1,1 @@
+map.yaml: the entry for "adr-900-old-approach" is a string; a link map holds each corpus slug mapped to a record declaring "path", e.g. adr-012: {path: ../adrs/adr-012.md}

@@ -1,0 +1,5 @@
+description = "a specs.toml defect is an environment error: under --json too, its findings go to standard error as text, nothing reaches standard output, and the run exits 3"
+cites = ["AC-SPEC-008.4"]
+artifacts = ["checks.err"]
+args = ["list", "--json"]
+exit_code = 3

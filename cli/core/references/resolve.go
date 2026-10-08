@@ -2,6 +2,8 @@ package references
 
 import (
 	"path"
+	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
@@ -58,13 +60,18 @@ type targets struct {
 	// about that file.
 	members    map[string]string
 	nonMembers map[string]specmodel.ReferenceNonMember
+	// unreadable holds, in path order, the parse failures from which no
+	// slug could be recovered: the only non-members a numbered slug also
+	// matches as a prefix of their stem (AC-SPEC-003.8).
+	unreadable []specmodel.ReferenceNonMember
 }
 
 // newTargets indexes one corpus's members and non-members by what a
 // reference could match them on.
 //
-// Where two files answer to the same key the one first in path order
-// wins, resolved by comparison rather than by arrival, so the result does
+// Where two members answer to the same key, a member whose frontmatter
+// parsed wins over one whose slug was recovered, and otherwise the one
+// first in path order wins, resolved by comparison rather than by arrival, so the result does
 // not depend on the order index happens to hold its collections in.
 // Members and non-members are keyed in separate maps because a member
 // always wins: a slug that a member declares has resolved, whatever else
@@ -74,25 +81,38 @@ func newTargets(index specmodel.SpecIndex) targets {
 		members:    make(map[string]string, len(index.Entries)),
 		nonMembers: make(map[string]specmodel.ReferenceNonMember, len(index.Entries)),
 	}
+	holders := make(map[string]int, len(index.Entries))
 
-	for _, entry := range index.Entries {
-		if entry.Frontmatter != nil {
-			if key := lookupKey(string(envelope.Of(entry.Frontmatter).Slug)); key != "" {
-				if held, seen := built.members[key]; !seen || entry.Path < held {
-					built.members[key] = entry.Path
-				}
+	for i, entry := range index.Entries {
+		// A member whose frontmatter failed to parse but whose slug is
+		// still legible declares that slug, and a reference to it resolves
+		// as it would to a member that parsed (AC-SPEC-003.7) — unless a
+		// member that parsed declares it too; see [envelope.HoldsSlugOver].
+		if key := lookupKey(envelope.DeclaredSlug(entry)); key != "" {
+			if held, seen := holders[key]; !seen || envelope.HoldsSlugOver(entry, index.Entries[held]) {
+				holders[key] = i
+				built.members[key] = entry.Path
 			}
+		}
+		if entry.Frontmatter != nil {
 			continue
 		}
 		// An entry with no parsed frontmatter is a file that claimed to be
-		// a specification and could not be read. It declares no slug — that
-		// is what failed — so the only thing a reference can match it on is
-		// its name; see [stem].
-		built.addNonMember(specmodel.ReferenceNonMember{
+		// a specification and could not be read. Unless a slug was
+		// recovered from it, it declares none — that is what failed — so
+		// the only thing a reference can match it on is its name; see
+		// [stem]. A recovered member keeps that match too, for a reference
+		// naming the file rather than the slug.
+		nonMember := specmodel.ReferenceNonMember{
 			Path:       entry.Path,
 			ParseError: entry.ParseError,
-		})
+		}
+		built.addNonMember(nonMember)
+		if entry.RecoveredSlug == nil {
+			built.unreadable = append(built.unreadable, nonMember)
+		}
 	}
+	sort.Slice(built.unreadable, func(i, j int) bool { return built.unreadable[i].Path < built.unreadable[j].Path })
 
 	for _, exclusion := range index.Exclusions {
 		reason := exclusion.Reason
@@ -129,8 +149,27 @@ func (t targets) resolve(slug string) specmodel.ReferenceResolution {
 	if nonMember, ok := t.nonMembers[key]; ok {
 		return specmodel.NewReferenceResolutionNonMember(nonMember)
 	}
+	// A numbered document is conventionally named <slug>-<title>.md, so a
+	// numbered slug whose member could not be read is matched as a prefix
+	// of its file name too. Only a numbered slug is: no other naming makes
+	// a file name begin with its slug, so [[adr]] or [[adr-012-reference]]
+	// is no member's slug and depends on no unreadable file. Only parse
+	// failures are: an excluded file never claimed to be a member, so
+	// nothing it is named for depends on it.
+	if numberedSlug.MatchString(key) {
+		for _, nonMember := range t.unreadable {
+			if strings.HasPrefix(stem(nonMember.Path), key+"-") {
+				return specmodel.NewReferenceResolutionNonMember(nonMember)
+			}
+		}
+	}
 	return specmodel.NewReferenceResolutionUnresolved(specmodel.ReferenceUnresolved{})
 }
+
+// numberedSlug matches a numbered slug form: hyphen-separated lowercase
+// segments whose last is all digits — `adr-012`, `rfc-0001`. It is
+// lexical, so resolution stays a function of the index alone.
+var numberedSlug = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*-[0-9]+$`)
 
 // lookupKey normalizes a slug for comparison: trimmed of surrounding
 // space and lowercased.
@@ -155,13 +194,18 @@ func lookupKey(slug string) string {
 // the match is reproducible by anything reading the artifact rather than
 // resting on knowledge only the build held.
 //
+// A parse failure no slug could be recovered from is also matched by a
+// numbered slug — one ending in a `-` and a number — its stem begins
+// with, followed by `-`: `[[adr-012]]` reaches
+// `adr-012-reference-conventions.md`, the `<slug>-<title>` naming of
+// numbered types (AC-SPEC-003.8), while `[[adr]]` and
+// `[[adr-012-reference]]` reach nothing. An exclusion is matched on its
+// exact stem only.
+//
 // The consequence, recorded deliberately: a non-member whose intended
-// slug differs from its file name matches nothing and reports as an
-// ordinary unresolved reference. That is the answer such a reference
-// received before this rule existed, so the rule only ever improves an
-// outcome — and it improves the case that motivates it, a template or a
-// half-written document sitting in the corpus under the name a reader
-// cited it by.
+// slug matches its file name neither way — `frd-spec-index` for
+// `spec-index-frd.md` — matches nothing and reports as an ordinary
+// unresolved reference.
 func stem(reported string) string {
 	name := path.Base(path.Clean(reported))
 	return strings.ToLower(strings.TrimSuffix(name, path.Ext(name)))

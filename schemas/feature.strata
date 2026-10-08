@@ -38,10 +38,11 @@ standard already fixes, minus
 the leading `@` that makes it a Gherkin tag — the identifier is the
 value, and the tag is only how it is written down.
 
-The middle segments are the owning feature's code and number, which is
-what allows a criterion to name its feature without carrying a second
-property: `AC-GHK-001.1` belongs to the feature coded `GHK` numbered
-`001`.
+The middle segments are the owning feature's code and number:
+`AC-GHK-001.1` belongs to the feature coded `GHK` numbered `001`. A
+criterion record carries its feature's identifier as a property of its
+own besides, so a lookup of one criterion locates it without deriving
+anything.
 """
 alias CriterionId: String ~= /^AC-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{3}\.[0-9]+$/
 
@@ -166,6 +167,34 @@ removing it later would not be.
 struct Criterion {
   """The criterion's identifier, from the tag that declares it."""
   id: CriterionId
+
+  """
+  The path of the file the criterion is written in, relative to the
+  repository root and written with forward slashes on every platform.
+
+  The same value as its feature's `path`, carried here so that a lookup
+  of one criterion locates it without a second query.
+  """
+  path: String
+
+  """
+  The identifier of the feature the criterion belongs to — the same value
+  as its feature's `id`.
+  """
+  feature_id: FeatureId
+
+  """
+  Every tag written on the criterion, in the order written, each without
+  its leading `@`: the identifier tag, the qualifier tags and any tag the
+  profile does not register alike.
+
+  A criterion derived from an `Examples` block carries its scenario's tags
+  first and then the block's own. The qualifier properties below are
+  read from these tags; the tags are carried as written so that one the
+  profile does not recognize — a misspelled qualifier — is still visible
+  on the record.
+  """
+  tags: [String]
 
   """
   The criterion's name — the text following the `Scenario`,

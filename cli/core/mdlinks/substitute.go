@@ -26,8 +26,11 @@ const (
 // frontmatter property, not a body wikilink, is left alone — its Position
 // covers the property's YAML value rather than a `[[...]]` construct, and
 // there is no such construct here to replace. refs is trusted to already
-// exclude code regions (AC-SPECMD-001.4): that exclusion is a property of
-// the References component's output, not a rule reimplemented here.
+// exclude code regions (AC-SPECMD-001.4), which takes two steps upstream:
+// [references.Extract] masks every code region except a gherkin fence,
+// whose wikilinks the index keeps, and the caller then drops those with
+// [references.OutsideGherkinFences] before resolving them here. Neither
+// rule is reimplemented in this package.
 //
 // refs SHALL be ordered by ascending Position, which is what
 // [references.Extract] returns ("the registered frontmatter properties

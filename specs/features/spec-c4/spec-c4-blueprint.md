@@ -206,8 +206,10 @@ query's, so a wrapper gets the same answer as the command.
   target are both in the narrowed set, and only the excluded
   relationships whose statement sits in a blueprint of an element in
   that set.
-- WHERE the root slug names no element, the component SHALL report that
-  slug as naming no element, and SHALL return no model.
+- A narrowed model SHALL carry `root_declared`, true where the root slug
+  names an element. WHERE it names no element, the component SHALL
+  return a model with `root_declared` false and every collection empty,
+  and no error (AC-C4-004.6).
 
 **Anchors:** the C4 Model package.
 
@@ -231,9 +233,9 @@ Core call, one rendering out. It decides nothing about the model.
 - WHEN the model holds excluded relationships, or `specs check` would
   report `c4/*` findings for the same corpus, the subcommand SHALL still
   exit zero.
-- WHERE `--root` names no element, the subcommand SHALL write a message
-  naming the slug to standard error, write nothing to standard output,
-  and exit non-zero.
+- WHERE `--root` names no element, the subcommand SHALL write that model,
+  `root_declared: false` with every collection empty, write nothing to
+  standard error, and exit zero (AC-C4-004.6).
 - Every flag's `--help` text SHALL come from its declaration, per the
   container's Change Guidance.
 

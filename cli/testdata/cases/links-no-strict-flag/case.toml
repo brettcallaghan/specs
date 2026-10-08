@@ -1,5 +1,5 @@
-description = "links has no --strict option: warnings exit zero unconditionally under AC-SPECMD-002.8, so an option that reversed it would contradict the criterion rather than narrow it"
+description = "links has no --strict option, so naming it is an invocation error (exit 2): warnings exit zero unconditionally under AC-SPECMD-002.8, so an option that reversed it would contradict the criterion rather than narrow it"
 cites = []
 artifacts = ["checks.err"]
 args = ["links", "docs/adrs/adr-800-current.md", "--strict"]
-exit_code = 1
+exit_code = 2

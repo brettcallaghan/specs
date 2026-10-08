@@ -35,6 +35,11 @@ type C4Model struct {
 	// The workspace the model was emitted from, as configured in
 	// `specs.toml`. Models from several repositories are told apart by it.
 	Workspace string `json:"workspace"`
+	// Whether the root the model was narrowed to names an element: present
+	// exactly when the model was narrowed by a root, and false when no
+	// element has that slug, every collection then empty. Absent from a
+	// whole-corpus model, which names no root.
+	RootDeclared *bool `json:"root_declared,omitempty"`
 	// Systems documented by a system blueprint, each holding the containers
 	// that declare it.
 	//
@@ -76,6 +81,11 @@ func (v *C4Model) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Workspace); err != nil {
 		return prefixField("workspace", err)
 	}
+	if m, ok := raw["root_declared"]; ok {
+		if err := json.Unmarshal(m, &v.RootDeclared); err != nil {
+			return prefixField("root_declared", err)
+		}
+	}
 	if m, ok := raw["software_systems"]; !ok || string(m) == "null" {
 		return fmt.Errorf("C4Model: required field \"software_systems\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.SoftwareSystems); err != nil {
@@ -109,7 +119,7 @@ func (v *C4Model) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "schema_version", "workspace", "software_systems", "orphaned_containers", "orphaned_components", "modules", "relationships", "excluded_relationships":
+		case "schema_version", "workspace", "root_declared", "software_systems", "orphaned_containers", "orphaned_components", "modules", "relationships", "excluded_relationships":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -1434,10 +1444,11 @@ type FeatureId string
 // the leading `@` that makes it a Gherkin tag — the identifier is the
 // value, and the tag is only how it is written down.
 //
-// The middle segments are the owning feature's code and number, which is
-// what allows a criterion to name its feature without carrying a second
-// property: `AC-GHK-001.1` belongs to the feature coded `GHK` numbered
-// `001`.
+// The middle segments are the owning feature's code and number:
+// `AC-GHK-001.1` belongs to the feature coded `GHK` numbered `001`. A
+// criterion record carries its feature's identifier as a property of its
+// own besides, so a lookup of one criterion locates it without deriving
+// anything.
 type CriterionId string
 
 // A digest over a criterion's content, written as `sha256:` followed by
@@ -1723,6 +1734,25 @@ func (u *FeatureSource) UnmarshalJSON(data []byte) error {
 type Criterion struct {
 	// The criterion's identifier, from the tag that declares it.
 	Id CriterionId `json:"id"`
+	// The path of the file the criterion is written in, relative to the
+	// repository root and written with forward slashes on every platform.
+	//
+	// The same value as its feature's `path`, carried here so that a lookup
+	// of one criterion locates it without a second query.
+	Path string `json:"path"`
+	// The identifier of the feature the criterion belongs to — the same value
+	// as its feature's `id`.
+	FeatureId FeatureId `json:"feature_id"`
+	// Every tag written on the criterion, in the order written, each without
+	// its leading `@`: the identifier tag, the qualifier tags and any tag the
+	// profile does not register alike.
+	//
+	// A criterion derived from an `Examples` block carries its scenario's tags
+	// first and then the block's own. The qualifier properties below are
+	// read from these tags; the tags are carried as written so that one the
+	// profile does not recognize — a misspelled qualifier — is still visible
+	// on the record.
+	Tags []string `json:"tags"`
 	// The criterion's name — the text following the `Scenario`,
 	// `Scenario Outline` or `Examples` keyword that declares it.
 	//
@@ -1788,6 +1818,21 @@ func (v *Criterion) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Id); err != nil {
 		return prefixField("id", err)
 	}
+	if m, ok := raw["path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Criterion: required field \"path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Path); err != nil {
+		return prefixField("path", err)
+	}
+	if m, ok := raw["feature_id"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Criterion: required field \"feature_id\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.FeatureId); err != nil {
+		return prefixField("feature_id", err)
+	}
+	if m, ok := raw["tags"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Criterion: required field \"tags\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Tags); err != nil {
+		return prefixField("tags", err)
+	}
 	if m, ok := raw["name"]; ok {
 		if err := json.Unmarshal(m, &v.Name); err != nil {
 			return prefixField("name", err)
@@ -1841,7 +1886,7 @@ func (v *Criterion) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "id", "name", "text", "description", "rule", "negative", "manual", "level", "notation", "content_hash", "span":
+		case "id", "path", "feature_id", "tags", "name", "text", "description", "rule", "negative", "manual", "level", "notation", "content_hash", "span":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -2815,6 +2860,52 @@ func (v *FindingDuplicateIdentifier) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// A Gherkin tag the active profile's tag vocabulary assigns no meaning: it
+// matches neither identifier pattern, names no owning document and is no
+// registered qualifier.
+//
+// A warning rather than an error, so a project's own tags coexist with the
+// vocabulary; a misspelt qualifier is the case it exists for, since the
+// tag silently loses its meaning. The registered qualifiers are carried
+// because they are the spellings an author most likely meant.
+type FindingUnregisteredTag struct {
+	// The tag as written, without its leading `@`.
+	Tag string `json:"tag"`
+	// Every qualifier tag the active profile registers, in registration order.
+	Registered []string `json:"registered"`
+}
+
+func (v *FindingUnregisteredTag) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["tag"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnregisteredTag: required field \"tag\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Tag); err != nil {
+		return prefixField("tag", err)
+	}
+	if m, ok := raw["registered"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnregisteredTag: required field \"registered\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Registered); err != nil {
+		return prefixField("registered", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "tag", "registered":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingUnregisteredTag", Field: unknown}
+	}
+	return nil
+}
+
 // A scenario outline whose examples blocks are inconsistently tagged: some
 // carry an identifier and others do not.
 //
@@ -3017,6 +3108,14 @@ type AnchorMatch struct {
 	// The heading's text as authored, without the `#` markers that open the
 	// line.
 	Text string `json:"text"`
+	// The heading's heading path: the identifier of each enclosing heading
+	// from the outermost down, followed by its own, joined by `#`. Written as
+	// a selection or an anchor, it names this heading alone unless two
+	// sibling headings share identical text all the way up, and then no path
+	// can — or unless it is a single segment another heading's identifier
+	// shares, since a one-segment query is an identifier comparison over
+	// every heading.
+	HeadingPath string `json:"heading_path"`
 	// Where the heading line itself is written.
 	Span Span `json:"span"`
 }
@@ -3031,6 +3130,11 @@ func (v *AnchorMatch) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Text); err != nil {
 		return prefixField("text", err)
 	}
+	if m, ok := raw["heading_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("AnchorMatch: required field \"heading_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.HeadingPath); err != nil {
+		return prefixField("heading_path", err)
+	}
 	if m, ok := raw["span"]; !ok || string(m) == "null" {
 		return fmt.Errorf("AnchorMatch: required field \"span\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Span); err != nil {
@@ -3039,7 +3143,7 @@ func (v *AnchorMatch) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "text", "span":
+		case "text", "heading_path", "span":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -3425,6 +3529,7 @@ func (FindingIdentifierPattern) isFindingDetailVariant()      {}
 func (FindingDuplicateIdentifier) isFindingDetailVariant()    {}
 func (FindingPartiallyTaggedOutline) isFindingDetailVariant() {}
 func (FindingOwningDocument) isFindingDetailVariant()         {}
+func (FindingUnregisteredTag) isFindingDetailVariant()        {}
 func (FindingUnresolvedAnchor) isFindingDetailVariant()       {}
 func (FindingAmbiguousAnchor) isFindingDetailVariant()        {}
 func (FindingC4Parse) isFindingDetailVariant()                {}
@@ -3504,6 +3609,10 @@ func NewFindingDetailPartiallyTaggedOutline(v FindingPartiallyTaggedOutline) Fin
 }
 
 func NewFindingDetailOwningDocument(v FindingOwningDocument) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailUnregisteredTag(v FindingUnregisteredTag) FindingDetail {
 	return FindingDetail{Value: v}
 }
 
@@ -3633,6 +3742,11 @@ func (u FindingDetail) AsOwningDocument() (FindingOwningDocument, bool) {
 	return v, ok
 }
 
+func (u FindingDetail) AsUnregisteredTag() (FindingUnregisteredTag, bool) {
+	v, ok := u.Value.(FindingUnregisteredTag)
+	return v, ok
+}
+
 func (u FindingDetail) AsUnresolvedAnchor() (FindingUnresolvedAnchor, bool) {
 	v, ok := u.Value.(FindingUnresolvedAnchor)
 	return v, ok
@@ -3736,6 +3850,9 @@ func (u FindingDetail) MarshalJSON() ([]byte, error) {
 		payload, err = json.Marshal(v)
 	case FindingOwningDocument:
 		tag = "owning-document"
+		payload, err = json.Marshal(v)
+	case FindingUnregisteredTag:
+		tag = "unregistered-tag"
 		payload, err = json.Marshal(v)
 	case FindingUnresolvedAnchor:
 		tag = "unresolved-anchor"
@@ -3923,6 +4040,13 @@ func (u *FindingDetail) UnmarshalJSON(data []byte) error {
 		return nil
 	case "owning-document":
 		var v FindingOwningDocument
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "unregistered-tag":
+		var v FindingUnregisteredTag
 		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
@@ -4169,14 +4293,15 @@ func (v *CheckResult) UnmarshalJSON(data []byte) error {
 // The two collections answer different questions and neither substitutes
 // for the other. `findings` is what is wrong; `checks` is what was looked
 // at. A report carrying no findings is only good news if every check the
-// caller cares about is accounted for in `checks` as having passed.
+// caller cares about is listed in `checks` as having passed.
 //
 // Both are lists rather than maps so that the emitter owns their order and
 // can make output byte-identical across platforms without a change to this
 // model.
 type FindingReport struct {
-	// Every check the run knows about, in the order the emitter fixes, each
-	// with what became of it.
+	// Every check the run was asked for, in the order the emitter fixes, each
+	// with what became of it. A check the run was not asked for is absent, so
+	// it can never read as passed.
 	Checks []CheckResult `json:"checks"`
 	// Every finding the run produced, in the order the emitter fixes.
 	Findings []Finding `json:"findings"`
@@ -6674,6 +6799,14 @@ type IndexEntry struct {
 	// property does not make the index a failure; the index is still emitted
 	// and still contains every other document.
 	ParseError *ParseError `json:"parse_error,omitempty"`
+	// The slug a member whose frontmatter failed to parse still states
+	// legibly (AC-SPEC-003.7), recorded as declared by this member: references
+	// to it resolve, and the slug query answers it, as for a member that
+	// parsed.
+	//
+	// Absent when `frontmatter` is present, whose envelope carries the slug,
+	// and when no slug is legible.
+	RecoveredSlug *string `json:"recovered_slug,omitempty"`
 	// The document's headings, in document order.
 	//
 	// Recorded for every member, including one whose frontmatter could not be
@@ -6708,6 +6841,11 @@ func (v *IndexEntry) UnmarshalJSON(data []byte) error {
 			return prefixField("parse_error", err)
 		}
 	}
+	if m, ok := raw["recovered_slug"]; ok {
+		if err := json.Unmarshal(m, &v.RecoveredSlug); err != nil {
+			return prefixField("recovered_slug", err)
+		}
+	}
 	if m, ok := raw["headings"]; !ok || string(m) == "null" {
 		return fmt.Errorf("IndexEntry: required field \"headings\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Headings); err != nil {
@@ -6721,7 +6859,7 @@ func (v *IndexEntry) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "path", "frontmatter", "parse_error", "headings", "record_blocks":
+		case "path", "frontmatter", "parse_error", "recovered_slug", "headings", "record_blocks":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key

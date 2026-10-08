@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
@@ -33,6 +35,42 @@ func readErrorText(err error) string {
 		return "permission denied"
 	default:
 		return err.Error()
+	}
+}
+
+// writeErrorText renders why dest could not be written, in wording that
+// does not vary by operating system: the operation and path a
+// [*fs.PathError] carries are dropped, since the caller's message already
+// names the destination, and the cause is rendered as [readErrorText]
+// renders it.
+//
+// A destination beneath a regular file is reported as "not a directory"
+// on every platform. Unix says so itself (ENOTDIR), while Windows reports
+// the same case as a missing path, which would read as "no such file".
+// The test is made on dest rather than on the path the error carries,
+// because which path that is (dest, its directory, or a temporary file
+// beside it) depends on the step that failed.
+func writeErrorText(dest string, err error) string {
+	if beneathRegularFile(dest) {
+		return "not a directory"
+	}
+	var pathErr *fs.PathError
+	if errors.As(err, &pathErr) {
+		return readErrorText(pathErr.Err)
+	}
+	return readErrorText(err)
+}
+
+// beneathRegularFile reports whether the nearest existing ancestor of
+// path is something other than a directory.
+func beneathRegularFile(path string) bool {
+	for d := filepath.Dir(path); ; d = filepath.Dir(d) {
+		if info, err := os.Stat(d); err == nil {
+			return !info.IsDir()
+		}
+		if filepath.Dir(d) == d {
+			return false
+		}
 	}
 }
 
@@ -92,18 +130,16 @@ const (
 	RuleDocumentUnreadable specmodel.RuleId = "document/unreadable"
 )
 
-// rootPointer is what an empty JSON Pointer renders as in a message, so a
-// defect about the configuration object itself does not read as
-// beginning with a bare colon — the same substitution finding.go makes
-// for a frontmatter-level defect.
-const rootPointer = "/"
-
-// renderPointer renders a JSON Pointer for a message.
-func renderPointer(pointer string) string {
+// pointerPrefix is the prefix a message about the value at pointer
+// begins with: the pointer and a colon, or nothing for the root pointer
+// "", since a message about the object itself needs no location and a
+// bare "/" says nothing to a reader. The finding's detail keeps the
+// pointer as it is.
+func pointerPrefix(pointer string) string {
 	if pointer == "" {
-		return rootPointer
+		return ""
 	}
-	return pointer
+	return pointer + ": "
 }
 
 // configSchemaViolation reports a specs.toml value that fails the
@@ -120,8 +156,8 @@ func configSchemaViolation(path string, at specmodel.Span, pointer, constraint, 
 		Severity: finding.SeverityError,
 		Path:     path,
 		Span:     at,
-		Message: fmt.Sprintf("%s: %q does not satisfy %s",
-			renderPointer(pointer), value, constraint),
+		Message: fmt.Sprintf("%s%q does not satisfy %s",
+			pointerPrefix(pointer), value, constraint),
 		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
 			Pointer:    pointer,
 			Constraint: constraint,
@@ -138,8 +174,8 @@ func configMissingProperty(path string, at specmodel.Span, pointer, property str
 		Severity: finding.SeverityError,
 		Path:     path,
 		Span:     at,
-		Message: fmt.Sprintf("%s: required property %q is not declared",
-			renderPointer(pointer), property),
+		Message: fmt.Sprintf("%srequired property %q is not declared",
+			pointerPrefix(pointer), property),
 		Detail: specmodel.NewFindingDetailMissingProperty(specmodel.FindingMissingProperty{
 			Pointer:  pointer,
 			Property: property,
@@ -163,8 +199,8 @@ func configUndeclaredKey(path string, at specmodel.Span, pointer, key string) sp
 		Severity: finding.SeverityError,
 		Path:     path,
 		Span:     at,
-		Message: fmt.Sprintf("%s: %q is not a key this configuration defines",
-			renderPointer(pointer), key),
+		Message: fmt.Sprintf("%s%q is not a key this configuration defines",
+			pointerPrefix(pointer), key),
 		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
 			Pointer:    pointer,
 			Constraint: "additionalProperties",
@@ -277,6 +313,32 @@ func linkMapUnparseable(path string, src []byte, err error) specmodel.Finding {
 			Pointer:    "",
 			Constraint: "yaml-syntax",
 			Value:      err.Error(),
+		}),
+	}
+}
+
+// linkMapShape is the shape a link map must have, as a finding about a
+// map of another shape states it (AC-SPECMD-005.13).
+const linkMapShape = `each corpus slug mapped to a record declaring "path", e.g. adr-012: {path: ../adrs/adr-012.md}`
+
+// linkMapWrongShape reports a link map that is valid YAML of the wrong
+// shape: its top level when slug is empty, and otherwise the entry for
+// slug, naming what was found and the shape expected (AC-SPECMD-005.13).
+func linkMapWrongShape(path string, src []byte, slug, found string) specmodel.Finding {
+	pointer, subject := "", "the link map"
+	if slug != "" {
+		pointer, subject = "/"+slug, fmt.Sprintf("the entry for %q", slug)
+	}
+	return specmodel.Finding{
+		Rule:     RuleLinkMapInvalid,
+		Severity: finding.SeverityError,
+		Path:     path,
+		Span:     wholeFile(src),
+		Message:  fmt.Sprintf("%s is %s; a link map holds %s", subject, found, linkMapShape),
+		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
+			Pointer:    pointer,
+			Constraint: "link-map-shape",
+			Value:      found,
 		}),
 	}
 }

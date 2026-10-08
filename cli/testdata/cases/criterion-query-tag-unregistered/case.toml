@@ -1,0 +1,5 @@
+description = "criterion --tag naming a qualifier the profile does not register writes nothing to standard output, names the value and every registered qualifier on standard error, and exits 2"
+cites = ["AC-GHK-007.8"]
+artifacts = ["checks.err"]
+args = ["criterion", "--tag", "zzz"]
+exit_code = 2

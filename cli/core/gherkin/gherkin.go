@@ -154,6 +154,17 @@ type Criterion struct {
 	// tags before its own: the block is half of one construct, and a
 	// qualifier written on the scenario governs every block beneath it.
 	Tags []string
+
+	// Inherited is how many of Tags, from the front, are its scenario's
+	// rather than its own: zero for a criterion that is a whole scenario,
+	// and the scenario's tag count for one derived from an `Examples`
+	// block. With FirstBlock it lets a caller judge a scenario's tag once
+	// however many blocks carry it.
+	Inherited int
+
+	// FirstBlock is true for the criterion derived from a scenario's first
+	// `Examples` block, and for a criterion that is a whole scenario.
+	FirstBlock bool
 }
 
 // ParseError reports a source that would not parse.
@@ -522,7 +533,7 @@ func (s *source) criteria(parsed *messages.Scenario, rule string, opts Options) 
 		built := make([]Criterion, 0, len(parsed.Examples))
 		var untagged []span.Span
 		anyTagged := false
-		for _, examples := range parsed.Examples {
+		for i, examples := range parsed.Examples {
 			own := tagNames(examples.Tags)
 			id, ok := opts.identify(own)
 			block := s.block(examples)
@@ -532,7 +543,7 @@ func (s *source) criteria(parsed *messages.Scenario, rule string, opts Options) 
 			} else {
 				untagged = append(untagged, position)
 			}
-			built = append(built, s.criterion(draft{
+			criterion := s.criterion(draft{
 				id:          id,
 				name:        examples.Name,
 				description: examples.Description,
@@ -540,7 +551,10 @@ func (s *source) criteria(parsed *messages.Scenario, rule string, opts Options) 
 				tags:        append(append([]string{}, tags...), own...),
 				text:        s.textOf(steps, block),
 				position:    position,
-			}))
+			})
+			criterion.Inherited = len(tags)
+			criterion.FirstBlock = i == 0
+			built = append(built, criterion)
 		}
 		var partial *PartialOutline
 		if anyTagged && len(untagged) > 0 {
@@ -607,7 +621,7 @@ func (s *source) criterion(d draft) Criterion {
 	if d.rule != "" {
 		record.Rule = &d.rule
 	}
-	return Criterion{Record: record, Tags: d.tags}
+	return Criterion{Record: record, Tags: d.tags, FirstBlock: true}
 }
 
 // textOf returns the source lines of every range given, verbatim but for

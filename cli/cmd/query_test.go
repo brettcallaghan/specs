@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/brettcallaghan/agent-plugins/cli/cmd"
@@ -75,6 +76,9 @@ func plantedFeature() specmodel.Feature {
 		Criteria: []specmodel.Criterion{
 			{
 				Id:          "AC-PLANTED-999.1",
+				Path:        "docs/features/frd-warm.md",
+				FeatureId:   "FEAT-PLANTED-999",
+				Tags:        []string{"AC-PLANTED-999.1"},
 				Text:        "Given the index is warm\nWhen a query runs\nThen the planted record is returned",
 				Notation:    specmodel.CriterionNotationGherkin,
 				ContentHash: "sha256:0000000000000000000000000000000000000000000000000000000000000",
@@ -158,10 +162,11 @@ func TestFeatureQueryIsServedFromTheWarmIndexWithoutRewalking(t *testing.T) {
 
 	exitCode, stdout, stderr := runInFixture(t, dir, []string{"feature", "FEAT-PLANTED-999"})
 	if exitCode != 0 {
-		t.Fatalf("exit code = %d, want 0 (the corpus was re-walked rather than served warm)\nstderr: %s", exitCode, stderr)
+		t.Fatalf("exit code = %d, want 0\nstderr: %s", exitCode, stderr)
 	}
-	if want := "FEAT-PLANTED-999\tPlanted only in the index\n\tAC-PLANTED-999.1\t\n"; stdout != want {
-		t.Errorf("stdout = %q, want %q", stdout, want)
+	if !strings.HasPrefix(stdout, "declared: true\nfeatures:\n") ||
+		!strings.Contains(stdout, "FEAT-PLANTED-999") || !strings.Contains(stdout, "AC-PLANTED-999.1") {
+		t.Errorf("stdout = %q, want declared: true and the planted feature and its criterion; a re-walked corpus answers declared: false", stdout)
 	}
 }
 
@@ -186,9 +191,9 @@ func TestCriterionQueryIsServedFromTheWarmIndexWithoutRewalking(t *testing.T) {
 
 	exitCode, stdout, stderr := runInFixture(t, dir, []string{"criterion", "AC-PLANTED-999.1"})
 	if exitCode != 0 {
-		t.Fatalf("exit code = %d, want 0 (the corpus was re-walked rather than served warm)\nstderr: %s", exitCode, stderr)
+		t.Fatalf("exit code = %d, want 0\nstderr: %s", exitCode, stderr)
 	}
-	if want := "AC-PLANTED-999.1\t\n"; stdout != want {
-		t.Errorf("stdout = %q, want %q", stdout, want)
+	if !strings.HasPrefix(stdout, "declared: true\ncriteria:\n") || !strings.Contains(stdout, "AC-PLANTED-999.1") {
+		t.Errorf("stdout = %q, want declared: true and the planted criterion; a re-walked corpus answers declared: false", stdout)
 	}
 }

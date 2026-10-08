@@ -70,6 +70,12 @@
       "criteria": [
         {
           "id": "AC-CHK-001.1",
+          "path": "docs/features/frd-checkout.md",
+          "feature_id": "FEAT-CHK-001",
+          "tags": [
+            "AC-CHK-001.1",
+            "level-unit"
+          ],
           "name": "A basket with something in it can be paid for",
           "text": "Given a basket holding one item\nWhen the shopper pays\nThen the order is placed",
           "negative": false,
@@ -88,6 +94,13 @@
         },
         {
           "id": "AC-CHK-001.2",
+          "path": "docs/features/frd-checkout.md",
+          "feature_id": "FEAT-CHK-001",
+          "tags": [
+            "AC-CHK-001.2",
+            "negative",
+            "level-unit"
+          ],
           "name": "An empty basket cannot be paid for",
           "text": "Given an empty basket\nWhen the shopper pays\nThen payment is refused",
           "negative": true,
@@ -127,6 +140,12 @@
       "criteria": [
         {
           "id": "AC-CHK-002.1",
+          "path": "docs/features/refunds.feature",
+          "feature_id": "FEAT-CHK-002",
+          "tags": [
+            "AC-CHK-002.1",
+            "manual"
+          ],
           "name": "A placed order is refunded",
           "text": "Given a placed order\nWhen the shopper asks for a refund\nThen the order is refunded",
           "negative": false,
@@ -145,5 +164,5 @@
       ]
     }
   ],
-  "input_hash": "sha256:423783763440ca2275bd905b788ed22156c44cc92696d218cee01004bbd3e1e6"
+  "input_hash": "sha256:75e46d532dc9eaa6c7259c3f324baa67db1ce9245aeb7cedfaad6218f2584888"
 }

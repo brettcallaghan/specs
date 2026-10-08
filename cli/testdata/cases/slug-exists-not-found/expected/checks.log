@@ -1,1 +1,3 @@
-does-not-exist: not found
+slug: does-not-exist
+declared: false
+path: null

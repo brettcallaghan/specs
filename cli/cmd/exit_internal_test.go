@@ -73,7 +73,7 @@ func TestExitCodeForCleanReportIsAlwaysZero(t *testing.T) {
 	}
 }
 
-// AC: AC-SPEC-006.8
+// AC: AC-SPEC-006.8, AC-SPEC-006.9
 func TestBuildCheckReportOnlyRunsNamedChecks(t *testing.T) {
 	findings := []specmodel.Finding{
 		errorFinding(finding.RuleSlugPattern),
@@ -91,9 +91,12 @@ func TestBuildCheckReportOnlyRunsNamedChecks(t *testing.T) {
 	if got := outcomes[finding.RuleSlugPattern]; got != specmodel.CheckOutcomeFailed {
 		t.Errorf("named check %q outcome = %q, want %q", finding.RuleSlugPattern, got, specmodel.CheckOutcomeFailed)
 	}
-	if got := outcomes[finding.RuleMissingProperty]; got != specmodel.CheckOutcomeNotRequested {
-		t.Errorf("un-named check %q outcome = %q, want %q (not merely absent from findings, but explicitly not requested)",
-			finding.RuleMissingProperty, got, specmodel.CheckOutcomeNotRequested)
+	if got, listed := outcomes[finding.RuleMissingProperty]; listed {
+		t.Errorf("un-named check %q is listed with outcome %q; a check the run was not asked for is absent from checks",
+			finding.RuleMissingProperty, got)
+	}
+	if len(model.Checks) != 1 {
+		t.Errorf("got %d checks, want exactly the 1 requested: %+v", len(model.Checks), model.Checks)
 	}
 
 	var sawUnrequestedFinding bool

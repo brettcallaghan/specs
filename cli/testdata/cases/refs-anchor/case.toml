@@ -1,5 +1,5 @@
-description = "refs '<slug>#<anchor>' lists every reference whose anchor resolves to that heading, each with its referring document and span, and lists no reference into another heading of the same document"
-cites = ["AC-SPECANCH-003.1"]
+description = "refs '<slug>#<anchor>' lists every reference whose anchor resolves to that heading, each under its referring document with its line, and lists no reference into another heading of the same document"
+cites = ["AC-SPECANCH-003.1", "AC-SPECREF-003.7"]
 artifacts = ["checks.log"]
 args = ["refs", "adr-900-old-approach#Decision"]
 exit_code = 0

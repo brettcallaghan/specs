@@ -1,0 +1,5 @@
+description = "headings with a document half no corpus member is answers matches: [] with declared: false, and exits zero; a heading half alone carries no declared key"
+cites = ["AC-SPECSTR-003.8"]
+artifacts = ["checks.log"]
+args = ["headings", "adr-099-missing#Overview"]
+exit_code = 0

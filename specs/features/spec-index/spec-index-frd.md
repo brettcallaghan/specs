@@ -7,7 +7,7 @@ description: A command-line tool that indexes a specification corpus into
 slug: frd-spec-index
 type: frd
 status: approved
-updated_at: 2026-10-07T00:00:00Z
+updated_at: 2026-10-08T00:00:00Z
 sources: []
 ---
 
@@ -300,6 +300,21 @@ Feature: Metadata Conformance
     When the CLI checks it
     Then the CLI reports a finding carrying that error's message and span
     And the CLI reports the document as having passed no check
+
+  @AC-SPEC-003.7
+  Scenario: A member whose frontmatter fails to parse still declares a slug it states legibly
+    Given a corpus member whose frontmatter fails to parse
+    And whose slug property can still be read from the file
+    When the CLI builds the index
+    Then the CLI records that slug as declared by the member
+    And the CLI resolves references to that slug, and answers the slug query for it, as it would for a member that parsed
+
+  @AC-SPEC-003.8 @negative
+  Scenario: A finding that depends on an unreadable slug is attributed to the parse failure
+    Given a corpus member whose frontmatter fails to parse so that its slug cannot be read
+    When the CLI checks the corpus
+    Then the CLI attributes each finding that depends on that member's slug to the member's parse failure
+    And the CLI does not report such a finding as an unresolved reference
 ```
 
 *Examples:* a document declaring `type: adr` but omitting `description`
@@ -316,7 +331,20 @@ quoting both (AC-SPEC-003.5). A document copied from a template and not
 yet completed carries `updated_at: <YYYY-MM-DDTHH:MM:SSZ>`, which is not
 an RFC 3339 date-time; the check run reports it and exits non-zero,
 rather than reporting four passed checks against a document nothing was
-able to read (AC-SPEC-003.6).
+able to read (AC-SPEC-003.6). `status: actve` on `adr-012` fails
+frontmatter parsing, yet `slug: adr-012` is still legible on its own
+line: the check reports the one parse failure, every `[[adr-012]]`
+elsewhere resolves, and `slug-exists adr-012` answers that the slug is
+declared (AC-SPEC-003.7). A member whose fence is unterminated yields no
+legible slug; the check reports its parse failure and does not send the
+author to fix references elsewhere that were correct
+(AC-SPEC-003.8).
+
+*Rationale for AC-SPEC-003.7 and AC-SPEC-003.8:* one mistyped value
+must produce one finding. Were the slug of a member that failed to parse
+dropped from the corpus, every reference to it would read as broken, and
+an agent acting on the report would edit correct documents to chase a
+defect that lives in one line of another.
 
 *Rationale for AC-SPEC-003.6:* every other criterion in this requirement
 presupposes parsed frontmatter, so before this was written the worst-formed
@@ -375,7 +403,7 @@ Feature: Findings, Severities, and Diagnostics
   @AC-SPEC-006.6
   Scenario: An error fails the run
     Given a check run producing at least one finding of severity "error"
-    Then the CLI exits with a non-zero status
+    Then the CLI exits with the gate-failed status
 
   @AC-SPEC-006.7
   Scenario: Warnings and unverified findings pass unless strict
@@ -394,7 +422,7 @@ Feature: Findings, Severities, and Diagnostics
   @AC-SPEC-006.10 @negative
   Scenario: A subset naming an unknown check is refused
     When the check subcommand is invoked with an option naming a check the CLI does not know
-    Then the CLI reports the unknown name and the name of every known check, writes no report, and exits non-zero
+    Then the CLI reports the unknown name and the name of every known check, writes no report, and exits with the invocation-error status
 ```
 
 *Examples:* `slug/pattern-mismatch  error
@@ -409,7 +437,9 @@ diagram naming the missing dependency (AC-SPEC-006.3). An agent running
 from "frontmatter schema was not checked" (AC-SPEC-006.9). The same
 agent typing `check --only frontmatter/pars` gets an error naming the
 known checks rather than a report: a report covering no known check
-would pass every gate that runs it (AC-SPEC-006.10).
+would pass every gate that runs it (AC-SPEC-006.10). The gate-failed
+and invocation-error statuses are the ones [[cli-exit-status-standards]]
+assigns: `1` and `2`.
 
 ### FEAT-SPEC-007: Corpus Queries
 
@@ -430,19 +460,21 @@ Feature: Corpus Queries
   @AC-SPEC-007.1
   Scenario: The next identifier for a numbered type is one past the highest in use
     When the next-id subcommand is invoked for a document type the active profile registers as numbered
-    Then the CLI returns one greater than the highest number in use for that type
+    Then the CLI answers a mapping carrying the number one greater than the highest in use for that type
+    And the mapping carries the slug that number forms under the type's slug pattern
 
   @AC-SPEC-007.2
   Scenario: A slug query reports whether it is claimed, and by which document
     When the slug-exists subcommand is invoked with a slug
-    Then the CLI reports whether a corpus member declares it
-    And where one does, the CLI reports the path of that member
+    Then the CLI answers a mapping carrying the slug and whether a corpus member declares it
+    And where one does, the mapping carries the path of that member
 ```
 
-*Examples:* with ADRs numbered 001 through 013 in the corpus,
-`next-id adr` returns `014` (AC-SPEC-007.1). `slug-exists adr-004`
-reports the slug in use and names
-`docs/adrs/ADR-004-module-blueprint-and-atomic-component.md`
+*Examples:* with ADRs numbered 001 through 030 in the corpus,
+`next-id adr` answers `number: 31` and `slug: adr-031`, so the author
+names the new file without formatting the number (AC-SPEC-007.1).
+`slug-exists adr-004` answers `slug: adr-004`, `declared: true` and
+`path: specs/adrs/adr-004-module-blueprint-and-atomic-component.md`
 (AC-SPEC-007.2).
 
 ### FEAT-SPEC-008: Configuration
@@ -458,8 +490,9 @@ Feature: Configuration
   So that the tool enforces my framework rather than the one it shipped with
 
   @AC-SPEC-008.1
-  Scenario: Configuration is one TOML file at the repository root
-    Then the CLI reads its configuration from a TOML file at the repository root
+  Scenario: Configuration is one TOML file named specs.toml
+    Then the CLI reads its configuration from one TOML file named "specs.toml"
+    And the CLI resolves the paths it declares relative to that file's directory
 
   @AC-SPEC-008.2
   Scenario: The configuration carries the root, the workspace and the type vocabulary
@@ -467,10 +500,11 @@ Feature: Configuration
 
   @AC-SPEC-008.3
   Scenario: An absent configuration is reported rather than guessed at
-    Given no configuration file is present
+    Given no "specs.toml" in any directory the search of AC-SPEC-008.7 or AC-SPEC-008.9 visits
+    And no configuration option naming a file
     When the CLI runs
-    Then the CLI reports the absence
-    And the CLI exits non-zero rather than assuming a layout
+    Then the CLI reports the absence, naming the directories it searched
+    And the CLI exits with the environment-error status rather than assuming a layout
 
   @AC-SPEC-008.4
   Scenario: An invalid configuration names the offending key and its position
@@ -487,16 +521,45 @@ Feature: Configuration
   @AC-SPEC-008.6
   Scenario: A configuration for this framework's own types ships with the CLI
     Then the CLI ships a configuration for this framework's own document types that an adopting repository can use without authoring one
+
+  @AC-SPEC-008.7
+  Scenario: The nearest configuration above the working directory is the one used
+    Given no configuration option naming a file
+    When the CLI runs
+    Then the CLI searches the working directory and then each directory above it, stopping at the repository root
+    And the CLI uses the first "specs.toml" it finds
+
+  @AC-SPEC-008.8
+  Scenario: A configuration option overrides discovery
+    When the CLI is invoked with the configuration option naming a file
+    Then the CLI reads its configuration from that file and searches for no other
+
+  @AC-SPEC-008.9
+  Scenario: Outside a repository the search runs to the filesystem root
+    Given no configuration option naming a file
+    And a working directory that is not inside a git repository
+    When the CLI runs
+    Then the CLI searches the working directory and then each directory above it, stopping at the filesystem root
+    And the CLI uses the first "specs.toml" it finds
 ```
 
 *Examples:* `specs.toml` declares `root = "docs/specs"` and the workspace
-identifier (AC-SPEC-008.1). A `[[type]]` table for `adr` declares
+identifier, and the spec root resolves beside that file wherever the CLI
+was run from (AC-SPEC-008.1). A `[[type]]` table for `adr` declares
 `slug_pattern = "^adr-[0-9]{3}$"` and points at the schema FEAT-SPEC-003
 validates against; later features add each type's required headings, its
 line-width limit and its reference-bearing properties to this same file,
 the config schema being additive (AC-SPEC-008.2). Run in a repository
-with no `specs.toml`, the CLI names the file it looked for and the path
-it looked in (AC-SPEC-008.3).
+with no `specs.toml`, the CLI names the file it looked for and every
+directory it looked in, and exits `3`, the environment-error status of
+[[cli-exit-status-standards]] (AC-SPEC-008.3). Run from `specs/adrs/` in
+this repository, the CLI finds `specs.toml` at the repository root; run
+from `rfcs/drafts/` in a repository that also holds `rfcs/specs.toml`, it
+uses that nearer file (AC-SPEC-008.7). `--config build/alt.toml` reads
+that file even where a `specs.toml` sits in the working directory
+(AC-SPEC-008.8). Run from a directory unpacked from an archive, with no
+`.git` above it, the CLI searches up to `/` and uses the first
+`specs.toml` on the way (AC-SPEC-008.9).
 
 ### FEAT-SPEC-009: Invocation, Performance, and Portability
 
@@ -615,6 +678,10 @@ Feature: Index Output and Persistence
   Whether an adopting repository commits the file or ignores it is the
   adopter's choice; the CLI requires neither.
 
+  A query or check that had to build the index persists it at the default
+  location, best-effort, so the next invocation finds it warm. A write that
+  fails changes nothing the caller observes; the index only stays cold.
+
   @AC-SPEC-010.1
   Scenario: The index lands at one known path by default
     When the CLI is asked to build the index
@@ -647,6 +714,13 @@ Feature: Index Output and Persistence
     Given the index file is absent, or any corpus input has changed since it was written
     When a query runs
     Then the CLI rebuilds the index before answering rather than serving a stale result
+
+  @AC-SPEC-010.7
+  Scenario: A query that cannot persist the index answers exactly as if it could
+    Given the index file cannot be written
+    When a corpus query or check runs
+    Then the CLI answers as it would with the file writable
+    And the exit status, standard output and standard error are unchanged
 ```
 
 *Examples:* with `root = "docs/specs"` in the configuration, running
@@ -661,7 +735,9 @@ yields the query a truncated document (AC-SPEC-010.4).
 second time and returns within the AC-SPEC-009.1 budget
 (AC-SPEC-010.5). Editing one ADR and immediately querying returns an
 answer reflecting the edit, because the changed input invalidated the
-warm index (AC-SPEC-010.6).
+warm index (AC-SPEC-010.6). In a read-only checkout every query still
+answers and exits as it would in a writable one; it only stays cold
+(AC-SPEC-010.7).
 
 *Rationale:* The index artifact and the check report are different
 outputs: FEAT-SPEC-006.5 writes the *findings* of a check run to standard
@@ -676,7 +752,11 @@ default name means every skill body, CI config, and hook can refer to
 `specs.json` without configuration, while the output-path option keeps
 the CI-publish and pipe-to-stdout cases first-class. Whether an adopting
 repository commits the file or ignores it is the adopter's choice; the
-CLI requires neither.
+CLI requires neither. Persisting from a query is a cache side effect, so
+its failure must not reach the answer: [[cli-exit-status-standards]]
+holds that "A status that depends on whether the cache was warm is a
+defect", and a write that failed is only a cache that stayed cold
+(AC-SPEC-010.7).
 
 ### FEAT-SPEC-011: Command Surface
 
@@ -718,6 +798,11 @@ Feature: Command Surface
   Scenario: A bare invocation lists the surface rather than acting
     When the CLI is invoked with no subcommand or with the help option
     Then the CLI lists the available subcommands and their options rather than performing a default action
+
+  @AC-SPEC-011.6 @negative
+  Scenario: A check given a path that is not a corpus member is refused
+    When the check subcommand is given a path that is not a member of the corpus
+    Then the CLI reports the path, writes no report, and exits with the invocation-error status
 ```
 
 *Examples:* `index` writes the default `specs.json` and `index --out -`
@@ -725,9 +810,12 @@ streams it to standard output (AC-SPEC-011.1). `check` validates the
 whole corpus, while
 `check docs/adrs/ADR-004-module-blueprint-and-atomic-component.md --json`
 validates one document and emits JSON (AC-SPEC-011.2).
-`slug-exists frd-checkout` (AC-SPEC-011.3). `next-id adr` returns `014`
-(AC-SPEC-011.4). Bare invocation prints the four subcommands above with a
-one-line synopsis of each (AC-SPEC-011.5).
+`slug-exists frd-checkout` (AC-SPEC-011.3). `next-id adr` answers the
+mapping of AC-SPEC-007.1 (AC-SPEC-011.4). Bare invocation prints the
+four subcommands above with a one-line synopsis of each
+(AC-SPEC-011.5). `check docs/adrs/ADR-04.md`, a path no corpus member
+has, exits `2` and reports nothing, because a gate that could not
+inspect its subject has decided nothing (AC-SPEC-011.6).
 
 *Rationale:* The subcommand vocabulary is the tool's public interface,
 so it is fixed here rather than left to implementation. Later features
@@ -745,6 +833,10 @@ it.
   criteria are written in, whose extraction is a follow-on feature
   rather than part of this one
 - [[gherkin-guide]] — how to write them
+- [[cli-exit-status-standards]] — the statuses the gate-failed,
+  invocation-error and environment-error outcomes above name
+- [[cli-output-standards]] — the YAML and JSON renderings the query
+  answers above take
 - `plugin/skills/spec/references/template-authoring-standards.md` —
   frontmatter properties, slug conventions, and the frontmatter index
   this feature implements

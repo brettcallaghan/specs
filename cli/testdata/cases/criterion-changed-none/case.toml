@@ -1,5 +1,0 @@
-description = "criterion --changed reports no local changes when the persisted index and the current corpus agree on every criterion's identifier and content hash"
-cites = ["AC-GHK-008.1"]
-artifacts = ["checks.log"]
-args = ["criterion", "--changed"]
-exit_code = 0

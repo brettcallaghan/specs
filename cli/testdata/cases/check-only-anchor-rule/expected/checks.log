@@ -1,41 +1,38 @@
-checked 2 documents
-
-docs/adrs/adr-401-referrer.md:
-  reference/ambiguous-anchor  error  13:43  "References" matches 2 headings in docs/adrs/adr-400-target.md
-
 checks:
-  c4/ambiguous-node  not-requested
-  c4/bidirectional  not-requested
-  c4/contract-mismatch  not-requested
-  c4/contract-unresolved  not-requested
-  c4/drawing-conflict  not-requested
-  c4/duplicate-edge  not-requested
-  c4/interaction-conflict  not-requested
-  c4/parse  not-requested
-  c4/tag-separator  not-requested
-  c4/undeclared-node  not-requested
-  corpus/empty  not-requested
-  frontmatter/missing-property  not-requested
-  frontmatter/parse  not-requested
-  frontmatter/schema  not-requested
-  gherkin/criterion-code-mismatch  not-requested
-  gherkin/criterion-empty  not-requested
-  gherkin/criterion-untagged  not-requested
-  gherkin/examples-partially-tagged  not-requested
-  gherkin/feature-untagged  not-requested
-  gherkin/identifier-duplicate  not-requested
-  gherkin/identifier-malformed  not-requested
-  gherkin/identifier-multiple  not-requested
-  gherkin/owner-mismatch  not-requested
-  gherkin/owner-missing  not-requested
-  gherkin/owner-unresolved  not-requested
-  gherkin/parse  not-requested
-  gherkin/scenario-prose  not-requested
-  reference/ambiguous-anchor  failed
-  reference/pairing-incomplete  not-requested
-  reference/retired-target  not-requested
-  reference/type-mismatch  not-requested
-  reference/unresolved  not-requested
-  reference/unresolved-anchor  not-requested
-  slug/duplicate  not-requested
-  slug/pattern-mismatch  not-requested
+  - rule: reference/ambiguous-anchor
+    outcome: failed
+findings:
+  - rule: reference/ambiguous-anchor
+    severity: error
+    path: docs/adrs/adr-401-referrer.md
+    span:
+      offset: 372
+      length: 25
+      start_line: 13
+      start_column: 43
+      end_line: 13
+      end_column: 68
+    message: "\"References\" matches 2 headings in docs/adrs/adr-400-target.md: adr-400-the-cited-document#references (line 16), adr-400-the-cited-document#references#references (line 20)"
+    detail:
+      kind: ambiguous-anchor
+      anchor: References
+      target_path: docs/adrs/adr-400-target.md
+      matches:
+        - text: References
+          heading_path: adr-400-the-cited-document#references
+          span:
+            offset: 330
+            length: 14
+            start_line: 16
+            start_column: 1
+            end_line: 17
+            end_column: 1
+        - text: references
+          heading_path: adr-400-the-cited-document#references#references
+          span:
+            offset: 372
+            length: 15
+            start_line: 20
+            start_column: 1
+            end_line: 21
+            end_column: 1

@@ -7,7 +7,7 @@ description: The command-line binary that indexes a specification corpus
 slug: container-spec-cli
 type: container-blueprint
 status: approved
-updated_at: 2026-10-07T00:00:00Z
+updated_at: 2026-10-08T00:00:00Z
 contracts_consumed: []
 modules:
   - "module-document-core"
@@ -137,7 +137,24 @@ run, returns the spec root, workspace identifier, activated profile and
 resolved conventions the rest of the container needs (AC-SPEC-008.2). An
 absent `specs.toml` is reported as `*cmd.ErrConfigNotFound` rather than a
 finding, per [[contract-specs-configuration]]'s "no file to carry a span
-into" (AC-SPEC-008.3).
+into" (AC-SPEC-008.3), and exits 3.
+
+Every command reaches `Load` through `loadConfig`, which reads the file
+`--config` names and searches for no other (AC-SPEC-008.8), or, with no
+`--config`, runs `discoverConfig`: the working directory and then each
+directory above it, the nearest `specs.toml` winning (AC-SPEC-008.7). The
+search stops after the repository root, the nearest directory holding a
+`.git` entry — a directory in a clone, a file in a worktree or submodule
+— and, outside any repository, runs to the filesystem root
+(AC-SPEC-008.9). The root is found by looking for `.git` rather than by
+running `git`, so discovery costs no subprocess and works where `git` is
+not installed; [[adr-031]]'s `git` dependency is change detection's
+alone. A failed search names every directory it checked, nearest first,
+and `--config` as the remedy (AC-SPEC-008.3). The discovered path is
+handed on to `corpusOptions`, so the paths the file declares resolve
+beside it and every reported path is relative to its directory
+(AC-SPEC-008.1). Discovery runs inside a command, never before one, so
+help and invocation errors need no `specs.toml`.
 
 `Registry` is the profile registry [[contract-specs-configuration]]
 names as the customization seam: it maps a `[profile].name` value to a
@@ -170,7 +187,11 @@ repository configuration, so unlike `specs.toml` there is no
 not-found contract of its own: a file that cannot be read or parsed, or
 a record declaring no `path`, is reported as a finding naming the file
 and the fault, with no map resolved at all — never partially, the same
-discipline `Load` applies to `specs.toml` (AC-SPECMD-005.8). A slug
+discipline `Load` applies to `specs.toml` (AC-SPECMD-005.8). A file that
+parses but has the wrong shape — a top-level list or scalar, an entry
+that is not a record, a `path` that is not a string — is reported per
+offending entry, naming what was found and stating the shape a link map
+holds, so the message itself says how to fix it (AC-SPECMD-005.13). A slug
 repeated as a top-level key is a parse fault `goccy/go-yaml` itself
 rejects as a duplicate mapping key, rather than one record silently
 winning. `LoadLinkMap` performs no interpretation, resolution or
@@ -192,19 +213,51 @@ stdout and an exit status. No file here decides what makes a document
 valid or scores a check; every one of those calls is the whole of what a
 subcommand does with what it receives.
 
+**Built (exit statuses)** — `cli/cmd/exit.go`, per
+[[cli-exit-status-standards]]. Every run exits with one of five statuses
+and no other: `0` success; `1` a gate failed (the corpus author acts);
+`2` an invocation error — an unknown command or flag, a missing or
+surplus argument, a value outside a registered set, an operand the
+command cannot act on (the caller acts); `3` an environment error — no
+`specs.toml`, a `specs.toml` defect, an output path that cannot be
+written (the repository's maintainer acts); `4` an internal error (this
+tool's maintainer acts). A gate failing is not an error: it sets the
+status and returns its findings as the answer. A run ending `2`, `3` or
+`4` returns a classified error instead (`invocationError`,
+`environmentError`, `internalError`); an error cobra raises before any
+command runs is `2`, an unclassified `*fs.PathError` is `3`, and any
+other error nobody classified is `4`, so a missing classification
+surfaces as the bug it is rather than as a plausible status. Document
+Core keeps returning its own sentinel errors; classifying them is this
+component's job, because a future API or MCP wrapper would map the same
+sentinels to its own codes. Standard output is buffered and reaches the
+process only when the run ends `0` or `1`, so a run ending `2`, `3` or
+`4` writes nothing there — not even half an answer written before it
+failed — and writes its reason to standard error, beginning with the
+offending value or condition and carrying no `Error: ` prefix. A panic
+in any command is recovered and exits `4`, its value and stack on
+standard error; an unrecovered Go panic would exit `2` and read as "you
+called me wrong". Where a run meets more than one class, the highest
+wins (`4`, `3`, `2`, `1`). A `specs.toml` defect's findings go to
+standard error as text whatever `--json` says, and the run exits `3`.
+
 `index` always builds fresh (`corpus.Build`, not the warm-cache
 `corpus.Open`) and writes through `corpus.Write`, accepting the
 `--out` option `IndexPath` resolves (AC-SPEC-011.1); a member that
 failed to parse is recorded in the index like any other, so `index`
 exits zero regardless (AC-SPEC-002.5). `check` opens the corpus warm at
 the default index path and accepts `--json`, `--strict` and `--only`.
-`--json` selects `finding.Report.JSON` over `.Text` (AC-SPEC-006.5).
-`--only` narrows a report built from `finding.NewReport`'s own
-requested/passed/failed/not-requested accounting rather than by
-filtering text: a rule named by `--only` is requested and then marked
-ran from the matching findings (if any), and a rule left out is simply
-never requested, which is what lets the rendered report tell "checked
-and clean" apart from "not asked for" (AC-SPEC-006.8). Exit status
+Its answer is the generated `specmodel.FindingReport` — a mapping of
+`checks` and `findings`, nothing else — rendered as YAML by `renderYAML`
+by default and as JSON under `--json`, one model in two syntaxes so the
+two carry the same values in the same order (AC-SPEC-006.5,
+[[cli-output-standards]]). `--only` narrows a report built from
+`finding.NewReport`'s own accounting rather than by filtering text: a
+rule named by `--only` is requested and then marked ran from the
+matching findings (if any), and a rule left out is never requested, so
+`checks` lists exactly the checks the run was asked for, each `passed`,
+`failed` or `unverified`, and an unrequested check is absent rather than
+reported passed (AC-SPEC-006.8, AC-SPEC-006.9). Exit status
 follows `finding.Report.HasErrors`: any error exits 1 unconditionally;
 warning or unverified findings alone exit 0 unless `--strict` is given
 (AC-SPEC-006.6, AC-SPEC-006.7). `checkRules` declares every rule a run
@@ -217,7 +270,18 @@ diagrams in architecture blueprints — `c4/parse`, `c4/undeclared-node`,
 — so each is selectable with `--only`; the command surface adds no c4
 logic of its own. `slug-exists` and `next-id` open the
 corpus warm and answer `corpus.Corpus.Slug` and `numbering.Next`
-directly (AC-SPEC-011.3, AC-SPEC-011.4).
+directly (AC-SPEC-011.3, AC-SPEC-011.4). `slug-exists <slug>` answers a
+mapping holding `slug`, as asked, `declared`, and `path`, the declaring
+member's path or `null` where no member declares it, so the command has
+one key set whatever it finds; the comparison ignores letter case, an
+undeclared slug is an answer and exits 0, and `--json` writes the same
+values in the same order (AC-SPEC-007.2). `next-id <type>` answers a
+mapping holding `number`, from `numbering.Next`, then `slug`, the slug
+`numbering.Format` forms from it under the type's registered width —
+`number: 32`, `slug: adr-032` — as YAML by default and as JSON under
+`--json`, the same values in the same order (AC-SPEC-007.1). A type the
+profile does not register as numbered exits 2 with nothing on standard
+output.
 
 `refs` opens the corpus warm, the same as `check`, `slug-exists` and
 `next-id`, and takes one argument written `<slug>` or `<slug>#<anchor>`:
@@ -237,24 +301,42 @@ AC-SPEC-007.2 defines for `slug-exists` — are told apart by the
 An anchor qualifies the argument rather than changing what it looks up:
 the same inbound set is narrowed to the references whose anchor
 resolves to that heading, the blast radius of renaming it
-(AC-SPECANCH-003.1). Which heading an anchor reached is read off the
-reference's own `anchor_resolution` — the References component settled
-it during resolution — so this command derives nothing about anchors and
-cannot disagree with the checks. A reference whose anchor matched more
+(AC-SPECANCH-003.1). The asked anchor may be a path of headings, like any
+anchor (AC-SPECANCH-002.10): it is matched against the document's own
+headings by Markdown Structure's `SelectPaths`, and a reference reaches
+the query when the heading its `anchor_resolution` records — or one of
+its ambiguous matches — is one the asked anchor selected, compared by
+the heading line's position, since two headings of one name are two
+headings. Which heading a reference reached is read off its own
+`anchor_resolution` — the References component settled it during
+resolution — so this command cannot disagree with the checks. A reference whose anchor matched more
 than one heading resolves to none of them and is listed for each of
 them, carrying `ambiguous_anchor` (AC-SPECANCH-003.4); an anchor no
 reference reaches answers with the empty collection and exits zero
-(AC-SPECANCH-003.3). `--outbound` takes no anchor and refuses one: an
+(AC-SPECANCH-003.3). An anchored query also carries `anchor_declared`
+beside `declared`, in the compact and `--full` views alike: true when the
+anchor selects some heading of the document by that same rule, false when
+it selects none or the slug is undeclared, so an uncited heading reads
+apart from one that does not exist (AC-SPECANCH-003.6). `--outbound` takes no anchor and refuses one: an
 anchor names a heading of the *cited* document, and the outbound
 direction asks what the given document cites.
 
 The answer is a mapping of the properties the query established, with
-the references as a sequence of mappings beneath it, rendered as YAML
-and as JSON under `--json` per [[cli-output-standards]]. Each reference
-is the generated `specmodel.Reference` — already carrying its file path
-and span (AC-SPECREF-003.3) — embedded rather than copied, so both
-renderings are views over the generated model ([[adr-016]]) rather than
-a second declaration of it. The YAML renderer resolves a value that
+the references beneath it, rendered as YAML and as JSON under `--json`
+per [[cli-output-standards]]; `--json` changes the syntax of whichever
+view is chosen and never the view (AC-SPECREF-003.7). By default the
+references are the compact view: one entry per referring document, in
+the order the corpus returned them, holding a `path` and that document's
+references, each reduced to its `line` and `text`, with `origin` only for
+a reference in frontmatter, `resolution` only — as its bare `state` —
+for a reference that did not resolve, and `ambiguous_anchor` only where
+it is true (AC-SPECREF-003.6). `--full` answers with every field of every
+reference instead: each is the generated `specmodel.Reference` — carrying
+its file path and span (AC-SPECREF-003.3) — embedded rather than copied,
+so that view is over the generated model ([[adr-016]]) rather than a
+second declaration of it. The compact view is derived from the full
+answer's references after the anchor has narrowed them, so the two
+views hold exactly the same references (AC-SPECREF-003.8). The YAML renderer resolves a value that
 marshals itself through its own `MarshalJSON`, which is what makes the
 two renderings carry the same keys in the same order for a union such
 as `resolution` or `anchor_resolution`.
@@ -268,7 +350,10 @@ raises the two reachability findings (`mdlinks.Resolve`), and rewrites
 the document (`mdlinks.Substitute`). Unlike `refs`, which always exits
 zero, `links` writes the rewritten document to standard output only when
 no finding of severity error was raised, and exits 1 otherwise
-(AC-SPECMD-002.2); a run whose only findings are warnings still emits
+(AC-SPECMD-002.2) — except that an operand that cannot be read
+(`document/unreadable`) and a `--map` that cannot be read or parsed
+(`linkmap/invalid`) are operands the command cannot act on, which exit 2
+with the finding's message on standard error; a run whose only findings are warnings still emits
 the document and exits 0 (AC-SPECMD-002.6, AC-SPECMD-002.8). Findings
 and the replacement count go to standard error, never to the stream
 carrying the document (AC-SPECMD-003.2). `links` carries no `--strict`
@@ -292,8 +377,9 @@ owning-document tag, `@frd-<slug>`, even where the feature's own source
 was a fenced block that carried none: the emitted file is a feature
 source in its own right, and per [[adr-021]] constraint 11 a feature
 source names its owner. An identifier naming no feature in the index is
-reported distinctly, the same "not the same as an empty answer"
-discipline `refs` and `slug-exists` apply, and exits non-zero.
+an operand `--emit` cannot act on: it is named on standard error and the
+run exits 2, since a producer has no answer that could carry "not
+declared".
 
 Querying a feature without `--emit` reads the same warm index by a
 different corpus call. `feature <id>` returns that feature's record,
@@ -303,51 +389,85 @@ groups under that code, and `feature` with no argument and no `--code`
 every feature `corpus.Corpus.Features` holds (AC-GHK-003.3, AC-GHK-007.3).
 A feature identifier resolves the same way regardless of which admissible
 form or file it sits in, because the lookup reads the index's `Id` field
-and never its `Path` (AC-GHK-003.1). `--json` marshals the matching
-`specmodel.Feature` value — or, for a selection, a `specmodel.Feature`
-array — straight through, the same generated-JSON discipline `refs`
-applies to `specmodel.Reference` (AC-GHK-007.5). An identifier naming no
-feature is reported distinctly and exits non-zero, exactly as `--emit`'s
-lookup does (AC-GHK-007.4); `--code` naming a group nothing carries is an
-empty selection instead, and exits zero — a selector is not an identifier,
-so it cannot itself be "unknown". `--code` and `--json` cannot be
+and never its `Path` (AC-GHK-003.1). An identifier and a code match
+regardless of letter case, as a slug does, and the record carries the
+spelling the corpus declares rather than the caller's (AC-GHK-007.7).
+The answer has one shape whatever
+the arguments select: a mapping whose one key, `features`, holds a list
+of the matching generated `specmodel.Feature` records, one identifier's
+lookup included, rendered as YAML by `renderYAML` by default and as JSON
+under `--json` with the same values in the same order (AC-GHK-007.1,
+AC-GHK-007.5, [[cli-output-standards]]). Given an identifier or
+`--code`, the mapping also carries `declared` before `features`: an
+identifier naming no feature, or a code no feature carries, is answered
+with `declared: false` and `features: []`, and exits zero — a subject the
+corpus does not hold is an answer, and `declared` is what tells it apart
+from an empty selection (AC-GHK-007.4). With neither, no subject is named
+and the key is absent. `--code` and `--json` cannot be
 combined with `--emit`, and an identifier and `--code` cannot both be
 given: the command's `Args` validator and `RunE` branch on `--emit` before
 either flag-conversion path runs, so the two never share logic.
 
 `criterion --changed` lists every acceptance criterion whose content
-hash differs between the persisted index and the current corpus,
+hash differs between the corpus at a git base and the current corpus,
 classifying each as changed, added or removed by whether its identifier
-is present in both, only now, or only before (AC-GHK-008.1,
-AC-GHK-008.3). It reads the persisted side with `corpus.Load` rather
-than through `corpus.Open`'s warm cache: `Open` rebuilds silently on a
-hash mismatch and hands back the corpus it just built, discarding the
-earlier state this comparison needs, which is exactly the case
-`--changed` exists to report. The current side always builds fresh
-(`corpus.Build`), and neither call writes the artifact back — a
-`--changed` run must never replace the baseline it is comparing against
-with the state it is reporting as different from that baseline. A
-criterion whose content hash is unchanged is never listed, regardless of
-whether its position moved (AC-GHK-008.2): only identifier and content
-hash are compared, never a position or a markdown diff. Where no
-persisted index exists to compare against, the command says so rather
-than reporting every criterion as added.
+is present in both, only now, or only at the base (AC-GHK-008.1,
+AC-GHK-008.3). The base is the merge-base of HEAD and the repository's
+default branch — the first that resolves of `origin/HEAD`'s target,
+`main`, `origin/main`, `master` and `origin/master` — or of HEAD and the
+branch, tag or commit `--since` names (AC-GHK-008.4, AC-GHK-008.5,
+AC-GHK-008.10). Both sides are built by `corpus.Build`. The current side
+walks the working tree, so committed, staged, unstaged and untracked
+documents are all compared (AC-GHK-008.6); the base side walks the spec
+root as the base commit holds it, which
+[[module-document-core#Revisions]] materializes into a temporary
+directory, with `RepoRoot` and `Root` rebased there at the same
+repository-relative paths so an unmoved document reports one path on
+both sides. Neither side reads, writes or requires `specs.json`: any
+query may rebuild it, so it cannot stand for an earlier state
+(AC-GHK-008.7). Only identifier and content hash are compared, never a
+position or a markdown diff, so a criterion that only moved is not
+listed (AC-GHK-008.2). The answer is a mapping holding `base` —
+`revision`, the revision as named or the default branch found, and
+`commit`, the merge-base's full object name — then `criteria`, one
+`{id, classification, path}` per listed criterion sorted by identifier,
+`path` being the document's in the current corpus or, for a removed
+criterion, in the base (AC-GHK-008.11); it renders as YAML, or as JSON
+under `--json`. The listing is a query: it exits 0 whatever it lists,
+and 1 for a non-empty list only under `--exit-code` (AC-GHK-008.8). A
+comparison that cannot be made answers nothing: an unknown `--since`
+revision exits 2, while no work tree, no runnable `git`, no default
+branch, no merge-base (a shallow clone is named as the cause where it
+is one) and a spec root outside the work tree, named with the work tree
+(AC-GHK-008.13), exit 3 (AC-GHK-008.9). `--since` and `--exit-code`
+without `--changed` exit 2 (AC-GHK-008.12).
 
 Querying a criterion without `--changed` reads the same warm index by a
 different corpus call. `criterion <id>` returns that criterion's record
-via `corpus.Corpus.Criterion` (AC-GHK-007.2). `criterion --of <feature-id>`
+via `corpus.Corpus.Criterion` (AC-GHK-007.2), and a criterion identifier,
+like a feature identifier given to `--of`, matches regardless of letter
+case (AC-GHK-007.7). `criterion --of <feature-id>`
 returns every criterion `corpus.Corpus.CriteriaOf` that feature holds, and
 `criterion --tag <qualifier>` every criterion `corpus.Corpus.CriteriaByTag`
 matches against the active profile's registered qualifier vocabulary —
 the same `Negative`/`Manual`/`Level` properties and `FeatureTagRules.Qualifiers`
 registration `--emit`'s `criterionTags` reads in the write direction
-(AC-GHK-007.3). `--json` marshals the matching `specmodel.Criterion` value
-or array straight through (AC-GHK-007.5). An identifier naming no
-criterion is reported distinctly and exits non-zero (AC-GHK-007.4); `--of`
-naming a feature nothing declares, or `--tag` naming a qualifier no
-criterion carries, is an empty selection instead, and exits zero for the
-same reason `--code` does on `feature`. `--changed` cannot be combined
-with an identifier, `--of`, `--tag` or `--json`; an identifier cannot be
+(AC-GHK-007.3). The answer has the same one shape: a mapping whose one
+key, `criteria`, holds a list of the matching generated
+`specmodel.Criterion` records, one identifier's lookup included, as YAML
+by default and as JSON under `--json` (AC-GHK-007.2, AC-GHK-007.5).
+Given an identifier or `--of`, the mapping also carries `declared` for
+that criterion or feature, as `feature` does: an undeclared one answers
+`declared: false` and `criteria: []`, and exits zero (AC-GHK-007.4).
+`--tag` names a registered value, not a subject, and carries no
+`declared`: a qualifier no criterion carries is an empty selection, a
+qualifier written with Gherkin's leading `@` matches as the bare name
+does (AC-GHK-007.9), and a qualifier the profile does not register is an
+invocation error — `CriteriaByTag` returns
+`corpus.ErrUnregisteredQualifier`, and the value and every registered
+qualifier reach standard error with nothing on standard output and exit
+2 (AC-GHK-007.8). `--changed` cannot be combined
+with an identifier, `--of` or `--tag`; an identifier cannot be
 combined with `--of` or `--tag`; and `--of` and `--tag` cannot both be
 given — `criterion`'s `RunE` validates these combinations before either
 flag-conversion path runs, the same separation `feature` keeps between
@@ -365,23 +485,47 @@ one corpus lookup and the result into stdout and an exit status, with no
 selection or matching logic of its own.
 
 `headings` answers a heading selection with every match's file path,
-heading text, heading identifier, level and the span of the content
-beneath it (AC-SPECSTR-003.1). The selection is one operand written
+heading text, heading identifier, heading path, level and the span of the
+content beneath it (AC-SPECSTR-003.1). The selection is one operand written
 `<document>#<heading>`, either half omittable: `<document>` alone selects
 every heading in that document, `#<heading>` that heading in every corpus
 member, and an absent operand every heading in the corpus
 (AC-SPECSTR-003.3). A document half holding a path separator or ending in
 `.md` is read as a repository-relative path and otherwise as a slug. A
 heading is matched on the identifier `markdown.Identifier` derives, so
-letter case and punctuation do not decide a match (AC-SPECSTR-003.2), and
-a matched heading is returned with every heading nested inside its
+letter case and punctuation do not decide a match (AC-SPECSTR-003.2). The
+heading half may be a path of headings separated by `#` —
+`module-document-core#Components#References` — selecting the heading
+named by the last segment beneath a heading named by each earlier one, in
+order and at any depth (AC-SPECSTR-003.10, AC-SPECSTR-003.11), through
+Markdown Structure's `SelectPaths`, the selection anchor resolution uses.
+Each match's `heading_path` is the identifier of every enclosing heading
+from the outermost down, then its own, joined by `#` (AC-SPECSTR-003.9),
+so it tells two same-named headings apart and pastes back as a selection
+naming that heading alone wherever it has more than one segment: a query
+spelling some heading's full path selects the headings with exactly that
+path before any whose path merely contains it. A one-segment path is
+matched on its identifier like any one-segment selection, so a top-level
+heading of a document with no H1 that shares its identifier with another
+heading — or one of two siblings sharing text all the way up — has no
+selection of its own, and its content is read through its span.
+A matched heading is returned with every heading nested inside its
 section, each carrying its own level (AC-SPECSTR-003.4). `--emit` writes
-the content each match stands over instead, read back through the
-recorded span and written as itself with no envelope (AC-SPECSTR-003.5) —
-a section already contained in one just written is skipped, because the
-matches carry nested headings and a parent's span already covers its
-children's text. A selection matching nothing renders the empty
-collection and exits zero (AC-SPECSTR-003.6). Like the queries beside it,
+the content the one matching heading stands over instead, read back
+through the recorded span and written as itself with no envelope
+(AC-SPECSTR-003.5); its span already covers the headings nested in it,
+which are carried but not counted as matches. A raw payload has no place
+for a delimiter, so a selection matching more than one heading is refused
+under `--emit` with exit `2`, nothing on standard output, and each match
+named on standard error as `<path>#<heading_path>` (AC-SPECSTR-003.7):
+under `Select one of:` those whose selection, run back through the same
+selection, matches that heading alone, and listed apart those no
+selection names alone, for which the query without `--emit` returns the
+span. A selection matching nothing renders the empty
+collection and exits zero (AC-SPECSTR-003.6). A selection with a document
+half also carries `declared` before `matches`, false when no corpus
+member is that document, so a missing heading reads apart from a missing
+document (AC-SPECSTR-003.8); a selection with none carries no such key. Like the queries beside it,
 it opens the corpus warm and holds no domain logic: the heading tree and
 the identifier derivation are Markdown Structure's.
 
@@ -431,10 +575,10 @@ YAML one (AC-SPECLIST-004.1, AC-SPECLIST-004.2).
 
 An empty answer is an answer: a filter matching nothing, and a corpus
 holding no members, both render `documents: []` and exit zero
-(AC-SPECLIST-001.7). The one non-zero exit is a `--type` value the active
-profile does not register, which `DocumentSummaries` reports rather than
-answering; the report — the value and the registered type names — reaches
-standard error through cobra and the run exits 1 (AC-SPECLIST-002.4).
+(AC-SPECLIST-001.7). A `--type` value the active profile does not
+register is an invocation error, which `DocumentSummaries` reports rather
+than answering; the report — the value and the registered type names —
+reaches standard error and the run exits 2 (AC-SPECLIST-002.4).
 That is the deliberate departure from [[cli-output-standards]]' empty-answer
 rule, and it is narrow: the rule is about the world, where a corpus with
 no contracts is a fact, whereas an unregistered type is a malformed
@@ -457,10 +601,11 @@ same values in the same order (AC-C4-004.1, AC-C4-004.2). The model
 carries `schema_version` and the workspace name (AC-C4-004.3), and two
 runs over an unchanged corpus emit the same bytes (AC-C4-004.4). It exits
 zero whatever the model holds, excluded relationships and `c4/*` findings
-included (AC-C4-004.7). A `--root` naming no element is reported by
-Document Core; the message naming the slug reaches standard error through
-cobra, nothing reaches standard output, and the run exits 1
-(AC-C4-004.6).
+included (AC-C4-004.7). A model narrowed by `--root` carries
+`root_declared`: true when the slug names an element, and false when it
+names none, the model then holding every collection empty — an answer
+Document Core gives, exiting zero with nothing on standard error
+(AC-C4-004.6). A whole-corpus model carries no `root_declared`.
 
 A bare invocation or `--help` lists the subcommands with their one-line
 synopses and, per subcommand, its own flags — cobra's default rendering
@@ -549,7 +694,9 @@ are stated against went unreached (`agent-plugins-9ur`). That write is
 best-effort and its failure is discarded: a read-only checkout or a race
 with a concurrent writer makes the answer no less correct, and a query
 that failed because it could not refresh a cache would be a worse tool
-than a slow one. AC-SPEC-010.4's atomic replace keeps a concurrent
+than a slow one. A failed write changes nothing observable — not the
+exit status, not standard output, not standard error; the index only
+stays cold (AC-SPEC-010.7). AC-SPEC-010.4's atomic replace keeps a concurrent
 reader from seeing a partial file.
 
 **Staleness is decided by a content hash of the inputs, never by a
@@ -585,6 +732,10 @@ section is authoritative for its deployment.
 
 - **Exclusive infrastructure:** none. The CLI has no database, no queue,
   and no network dependency at runtime.
+- **Runtime dependency:** `criterion --changed` alone needs the `git`
+  executable on `PATH`, because it reads its base revision through git
+  ([[adr-031]]). Its absence is an environment error (exit 3) for that
+  command; no other command runs git.
 - **Deployment:** the CLI is distributed as a per-platform binary.
   FEAT-SPEC-009.4 through FEAT-SPEC-009.6 govern the shape: it runs with
   no language runtime installed beyond itself, it retrieves no
@@ -665,9 +816,13 @@ does not apply to a compiled binary.
 - [[adr-021]] — Gherkin is the notation for features and acceptance
   criteria. Command Surface queries the feature and criterion records
   Document Core extracts, emits a feature back out as a standalone
-  `.feature` file, and reports which criteria changed locally; the
-  parsing and the rendering are Document Core's, and the tag vocabulary
-  is [[module-spec-profile]]'s.
+  `.feature` file, and reports which criteria changed against a git
+  base; the parsing and the rendering are Document Core's, and the tag
+  vocabulary is [[module-spec-profile]]'s.
+- [[adr-031]] — `criterion --changed` reads its base revision through
+  the `git` executable, building the spec root as the base commit holds
+  it with the same `corpus.Build` the working tree uses, which is why
+  that one command needs `git` on `PATH`.
 
 ## Open Questions
 

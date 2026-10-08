@@ -5,9 +5,9 @@ Usage:
 
 Flags:
   -h, --help           help for check
-      --json           write the full finding set as JSON to standard output
+      --json           write the answer as JSON instead of YAML
       --only strings   run only the named checks (by rule identifier); repeatable or comma-separated
       --strict         exit non-zero when the run produces only warning or unverified findings
 
 Global Flags:
-      --config string   path to the repository's specs.toml (default "specs.toml")
+      --config string   path to specs.toml (default: the nearest specs.toml in the working directory or above it, up to the repository root)

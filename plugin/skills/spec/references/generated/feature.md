@@ -67,10 +67,11 @@ standard already fixes, minus
 the leading `@` that makes it a Gherkin tag — the identifier is the
 value, and the tag is only how it is written down.
 
-The middle segments are the owning feature's code and number, which is
-what allows a criterion to name its feature without carrying a second
-property: `AC-GHK-001.1` belongs to the feature coded `GHK` numbered
-`001`.
+The middle segments are the owning feature's code and number:
+`AC-GHK-001.1` belongs to the feature coded `GHK` numbered `001`. A
+criterion record carries its feature's identifier as a property of its
+own besides, so a lookup of one criterion locates it without deriving
+anything.
 
 **Definition:**
 
@@ -202,6 +203,9 @@ removing it later would not be.
 | Property | Type | Documentation |
 |----------|------|---------------|
 | id | [CriterionId](#criterionid) | The criterion's identifier, from the tag that declares it. |
+| path | String | The path of the file the criterion is written in, relative to the repository root and written with forward slashes on every platform.<br><br>The same value as its feature's `path`, carried here so that a lookup of one criterion locates it without a second query. |
+| feature_id | [FeatureId](#featureid) | The identifier of the feature the criterion belongs to — the same value as its feature's `id`. |
+| tags | Array<String> | Every tag written on the criterion, in the order written, each without its leading `@`: the identifier tag, the qualifier tags and any tag the profile does not register alike.<br><br>A criterion derived from an `Examples` block carries its scenario's tags first and then the block's own. The qualifier properties below are read from these tags; the tags are carried as written so that one the profile does not recognize — a misspelled qualifier — is still visible on the record. |
 | name | String? | The criterion's name — the text following the `Scenario`, `Scenario Outline` or `Examples` keyword that declares it.<br><br>Absent for a notation that gives a criterion no name, as prose does. |
 | text | String | The criterion's body, exactly as written.<br><br>For a Gherkin criterion this is its steps and any example table, verbatim, with the block's common indentation removed. For a prose criterion it is the sentence. One property serves both because the criterion is the unit, and its text is what every notation has. |
 | description | String? | Rationale attached to this criterion alone, absent where none was written.<br><br>Normative statements do not belong here; prose in this position is reported as a probable untagged criterion rather than recorded as requirement text. |

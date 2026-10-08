@@ -14,7 +14,7 @@ import (
 // register as numbered ("frd"), mirroring the shape cli/profile
 // supplies in production.
 var rules = map[string]corpus.DocumentTypeRules{
-	"adr": {SlugPattern: `^adr-[0-9]{3,}(-[a-z0-9]+(-[a-z0-9]+)*)?$`, Numbered: true},
+	"adr": {SlugPattern: `^adr-[0-9]{3,}(-[a-z0-9]+(-[a-z0-9]+)*)?$`, Numbered: true, NumberWidth: 3},
 	"frd": {SlugPattern: `^frd-[a-z0-9]+(-[a-z0-9]+)*$`, Numbered: false},
 }
 
@@ -160,4 +160,47 @@ func specindexOf(entries ...specmodel.IndexEntry) specmodel.SpecIndex {
 	}
 	index.Entries = append(index.Entries, entries...)
 	return index
+}
+
+// Format writes the number zero-padded to the type's registered width, and
+// unpadded where the width is 0; a wider number is never truncated.
+//
+// AC: AC-SPEC-007.1
+func TestFormatPadsToTheRegisteredWidth(t *testing.T) {
+	cases := []struct {
+		docType string
+		width   int
+		n       int
+		want    string
+	}{
+		{"adr", 3, 1, "adr-001"},
+		{"adr", 3, 31, "adr-031"},
+		{"adr", 3, 999, "adr-999"},
+		{"adr", 3, 1000, "adr-1000"},
+		{"rfc", 4, 7, "rfc-0007"},
+		{"note", 0, 7, "note-7"},
+	}
+	for _, tc := range cases {
+		types := map[string]corpus.DocumentTypeRules{tc.docType: {Numbered: true, NumberWidth: tc.width}}
+		got, err := numbering.Format(tc.docType, tc.n, types)
+		if err != nil {
+			t.Errorf("Format(%q, %d) with width %d: %v", tc.docType, tc.n, tc.width, err)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("Format(%q, %d) with width %d = %q, want %q", tc.docType, tc.n, tc.width, got, tc.want)
+		}
+	}
+}
+
+// A type the profile does not register as numbered, or does not register
+// at all, is refused with the same error Next returns.
+//
+// AC: AC-SPEC-007.1
+func TestFormatRefusesATypeThatIsNotNumbered(t *testing.T) {
+	for _, docType := range []string{"frd", "unregistered"} {
+		if _, err := numbering.Format(docType, 1, rules); !errors.Is(err, numbering.ErrNotNumbered) {
+			t.Errorf("Format(%q) error = %v, want ErrNotNumbered", docType, err)
+		}
+	}
 }

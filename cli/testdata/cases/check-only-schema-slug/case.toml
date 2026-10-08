@@ -1,0 +1,5 @@
+description = "under --only frontmatter/schema a slug that also fails its type's pattern raises no schema finding: the fault is slug/pattern-mismatch's"
+cites = ["AC-SPEC-003.5", "AC-SPEC-006.8"]
+artifacts = ["checks.log"]
+args = ["check", "--only", "frontmatter/schema"]
+exit_code = 0

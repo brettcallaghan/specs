@@ -1,39 +1,97 @@
-docs/containers/beta.md:
-  c4/drawing-conflict  warning  20:5  a -> b differs in technology from its drawing at docs/containers/alpha.md:25
-
 checks:
-  c4/ambiguous-node  passed
-  c4/bidirectional  passed
-  c4/contract-mismatch  passed
-  c4/contract-unresolved  passed
-  c4/drawing-conflict  failed
-  c4/duplicate-edge  passed
-  c4/interaction-conflict  passed
-  c4/parse  passed
-  c4/tag-separator  passed
-  c4/undeclared-node  passed
-  corpus/empty  passed
-  frontmatter/missing-property  passed
-  frontmatter/parse  passed
-  frontmatter/schema  passed
-  gherkin/criterion-code-mismatch  passed
-  gherkin/criterion-empty  passed
-  gherkin/criterion-untagged  passed
-  gherkin/examples-partially-tagged  passed
-  gherkin/feature-untagged  passed
-  gherkin/identifier-duplicate  passed
-  gherkin/identifier-malformed  passed
-  gherkin/identifier-multiple  passed
-  gherkin/owner-mismatch  passed
-  gherkin/owner-missing  passed
-  gherkin/owner-unresolved  passed
-  gherkin/parse  passed
-  gherkin/scenario-prose  passed
-  reference/ambiguous-anchor  passed
-  reference/pairing-incomplete  passed
-  reference/retired-target  passed
-  reference/type-mismatch  passed
-  reference/unresolved  passed
-  reference/unresolved-anchor  passed
-  slug/duplicate  passed
-  slug/pattern-mismatch  passed
+  - rule: c4/ambiguous-node
+    outcome: passed
+  - rule: c4/bidirectional
+    outcome: passed
+  - rule: c4/contract-mismatch
+    outcome: passed
+  - rule: c4/contract-unresolved
+    outcome: passed
+  - rule: c4/drawing-conflict
+    outcome: failed
+  - rule: c4/duplicate-edge
+    outcome: passed
+  - rule: c4/interaction-conflict
+    outcome: passed
+  - rule: c4/parse
+    outcome: passed
+  - rule: c4/tag-separator
+    outcome: passed
+  - rule: c4/undeclared-node
+    outcome: passed
+  - rule: corpus/empty
+    outcome: passed
+  - rule: frontmatter/missing-property
+    outcome: passed
+  - rule: frontmatter/parse
+    outcome: passed
+  - rule: frontmatter/schema
+    outcome: passed
+  - rule: gherkin/criterion-code-mismatch
+    outcome: passed
+  - rule: gherkin/criterion-empty
+    outcome: passed
+  - rule: gherkin/criterion-untagged
+    outcome: passed
+  - rule: gherkin/examples-partially-tagged
+    outcome: passed
+  - rule: gherkin/feature-untagged
+    outcome: passed
+  - rule: gherkin/identifier-duplicate
+    outcome: passed
+  - rule: gherkin/identifier-malformed
+    outcome: passed
+  - rule: gherkin/identifier-multiple
+    outcome: passed
+  - rule: gherkin/owner-mismatch
+    outcome: passed
+  - rule: gherkin/owner-missing
+    outcome: passed
+  - rule: gherkin/owner-unresolved
+    outcome: passed
+  - rule: gherkin/parse
+    outcome: passed
+  - rule: gherkin/scenario-prose
+    outcome: passed
+  - rule: gherkin/tag-unregistered
+    outcome: passed
+  - rule: reference/ambiguous-anchor
+    outcome: passed
+  - rule: reference/pairing-incomplete
+    outcome: passed
+  - rule: reference/retired-target
+    outcome: passed
+  - rule: reference/type-mismatch
+    outcome: passed
+  - rule: reference/unresolved
+    outcome: passed
+  - rule: reference/unresolved-anchor
+    outcome: passed
+  - rule: slug/duplicate
+    outcome: passed
+  - rule: slug/pattern-mismatch
+    outcome: passed
+findings:
+  - rule: c4/drawing-conflict
+    severity: warning
+    path: docs/containers/beta.md
+    span:
+      offset: 398
+      length: 76
+      start_line: 20
+      start_column: 5
+      end_line: 20
+      end_column: 81
+    message: a -> b differs in technology from its drawing at docs/containers/alpha.md:25
+    detail:
+      kind: c4-drawing-conflict
+      source: a
+      target: b
+      other_path: docs/containers/alpha.md
+      other_span:
+        offset: 584
+        length: 76
+        start_line: 25
+        start_column: 5
+        end_line: 25
+        end_column: 81

@@ -1,5 +1,5 @@
-description = "feature <id> --json writes the matching feature record as the generated JSON to standard output"
-cites = ["AC-GHK-007.5"]
+description = "feature <id> --json writes the same one-shape answer as JSON: {\"features\": [...]} holding the one matching generated record"
+cites = ["AC-GHK-007.1", "AC-GHK-007.5"]
 artifacts = ["checks.json"]
 args = ["feature", "FEAT-CHK-001", "--json"]
 exit_code = 0

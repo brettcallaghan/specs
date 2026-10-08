@@ -1,5 +1,5 @@
-description = "criterion <id> --json writes the matching criterion record as the generated JSON to standard output"
-cites = ["AC-GHK-007.5"]
+description = "criterion <id> --json writes the same one-shape answer as JSON: {\"criteria\": [...]} holding the one matching generated record"
+cites = ["AC-GHK-007.2", "AC-GHK-007.5"]
 artifacts = ["checks.json"]
 args = ["criterion", "AC-CHK-001.1", "--json"]
 exit_code = 0

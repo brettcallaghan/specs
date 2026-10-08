@@ -1,0 +1,5 @@
+description = "refs <slug> --outbound --full answers the outbound direction in the full view, span and target path included"
+cites = ["AC-SPECREF-003.2", "AC-SPECREF-003.7"]
+artifacts = ["checks.log"]
+args = ["refs", "adr-900-old-approach", "--outbound", "--full"]
+exit_code = 0

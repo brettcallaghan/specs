@@ -1,0 +1,114 @@
+checks:
+  - rule: c4/ambiguous-node
+    outcome: passed
+  - rule: c4/bidirectional
+    outcome: passed
+  - rule: c4/contract-mismatch
+    outcome: passed
+  - rule: c4/contract-unresolved
+    outcome: passed
+  - rule: c4/drawing-conflict
+    outcome: passed
+  - rule: c4/duplicate-edge
+    outcome: passed
+  - rule: c4/interaction-conflict
+    outcome: passed
+  - rule: c4/parse
+    outcome: passed
+  - rule: c4/tag-separator
+    outcome: passed
+  - rule: c4/undeclared-node
+    outcome: passed
+  - rule: corpus/empty
+    outcome: passed
+  - rule: frontmatter/missing-property
+    outcome: passed
+  - rule: frontmatter/parse
+    outcome: passed
+  - rule: frontmatter/schema
+    outcome: passed
+  - rule: gherkin/criterion-code-mismatch
+    outcome: passed
+  - rule: gherkin/criterion-empty
+    outcome: passed
+  - rule: gherkin/criterion-untagged
+    outcome: passed
+  - rule: gherkin/examples-partially-tagged
+    outcome: passed
+  - rule: gherkin/feature-untagged
+    outcome: passed
+  - rule: gherkin/identifier-duplicate
+    outcome: passed
+  - rule: gherkin/identifier-malformed
+    outcome: passed
+  - rule: gherkin/identifier-multiple
+    outcome: passed
+  - rule: gherkin/owner-mismatch
+    outcome: passed
+  - rule: gherkin/owner-missing
+    outcome: passed
+  - rule: gherkin/owner-unresolved
+    outcome: passed
+  - rule: gherkin/parse
+    outcome: passed
+  - rule: gherkin/scenario-prose
+    outcome: passed
+  - rule: gherkin/tag-unregistered
+    outcome: failed
+  - rule: reference/ambiguous-anchor
+    outcome: passed
+  - rule: reference/pairing-incomplete
+    outcome: passed
+  - rule: reference/retired-target
+    outcome: passed
+  - rule: reference/type-mismatch
+    outcome: passed
+  - rule: reference/unresolved
+    outcome: passed
+  - rule: reference/unresolved-anchor
+    outcome: passed
+  - rule: slug/duplicate
+    outcome: passed
+  - rule: slug/pattern-mismatch
+    outcome: passed
+findings:
+  - rule: gherkin/tag-unregistered
+    severity: warning
+    path: docs/features/frd-checkout.md
+    span:
+      offset: 601
+      length: 156
+      start_line: 29
+      start_column: 1
+      end_line: 33
+      end_column: 28
+    message: "tag \"@negatve\" is not in the tag vocabulary; registered qualifiers: negative, manual, level-unit, level-integration, level-e2e"
+    detail:
+      kind: unregistered-tag
+      tag: negatve
+      registered:
+        - negative
+        - manual
+        - level-unit
+        - level-integration
+        - level-e2e
+  - rule: gherkin/tag-unregistered
+    severity: warning
+    path: docs/features/frd-checkout.md
+    span:
+      offset: 601
+      length: 156
+      start_line: 29
+      start_column: 1
+      end_line: 33
+      end_column: 28
+    message: "tag \"@wip\" is not in the tag vocabulary; registered qualifiers: negative, manual, level-unit, level-integration, level-e2e"
+    detail:
+      kind: unregistered-tag
+      tag: wip
+      registered:
+        - negative
+        - manual
+        - level-unit
+        - level-integration
+        - level-e2e

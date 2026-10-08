@@ -1,0 +1,5 @@
+description = "a member whose frontmatter fails to parse but whose slug is still legible collides with a parsed member declaring the same slug: check reports the frontmatter/parse failure and a slug/duplicate finding on each member, and the citation resolves to the parsed member though the broken one sorts first"
+cites = ["AC-SPEC-003.3", "AC-SPEC-003.7"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 1

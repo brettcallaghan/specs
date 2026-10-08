@@ -1,0 +1,5 @@
+description = "links <path> --map raises no links/unmapped for a slug the map omits when it is cited only inside a gherkin fenced block, which is left as written"
+cites = ["AC-SPECMD-001.4", "AC-SPECMD-003.1"]
+artifacts = ["checks.log", "checks.err"]
+args = ["links", "docs/adrs/adr-800-current.md", "--map", "map.yaml"]
+exit_code = 0

@@ -42,17 +42,17 @@ func compiledConfigSchema() (*jsonschema.Schema, error) {
 	configSchemaOnce.Do(func() {
 		doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(schema.SpecsConfig))
 		if err != nil {
-			configSchemaErr = fmt.Errorf("cmd: the generated config schema is not valid JSON: %w", err)
+			configSchemaErr = fmt.Errorf("the generated config schema is not valid JSON: %w", err)
 			return
 		}
 		compiler := jsonschema.NewCompiler()
 		if err := compiler.AddResource(configSchemaURL, doc); err != nil {
-			configSchemaErr = fmt.Errorf("cmd: registering the generated config schema: %w", err)
+			configSchemaErr = fmt.Errorf("registering the generated config schema: %w", err)
 			return
 		}
 		configSchema, configSchemaErr = compiler.Compile(configSchemaLocation)
 		if configSchemaErr != nil {
-			configSchemaErr = fmt.Errorf("cmd: compiling the generated config schema: %w", configSchemaErr)
+			configSchemaErr = fmt.Errorf("compiling the generated config schema: %w", configSchemaErr)
 		}
 	})
 	return configSchema, configSchemaErr
@@ -74,7 +74,7 @@ func checkConfigSchema(path string, src []byte, raw map[string]any, loc location
 	}
 	validationErr, ok := verr.(*jsonschema.ValidationError)
 	if !ok {
-		return nil, fmt.Errorf("cmd: checking %s: %w", path, verr)
+		return nil, fmt.Errorf("checking %s: %w", path, verr)
 	}
 
 	// DetailedOutput, not schemaregistry's flat BasicOutput, because this

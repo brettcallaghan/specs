@@ -1,6 +1,8 @@
 package profile_test
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -149,5 +151,44 @@ func TestProfileSelfApplicationAgainstThisRepositorysCorpus(t *testing.T) {
 	if len(findings) != 0 {
 		t.Fatalf("Check returned %d findings, want exactly 0 (see this test's doc comment): %+v",
 			len(findings), findings)
+	}
+}
+
+// Over this repository's own corpus, which declares every required
+// property, the index corpus.Marshal writes — entry frontmatter encoded
+// by the envelope package so that an undeclared required enum is omitted
+// rather than refused — is byte-identical to the generated encoder's,
+// across every document type the corpus holds.
+func TestTheIndexEncodingIsTheGeneratedEncodersOverThisRepositorysCorpus(t *testing.T) {
+	root := repositoryRoot(t)
+	built, err := corpus.Build(corpus.Options{
+		RepoRoot:  root,
+		Root:      filepath.Join(root, "specs"),
+		Workspace: "agent-plugins",
+		Profile:   profile.New(),
+	})
+	if err != nil {
+		t.Fatalf("corpus.Build: %v", err)
+	}
+	index := built.Index()
+	want, err := json.MarshalIndent(index, "", "  ")
+	if err != nil {
+		t.Fatalf("the generated encoder refused this repository's index: %v", err)
+	}
+	got, err := corpus.Marshal(index)
+	if err != nil {
+		t.Fatalf("corpus.Marshal: %v", err)
+	}
+	if string(got) != string(want)+"\n" {
+		t.Error("corpus.Marshal differs from the generated encoder over this repository's corpus")
+	}
+	types := map[string]bool{}
+	for _, entry := range index.Entries {
+		if entry.Frontmatter != nil {
+			types[fmt.Sprintf("%T", entry.Frontmatter.Value)] = true
+		}
+	}
+	if len(types) < 5 {
+		t.Errorf("the corpus covers only %d document types; this test means less than it says", len(types))
 	}
 }

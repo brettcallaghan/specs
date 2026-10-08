@@ -235,17 +235,15 @@ func TestEveryAnchoredReferenceIsCheckedUnderItsOwnRuleIdentifier(t *testing.T) 
 	}
 }
 
-// A single-document check reports the inbound anchor references that no
-// longer resolve, each at the span in the REFERRING document — the same
-// exception the slug half already carries, for the same reason: renaming
-// a heading breaks references held by files the renaming author never
-// opened, and a result narrowed strictly by path would be silent about
-// exactly the edit that caused them.
+// A single-document check on the document whose heading was renamed
+// reports no anchor finding located in the referring document: it covers
+// the named document only, and what the rename broke elsewhere is a
+// corpus check's to report.
 //
 // AC-SPECANCH-003.2 is cited at the integration level it is declared at,
 // by the snapshot case check-path-anchor-elsewhere. This is its
 // unit-level companion, which is why it carries no citation of its own.
-func TestCheckForReportsInboundAnchorReferencesThatNoLongerResolve(t *testing.T) {
+func TestCheckForReportsNoAnchorFindingLocatedElsewhere(t *testing.T) {
 	repo := t.TempDir()
 	// The heading the referrer names has been renamed to "Outcome".
 	write(t, repo, "specs/adrs/adr-002.md", sectioned("adr", "adr-002", "Second", "## Outcome"))
@@ -256,25 +254,98 @@ func TestCheckForReportsInboundAnchorReferencesThatNoLongerResolve(t *testing.T)
 	if err != nil {
 		t.Fatalf("CheckFor: %v", err)
 	}
+	for _, f := range findings {
+		if f.Path != "specs/adrs/adr-002.md" {
+			t.Errorf("a check of adr-002 reported a finding located in %s: %s %s", f.Path, f.Rule, f.Message)
+		}
+	}
+}
+
+// The same broken anchor is reported by a check of the document that
+// holds it, at the span of the reference.
+func TestCheckForReportsTheNamedDocumentsOwnBrokenAnchor(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-002.md", sectioned("adr", "adr-002", "Second", "## Outcome"))
+	write(t, repo, "specs/adrs/adr-001.md", citing("adr", "adr-001", "First", "Refines [[adr-002#Decision]]."))
+
+	built := buildChecked(t, repo, referenceCheckProfile("superseded_by"))
+	findings, err := built.CheckFor("specs/adrs/adr-001.md")
+	if err != nil {
+		t.Fatalf("CheckFor: %v", err)
+	}
 
 	got := anchorFindingsOf(findings)
 	if len(got) != 1 {
-		t.Fatalf("got %d anchor findings for the renamed document, want 1: %+v", len(got), findings)
+		t.Fatalf("got %d anchor findings for the referring document, want 1: %+v", len(got), findings)
 	}
 	if got[0].Path != "specs/adrs/adr-001.md" {
-		t.Errorf("path = %q, want the referring document — the file the reader must open", got[0].Path)
+		t.Errorf("path = %q, want the referring document", got[0].Path)
 	}
 	if got[0].Span.Length == 0 {
 		t.Error("finding carries an empty span")
 	}
 }
 
-// The corpus-wide exception is a property of the rule, so it holds for a
-// check narrowed to a document that holds no reference at all.
-func TestTheAnchorRulesAreCorpusWide(t *testing.T) {
-	for _, rule := range []specmodel.RuleId{finding.RuleUnresolvedAnchor, finding.RuleAmbiguousAnchor} {
-		if !finding.IsCorpusWideRule(rule) {
-			t.Errorf("%q is not corpus-wide; a single-document check would drop it", rule)
-		}
+// An anchor written as a path of headings resolves through its enclosing
+// headings: it selects the heading named by its last segment beneath each
+// earlier one, so it can name one of two same-named headings that a
+// single-segment anchor finds ambiguous. A path no heading satisfies is
+// unresolved, and one that several satisfy is ambiguous, each match named
+// by its full heading path and line.
+//
+// AC: AC-SPECANCH-002.10, AC-SPECANCH-002.5
+func TestANestedAnchorResolvesThroughItsEnclosingHeadings(t *testing.T) {
+	target := sectioned("adr", "adr-002", "Second",
+		"## Components", "### References", "### Findings", "#### Detail", "## References",
+		"## Appendix", "### Findings", "#### Detail")
+
+	cases := []struct {
+		name   string
+		anchor string
+		rule   specmodel.RuleId
+		names  []string
+	}{
+		{"a path naming one of two same-named headings resolves", "Components#References", "", nil},
+		{"an intermediate ancestor may be left out", "Components#Detail", "", nil},
+		{"the full heading path resolves", "second#components#references", "", nil},
+		{"a shallow heading's full path resolves though a deeper heading satisfies it", "Second#References", "", nil},
+		{"a path no heading satisfies is unresolved", "Components#Nope", finding.RuleUnresolvedAnchor, nil},
+		{"out-of-order segments are unresolved", "References#Components", finding.RuleUnresolvedAnchor, nil},
+		{"a path several headings satisfy and none spells in full is ambiguous", "Findings#Detail", finding.RuleAmbiguousAnchor,
+			[]string{"second#components#findings#detail (line ", "second#appendix#findings#detail (line "}},
+		{"a single segment several match names every heading path", "References", finding.RuleAmbiguousAnchor,
+			[]string{"second#components#references (line ", "second#references (line "}},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			repo := t.TempDir()
+			write(t, repo, "specs/adrs/adr-002.md", target)
+			write(t, repo, "specs/adrs/adr-001.md", citing("adr", "adr-001", "First", "See [[adr-002#"+c.anchor+"]]."))
+
+			got := anchorFindingsOf(checkedAnchors(t, repo))
+			if c.rule == "" {
+				if len(got) != 0 {
+					t.Fatalf("[[adr-002#%s]] raised %+v, want it to resolve", c.anchor, got)
+				}
+				return
+			}
+			if len(got) != 1 || got[0].Rule != c.rule {
+				t.Fatalf("[[adr-002#%s]] raised %+v, want one %s", c.anchor, got, c.rule)
+			}
+			for _, name := range c.names {
+				if !strings.Contains(got[0].Message, name) {
+					t.Errorf("message %q does not name %q", got[0].Message, name)
+				}
+			}
+			if c.rule == finding.RuleAmbiguousAnchor {
+				detail, _ := got[0].Detail.AsAmbiguousAnchor()
+				for _, match := range detail.Matches {
+					if !strings.HasPrefix(match.HeadingPath, "second#") {
+						t.Errorf("match %+v carries no heading path", match)
+					}
+				}
+			}
+		})
 	}
 }

@@ -5,12 +5,12 @@ description: The specs.toml format an adopting repository authors, and
 slug: contract-specs-configuration
 type: contract
 status: approved
-updated_at: 2026-08-07T00:00:00Z
+updated_at: 2026-10-08T00:00:00Z
 provider: container-spec-cli
 visibility: public
 specs:
   - "cli/core/schema/specs-config.schema.json"
-version: "1.0"
+version: "1.1"
 ---
 
 # Specs Configuration
@@ -61,7 +61,7 @@ by anything outside this repository.
 ### The public surface: `specs.toml`
 
 ```toml
-# specs.toml — at the repository root.
+# specs.toml — found in the working directory or a directory above it, up to the repository root.
 
 [workspace]
 name = "agent-plugins"   # identifies this repository's documents when
@@ -313,8 +313,15 @@ defect rather than as a bare startup failure.
 - IF `[profile].name` names no registered profile, THEN the CLI SHALL
   report a finding naming the value and listing the registered profile
   names.
-- WHEN `specs.toml` is absent, the CLI SHALL report the path it looked
-  for and exit non-zero, and SHALL NOT infer a spec root. This is the
+- WHERE no `--config` option names a file, the CLI SHALL search the
+  working directory and then each directory above it, stopping at the
+  repository root — the nearest directory holding a `.git` entry — or,
+  outside any repository, at the filesystem root, and SHALL use the
+  first `specs.toml` it finds. WHERE `--config` names a file, the CLI
+  SHALL read that file and search for no other.
+- WHEN `specs.toml` is absent, the CLI SHALL report every directory it
+  searched — or, for a file `--config` named, that path — and exit with
+  the environment-error status, and SHALL NOT infer a spec root. This is the
   one configuration failure that is not a finding, because there is no
   file to carry a span into.
 - The configuration checks SHALL be exercised by snapshot cases under

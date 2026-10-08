@@ -1,0 +1,5 @@
+description = "each segment of a heading path is nested within the one before it at any depth, so intermediate headings may be left out"
+cites = ["AC-SPECSTR-003.11"]
+artifacts = ["checks.log"]
+args = ["headings", "adr-500-roster#ADR-500: Roster#Detail"]
+exit_code = 0

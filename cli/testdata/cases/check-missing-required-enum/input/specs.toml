@@ -1,0 +1,6 @@
+[workspace]
+name = "acme"
+root = "docs"
+
+[profile]
+name = "specs"

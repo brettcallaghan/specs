@@ -1,44 +1,137 @@
-checked 6 documents
-
-docs/containers/spec-cli.md:
-  c4/ambiguous-node  error  22:5  node "twin" labelled "Twin" names 2 elements in scope: container-twin-one, container-twin-two
-  c4/undeclared-node  error  23:5  node "ghost" labelled "Ghost Service" names no element in scope
-  c4/parse  error  24:5  cannot read "Frobnicate(x, \"Not a macro\")": `Frobnicate` is not a macro this parser reads
-  c4/parse  unverified  46:1  diagram type "C4Dynamic" is not a C4 diagram this check reads
-
 checks:
-  c4/ambiguous-node  failed
-  c4/bidirectional  passed
-  c4/contract-mismatch  passed
-  c4/contract-unresolved  passed
-  c4/drawing-conflict  passed
-  c4/duplicate-edge  passed
-  c4/interaction-conflict  passed
-  c4/parse  failed
-  c4/tag-separator  passed
-  c4/undeclared-node  failed
-  corpus/empty  passed
-  frontmatter/missing-property  passed
-  frontmatter/parse  passed
-  frontmatter/schema  passed
-  gherkin/criterion-code-mismatch  passed
-  gherkin/criterion-empty  passed
-  gherkin/criterion-untagged  passed
-  gherkin/examples-partially-tagged  passed
-  gherkin/feature-untagged  passed
-  gherkin/identifier-duplicate  passed
-  gherkin/identifier-malformed  passed
-  gherkin/identifier-multiple  passed
-  gherkin/owner-mismatch  passed
-  gherkin/owner-missing  passed
-  gherkin/owner-unresolved  passed
-  gherkin/parse  passed
-  gherkin/scenario-prose  passed
-  reference/ambiguous-anchor  passed
-  reference/pairing-incomplete  passed
-  reference/retired-target  passed
-  reference/type-mismatch  passed
-  reference/unresolved  passed
-  reference/unresolved-anchor  passed
-  slug/duplicate  passed
-  slug/pattern-mismatch  passed
+  - rule: c4/ambiguous-node
+    outcome: failed
+  - rule: c4/bidirectional
+    outcome: passed
+  - rule: c4/contract-mismatch
+    outcome: passed
+  - rule: c4/contract-unresolved
+    outcome: passed
+  - rule: c4/drawing-conflict
+    outcome: passed
+  - rule: c4/duplicate-edge
+    outcome: passed
+  - rule: c4/interaction-conflict
+    outcome: passed
+  - rule: c4/parse
+    outcome: failed
+  - rule: c4/tag-separator
+    outcome: passed
+  - rule: c4/undeclared-node
+    outcome: failed
+  - rule: corpus/empty
+    outcome: passed
+  - rule: frontmatter/missing-property
+    outcome: passed
+  - rule: frontmatter/parse
+    outcome: passed
+  - rule: frontmatter/schema
+    outcome: passed
+  - rule: gherkin/criterion-code-mismatch
+    outcome: passed
+  - rule: gherkin/criterion-empty
+    outcome: passed
+  - rule: gherkin/criterion-untagged
+    outcome: passed
+  - rule: gherkin/examples-partially-tagged
+    outcome: passed
+  - rule: gherkin/feature-untagged
+    outcome: passed
+  - rule: gherkin/identifier-duplicate
+    outcome: passed
+  - rule: gherkin/identifier-malformed
+    outcome: passed
+  - rule: gherkin/identifier-multiple
+    outcome: passed
+  - rule: gherkin/owner-mismatch
+    outcome: passed
+  - rule: gherkin/owner-missing
+    outcome: passed
+  - rule: gherkin/owner-unresolved
+    outcome: passed
+  - rule: gherkin/parse
+    outcome: passed
+  - rule: gherkin/scenario-prose
+    outcome: passed
+  - rule: gherkin/tag-unregistered
+    outcome: passed
+  - rule: reference/ambiguous-anchor
+    outcome: passed
+  - rule: reference/pairing-incomplete
+    outcome: passed
+  - rule: reference/retired-target
+    outcome: passed
+  - rule: reference/type-mismatch
+    outcome: passed
+  - rule: reference/unresolved
+    outcome: passed
+  - rule: reference/unresolved-anchor
+    outcome: passed
+  - rule: slug/duplicate
+    outcome: passed
+  - rule: slug/pattern-mismatch
+    outcome: passed
+findings:
+  - rule: c4/ambiguous-node
+    severity: error
+    path: docs/containers/spec-cli.md
+    span:
+      offset: 553
+      length: 65
+      start_line: 22
+      start_column: 5
+      end_line: 22
+      end_column: 70
+    message: "node \"twin\" labelled \"Twin\" names 2 elements in scope: container-twin-one, container-twin-two"
+    detail:
+      kind: c4-node
+      alias: twin
+      label: Twin
+      matches:
+        - container-twin-one
+        - container-twin-two
+  - rule: c4/undeclared-node
+    severity: error
+    path: docs/containers/spec-cli.md
+    span:
+      offset: 623
+      length: 59
+      start_line: 23
+      start_column: 5
+      end_line: 23
+      end_column: 64
+    message: node "ghost" labelled "Ghost Service" names no element in scope
+    detail:
+      kind: c4-node
+      alias: ghost
+      label: Ghost Service
+      matches: []
+  - rule: c4/parse
+    severity: error
+    path: docs/containers/spec-cli.md
+    span:
+      offset: 687
+      length: 28
+      start_line: 24
+      start_column: 5
+      end_line: 24
+      end_column: 33
+    message: "cannot read \"Frobnicate(x, \\\"Not a macro\\\")\": `Frobnicate` is not a macro this parser reads"
+    detail:
+      kind: c4-parse
+      statement: Frobnicate(x, "Not a macro")
+      reason: "`Frobnicate` is not a macro this parser reads"
+  - rule: c4/parse
+    severity: unverified
+    path: docs/containers/spec-cli.md
+    span:
+      offset: 1010
+      length: 50
+      start_line: 46
+      start_column: 1
+      end_line: 50
+      end_column: 1
+    message: diagram type "C4Dynamic" is not a C4 diagram this check reads
+    detail:
+      kind: c4-unread-diagram
+      diagram_type: C4Dynamic

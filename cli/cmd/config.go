@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
@@ -42,22 +43,43 @@ type Config struct {
 }
 
 // ErrConfigNotFound is returned by [Load] when no file exists at the path
-// checked.
+// checked, and by [discoverConfig] when no directory it searched holds
+// one.
 //
 // It is deliberately not a Finding:
 // [[contract-specs-configuration]] states this is the one configuration
 // failure with no file to carry a span into ("WHEN specs.toml is absent,
-// the CLI SHALL report the path it looked for and exit non-zero, and
-// SHALL NOT infer a spec root" — AC-SPEC-008.3). A caller reports Path
-// directly.
+// the CLI SHALL report every directory it searched and exit with the
+// environment-error status, and SHALL NOT infer a spec root" —
+// AC-SPEC-008.3). A caller reports it directly.
 type ErrConfigNotFound struct {
-	// Path is the location Load checked and found nothing at.
+	// Path is the location Load checked and found nothing at. It is set
+	// for a file --config named, and empty for a failed search.
 	Path string
+	// Searched is every directory a search checked, nearest first. It is
+	// set for a failed search, and empty for a file --config named.
+	Searched []string
+	// RepoRoot is the repository root the search stopped at, or empty
+	// where it ran to the filesystem root (AC-SPEC-008.9).
+	RepoRoot string
 }
 
 func (e *ErrConfigNotFound) Error() string {
-	return fmt.Sprintf("no specs.toml found at %s", e.Path)
+	if len(e.Searched) == 0 {
+		return fmt.Sprintf("no specs.toml found at %s", e.Path)
+	}
+	limit := "the filesystem root, no repository root being above it"
+	if e.RepoRoot != "" {
+		limit = "the repository root " + e.RepoRoot
+	}
+	return fmt.Sprintf("no %s found in %s (searched up to %s); pass --config to name one",
+		configFileName, strings.Join(e.Searched, ", "), limit)
 }
+
+// exitStatus classifies a missing configuration as an environment error
+// (status 3): the invocation was correct, and the repository it ran in
+// lacks the file it needs.
+func (e *ErrConfigNotFound) exitStatus() int { return statusEnvironment }
 
 // Load reads, checks, and resolves the specs.toml file at path, selecting
 // a profile from registry.
@@ -89,7 +111,7 @@ func Load(path string, registry *Registry) (*Config, []specmodel.Finding, error)
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil, nil, &ErrConfigNotFound{Path: path}
 		}
-		return nil, nil, fmt.Errorf("cmd: reading %s: %w", path, err)
+		return nil, nil, fmt.Errorf("reading %s: %w", path, err)
 	}
 
 	raw, syntaxFindings := decodeConfig(path, src)
@@ -120,10 +142,10 @@ func Load(path string, registry *Registry) (*Config, []specmodel.Finding, error)
 	var cfg specmodel.SpecsConfig
 	encoded, err := json.Marshal(raw)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cmd: re-encoding %s: %w", path, err)
+		return nil, nil, fmt.Errorf("re-encoding %s: %w", path, err)
 	}
 	if err := json.Unmarshal(encoded, &cfg); err != nil {
-		return nil, nil, fmt.Errorf("cmd: decoding %s: %w", path, err)
+		return nil, nil, fmt.Errorf("decoding %s: %w", path, err)
 	}
 
 	active, found := registry.Lookup(cfg.Profile.Name)
@@ -133,7 +155,7 @@ func Load(path string, registry *Registry) (*Config, []specmodel.Finding, error)
 		// cfg.Profile.Name is a non-empty string, and the registry lookup
 		// just above would have raised RuleConfigUnknownProfile and made
 		// report.HasErrors() true otherwise.
-		return nil, nil, fmt.Errorf("cmd: %s: profile %q resolved after passing its own check", path, cfg.Profile.Name)
+		return nil, nil, fmt.Errorf("%s: profile %q resolved after passing its own check", path, cfg.Profile.Name)
 	}
 
 	// A registration is compiled in, so a defect in it is not the
@@ -173,4 +195,75 @@ func resolveConventions(fromConfig *specmodel.ConventionsConfig, profileDefaults
 		resolved.LineWidth = fromConfig.LineWidth
 	}
 	return resolved
+}
+
+// configFileName is the file a search looks for in each directory.
+const configFileName = "specs.toml"
+
+// loadConfig resolves the configuration a command runs against: the file
+// --config named, read and searched for nowhere else (AC-SPEC-008.8), or,
+// where --config was not given, the nearest specs.toml found by
+// [discoverConfig] (AC-SPEC-008.7). It returns the path it loaded, which
+// the caller hands on to [corpusOptions] so the paths that file declares
+// resolve beside it (AC-SPEC-008.1).
+//
+// A discovered path is written relative to the working directory: from
+// the directory holding specs.toml it is exactly "specs.toml", as an
+// explicit default would have been, so a finding positioned in the file
+// names it the same way wherever it was found.
+func loadConfig(configPath string) (*Config, string, []specmodel.Finding, error) {
+	if configPath == "" {
+		wd, err := os.Getwd()
+		if err != nil {
+			return nil, "", nil, environmentError("reading the working directory: %w", err)
+		}
+		found, err := discoverConfig(wd)
+		if err != nil {
+			return nil, "", nil, err
+		}
+		configPath = found
+		if rel, err := filepath.Rel(wd, found); err == nil {
+			configPath = rel
+		}
+	}
+	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	return cfg, configPath, findings, err
+}
+
+// discoverConfig searches workingDir and then each directory above it for
+// specs.toml, and returns the absolute path of the first one found, so
+// the nearest wins (AC-SPEC-008.7).
+//
+// The search stops after the repository root: the nearest directory
+// holding a .git entry, a directory in a clone and a file in a worktree
+// or submodule. Outside any repository it runs to the filesystem root
+// (AC-SPEC-008.9). The root is found by looking for .git rather than by
+// running git, because discovery runs on every invocation and must work
+// where git is not installed; [[adr-031]]'s git dependency is change
+// detection's alone.
+//
+// A search that finds nothing returns [*ErrConfigNotFound] naming every
+// directory it checked (AC-SPEC-008.3).
+func discoverConfig(workingDir string) (string, error) {
+	dir, err := filepath.Abs(workingDir)
+	if err != nil {
+		return "", environmentError("resolving the working directory %s: %w", workingDir, err)
+	}
+	notFound := &ErrConfigNotFound{}
+	for {
+		candidate := filepath.Join(dir, configFileName)
+		if info, err := os.Stat(candidate); err == nil && info.Mode().IsRegular() {
+			return candidate, nil
+		}
+		notFound.Searched = append(notFound.Searched, dir)
+		if _, err := os.Lstat(filepath.Join(dir, ".git")); err == nil {
+			notFound.RepoRoot = dir
+			return "", notFound
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", notFound
+		}
+		dir = parent
+	}
 }

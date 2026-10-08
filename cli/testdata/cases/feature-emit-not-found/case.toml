@@ -1,5 +1,5 @@
-description = "feature --emit for an identifier no corpus member declares reports that distinctly and exits non-zero"
+description = "feature --emit for an identifier no corpus member declares reports that distinctly and exits 2"
 cites = ["AC-GHK-009.1"]
 artifacts = ["checks.err"]
 args = ["feature", "FEAT-CHK-999", "--emit"]
-exit_code = 1
+exit_code = 2

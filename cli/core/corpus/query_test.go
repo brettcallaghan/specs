@@ -474,3 +474,118 @@ func TestAnEmptyTypeSelectionAppliesNoFilter(t *testing.T) {
 		}
 	}
 }
+
+// identifierCorpus builds a corpus declaring gherkinSource's one feature,
+// FEAT-CHK-001 with criterion AC-CHK-001.1, under the CHK code.
+func identifierCorpus(t *testing.T) *corpus.Corpus {
+	t.Helper()
+
+	repo := t.TempDir()
+	write(t, repo, "specs/features/frd-checkout.md", document("frd", "frd-checkout", "Checkout"))
+	write(t, repo, "specs/features/checkout.feature", gherkinSource)
+	return featureCorpusAt(t, repo)
+}
+
+// A feature identifier matches regardless of case, and the record comes
+// back with the identifier as declared, never as the caller spelled it.
+//
+// AC: AC-GHK-007.7
+func TestAFeatureIdentifierMatchesRegardlessOfCase(t *testing.T) {
+	built := identifierCorpus(t)
+
+	for _, named := range []specmodel.FeatureId{"FEAT-CHK-001", "feat-chk-001", "Feat-Chk-001"} {
+		feature, found := built.Feature(named)
+		if !found {
+			t.Errorf("Feature(%q) found nothing, want FEAT-CHK-001", named)
+			continue
+		}
+		if feature.Id != "FEAT-CHK-001" {
+			t.Errorf("Feature(%q).Id = %q, want the declared FEAT-CHK-001", named, feature.Id)
+		}
+	}
+}
+
+// A criterion identifier matches regardless of case, returning the
+// declared spelling.
+//
+// AC: AC-GHK-007.7
+func TestACriterionIdentifierMatchesRegardlessOfCase(t *testing.T) {
+	built := identifierCorpus(t)
+
+	for _, named := range []specmodel.CriterionId{"AC-CHK-001.1", "ac-chk-001.1"} {
+		criterion, found := built.Criterion(named)
+		if !found {
+			t.Errorf("Criterion(%q) found nothing, want AC-CHK-001.1", named)
+			continue
+		}
+		if criterion.Id != "AC-CHK-001.1" {
+			t.Errorf("Criterion(%q).Id = %q, want the declared AC-CHK-001.1", named, criterion.Id)
+		}
+	}
+}
+
+// A feature code matches regardless of case, returning the features with
+// their codes as declared.
+//
+// AC: AC-GHK-007.7
+func TestAFeatureCodeMatchesRegardlessOfCase(t *testing.T) {
+	built := identifierCorpus(t)
+
+	for _, named := range []specmodel.FeatureCode{"CHK", "chk"} {
+		features := built.FeaturesByCode(named)
+		if len(features) != 1 {
+			t.Errorf("FeaturesByCode(%q) returned %d features, want 1", named, len(features))
+			continue
+		}
+		if features[0].Code != "CHK" || features[0].Id != "FEAT-CHK-001" {
+			t.Errorf("FeaturesByCode(%q) = %s under %s, want FEAT-CHK-001 under the declared CHK",
+				named, features[0].Id, features[0].Code)
+		}
+	}
+}
+
+// --of reaches its feature through the same lookup, so a lower-case
+// feature identifier selects that feature's criteria.
+//
+// AC: AC-GHK-007.7
+func TestCriteriaOfALowerCaseFeatureIdentifierAreThatFeaturesCriteria(t *testing.T) {
+	built := identifierCorpus(t)
+
+	criteria := built.CriteriaOf("feat-chk-001")
+	if len(criteria) != 1 || criteria[0].Id != "AC-CHK-001.1" {
+		t.Errorf("CriteriaOf(feat-chk-001) = %v, want the one criterion AC-CHK-001.1", criteria)
+	}
+}
+
+// A registered qualifier selects its carriers whether or not it is written
+// with Gherkin's leading "@", and a qualifier the profile does not
+// register is a malformed question: an error naming it and every
+// registered qualifier, never an empty selection.
+//
+// AC: AC-GHK-007.8, AC-GHK-007.9
+func TestCriteriaByTagAcceptsALeadingAtAndRefusesAnUnregisteredQualifier(t *testing.T) {
+	built := identifierCorpus(t)
+
+	for _, tag := range []string{"negative", "@negative"} {
+		criteria, err := built.CriteriaByTag(tag)
+		if err != nil {
+			t.Fatalf("CriteriaByTag(%q): %v", tag, err)
+		}
+		if len(criteria) != 1 || criteria[0].Id != "AC-CHK-001.1" {
+			t.Errorf("CriteriaByTag(%q) = %v, want the one criterion AC-CHK-001.1", tag, criteria)
+		}
+	}
+
+	criteria, err := built.CriteriaByTag("zzz")
+	if !errors.Is(err, corpus.ErrUnregisteredQualifier) {
+		t.Fatalf("CriteriaByTag(zzz) error = %v, want one matching ErrUnregisteredQualifier", err)
+	}
+	if criteria != nil {
+		t.Errorf("CriteriaByTag(zzz) = %v alongside the error, want none", criteria)
+	}
+	for _, want := range []string{`"zzz"`, "negative, manual, level-unit"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q does not carry %q", err, want)
+		}
+	}
+}

@@ -86,6 +86,10 @@
       "additionalProperties": false,
       "description": "One heading matched against an ambiguous anchor.\n\nHeld apart from the full `Heading` shape because a match names only what\nthe reader needs to find the right one — its text and where it is\nwritten — and carries none of a heading's own section content or nested\nrecord blocks.",
       "properties": {
+        "heading_path": {
+          "description": "The heading's heading path: the identifier of each enclosing heading\nfrom the outermost down, followed by its own, joined by `#`. Written as\na selection or an anchor, it names this heading alone unless two\nsibling headings share identical text all the way up, and then no path\ncan — or unless it is a single segment another heading's identifier\nshares, since a one-segment query is an identifier comparison over\nevery heading.",
+          "type": "string"
+        },
         "span": {
           "$ref": "#/definitions/Span",
           "description": "Where the heading line itself is written."
@@ -97,6 +101,7 @@
       },
       "required": [
         "text",
+        "heading_path",
         "span"
       ],
       "type": "object"
@@ -666,6 +671,13 @@
             "$ref": "#/definitions/C4Relationship"
           },
           "type": "array"
+        },
+        "root_declared": {
+          "description": "Whether the root the model was narrowed to names an element: present\nexactly when the model was narrowed by a root, and false when no\nelement has that slug, every collection then empty. Absent from a\nwhole-corpus model, which names no root.",
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "schema_version": {
           "description": "The version of this shape. Pinned to one value so a consumer can\nrefuse an artifact it does not understand.",
@@ -1380,6 +1392,10 @@
             "null"
           ]
         },
+        "feature_id": {
+          "$ref": "#/definitions/FeatureId",
+          "description": "The identifier of the feature the criterion belongs to — the same value\nas its feature's `id`."
+        },
         "id": {
           "$ref": "#/definitions/CriterionId",
           "description": "The criterion's identifier, from the tag that declares it."
@@ -1414,6 +1430,10 @@
           "$ref": "#/definitions/CriterionNotation",
           "description": "The notation this criterion was written in."
         },
+        "path": {
+          "description": "The path of the file the criterion is written in, relative to the\nrepository root and written with forward slashes on every platform.\n\nThe same value as its feature's `path`, carried here so that a lookup\nof one criterion locates it without a second query.",
+          "type": "string"
+        },
         "rule": {
           "description": "The name of the business rule this criterion sits beneath, absent where\nit sits directly under its feature.\n\nThe rule's name is an assertion — \"a build failure is the checker's job,\nnot the indexer's\" — so recording it puts the reason several criteria\nexist together in the index, scoped explicitly rather than inferred from\nposition in a document.",
           "type": [
@@ -1425,6 +1445,13 @@
           "$ref": "#/definitions/Span",
           "description": "Where in its document the criterion is written, as a span rather than a\nbare line number, so that a report and a rewrite both address the\ncriterion itself."
         },
+        "tags": {
+          "description": "Every tag written on the criterion, in the order written, each without\nits leading `@`: the identifier tag, the qualifier tags and any tag the\nprofile does not register alike.\n\nA criterion derived from an `Examples` block carries its scenario's tags\nfirst and then the block's own. The qualifier properties below are\nread from these tags; the tags are carried as written so that one the\nprofile does not recognize — a misspelled qualifier — is still visible\non the record.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "text": {
           "description": "The criterion's body, exactly as written.\n\nFor a Gherkin criterion this is its steps and any example table,\nverbatim, with the block's common indentation removed. For a prose\ncriterion it is the sentence. One property serves both because the\ncriterion is the unit, and its text is what every notation has.",
           "type": "string"
@@ -1432,6 +1459,9 @@
       },
       "required": [
         "id",
+        "path",
+        "feature_id",
+        "tags",
         "text",
         "negative",
         "manual",
@@ -1442,7 +1472,7 @@
       "type": "object"
     },
     "CriterionId": {
-      "description": "The identifier of one acceptance criterion, as written in the tag that\ndeclares it.\n\nConstrained here rather than checked in code, because this is the join\nbetween three things that must agree: the criterion in a specification,\nthe citation a test carries, and the row a central store holds. The\npattern is the one the framework's acceptance-criterion traceability\nstandard already fixes, minus\nthe leading `@` that makes it a Gherkin tag — the identifier is the\nvalue, and the tag is only how it is written down.\n\nThe middle segments are the owning feature's code and number, which is\nwhat allows a criterion to name its feature without carrying a second\nproperty: `AC-GHK-001.1` belongs to the feature coded `GHK` numbered\n`001`.",
+      "description": "The identifier of one acceptance criterion, as written in the tag that\ndeclares it.\n\nConstrained here rather than checked in code, because this is the join\nbetween three things that must agree: the criterion in a specification,\nthe citation a test carries, and the row a central store holds. The\npattern is the one the framework's acceptance-criterion traceability\nstandard already fixes, minus\nthe leading `@` that makes it a Gherkin tag — the identifier is the\nvalue, and the tag is only how it is written down.\n\nThe middle segments are the owning feature's code and number:\n`AC-GHK-001.1` belongs to the feature coded `GHK` numbered `001`. A\ncriterion record carries its feature's identifier as a property of its\nown besides, so a lookup of one criterion locates it without deriving\nanything.",
       "pattern": "^AC-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{3}\\.[0-9]+$",
       "type": "string"
     },
@@ -2525,6 +2555,30 @@
         {
           "additionalProperties": false,
           "properties": {
+            "kind": {
+              "const": "unregistered-tag",
+              "type": "string"
+            },
+            "registered": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "tag": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "tag",
+            "registered"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
             "anchor": {
               "type": "string"
             },
@@ -2941,10 +2995,10 @@
     },
     "FindingReport": {
       "additionalProperties": false,
-      "description": "Everything one check run produced.\n\nThe two collections answer different questions and neither substitutes\nfor the other. `findings` is what is wrong; `checks` is what was looked\nat. A report carrying no findings is only good news if every check the\ncaller cares about is accounted for in `checks` as having passed.\n\nBoth are lists rather than maps so that the emitter owns their order and\ncan make output byte-identical across platforms without a change to this\nmodel.",
+      "description": "Everything one check run produced.\n\nThe two collections answer different questions and neither substitutes\nfor the other. `findings` is what is wrong; `checks` is what was looked\nat. A report carrying no findings is only good news if every check the\ncaller cares about is listed in `checks` as having passed.\n\nBoth are lists rather than maps so that the emitter owns their order and\ncan make output byte-identical across platforms without a change to this\nmodel.",
       "properties": {
         "checks": {
-          "description": "Every check the run knows about, in the order the emitter fixes, each\nwith what became of it.",
+          "description": "Every check the run was asked for, in the order the emitter fixes, each\nwith what became of it. A check the run was not asked for is absent, so\nit can never read as passed.",
           "items": {
             "$ref": "#/definitions/CheckResult"
           },
@@ -3049,6 +3103,28 @@
         "slug",
         "citing_path",
         "map_path"
+      ],
+      "type": "object"
+    },
+    "FindingUnregisteredTag": {
+      "additionalProperties": false,
+      "description": "A Gherkin tag the active profile's tag vocabulary assigns no meaning: it\nmatches neither identifier pattern, names no owning document and is no\nregistered qualifier.\n\nA warning rather than an error, so a project's own tags coexist with the\nvocabulary; a misspelt qualifier is the case it exists for, since the\ntag silently loses its meaning. The registered qualifiers are carried\nbecause they are the spellings an author most likely meant.",
+      "properties": {
+        "registered": {
+          "description": "Every qualifier tag the active profile registers, in registration order.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tag": {
+          "description": "The tag as written, without its leading `@`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tag",
+        "registered"
       ],
       "type": "object"
     },
@@ -3380,6 +3456,13 @@
             "$ref": "#/definitions/RecordBlock"
           },
           "type": "array"
+        },
+        "recovered_slug": {
+          "description": "The slug a member whose frontmatter failed to parse still states\nlegibly (AC-SPEC-003.7), recorded as declared by this member: references\nto it resolve, and the slug query answers it, as for a member that\nparsed.\n\nAbsent when `frontmatter` is present, whose envelope carries the slug,\nand when no slug is legible.",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [

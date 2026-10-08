@@ -611,6 +611,7 @@ binary and distribution.
 | AC-SPEC-010.4 | **CACHE (proves)** | unit |
 | AC-SPEC-010.5 | **CACHE (proves)** | integration |
 | AC-SPEC-010.6 | **CACHE (proves)** | integration |
+| AC-SPEC-010.7 | **CACHE (proves)**, CLI | integration |
 | AC-SPEC-011.1 | **CLI (proves)**, CACHE | integration |
 | AC-SPEC-011.2 | **CLI (proves)** | integration |
 | AC-SPEC-011.3 | **CLI (proves)**, CO | integration |

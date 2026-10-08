@@ -1,0 +1,5 @@
+description = "check <path> on a document holding an unresolved reference and a reference to a retired target reports each at that document's own line, exactly as a corpus check reports them for that document"
+cites = ["AC-SPECREF-002.11"]
+artifacts = ["checks.log"]
+args = ["check", "docs/adrs/adr-201-referrer.md"]
+exit_code = 1

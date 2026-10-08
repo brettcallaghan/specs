@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -34,9 +33,12 @@ func newFeatureCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		Short: "Query a feature, or emit one as a standalone Gherkin file",
 		Long: "feature <id> returns that feature's record, including its criteria. " +
 			"feature --code <CODE> returns every feature grouped under that code, and " +
-			"feature with no argument every feature in the corpus. --json writes the " +
-			"matching records as JSON to standard output. An identifier no feature " +
-			"declares is reported as such and exits non-zero. " +
+			"feature with no argument every feature in the corpus. The answer is a " +
+			"YAML mapping whose one key, features, holds a list of the matching " +
+			"records in every case, one identifier included; --json writes the same " +
+			"values as JSON. Given an identifier or --code, the answer also carries " +
+			"declared, false with an empty list where the corpus declares no such " +
+			"feature or code; that is an answer, and exits 0. " +
 			"feature <id> --emit writes the named feature as a valid Gherkin .feature " +
 			"file, carrying its tags, description and criteria, to standard output " +
 			"by default and to the path --out names.",
@@ -49,12 +51,12 @@ func newFeatureCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			if emit {
 				if code != "" || jsonOut {
-					return errors.New("specs feature: --code and --json cannot be combined with --emit")
+					return invocationError("--code and --json cannot be combined with --emit")
 				}
 				return runFeatureEmit(streams, *configPath, args[0], out)
 			}
 			if code != "" && len(args) == 1 {
-				return errors.New("specs feature: an identifier and --code cannot both be given")
+				return invocationError("an identifier and --code cannot both be given")
 			}
 			return runFeatureQuery(streams, *configPath, args, code, jsonOut)
 		},
@@ -66,7 +68,7 @@ func newFeatureCmd(streams *ioStreams, configPath *string) *cobra.Command {
 	cmd.Flags().StringVar(&code, "code", "",
 		"list every feature grouped under this code")
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
-		"write the matching feature records as JSON to standard output")
+		"write the answer as JSON instead of YAML")
 	return cmd
 }
 
@@ -79,12 +81,12 @@ func newFeatureCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // identifier is exactly the kind of corpus query those subcommands'
 // shared latency budget is measured against.
 func runFeatureEmit(streams *ioStreams, configPath, id, out string) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, false)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -97,11 +99,13 @@ func runFeatureEmit(streams *ioStreams, configPath, id, out string) error {
 		return err
 	}
 
+	// An identifier no feature declares is an operand this producer
+	// cannot act on (exit 2): unlike the query, --emit has no answer that
+	// could carry "not declared", so writing nothing and saying why is the
+	// whole of what it can do.
 	feature, found := c.Feature(specmodel.FeatureId(id))
 	if !found {
-		fmt.Fprintf(streams.err, "%s: not found\n", id)
-		streams.exitCode = 1
-		return nil
+		return invocationError("%s: not found", id)
 	}
 
 	rules := opts.Profile.FeatureTags()
@@ -110,18 +114,18 @@ func runFeatureEmit(streams *ioStreams, configPath, id, out string) error {
 	if out == "" {
 		_, err := streams.out.Write(data)
 		if err != nil {
-			return fmt.Errorf("cmd: writing the emitted feature to standard output: %w", err)
+			return fmt.Errorf("writing the emitted feature to standard output: %w", err)
 		}
 		return nil
 	}
 
 	if dir := filepath.Dir(out); dir != "." {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return fmt.Errorf("cmd: creating %s: %w", dir, err)
+			return environmentError("%s cannot be written: %s", filepath.ToSlash(out), writeErrorText(out, err))
 		}
 	}
 	if err := os.WriteFile(out, data, 0o644); err != nil {
-		return fmt.Errorf("cmd: writing %s: %w", out, err)
+		return environmentError("%s cannot be written: %s", filepath.ToSlash(out), writeErrorText(out, err))
 	}
 	// A file was written: name it, the same convention `index` follows
 	// for the same reason — a human running this interactively sees
@@ -139,19 +143,19 @@ func runFeatureEmit(streams *ioStreams, configPath, id, out string) error {
 // next-id and refs, so a query answers from the persisted index without
 // re-walking the corpus when its inputs are unchanged (AC-GHK-007.6).
 //
-// An identifier argument selects one feature by [corpus.Corpus.Feature];
-// naming no record is reported distinctly and exits non-zero
-// (AC-GHK-007.4). Otherwise --code selects every feature
-// [corpus.Corpus.FeaturesByCode] grouped under it, or, given neither, every
-// feature in the corpus — both are selections, and an empty selection
-// exits zero rather than being confused with an unknown identifier.
+// An identifier argument selects one feature by [corpus.Corpus.Feature],
+// --code every feature [corpus.Corpus.FeaturesByCode] groups under it,
+// and neither every feature in the corpus. An identifier or code the
+// corpus does not declare is answered with the empty selection and
+// declared false, exiting zero (AC-GHK-007.4), so "nothing matches" and
+// "nothing by that name exists" read apart.
 func runFeatureQuery(streams *ioStreams, configPath string, args []string, code string, jsonOut bool) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, jsonOut)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -165,84 +169,60 @@ func runFeatureQuery(streams *ioStreams, configPath string, args []string, code 
 	}
 
 	if len(args) == 1 {
-		id := args[0]
-		feature, found := c.Feature(specmodel.FeatureId(id))
+		feature, found := c.Feature(specmodel.FeatureId(args[0]))
 		if !found {
-			fmt.Fprintf(streams.err, "%s: not found\n", id)
-			streams.exitCode = 1
-			return nil
+			return renderFeatures(streams, nil, declared(false), jsonOut)
 		}
-		return renderFeature(streams, feature, jsonOut)
+		return renderFeatures(streams, []specmodel.Feature{feature}, declared(true), jsonOut)
 	}
 
-	var features []specmodel.Feature
 	if code != "" {
-		features = c.FeaturesByCode(specmodel.FeatureCode(code))
-	} else {
-		features = c.Features()
+		features := c.FeaturesByCode(specmodel.FeatureCode(code))
+		return renderFeatures(streams, features, declared(len(features) > 0), jsonOut)
 	}
-	return renderFeatures(streams, features, jsonOut)
+	return renderFeatures(streams, c.Features(), nil, jsonOut)
 }
 
-// renderFeature writes one feature, including its criteria, to
-// streams.out: the generated [specmodel.Feature] JSON in --json mode, and
-// a short human summary otherwise — the feature's identifier and name, one
-// tab-indented `<id>\t<name>` line per criterion beneath it, matching the
-// tab-separated shape `criterion --changed` already writes.
-func renderFeature(streams *ioStreams, feature specmodel.Feature, asJSON bool) error {
-	if asJSON {
-		data, err := json.Marshal(feature)
-		if err != nil {
-			return fmt.Errorf("cmd: rendering the feature as JSON: %w", err)
-		}
-		fmt.Fprintf(streams.out, "%s\n", data)
-		return nil
-	}
-
-	fmt.Fprintf(streams.out, "%s\t%s\n", feature.Id, feature.Name)
-	for _, criterion := range feature.Criteria {
-		fmt.Fprintf(streams.out, "\t%s\t%s\n", criterion.Id, criterionName(criterion))
-	}
-	return nil
+// featuresResult is the feature query's answer: the matching records
+// under the one key `features`, whatever the arguments selected — one
+// identifier, a code, or every feature — so a caller never branches on
+// what it passed ([[cli-output-standards]]'s "One shape per command").
+// Features is never nil, so an empty selection renders as `features: []`.
+//
+// Declared states whether the subject the invocation named — an
+// identifier, or a code, which is declared exactly when some feature
+// carries it — is one the corpus declares (AC-GHK-007.4). It is present
+// exactly when a subject is named, true or false, and absent for the
+// listing of every feature, which names none; it precedes the collection
+// it qualifies, as refs' declared does.
+type featuresResult struct {
+	Declared *bool               `json:"declared,omitempty"`
+	Features []specmodel.Feature `json:"features"`
 }
 
-// renderFeatures writes a feature selection to streams.out: the generated
-// [specmodel.Feature] JSON array in --json mode (AC-GHK-007.5), and one
-// `<id>\t<name>` line per feature otherwise. An empty selection writes a
-// fixed sentence in text mode and `[]` in JSON mode — it is a valid answer,
-// never the non-zero "not found" an unknown identifier produces
-// (AC-GHK-007.4).
-func renderFeatures(streams *ioStreams, features []specmodel.Feature, asJSON bool) error {
+// declared is the not-declared property's value for a query that names a
+// subject: a pointer, so that a query naming none can leave it absent.
+func declared(found bool) *bool { return &found }
+
+// renderFeatures writes the answer as YAML, or as JSON under --json, both
+// carrying the same values in the same order (AC-GHK-007.1, AC-GHK-007.5).
+// A subject the corpus does not declare is an answer too — the empty
+// selection with declared false, exiting zero (AC-GHK-007.4).
+func renderFeatures(streams *ioStreams, features []specmodel.Feature, isDeclared *bool, asJSON bool) error {
 	if features == nil {
 		features = []specmodel.Feature{}
 	}
+	result := featuresResult{Declared: isDeclared, Features: features}
 	if asJSON {
-		data, err := json.Marshal(features)
+		data, err := json.Marshal(result)
 		if err != nil {
-			return fmt.Errorf("cmd: rendering the feature selection as JSON: %w", err)
+			return fmt.Errorf("rendering the features as JSON: %w", err)
 		}
 		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil
 	}
-
-	if len(features) == 0 {
-		fmt.Fprintln(streams.out, "no matching features")
-		return nil
-	}
-	for _, feature := range features {
-		fmt.Fprintf(streams.out, "%s\t%s\n", feature.Id, feature.Name)
-	}
+	fmt.Fprint(streams.out, renderYAML(result))
 	return nil
-}
-
-// criterionName returns c's Name, or the empty string where the notation
-// gave it none — the same nil-to-empty reading [toRenderCriterion] applies
-// for `--emit`.
-func criterionName(c specmodel.Criterion) string {
-	if c.Name == nil {
-		return ""
-	}
-	return *c.Name
 }
 
 // toRenderFeature converts an index record into what [gherkin.Render]

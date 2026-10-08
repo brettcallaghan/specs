@@ -215,26 +215,58 @@ func (r *Registry) Declares(documentType, property string) (bool, error) {
 	return declares(branch, property, make(map[*jsonschema.Schema]bool)), nil
 }
 
-// declares reports whether s, or a schema it references or requires in
-// full, declares property. seen guards against a cyclic schema graph.
-func declares(s *jsonschema.Schema, property string, seen map[*jsonschema.Schema]bool) bool {
+// Enum returns the values the schema of property allows on the branch
+// documentType selects, in the schema's own order, and whether that
+// schema is an enum at all. The property is found as [Registry.Declares]
+// finds it, and its schema is followed through $ref to the enum.
+//
+// An error is returned only when the union schema declares no branch for
+// documentType.
+func (r *Registry) Enum(documentType, property string) ([]string, bool, error) {
+	branch, err := r.branch(documentType)
+	if err != nil {
+		return nil, false, err
+	}
+	s := propertySchema(branch, property, make(map[*jsonschema.Schema]bool))
+	for seen := map[*jsonschema.Schema]bool{}; s != nil && !seen[s]; s = s.Ref {
+		seen[s] = true
+		if s.Enum != nil {
+			values := make([]string, 0, len(s.Enum.Values))
+			for _, value := range s.Enum.Values {
+				values = append(values, enumValue(value))
+			}
+			return values, true, nil
+		}
+	}
+	return nil, false, nil
+}
+
+// propertySchema returns the schema s, or a schema it references or
+// requires in full, declares for property, or nil.
+func propertySchema(s *jsonschema.Schema, property string, seen map[*jsonschema.Schema]bool) *jsonschema.Schema {
 	if s == nil || seen[s] {
-		return false
+		return nil
 	}
 	seen[s] = true
 
-	if _, found := s.Properties[property]; found {
-		return true
+	if found, ok := s.Properties[property]; ok {
+		return found
 	}
-	if declares(s.Ref, property, seen) {
-		return true
+	if found := propertySchema(s.Ref, property, seen); found != nil {
+		return found
 	}
 	for _, required := range s.AllOf {
-		if declares(required, property, seen) {
-			return true
+		if found := propertySchema(required, property, seen); found != nil {
+			return found
 		}
 	}
-	return false
+	return nil
+}
+
+// declares reports whether s, or a schema it references or requires in
+// full, declares property. seen guards against a cyclic schema graph.
+func declares(s *jsonschema.Schema, property string, seen map[*jsonschema.Schema]bool) bool {
+	return propertySchema(s, property, seen) != nil
 }
 
 // pascalCase converts a kebab-case document type value to the PascalCase
@@ -338,38 +370,41 @@ func rawText(raw string) string {
 }
 
 // findingsFor converts every leaf of a validation failure into a
-// Finding, walking the library's flattened Basic output so that a
-// oneOf's several failed branches, and every sibling constraint
+// Finding, walking the error's causes down to the errors that have none,
+// so that a oneOf's several failed branches, and every sibling constraint
 // violation, are all reported rather than only the first.
+//
+// The walk goes to the leaves rather than reading the library's flattened
+// Basic output because that output reports a property constrained through
+// $ref as a failure of $ref: the constraint actually violated — a pattern,
+// an enum — sits in the cause beneath it, and only the leaf can name it
+// (AC-SPEC-006.1).
 func findingsFor(path string, doc *frontmatter.Document, verr *jsonschema.ValidationError) []specmodel.Finding {
-	output := verr.BasicOutput()
-
-	units := output.Errors
-	if len(units) == 0 {
-		units = []jsonschema.OutputUnit{*output}
-	}
-
 	var findings []specmodel.Finding
-	for _, unit := range units {
-		findings = append(findings, findingsForUnit(path, doc, unit)...)
+	var walk func(e *jsonschema.ValidationError)
+	walk = func(e *jsonschema.ValidationError) {
+		if len(e.Causes) == 0 {
+			findings = append(findings, findingsForLeaf(path, doc, e)...)
+			return
+		}
+		for _, cause := range e.Causes {
+			walk(cause)
+		}
 	}
+	walk(verr)
 	return findings
 }
 
-// findingsForUnit converts one leaf validation failure to the Finding(s)
+// findingsForLeaf converts one leaf validation failure to the Finding(s)
 // it represents: several missing-property Findings for one required
 // failure naming several properties, one schema-violation Finding per
 // undeclared property for one additionalProperties failure naming
 // several, or one schema-violation Finding for any other constraint.
-func findingsForUnit(path string, doc *frontmatter.Document, unit jsonschema.OutputUnit) []specmodel.Finding {
-	if unit.Error == nil {
-		return nil
-	}
-
-	pointer := unit.InstanceLocation
+func findingsForLeaf(path string, doc *frontmatter.Document, leaf *jsonschema.ValidationError) []specmodel.Finding {
+	pointer := instancePointer(leaf.InstanceLocation)
 	at := spanFor(doc, pointer)
 
-	if required, ok := unit.Error.Kind.(*kind.Required); ok {
+	if required, ok := leaf.ErrorKind.(*kind.Required); ok {
 		findings := make([]specmodel.Finding, 0, len(required.Missing))
 		for _, property := range required.Missing {
 			findings = append(findings, finding.MissingProperty(path, at, pointer, property))
@@ -390,7 +425,7 @@ func findingsForUnit(path string, doc *frontmatter.Document, unit jsonschema.Out
 	// constraint, and naming its raw text as the value — self-contained
 	// per AC-SPEC-006.1, the same bar every other schema-violation
 	// finding meets.
-	if additional, ok := unit.Error.Kind.(*kind.AdditionalProperties); ok {
+	if additional, ok := leaf.ErrorKind.(*kind.AdditionalProperties); ok {
 		findings := make([]specmodel.Finding, 0, len(additional.Properties))
 		for _, property := range additional.Properties {
 			propertyPointer := pointer + "/" + escapePointerToken(property)
@@ -405,11 +440,6 @@ func findingsForUnit(path string, doc *frontmatter.Document, unit jsonschema.Out
 		return findings
 	}
 
-	constraint := strings.Join(unit.Error.Kind.KeywordPath(), "/")
-	if constraint == "" {
-		constraint = "schema"
-	}
-
 	value := ""
 	if name, _ := topLevelProperty(pointer); name != "" {
 		if property, ok := doc.Property(name); ok {
@@ -418,8 +448,54 @@ func findingsForUnit(path string, doc *frontmatter.Document, unit jsonschema.Out
 	}
 
 	return []specmodel.Finding{
-		finding.SchemaViolation(path, at, pointer, constraint, value),
+		finding.SchemaViolation(path, at, pointer, constraintOf(leaf.ErrorKind), value),
 	}
+}
+
+// constraintOf names the constraint a leaf failure violated, stating it
+// in full where the keyword alone would not tell an author what to write:
+// a pattern with its expression, an enum with every allowed value. Any
+// other kind is named by its keyword path.
+func constraintOf(errorKind jsonschema.ErrorKind) string {
+	switch k := errorKind.(type) {
+	case *kind.Pattern:
+		return fmt.Sprintf("pattern %q", k.Want)
+	case *kind.Enum:
+		allowed := make([]string, 0, len(k.Want))
+		for _, want := range k.Want {
+			allowed = append(allowed, enumValue(want))
+		}
+		return "one of " + strings.Join(allowed, ", ")
+	}
+	if constraint := strings.Join(errorKind.KeywordPath(), "/"); constraint != "" {
+		return constraint
+	}
+	return "schema"
+}
+
+// enumValue renders one allowed enum value: a string as itself, anything
+// else as its JSON text.
+func enumValue(value any) string {
+	if s, ok := value.(string); ok {
+		return s
+	}
+	data, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Sprint(value)
+	}
+	return string(data)
+}
+
+// instancePointer writes an instance location as a JSON Pointer, the
+// form the Basic output used: "" for the object itself, and otherwise
+// each token escaped per RFC 6901 behind a "/".
+func instancePointer(location []string) string {
+	var b strings.Builder
+	for _, token := range location {
+		b.WriteString("/")
+		b.WriteString(escapePointerToken(token))
+	}
+	return b.String()
 }
 
 // spanFor locates a JSON Pointer within the document: the position of
@@ -458,10 +534,9 @@ func unescapePointerToken(token string) string {
 }
 
 // escapePointerToken applies RFC 6901 escaping to a single pointer
-// token, the inverse of unescapePointerToken. Needed only when this
-// package constructs a pointer itself — for every pointer the
-// underlying library reports, escaping has already happened before this
-// package ever sees it.
+// token, the inverse of unescapePointerToken. The library reports an
+// instance location as unescaped tokens, so every pointer this package
+// writes is escaped here.
 func escapePointerToken(token string) string {
 	token = strings.ReplaceAll(token, "~", "~0")
 	token = strings.ReplaceAll(token, "/", "~1")

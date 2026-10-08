@@ -33,7 +33,7 @@ import (
 // is what lets --only name each of the reference-integrity checks and
 // what lets --strict reach the reference/retired-target warning even on
 // a corpus that never triggers it.
-// The nine gherkin/* identity rules (VTAG) and four gherkin/* content
+// The ten gherkin/* identity rules (VTAG) and four gherkin/* content
 // rules (VCON) are declared for the same reason: without it, a corpus
 // with no Gherkin defect at all would leave them out of the accounting
 // entirely, rather than showing "passed".
@@ -60,6 +60,7 @@ var checkRules = []specmodel.RuleId{
 	finding.RuleOwnerMissing,
 	finding.RuleOwnerMismatch,
 	finding.RuleOwnerUnresolved,
+	finding.RuleTagUnregistered,
 	finding.RuleGherkinParse,
 	finding.RuleCriterionEmpty,
 	finding.RuleScenarioProse,
@@ -99,7 +100,7 @@ func newCheckCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
-		"write the full finding set as JSON to standard output")
+		"write the answer as JSON instead of YAML")
 	cmd.Flags().BoolVar(&strict, "strict", false,
 		"exit non-zero when the run produces only warning or unverified findings")
 	cmd.Flags().StringSliceVar(&only, "only", nil,
@@ -123,15 +124,15 @@ func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict bool,
 	// zero, silently disabling whatever gate passed it (AC-SPEC-006.10).
 	// It is refused before the corpus is opened, so no report is written.
 	if err := validateOnly(only); err != nil {
-		return err
+		return invocationError("%w", err)
 	}
 
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, jsonOut)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -157,22 +158,17 @@ func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict bool,
 		// findings is what "this document passed" looks like
 		// (`agent-plugins-ltd`). corpus already distinguishes a file the
 		// index excluded, with its reason, from one discovery never saw.
+		//
+		// It is an invocation error (status 2) and never a pass: a gate
+		// that cannot inspect its subject has decided nothing
+		// (AC-SPEC-011.6).
 		if errors.Is(err, corpus.ErrNotAMember) {
-			return fmt.Errorf("cmd: %s was not checked: %w", path, err)
+			return invocationError("%w", withoutPrefix(err, "corpus: "))
 		}
-		return fmt.Errorf("cmd: checking: %w", err)
+		return fmt.Errorf("checking: %w", err)
 	}
 
 	report := buildCheckReport(raw, only)
-	if path == "" {
-		// Document count and exclusions describe the whole corpus, not
-		// one document, so they attach here only for the unnarrowed run
-		// — the same corpus-wide reach [RuleCorpusEmpty] is scoped to
-		// (corpus/check.go's `only == nil` guard).
-		index := c.Index()
-		report.SetDocumentCount(len(index.Entries))
-		report.SetExclusions(index.Exclusions)
-	}
 	if err := renderReport(streams, report, jsonOut); err != nil {
 		return err
 	}
@@ -235,7 +231,7 @@ func requestedRules(only []string) map[specmodel.RuleId]bool {
 
 // ErrUnknownCheck reports an --only value naming no rule identifier in
 // checkRules.
-var ErrUnknownCheck = errors.New("not a known check")
+var ErrUnknownCheck = errors.New("is not a known check")
 
 // validateOnly refuses any --only value that names no rule in checkRules,
 // naming every unknown value and every known rule so the caller can
@@ -260,7 +256,7 @@ func validateOnly(only []string) error {
 		names = append(names, string(rule))
 	}
 	sort.Strings(names)
-	return fmt.Errorf("cmd: --only %s is %w; known: %s",
+	return fmt.Errorf("%s %w for --only; known: %s",
 		strings.Join(unknown, ", "), ErrUnknownCheck, strings.Join(names, ", "))
 }
 
@@ -270,12 +266,12 @@ func validateOnly(only []string) error {
 // zero unless strict is set.
 func exitCodeFor(report *finding.Report, strict bool) int {
 	if report.HasErrors() {
-		return 1
+		return statusGateFailed
 	}
 	if strict && hasWarningOrUnverified(report) {
-		return 1
+		return statusGateFailed
 	}
-	return 0
+	return statusOK
 }
 
 // hasWarningOrUnverified reports whether report carries a finding of

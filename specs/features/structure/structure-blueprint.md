@@ -5,11 +5,11 @@ description: Builds the heading tree with section spans, attaches parsed
   index, and answers a heading query
 slug: feature-spec-structure
 type: feature-blueprint
-status: in-progress
-updated_at: 2026-09-26T00:00:00Z
+status: retired
+updated_at: 2026-10-08T00:00:00Z
 delivery: staged
 frd: frd-spec-structure
-plan: agent-plugins-f6tl
+plan: specs-f6tl
 ---
 
 # Spec Corpus Structure Extraction
@@ -308,21 +308,21 @@ parsing and attachment).
 
 ## Definition of Done
 
-- [ ] Every delta above is folded into its owning blueprint:
-  - [ ] [[module-document-core]] — Markdown Structure, Corpus and the
+- [x] Every delta above is folded into its owning blueprint:
+  - [x] [[module-document-core]] — Markdown Structure, Corpus and the
     Profile extension point updated, and the index model's vocabulary
     extended
-  - [ ] [[container-spec-cli]] — Command Surface updated for the heading
+  - [x] [[container-spec-cli]] — Command Surface updated for the heading
     query
-- [ ] [[contract-specs-configuration]]'s internal registration surface
+- [x] [[contract-specs-configuration]]'s internal registration surface
   names the record-block tag registration
-- [ ] New ADRs are referenced from the owning blueprints' Key Decisions
+- [x] New ADRs are referenced from the owning blueprints' Key Decisions
   (none authored by this feature)
-- [ ] Every AC in the coverage table is verified at its declared level
+- [x] Every AC in the coverage table is verified at its declared level
   and cited from its tests per [[ac-traceability-standards]]
-- [ ] Every issue listed as subsumed in Tracker Reconciliation is closed
+- [x] Every issue listed as subsumed in Tracker Reconciliation is closed
   or re-scoped (none; both listed issues are out-of-scope)
-- [ ] This blueprint's status → retired
+- [x] This blueprint's status → retired
 
 ## Open Questions
 

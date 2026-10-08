@@ -120,6 +120,7 @@ var documentTypes = map[string]corpus.DocumentTypeRules{
 	string(specmodel.DocumentTypeAdr): {
 		SlugPattern: `^adr-[0-9]{3,}(-[a-z0-9]+(-[a-z0-9]+)*)?$`,
 		Numbered:    true,
+		NumberWidth: 3,
 	},
 	string(specmodel.DocumentTypeFrd): {
 		SlugPattern: `^frd-[a-z0-9]+(-[a-z0-9]+)*$`,

@@ -68,10 +68,17 @@ func coverDir(t *testing.T) string {
 	return dir
 }
 
-// buildSpec builds the specs binary once per test binary and returns its
-// path. It uses the module the test itself lives in, so it always builds
-// the working tree's code rather than anything previously installed.
+// buildSpec builds the specs binary into a fresh temporary directory and
+// returns its path. It uses the module the test itself lives in, so it
+// always builds the working tree's code rather than anything previously
+// installed.
 func buildSpec(t *testing.T) string {
+	t.Helper()
+	return buildSpecIn(t, t.TempDir())
+}
+
+// buildSpecIn builds the specs binary into dir and returns its path.
+func buildSpecIn(t *testing.T, dir string) string {
 	t.Helper()
 
 	if testing.Short() {
@@ -90,7 +97,7 @@ func buildSpec(t *testing.T) string {
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
-	bin := filepath.Join(t.TempDir(), name)
+	bin := filepath.Join(dir, name)
 	args := []string{"build"}
 	if coverDir(t) != "" {
 		args = append(args, "-cover", "-coverpkg="+coverPkg)
@@ -257,13 +264,13 @@ func TestBinaryWritesTheIndexToStandardOutput(t *testing.T) {
 	}
 }
 
-// TestBinaryReportsAMissingConfigurationAndExitsNonZero covers the first
+// TestBinaryReportsAMissingConfigurationAndExitsThree covers the first
 // thing an adopter gets wrong, through the process boundary: run the tool
 // somewhere with no specs.toml. The status matters as much as the
 // message, because this is the shape a CI job sees.
 //
 // AC: AC-SPEC-008.3
-func TestBinaryReportsAMissingConfigurationAndExitsNonZero(t *testing.T) {
+func TestBinaryReportsAMissingConfigurationAndExitsThree(t *testing.T) {
 	bin := buildSpec(t)
 	dir := t.TempDir() // deliberately empty: no specs.toml anywhere
 
@@ -277,11 +284,37 @@ func TestBinaryReportsAMissingConfigurationAndExitsNonZero(t *testing.T) {
 	if !asExitError(err, &exit) {
 		t.Fatalf("running the binary: %v", err)
 	}
-	if exit.ExitCode() == 0 {
-		t.Errorf("process exit status = 0, want non-zero")
+	// 3, not merely non-zero: a missing configuration is the
+	// repository's to fix, and a CI step branches on that class
+	// (cli-exit-status-standards).
+	if exit.ExitCode() != 3 {
+		t.Errorf("process exit status = %d, want 3 (environment error)", exit.ExitCode())
 	}
 	if !containsPath(string(out), "specs.toml") {
-		t.Errorf("the failure does not name the path it looked for, which AC-SPEC-008.3 requires:\n%s", out)
+		t.Errorf("the failure does not name the file it looked for, which AC-SPEC-008.3 requires:\n%s", out)
+	}
+	// Every directory searched, from the working directory up: dir has no
+	// .git above it, so the search reaches the filesystem root. The
+	// working directory may be reported as given or with its symbolic
+	// links resolved (macOS's TMPDIR sits under /var, a link to
+	// /private/var), so either spelling of the chain is accepted.
+	resolved, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if missing := unnamedAncestors(string(out), dir); len(missing) > 0 {
+		if missingResolved := unnamedAncestors(string(out), resolved); len(missingResolved) > 0 {
+			t.Errorf("the failure does not name the searched directories %v:\n%s", missingResolved, out)
+		}
+	}
+	if !containsPath(string(out), "--config") {
+		t.Errorf("the failure does not say --config is the remedy:\n%s", out)
+	}
+
+	// stdout stays empty: the report is the error, on standard error.
+	stdout, _ := run(t, bin, dir, "check")
+	if stdout != "" {
+		t.Errorf("stdout = %q, want nothing", stdout)
 	}
 }
 
@@ -293,4 +326,18 @@ func containsPath(output, fragment string) bool {
 		}
 	}
 	return false
+}
+
+// unnamedAncestors returns each directory from dir up to the filesystem
+// root that out does not name.
+func unnamedAncestors(out, dir string) []string {
+	var missing []string
+	for d := dir; ; d = filepath.Dir(d) {
+		if !containsPath(out, d) {
+			missing = append(missing, d)
+		}
+		if filepath.Dir(d) == d {
+			return missing
+		}
+	}
 }

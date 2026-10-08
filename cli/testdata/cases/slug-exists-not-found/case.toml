@@ -1,5 +1,5 @@
-description = "slug-exists reports a slug no corpus member declares, and still exits zero"
-cites = ["AC-SPEC-011.3"]
+description = "slug-exists answers a slug no corpus member declares with declared: false and path: null, and still exits zero"
+cites = ["AC-SPEC-007.2", "AC-SPEC-011.3"]
 artifacts = ["checks.log"]
 args = ["slug-exists", "does-not-exist"]
 exit_code = 0

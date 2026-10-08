@@ -2,11 +2,9 @@
 package c4model_test
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/c4model"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
@@ -152,16 +150,40 @@ func TestNarrowingKeepsDerivedPropertiesWhole(t *testing.T) {
 	}
 }
 
-func TestARootNamingNoElementIsReported(t *testing.T) {
+// A root naming no element is an answer, not an error: a model holding
+// no element and no relationship, with root_declared false. A root naming
+// an element is declared, and a whole-corpus model names no root.
+//
+// AC: AC-C4-004.6
+func TestARootNamingNoElementIsAnsweredAsNotDeclared(t *testing.T) {
 	model, err := buildRooted(t, narrowed(), "component-missing")
-	var unknown *c4model.UnknownRootError
-	if !errors.As(err, &unknown) || unknown.Slug != "component-missing" {
-		t.Fatalf("err = %v, want an UnknownRootError naming component-missing", err)
+	if err != nil {
+		t.Fatalf("err = %v, want an answer", err)
 	}
-	if model != nil {
-		t.Errorf("returned a model with the error: %+v", model)
+	if model.RootDeclared == nil || *model.RootDeclared {
+		t.Errorf("root_declared = %v, want false", model.RootDeclared)
 	}
-	if !strings.Contains(err.Error(), "component-missing") {
-		t.Errorf("message %q does not name the slug", err.Error())
+	if len(model.SoftwareSystems)+len(model.OrphanedContainers)+len(model.OrphanedComponents)+
+		len(model.Modules)+len(model.Relationships)+len(model.ExcludedRelationships) != 0 {
+		t.Errorf("model holds elements or relationships: %+v", model)
+	}
+	if model.SoftwareSystems == nil || model.Relationships == nil || model.ExcludedRelationships == nil {
+		t.Errorf("a collection is nil rather than empty: %+v", model)
+	}
+
+	known, err := buildRooted(t, narrowed(), "module-gamma")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if known.RootDeclared == nil || !*known.RootDeclared {
+		t.Errorf("root_declared = %v for a declared root, want true", known.RootDeclared)
+	}
+
+	whole, err := buildRooted(t, narrowed(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if whole.RootDeclared != nil {
+		t.Errorf("root_declared = %v on a whole-corpus model, want absent", *whole.RootDeclared)
 	}
 }

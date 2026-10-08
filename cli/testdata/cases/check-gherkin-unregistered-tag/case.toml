@@ -1,0 +1,5 @@
+description = "a scenario carrying tags the vocabulary assigns no meaning, a misspelt qualifier and a project's own tag, is reported with one gherkin/tag-unregistered warning per tag, each naming it, and a default check exits 0"
+cites = ["AC-GHK-002.8"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 0

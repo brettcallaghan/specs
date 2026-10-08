@@ -20,16 +20,7 @@ import (
 // whose statement sits in the blueprint of one. Derived properties keep
 // the values the whole corpus gives them.
 func (a *assembly) narrow(full *specmodel.C4Model, root *c4elements.Element) *specmodel.C4Model {
-	out := &specmodel.C4Model{
-		SchemaVersion:         full.SchemaVersion,
-		Workspace:             full.Workspace,
-		SoftwareSystems:       []specmodel.C4System{},
-		OrphanedContainers:    []specmodel.C4Container{},
-		OrphanedComponents:    []specmodel.C4Component{},
-		Modules:               []specmodel.C4Module{},
-		Relationships:         []specmodel.C4Relationship{},
-		ExcludedRelationships: []specmodel.C4ExcludedRelationship{},
-	}
+	out := emptyModel(full.Workspace, true)
 
 	modules := map[string]specmodel.C4Module{}
 	for _, module := range full.Modules {

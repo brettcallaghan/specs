@@ -1,0 +1,5 @@
+description = "refs '<slug>#<anchor>' for a heading of the declared document that nothing cites answers the empty collection with anchor_declared: true, and exits zero"
+cites = ["AC-SPECANCH-003.6"]
+artifacts = ["checks.log"]
+args = ["refs", "adr-900-old-approach#ADR-900: Old Approach"]
+exit_code = 0

@@ -1,0 +1,1 @@
+{"documents":[{"path":"docs/adrs/adr-001-example.md","slug":"adr-001-example","type":"adr","title":"ADR-001: Example","description":"An example decision used by a snapshot case."},{"path":"docs/modules/module-gamma.md","slug":"module-gamma","type":"module-blueprint","status":"approved","title":"Module: Gamma","description":"A module blueprint that omits its required kind."}]}

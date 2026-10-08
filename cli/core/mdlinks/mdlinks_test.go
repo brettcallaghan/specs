@@ -321,7 +321,7 @@ func TestAnAnchorReachingNoHeadingYieldsAFragmentFromTheAnchorAsAuthored(t *test
 // requirement code, or a heading named in part — cannot silently start
 // emitting fragments that reach nothing.
 //
-// AC: AC-SPECMD-001.3
+// AC: AC-SPECMD-001.3, AC-SPECANCH-002.10
 func TestAResolvedAnchorTakesItsFragmentFromTheResolvedHeading(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -346,6 +346,14 @@ func TestAResolvedAnchorTakesItsFragmentFromTheResolvedHeading(t *testing.T) {
 			anchor:  "Reference Integrity Checks",
 			heading: "FEAT-SPECREF-002: Reference Integrity Checks",
 			want:    "feat-specref-002-reference-integrity-checks",
+		},
+		{
+			// AC-SPECANCH-002.10: a nested anchor resolves to its last
+			// heading, and a markdown link can address only that one.
+			name:    "the anchor is a path of headings",
+			anchor:  "Components#References",
+			heading: "References",
+			want:    "references",
 		},
 	}
 

@@ -50,6 +50,7 @@
           "end_column": 33
         }
       },
+      "recovered_slug": "adr-002-broken",
       "headings": [
         {
           "text": "ADR-002: Broken",
@@ -79,5 +80,5 @@
   "exclusions": [],
   "references": [],
   "features": [],
-  "input_hash": "sha256:464239833474dd1f89fdfc5e83602e10a6056d4141c4314bbfa527fa9cbb5f72"
+  "input_hash": "sha256:4cbd5f49f8dfb64ab72682fb3f3328030e2bff72e114c0244a760b34fc847160"
 }

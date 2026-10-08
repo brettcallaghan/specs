@@ -19,6 +19,7 @@ import (
 	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
 	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
 	"github.com/brettcallaghan/agent-plugins/cli/core/references"
+	"github.com/brettcallaghan/agent-plugins/cli/core/schemaregistry"
 	"github.com/brettcallaghan/agent-plugins/cli/core/span"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specindex"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
@@ -145,7 +146,8 @@ type Corpus struct {
 // member is one corpus member during a build, carrying the facts
 // duplicate detection and later checking need and the index does not
 // model: the slug as the document declared it, where that slug sits in
-// the file, and the parsed document itself.
+// the file, and the parsed document itself — nil for a member whose slug
+// was recovered from frontmatter that failed to parse.
 type member struct {
 	path   string
 	slug   string
@@ -383,6 +385,12 @@ type builder struct {
 	// recordTags is the info strings opts.Profile.RecordBlocks()
 	// registers, in registration order. Empty where none is.
 	recordTags []string
+	// schema is the profile's schema, compiled by [builder.allowedValues]
+	// the first time a document fails to decode; schemaCompiled records
+	// that the attempt was made, since a schema that is not JSON leaves
+	// schema nil.
+	schema         *schemaregistry.Registry
+	schemaCompiled bool
 
 	// hasher accumulates the content hash of everything the walk reads,
 	// so that the fingerprint the emitted index records is a by-product of
@@ -393,9 +401,11 @@ type builder struct {
 	members []member
 
 	byPath map[string]int
-	// alsoKnown maps a lowercased slug to the index of the first entry
-	// declaring it, which is what makes the slug query case-insensitive
-	// in the same way duplicate detection is (AC-SPEC-003.4).
+	// alsoKnown maps a lowercased slug to the index of the entry that
+	// answers for it — the one [envelope.HoldsSlugOver] prefers among
+	// those declaring it — which is what makes the slug query
+	// case-insensitive in the same way duplicate detection is
+	// (AC-SPEC-003.4).
 	alsoKnown map[string]int
 	// docs is every member's parsed frontmatter document, keyed by
 	// reported path, carried onto the built Corpus for Check to read.
@@ -453,13 +463,20 @@ func (b *builder) classify(reported string, src []byte) {
 		// a recorded failure, not an exclusion: the file claimed to be a
 		// specification and the claim could not be checked
 		// (AC-SPEC-002.4).
+		//
+		// One malformed line elsewhere in the block does not make a slug
+		// written correctly on its own line unreadable, so a legible one
+		// is still recorded as declared (AC-SPEC-003.7).
 		headings, records := headingsOf(src, nil, b.recordTags)
-		b.addEntry(specmodel.IndexEntry{
-			Path:         reported,
-			ParseError:   perr,
-			Headings:     headings,
-			RecordBlocks: records,
-		}, member{})
+		recovered, at, found := frontmatter.TopLevelScalarAt(src, slugProperty)
+		entry := specmodel.IndexEntry{
+			Path:          reported,
+			ParseError:    perr,
+			RecoveredSlug: legible(recovered, found),
+			Headings:      headings,
+			RecordBlocks:  records,
+		}
+		b.addEntry(entry, recoveredMember(entry, at))
 
 	case doc == nil:
 		// No frontmatter block at all (AC-SPEC-001.3).
@@ -498,19 +515,23 @@ func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter
 		return
 	}
 
-	frontmatter, perr := decodeFrontmatter(doc)
+	frontmatter, perr := decodeFrontmatter(doc, b.allowedValues(declared))
 	if perr != nil {
 		// The block parsed as YAML and does not fit its document type —
 		// a status outside the vocabulary, a timestamp that is
 		// not one. Recorded against this member so the rest of the corpus
 		// still indexes (AC-SPEC-002.4).
+		// The slug property parsed with the rest of the block, so a
+		// legible one is still recorded as declared (AC-SPEC-003.7).
 		headings, records := headingsOf(src, doc, b.recordTags)
-		b.addEntry(specmodel.IndexEntry{
-			Path:         reported,
-			ParseError:   perr,
-			Headings:     headings,
-			RecordBlocks: records,
-		}, member{})
+		entry := specmodel.IndexEntry{
+			Path:          reported,
+			ParseError:    perr,
+			RecoveredSlug: legible(stringProperty(doc, slugProperty)),
+			Headings:      headings,
+			RecordBlocks:  records,
+		}
+		b.addEntry(entry, recoveredMember(entry, slugSpan(doc)))
 		return
 	}
 
@@ -608,9 +629,22 @@ func (b *builder) extractReferences(reported string, src []byte, doc *frontmatte
 	})...)
 }
 
+// recoveredMember is the member facts duplicate detection needs for an
+// entry whose frontmatter failed to parse: the slug recovered from it,
+// placed at at, where one was legible, and the zero member otherwise.
+// A recovered slug collides with another member's exactly as a parsed one
+// would (AC-SPEC-003.3, AC-SPEC-003.7); the parse failure is a second,
+// separate finding. There is no parsed document to carry.
+func recoveredMember(entry specmodel.IndexEntry, at specmodel.Span) member {
+	if entry.RecoveredSlug == nil {
+		return member{}
+	}
+	return member{path: entry.Path, slug: *entry.RecoveredSlug, slugAt: at}
+}
+
 // addEntry records one entry, and the member facts duplicate detection
-// will need. A zero member — an entry with a parse failure — declares no
-// slug and takes part in no slug comparison.
+// will need. A zero member — an entry with a parse failure and no legible
+// slug — declares no slug and takes part in no slug comparison.
 func (b *builder) addEntry(entry specmodel.IndexEntry, m member) {
 	// Every collection on the entry is non-nil for the reason
 	// [specindex.New] gives for the index's own: an entry with no
@@ -650,14 +684,11 @@ func (b *builder) finish(opts Options) *Corpus {
 
 	for i, entry := range b.index.Entries {
 		b.byPath[entry.Path] = i
-		if entry.Frontmatter == nil {
-			continue
-		}
-		key := strings.ToLower(string(envelope.Of(entry.Frontmatter).Slug))
+		key := strings.ToLower(envelope.DeclaredSlug(entry))
 		if key == "" {
 			continue
 		}
-		if _, seen := b.alsoKnown[key]; !seen {
+		if held, seen := b.alsoKnown[key]; !seen || envelope.HoldsSlugOver(entry, b.index.Entries[held]) {
 			b.alsoKnown[key] = i
 		}
 	}
@@ -879,7 +910,13 @@ func slugSpan(doc *frontmatter.Document) specmodel.Span {
 // A value of the wrong shape is a located failure rather than an error
 // the caller raises: it is recorded against its own document and the
 // walk continues.
-func decodeFrontmatter(doc *frontmatter.Document) (*specmodel.TypedFrontmatter, *specmodel.ParseError) {
+//
+// A failure the decoder attributes to one property is located at that
+// property. Where the property's schema is an enum, allowed answers the
+// values it admits and the failure says so in full — the value, and every
+// value it could have been (AC-SPEC-003.6, AC-SPEC-006.1). allowed is
+// called on that failure path only.
+func decodeFrontmatter(doc *frontmatter.Document, allowed func(property string) ([]string, bool)) (*specmodel.TypedFrontmatter, *specmodel.ParseError) {
 	raw, err := doc.JSON()
 	if err != nil {
 		return nil, &specmodel.ParseError{
@@ -890,6 +927,16 @@ func decodeFrontmatter(doc *frontmatter.Document) (*specmodel.TypedFrontmatter, 
 
 	typed, err := envelope.Decode(raw)
 	if err != nil {
+		var propertyErr *envelope.PropertyError
+		if errors.As(err, &propertyErr) {
+			if values, ok := allowed(propertyErr.Property); ok {
+				return nil, &specmodel.ParseError{
+					Message: fmt.Sprintf("%s: %q is not one of %s",
+						propertyErr.Property, propertyErr.Value, strings.Join(values, ", ")),
+					Span: envelopeErrorSpan(doc, err),
+				}
+			}
+		}
 		return nil, &specmodel.ParseError{
 			Message: fmt.Sprintf("the frontmatter block does not fit the document's type: %s", err),
 			Span:    envelopeErrorSpan(doc, err),
@@ -901,14 +948,42 @@ func decodeFrontmatter(doc *frontmatter.Document) (*specmodel.TypedFrontmatter, 
 // envelopeErrorSpan points a decode failure at the offending property
 // where the decoder names one, and at the whole block where it does not.
 func envelopeErrorSpan(doc *frontmatter.Document, err error) specmodel.Span {
+	name := ""
+	var propertyErr *envelope.PropertyError
 	var typeErr *json.UnmarshalTypeError
-	if errors.As(err, &typeErr) && typeErr.Field != "" {
-		name, _, _ := strings.Cut(typeErr.Field, ".")
-		if property, ok := doc.Property(name); ok {
-			return property.Position
-		}
+	switch {
+	case errors.As(err, &propertyErr):
+		name = propertyErr.Property
+	case errors.As(err, &typeErr) && typeErr.Field != "":
+		name, _, _ = strings.Cut(typeErr.Field, ".")
+	}
+	if property, ok := doc.Property(name); name != "" && ok {
+		return property.Position
 	}
 	return doc.Region.Inner
+}
+
+// allowedValues answers, for a document of docType, the values the
+// active profile's schema admits for property, where that schema is an
+// enum. The schema is compiled on the first call, which only a document
+// failing to decode makes, so a clean build never pays for it.
+func (b *builder) allowedValues(docType string) func(property string) ([]string, bool) {
+	return func(property string) ([]string, bool) {
+		if !b.schemaCompiled {
+			b.schemaCompiled = true
+			if b.profile != nil {
+				b.schema, _ = schemaregistry.New(b.profile.Schema())
+			}
+		}
+		if b.schema == nil {
+			return nil, false
+		}
+		values, ok, err := b.schema.Enum(docType, property)
+		if err != nil {
+			return nil, false
+		}
+		return values, ok
+	}
 }
 
 // Index returns the built index.
@@ -1108,4 +1183,26 @@ func (c *Corpus) normalize(p string) string {
 		}
 	}
 	return path.Clean(filepath.ToSlash(p))
+}
+
+// stringProperty returns doc's named property where it is a string
+// scalar.
+func stringProperty(doc *frontmatter.Document, name string) (string, bool) {
+	property, ok := doc.Property(name)
+	if !ok {
+		return "", false
+	}
+	value, isString := property.Value.(string)
+	return value, isString
+}
+
+// legible returns a recovered slug for the index, or nil where none was
+// found or what was found is blank: a slug is legible only as a
+// non-empty string scalar (AC-SPEC-003.7).
+func legible(value string, found bool) *string {
+	value = strings.TrimSpace(value)
+	if !found || value == "" {
+		return nil
+	}
+	return &value
 }

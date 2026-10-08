@@ -14,6 +14,7 @@ import (
 	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
 	"github.com/brettcallaghan/agent-plugins/cli/core/mdlinks"
 	"github.com/brettcallaghan/agent-plugins/cli/core/references"
+	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
 // newLinksCmd builds the `links` subcommand: rewrite one document's
@@ -34,15 +35,19 @@ func newLinksCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		Long: "links rewrites the [[slug]] wikilinks in one markdown document into " +
 			"ordinary markdown links: each citation targets the path a caller-supplied " +
 			"--map names for its slug, or, given no map, the cited document's path " +
-			"relative to the document being rewritten. Unlike refs, which reports what " +
-			"cites what, links emits one document with its citations rewritten.",
+			"relative to the document being rewritten. The link map is a YAML mapping " +
+			"from each corpus slug to a record declaring \"path\", the link target, " +
+			"such as adr-012: {path: ../adrs/adr-012.md}; a record's other properties " +
+			"are ignored, and a map written in JSON is accepted. Unlike refs, which " +
+			"reports what cites what, links emits one document with its citations " +
+			"rewritten.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			return runLinks(streams, *configPath, args[0], mapPath)
 		},
 	}
 	cmd.Flags().StringVar(&mapPath, "map", "",
-		"path to a YAML link map resolving corpus slugs to link targets")
+		"path to a YAML link map: each corpus slug mapped to a record declaring \"path\", e.g. adr-012: {path: ../adrs/adr-012.md}")
 	return cmd
 }
 
@@ -59,12 +64,12 @@ func newLinksCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // refs, slug-exists and next-id do, because resolving a citation still
 // needs its index.
 func runLinks(streams *ioStreams, configPath, operand, mapPath string) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, false)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -80,10 +85,11 @@ func runLinks(streams *ioStreams, configPath, operand, mapPath string) error {
 	reported := normalizeOperand(operand)
 	report := finding.NewReport()
 
+	// An operand that cannot be read is one the command cannot act on
+	// (exit 2): the caller named it.
 	src, readErr := os.ReadFile(operand)
 	if readErr != nil {
-		report.Add(documentUnreadable(reported, readErr))
-		return finishLinks(streams, report, nil, 0)
+		return refusedOperand(documentUnreadable(reported, readErr))
 	}
 	// Normalized the same way corpus.Build's own walk normalizes every
 	// candidate file it reads (AC-SPEC-009.7): the operand is read
@@ -108,18 +114,31 @@ func runLinks(streams *ioStreams, configPath, operand, mapPath string) error {
 		return finishLinks(streams, report, nil, 0)
 	}
 
-	refs := references.Extract(references.Options{
+	extraction := references.Options{
 		Path:                reported,
 		Source:              src,
 		Frontmatter:         doc,
 		ReferenceProperties: referenceProperties(cfg, doc),
-	})
+	}
+	// A wikilink inside a gherkin fence is a reference the index keeps,
+	// but a renderer shows the fence literally, so for the rewritten copy
+	// it is code: not rewritten, not counted, and raising no links/*
+	// finding (AC-SPECMD-001.4).
+	refs := references.OutsideGherkinFences(extraction, references.Extract(extraction))
 	references.Resolve(refs, c.Index())
 
 	var linkMap mdlinks.LinkMap
 	if mapPath != "" {
+		// A --map that cannot be read or does not parse (linkmap/invalid)
+		// is an operand the caller named and the command cannot act on
+		// (exit 2) — unreadable and malformed alike, because both raise
+		// the one rule. A map that parses but leaves a record without a
+		// path is a defect in its content and stays a failed run (exit 1).
 		loaded, mapFindings := LoadLinkMap(mapPath)
 		if mapFindings != nil {
+			if refused := refusedLinkMap(mapFindings); refused != nil {
+				return refused
+			}
 			report.Add(mapFindings...)
 			return finishLinks(streams, report, nil, 0)
 		}
@@ -154,7 +173,7 @@ func openCorpusReadOnly(opts corpus.Options) (*corpus.Corpus, error) {
 	dest := corpus.IndexPath(opts, "")
 	c, _, err := corpus.Open(opts, dest)
 	if err != nil {
-		return nil, fmt.Errorf("cmd: opening the corpus: %w", err)
+		return nil, fmt.Errorf("opening the corpus: %w", err)
 	}
 	return c, nil
 }
@@ -219,11 +238,29 @@ func finishLinks(streams *ioStreams, report *finding.Report, out []byte, count i
 	fmt.Fprint(streams.err, report.Text())
 
 	if report.HasErrors() {
-		streams.exitCode = 1
+		streams.exitCode = statusGateFailed
 		return nil
 	}
 
 	fmt.Fprintf(streams.err, "%d link(s) rewritten\n", count)
 	_, err := streams.out.Write(out)
 	return err
+}
+
+// refusedOperand reports f — a finding against an operand the caller
+// named and links cannot act on — as an invocation error (exit 2) whose
+// message is the finding's own, led by the path it is about.
+func refusedOperand(f specmodel.Finding) error {
+	return invocationError("%s: %s", f.Path, f.Message)
+}
+
+// refusedLinkMap returns the invocation error for the first
+// [RuleLinkMapInvalid] finding in findings, or nil when there is none.
+func refusedLinkMap(findings []specmodel.Finding) error {
+	for _, f := range findings {
+		if f.Rule == RuleLinkMapInvalid {
+			return refusedOperand(f)
+		}
+	}
+	return nil
 }

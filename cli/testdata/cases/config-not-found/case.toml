@@ -1,0 +1,5 @@
+description = "--config naming a file that does not exist is an environment error: it exits 3, names the path looked for on standard error, and writes nothing to standard output"
+cites = ["AC-SPEC-008.3"]
+artifacts = ["checks.err"]
+args = ["--config", "nope.toml", "list"]
+exit_code = 3

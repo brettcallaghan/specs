@@ -1,0 +1,5 @@
+description = "a shallow heading's full heading path pasted back selects that heading alone, though a deeper same-named heading's path contains it"
+cites = ["AC-SPECSTR-003.9", "AC-SPECSTR-003.11"]
+artifacts = ["checks.log"]
+args = ["headings", "adr-500-roster#adr-500-roster#references"]
+exit_code = 0

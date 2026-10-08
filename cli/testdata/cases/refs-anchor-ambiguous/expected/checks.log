@@ -2,40 +2,10 @@ slug: adr-900-old-approach
 anchor: Decision
 direction: inbound
 declared: true
+anchor_declared: true
 references:
   - path: docs/adrs/adr-800-current.md
-    text: adr-900-old-approach#Decision
-    slug: adr-900-old-approach
-    anchor: Decision
-    origin:
-      kind: body
-    span:
-      offset: 242
-      length: 29
-      start_line: 12
-      start_column: 25
-      end_line: 12
-      end_column: 54
-    resolution:
-      state: resolved
-      target_path: docs/adrs/adr-900-old-approach.md
-    anchor_resolution:
-      state: ambiguous
-      matches:
-        - text: Decision
-          span:
-            offset: 246
-            length: 12
-            start_line: 13
-            start_column: 1
-            end_line: 14
-            end_column: 1
-        - text: Decision
-          span:
-            offset: 294
-            length: 13
-            start_line: 17
-            start_column: 1
-            end_line: 18
-            end_column: 1
-    ambiguous_anchor: true
+    references:
+      - line: 12
+        text: adr-900-old-approach#Decision
+        ambiguous_anchor: true

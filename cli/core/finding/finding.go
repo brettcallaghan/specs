@@ -150,6 +150,11 @@ const (
 	// RuleOwnerUnresolved covers an owning-document tag whose slug names
 	// no corpus member.
 	RuleOwnerUnresolved specmodel.RuleId = "gherkin/owner-unresolved"
+	// RuleTagUnregistered covers a Gherkin tag the active profile's tag
+	// vocabulary assigns no meaning. It is the one Gherkin rule that
+	// reports at [SeverityWarning]: a project's own tags coexist with the
+	// vocabulary, and only a misspelt one loses a meaning (AC-GHK-002.8).
+	RuleTagUnregistered specmodel.RuleId = "gherkin/tag-unregistered"
 
 	// RuleGherkinParse covers a Gherkin source that could not be parsed.
 	RuleGherkinParse specmodel.RuleId = "gherkin/parse"
@@ -209,40 +214,6 @@ const (
 	RuleC4TagSeparator specmodel.RuleId = "c4/tag-separator"
 )
 
-// corpusWideRules is every rule whose finding is raised against the
-// document that *holds* the defect's declaration rather than the
-// document or record the defect is about.
-//
-// That distinction is what a single-document check turns on: an edit to
-// one document breaks a reference or a duplicated identifier held by
-// another, so these findings are reported wherever they were written
-// rather than narrowed to the file a caller named (AC-SPECREF-002.9,
-// AC-SPECREF-002.11, and — for the Gherkin identifier rule — VTAG's own
-// corpus-wide uniqueness requirement). Membership is a property of where
-// a rule's findings land, not of a `reference/` prefix: the Gherkin rule
-// below belongs here on exactly the same test the reference rules do,
-// despite carrying no such prefix itself.
-var corpusWideRules = map[specmodel.RuleId]bool{
-	RuleUnresolvedReference: true,
-	RuleUnresolvedAnchor:    true,
-	RuleAmbiguousAnchor:     true,
-	RuleRetiredTarget:       true,
-	RuleIncompletePairing:   true,
-	RuleTypeMismatch:        true,
-	RuleIdentifierDuplicate: true,
-}
-
-// IsCorpusWideRule reports whether findings of this rule are raised
-// against the declaring document rather than narrowed to the one file a
-// single-document check named — see [corpusWideRules].
-func IsCorpusWideRule(rule specmodel.RuleId) bool {
-	return corpusWideRules[rule]
-}
-
-// rootPointer is what an empty JSON Pointer is rendered as, so a message
-// about the frontmatter object itself does not begin with a bare colon.
-const rootPointer = "/"
-
 // SchemaViolation reports a frontmatter value that fails the schema for
 // its document type.
 //
@@ -255,8 +226,8 @@ func SchemaViolation(path string, at specmodel.Span, pointer, constraint, value 
 		Severity: SeverityError,
 		Path:     path,
 		Span:     at,
-		Message: fmt.Sprintf("%s: %q does not satisfy %s",
-			renderPointer(pointer), value, constraint),
+		Message: fmt.Sprintf("%s%q does not satisfy %s",
+			pointerPrefix(pointer), value, constraint),
 		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
 			Pointer:    pointer,
 			Constraint: constraint,
@@ -273,8 +244,8 @@ func MissingProperty(path string, at specmodel.Span, pointer, property string) s
 		Severity: SeverityError,
 		Path:     path,
 		Span:     at,
-		Message: fmt.Sprintf("%s: required property %q is not declared",
-			renderPointer(pointer), property),
+		Message: fmt.Sprintf("%srequired property %q is not declared",
+			pointerPrefix(pointer), property),
 		Detail: specmodel.NewFindingDetailMissingProperty(specmodel.FindingMissingProperty{
 			Pointer:  pointer,
 			Property: property,
@@ -426,17 +397,22 @@ func UnresolvedAnchor(path string, at specmodel.Span, anchor, targetPath string)
 	}
 }
 
-// AmbiguousAnchor reports an anchor whose identifier is the identifier of
-// more than one heading of its target document, naming every match
-// (AC-SPECANCH-002.5). Raised against the referring document, like
-// [UnresolvedAnchor].
+// AmbiguousAnchor reports an anchor that selects more than one heading of
+// its target document, naming every match by the heading path that
+// selects it alone and the line it is written on (AC-SPECANCH-002.5).
+// Raised against the referring document, like [UnresolvedAnchor].
 func AmbiguousAnchor(path string, at specmodel.Span, anchor, targetPath string, matches []specmodel.AnchorMatch) specmodel.Finding {
+	named := make([]string, len(matches))
+	for i, match := range matches {
+		named[i] = fmt.Sprintf("%s (line %d)", match.HeadingPath, match.Span.StartLine)
+	}
 	return specmodel.Finding{
 		Rule:     RuleAmbiguousAnchor,
 		Severity: SeverityError,
 		Path:     path,
 		Span:     at,
-		Message:  fmt.Sprintf("%q matches %d headings in %s", anchor, len(matches), targetPath),
+		Message: fmt.Sprintf("%q matches %d headings in %s: %s",
+			anchor, len(matches), targetPath, strings.Join(named, ", ")),
 		Detail: specmodel.NewFindingDetailAmbiguousAnchor(specmodel.FindingAmbiguousAnchor{
 			Anchor:     anchor,
 			TargetPath: targetPath,
@@ -777,6 +753,27 @@ func OwnerUnresolved(path string, at specmodel.Span, slug string) specmodel.Find
 	}
 }
 
+// TagUnregistered reports a Gherkin tag, given without its leading `@`,
+// that the tag vocabulary assigns no meaning, naming the tag as written
+// and the qualifiers that are registered (AC-GHK-002.8).
+func TagUnregistered(path string, at specmodel.Span, tag string, registered []string) specmodel.Finding {
+	list := "none"
+	if len(registered) > 0 {
+		list = strings.Join(registered, ", ")
+	}
+	return specmodel.Finding{
+		Rule:     RuleTagUnregistered,
+		Severity: SeverityWarning,
+		Path:     path,
+		Span:     at,
+		Message:  fmt.Sprintf("tag %q is not in the tag vocabulary; registered qualifiers: %s", "@"+tag, list),
+		Detail: specmodel.NewFindingDetailUnregisteredTag(specmodel.FindingUnregisteredTag{
+			Tag:        tag,
+			Registered: append([]string{}, registered...),
+		}),
+	}
+}
+
 // GherkinParse reports a Gherkin source that could not be parsed, at the
 // line and column of the offending text in the containing document, with
 // the parser's own expectation quoted in the message (AC-GHK-006.1).
@@ -1030,13 +1027,16 @@ func C4TagSeparator(path string, at specmodel.Span, tags string) specmodel.Findi
 	}
 }
 
-// renderPointer renders a JSON Pointer for a message, substituting the
-// root pointer for the empty string the JSON Pointer spec uses for it.
-func renderPointer(pointer string) string {
+// pointerPrefix is the prefix a message about the value at pointer
+// begins with: the pointer and a colon, or nothing for the root pointer
+// "", since a message about the object itself needs no location and a
+// bare "/" says nothing to a reader. The finding's detail keeps the
+// pointer as it is.
+func pointerPrefix(pointer string) string {
 	if pointer == "" {
-		return rootPointer
+		return ""
 	}
-	return pointer
+	return pointer + ": "
 }
 
 // Report accumulates one run's findings and accounts for every check the
@@ -1058,38 +1058,6 @@ type Report struct {
 	results map[specmodel.RuleId]checkState
 	// findings is every finding recorded, unordered until rendering.
 	findings []specmodel.Finding
-
-	// documentCount and hasDocumentCount back [Report.SetDocumentCount].
-	// hasDocumentCount distinguishes "never told" from "told, and it was
-	// zero" — a caller that never calls SetDocumentCount (a specs.toml
-	// validation, a refs query) gets no count line from [Report.Text] at
-	// all, rather than a misleading "checked 0 documents".
-	documentCount    int
-	hasDocumentCount bool
-
-	// exclusions backs [Report.SetExclusions]. Nil (the default) renders
-	// no excluded section, exactly like documentCount's default.
-	exclusions []specmodel.IndexExclusion
-}
-
-// SetDocumentCount records how many documents the run examined, so
-// [Report.Text] prints a count line — on a clean run and a failing run
-// alike, which is what makes a zero-document run auditable by a human
-// reading output rather than only by [RuleCorpusEmpty]'s finding.
-//
-// Only a corpus-wide run has a meaningful count to report; a caller
-// checking one document leaves this unset.
-func (r *Report) SetDocumentCount(n int) {
-	r.documentCount = n
-	r.hasDocumentCount = true
-}
-
-// SetExclusions records the corpus's excluded candidate files, so
-// [Report.Text] lists each with its reason rather than letting a file
-// excluded for missing frontmatter or an unrecognized `type` read as
-// indistinguishable from one that was checked and passed.
-func (r *Report) SetExclusions(exclusions []specmodel.IndexExclusion) {
-	r.exclusions = exclusions
 }
 
 // checkState is the mutable half of one check's accounting.
@@ -1225,7 +1193,8 @@ func (r *Report) HasErrors() bool {
 }
 
 // Model returns the report as the generated envelope, with both
-// collections ordered deterministically and never nil.
+// collections ordered deterministically and never nil. Checks holds
+// exactly the checks the run was asked for.
 //
 // Checks are ordered by rule identifier and findings by path, then
 // position, then rule, then message. Determinism is this package's
@@ -1235,6 +1204,12 @@ func (r *Report) Model() specmodel.FindingReport {
 	checks := make([]specmodel.CheckResult, 0, len(r.order))
 	for _, rule := range r.order {
 		state := r.results[rule]
+		// A check the run was not asked for is not reported at all, so
+		// it can never read as passed (AC-SPEC-006.9) and a narrowed run
+		// lists only what it was asked (AC-SPEC-006.8).
+		if state.outcome == specmodel.CheckOutcomeNotRequested {
+			continue
+		}
 		result := specmodel.CheckResult{Rule: rule, Outcome: state.outcome}
 		if state.outcome == specmodel.CheckOutcomeUnverified && state.reason != "" {
 			reason := state.reason
@@ -1281,45 +1256,20 @@ func (r *Report) JSON() ([]byte, error) {
 	return json.Marshal(r.Model())
 }
 
-// Text renders the report for a human reader.
-//
-// When [Report.SetDocumentCount] was called, a count line opens the
-// report, on a clean run and a failing run alike, followed — when
-// [Report.SetExclusions] recorded any — by the excluded files and their
-// reasons. Neither section appears for a report that never received
-// them, so a report built for something other than a corpus scan (a
-// specs.toml validation, a refs query) renders exactly as before.
-//
-// Findings follow, grouped under a header naming the file they are
-// against — [Report.Model] already sorts them by path first, so a run of
-// findings sharing a file is contiguous and this only inserts the
-// header:
+// Text renders the report for a human reader: the findings, grouped
+// under a header naming the file they are against — [Report.Model]
+// already sorts them by path first, so a run of findings sharing a file
+// is contiguous and this only inserts the header:
 //
 //	specs/adrs/adr-011.md:
 //	  slug/pattern-mismatch  error  4:7  "adr-011-x" does not match pattern "^adr-[0-9]{3}$"
 //
-// The check accounting follows last, so a reader who sees no findings can
-// tell at a glance which checks that verdict actually covers.
+// The check accounting follows last. It is the rendering for standard
+// error — a specs.toml defect, a links run — where no structured answer
+// is written; a command's answer on standard output is the model itself.
 func (r *Report) Text() string {
 	model := r.Model()
 	var b strings.Builder
-
-	if r.hasDocumentCount {
-		fmt.Fprintf(&b, "checked %d document%s\n", r.documentCount, plural(r.documentCount))
-	}
-	if len(r.exclusions) > 0 {
-		b.WriteString("\nexcluded:\n")
-		for _, ex := range r.exclusions {
-			fmt.Fprintf(&b, "  %s  %s", ex.Path, ex.Reason)
-			if ex.Type != nil && *ex.Type != "" {
-				fmt.Fprintf(&b, " (declared type %q)", *ex.Type)
-			}
-			b.WriteString("\n")
-		}
-	}
-	if r.hasDocumentCount || len(r.exclusions) > 0 {
-		b.WriteString("\n")
-	}
 
 	writeFindingsByFile(&b, model.Findings)
 
@@ -1361,13 +1311,4 @@ func writeFindingsByFile(b *strings.Builder, findings []specmodel.Finding) {
 		fmt.Fprintf(b, "  %s  %s  %d:%d  %s\n",
 			f.Rule, f.Severity, f.Span.StartLine, f.Span.StartColumn, f.Message)
 	}
-}
-
-// plural returns "" for a count of exactly one and "s" otherwise, so a
-// count line reads "1 document" rather than "1 documents".
-func plural(n int) string {
-	if n == 1 {
-		return ""
-	}
-	return "s"
 }

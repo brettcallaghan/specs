@@ -187,6 +187,17 @@ struct IndexEntry {
   parse_error: ParseError?
 
   """
+  The slug a member whose frontmatter failed to parse still states
+  legibly (AC-SPEC-003.7), recorded as declared by this member: references
+  to it resolve, and the slug query answers it, as for a member that
+  parsed.
+
+  Absent when `frontmatter` is present, whose envelope carries the slug,
+  and when no slug is legible.
+  """
+  recovered_slug: String?
+
+  """
   The document's headings, in document order.
 
   Recorded for every member, including one whose frontmatter could not be

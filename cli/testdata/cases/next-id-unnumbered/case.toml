@@ -1,0 +1,5 @@
+description = "next-id for a type the profile does not register as numbered is an invocation error: it exits 2, and standard error begins with the type and names every numbered type"
+cites = ["AC-SPEC-011.4"]
+artifacts = ["checks.err"]
+args = ["next-id", "frd"]
+exit_code = 2

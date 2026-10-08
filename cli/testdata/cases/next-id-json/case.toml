@@ -1,0 +1,5 @@
+description = "next-id --json writes the next number and the slug it forms as one JSON object, with the same keys and values in the same order as the YAML answer"
+cites = ["AC-SPEC-007.1", "AC-SPEC-011.4"]
+artifacts = ["checks.json"]
+args = ["next-id", "adr", "--json"]
+exit_code = 0

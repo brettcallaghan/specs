@@ -399,7 +399,7 @@ func decodeOrderedJSON(data []byte) (any, error) {
 		return nil, err
 	}
 	if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
-		return nil, fmt.Errorf("cmd: trailing content after a value's own JSON")
+		return nil, fmt.Errorf("trailing content after a value's own JSON")
 	}
 	return value, nil
 }
@@ -424,7 +424,7 @@ func decodeOrderedToken(decoder *json.Decoder, token json.Token) (any, error) {
 		case '[':
 			return decodeOrderedSequence(decoder)
 		}
-		return nil, fmt.Errorf("cmd: unexpected %q in a value's own JSON", t)
+		return nil, fmt.Errorf("unexpected %q in a value's own JSON", t)
 	case json.Number:
 		return orderedNumber(t), nil
 	default:
@@ -444,7 +444,7 @@ func decodeOrderedMapping(decoder *json.Decoder) (jsonMapping, error) {
 		}
 		name, ok := key.(string)
 		if !ok {
-			return nil, fmt.Errorf("cmd: a non-string key in a value's own JSON")
+			return nil, fmt.Errorf("a non-string key in a value's own JSON")
 		}
 		value, err := decodeOrderedValue(decoder)
 		if err != nil {

@@ -1,0 +1,5 @@
+description = "headings '<document>#<ancestor>#<heading>' selects only the heading nested beneath that ancestor, not the same-named heading elsewhere in the document, with the headings nested inside it"
+cites = ["AC-SPECSTR-003.1", "AC-SPECSTR-003.10", "AC-SPECSTR-003.11"]
+artifacts = ["checks.log"]
+args = ["headings", "adr-500-roster#Components#References"]
+exit_code = 0

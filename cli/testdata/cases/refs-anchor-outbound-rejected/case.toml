@@ -2,4 +2,4 @@ description = "refs --outbound refuses an anchor-qualified argument: an anchor n
 cites = ["AC-SPECANCH-003.5"]
 artifacts = ["checks.err"]
 args = ["refs", "adr-900-old-approach#Decision", "--outbound"]
-exit_code = 1
+exit_code = 2

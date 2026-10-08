@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
+	"github.com/brettcallaghan/agent-plugins/cli/core/references"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
@@ -21,7 +22,7 @@ import (
 // (spec-cli-container.md's Change Guidance); it neither renames nor
 // repurposes the four `newRootCmd` already builds.
 func newRefsCmd(streams *ioStreams, configPath *string) *cobra.Command {
-	var jsonOut, outbound bool
+	var jsonOut, outbound, full bool
 
 	cmd := &cobra.Command{
 		Use:   "refs <slug>[#<anchor>]",
@@ -36,20 +37,24 @@ func newRefsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			"the documents that slug references instead; --outbound takes no anchor. A " +
 			"slug no corpus member declares is reported distinctly from one that is " +
 			"declared but unreferenced; both exit zero, as does an anchor nothing " +
-			"references.",
+			"references. The answer is compact by default — one entry per referring " +
+			"document, each reference reduced to its line and text — and --full " +
+			"returns every field of every reference, its span included.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			asked := parseSelection(args[0])
 			if outbound && asked.heading != "" {
-				return errNoAnchorWithOutbound
+				return invocationError("%w", errNoAnchorWithOutbound)
 			}
-			return runRefs(streams, *configPath, asked, outbound, jsonOut)
+			return runRefs(streams, *configPath, asked, outbound, full, jsonOut)
 		},
 	}
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
 		"write the references as JSON instead of YAML")
 	cmd.Flags().BoolVar(&outbound, "outbound", false,
 		"report the documents the slug references, instead of the documents referencing it")
+	cmd.Flags().BoolVar(&full, "full", false,
+		"report every field of every reference, its span included, instead of the compact view")
 	return cmd
 }
 
@@ -58,7 +63,7 @@ func newRefsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // and --outbound asks what the given document cites — the anchors on
 // those references belong to other documents' headings, so there is no
 // question "the references out of X into the heading Y of X" answers.
-var errNoAnchorWithOutbound = errors.New("specs refs: --outbound takes a slug, not a slug qualified by an anchor")
+var errNoAnchorWithOutbound = errors.New("--outbound takes a slug, not a slug qualified by an anchor")
 
 // refsResult is what runRefs renders: a mapping of the properties the
 // query established, per [[cli-output-standards]].
@@ -73,11 +78,17 @@ var errNoAnchorWithOutbound = errors.New("specs refs: --outbound takes a slug, n
 // unanchored query answers with the properties it established and no key
 // standing for a question nobody asked.
 type refsResult struct {
-	Slug       string      `json:"slug"`
-	Anchor     string      `json:"anchor,omitempty"`
-	Direction  string      `json:"direction"`
-	Declared   bool        `json:"declared"`
-	References []refsMatch `json:"references"`
+	Slug      string `json:"slug"`
+	Anchor    string `json:"anchor,omitempty"`
+	Direction string `json:"direction"`
+	Declared  bool   `json:"declared"`
+	// AnchorDeclared states whether the asked anchor names a heading of
+	// the declared document, by the rule an anchor reference resolves by
+	// (AC-SPECANCH-003.6); false where it names none, and false where the
+	// slug itself is undeclared. Present exactly when the argument
+	// carries an anchor, as Anchor is.
+	AnchorDeclared *bool       `json:"anchor_declared,omitempty"`
+	References     []refsMatch `json:"references"`
 }
 
 // refsMatch is one reference the query answers with: the reference as the
@@ -116,13 +127,13 @@ type refsMatch struct {
 // opened warm (corpus.Open), the same as check, slug-exists and next-id,
 // because this is exactly the corpus query FEAT-SPEC-009.1's latency
 // budget is measured against (AC-SPECREF-003.4).
-func runRefs(streams *ioStreams, configPath string, asked selection, outbound, jsonOut bool) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+func runRefs(streams *ioStreams, configPath string, asked selection, outbound, full, jsonOut bool) error {
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}
 	if findings != nil {
-		return reportAndExit(streams, findings, jsonOut)
+		return reportConfigDefects(streams, findings)
 	}
 
 	opts, err := corpusOptions(cfg, configPath)
@@ -153,6 +164,9 @@ func runRefs(streams *ioStreams, configPath string, asked selection, outbound, j
 		Declared:   declared,
 		References: []refsMatch{},
 	}
+	if asked.heading != "" {
+		result.AnchorDeclared = anchorDeclared(declared, asked.heading, entry.Headings)
+	}
 	if declared {
 		var found []specmodel.Reference
 		if outbound {
@@ -160,25 +174,47 @@ func runRefs(streams *ioStreams, configPath string, asked selection, outbound, j
 		} else {
 			found = c.InboundReferences(entry.Path)
 		}
-		result.References = matches(found, asked.heading)
+		result.References = matches(found, asked.heading, entry.Headings)
 	}
 
-	return renderRefs(streams, result, jsonOut)
+	if full {
+		return renderRefs(streams, result, jsonOut)
+	}
+	compact, err := compactRefs(result)
+	if err != nil {
+		return err
+	}
+	return renderRefs(streams, compact, jsonOut)
 }
 
 // matches turns the references the corpus returned into the query's
 // answer: all of them where no anchor was asked for, and otherwise only
-// those whose anchor resolves to the named heading.
+// those whose anchor resolves to a heading of the queried document that
+// the asked anchor selects — headings, that document's own.
+//
+// The asked anchor is a heading path query like any anchor
+// (AC-SPECANCH-002.10), so it is matched against the document's headings
+// by the same rule, and a reference is compared with what it selected by
+// the position of the heading line rather than by text: two headings of
+// one name are two headings.
 //
 // The order is the corpus's throughout, so two runs over an unchanged
 // corpus print identical bytes.
-func matches(found []specmodel.Reference, anchor string) []refsMatch {
+func matches(found []specmodel.Reference, anchor string, headings []specmodel.Heading) []refsMatch {
 	answer := []refsMatch{}
-	wanted := markdown.Identifier(anchor)
+	selected := map[uint64]bool{}
+	if anchor != "" {
+		chosen := markdown.SelectPaths(anchor, references.HeadingPaths(headings))
+		for i, heading := range headings {
+			if chosen[i] {
+				selected[heading.Span.Offset] = true
+			}
+		}
+	}
 
 	for _, reference := range found {
 		ambiguous := ambiguousAnchor(reference)
-		if anchor != "" && !reachesHeading(reference, wanted) {
+		if anchor != "" && !reachesHeading(reference, selected) {
 			continue
 		}
 		answer = append(answer, refsMatch{Reference: reference, AmbiguousAnchor: ambiguous})
@@ -186,8 +222,22 @@ func matches(found []specmodel.Reference, anchor string) []refsMatch {
 	return answer
 }
 
-// reachesHeading reports whether reference's anchor resolved to the
-// heading whose identifier is wanted.
+// anchorDeclared reports whether anchor names some heading of the
+// queried document — headings, its own — selected by the same heading
+// path rule an anchor reference resolves by (AC-SPECANCH-002.2,
+// AC-SPECANCH-002.10). An undeclared document has no headings to name.
+func anchorDeclared(documentDeclared bool, anchor string, headings []specmodel.Heading) *bool {
+	found := false
+	if documentDeclared {
+		for _, chosen := range markdown.SelectPaths(anchor, references.HeadingPaths(headings)) {
+			found = found || chosen
+		}
+	}
+	return &found
+}
+
+// reachesHeading reports whether reference's anchor resolved to one of
+// the selected headings, each named by the offset of its heading line.
 //
 // The question is asked of the resolution rather than of the anchor's own
 // text: the References component decided what this anchor reaches, and a
@@ -195,16 +245,16 @@ func matches(found []specmodel.Reference, anchor string) []refsMatch {
 // anchor reaches every heading it matched — it resolves to none of them,
 // and the author renaming one of them is exactly the reader who has to
 // see the reference (AC-SPECANCH-003.4).
-func reachesHeading(reference specmodel.Reference, wanted string) bool {
+func reachesHeading(reference specmodel.Reference, selected map[uint64]bool) bool {
 	if reference.AnchorResolution == nil {
 		return false
 	}
 	if resolved, ok := reference.AnchorResolution.AsResolved(); ok {
-		return markdown.Identifier(resolved.Heading.Text) == wanted
+		return selected[resolved.Heading.Span.Offset]
 	}
 	if ambiguous, ok := reference.AnchorResolution.AsAmbiguous(); ok {
 		for _, match := range ambiguous.Matches {
-			if markdown.Identifier(match.Text) == wanted {
+			if selected[match.Span.Offset] {
 				return true
 			}
 		}
@@ -225,16 +275,128 @@ func ambiguousAnchor(reference specmodel.Reference) bool {
 // renderRefs writes result to streams.out as YAML, or as JSON under
 // --json, both carrying the same values in the same order per
 // [[cli-output-standards]]. Each reference carries its file path and span
-// in either rendering (AC-SPECREF-003.3, AC-SPECANCH-003.1).
-func renderRefs(streams *ioStreams, result refsResult, asJSON bool) error {
+// in either rendering under --full (AC-SPECREF-003.3, AC-SPECANCH-003.1);
+// the compact view is rendered the same way, so --json changes the syntax
+// of whichever view was chosen and never the view (AC-SPECREF-003.7).
+func renderRefs(streams *ioStreams, result any, asJSON bool) error {
 	if asJSON {
 		data, err := json.Marshal(result)
 		if err != nil {
-			return fmt.Errorf("cmd: rendering the reference set as JSON: %w", err)
+			return fmt.Errorf("rendering the reference set as JSON: %w", err)
 		}
 		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil
 	}
 	fmt.Fprint(streams.out, renderYAML(result))
 	return nil
+}
+
+// refsCompactResult is the default answer: the query-level properties
+// exactly as [refsResult] carries them, and the references grouped into
+// one entry per referring document (AC-SPECREF-003.6), per
+// [[cli-output-standards]]'s "refs: the compact view and --full".
+type refsCompactResult struct {
+	Slug           string         `json:"slug"`
+	Anchor         string         `json:"anchor,omitempty"`
+	Direction      string         `json:"direction"`
+	Declared       bool           `json:"declared"`
+	AnchorDeclared *bool          `json:"anchor_declared,omitempty"`
+	References     []refsDocument `json:"references"`
+}
+
+// refsDocument is one referring document's entry in the compact view.
+type refsDocument struct {
+	Path       string                 `json:"path"`
+	References []refsCompactReference `json:"references"`
+}
+
+// refsCompactReference keeps the fields of a reference the standard's
+// compact-view table keeps, and drops the rest: the span is reduced to its
+// start line, and slug, anchor, the target path and the anchor resolution
+// are left out because the query already established them.
+//
+// Origin is written only for a reference in frontmatter, Resolution only
+// for one whose slug did not resolve, and AmbiguousAnchor only where it is
+// true (AC-SPECANCH-003.4).
+type refsCompactReference struct {
+	Line            uint64                     `json:"line"`
+	Text            string                     `json:"text"`
+	Origin          *specmodel.ReferenceOrigin `json:"origin,omitempty"`
+	Resolution      *refsResolutionState       `json:"resolution,omitempty"`
+	AmbiguousAnchor bool                       `json:"ambiguous_anchor,omitempty"`
+}
+
+// refsResolutionState is a slug resolution reduced to its state.
+type refsResolutionState struct {
+	State string `json:"state"`
+}
+
+// compactRefs derives the compact view from the full answer, so the two
+// views cover exactly the same references by construction
+// (AC-SPECREF-003.8). A document's entry is placed by its first reference
+// and its references keep the corpus's order inside it, so two runs over
+// an unchanged corpus print identical bytes.
+func compactRefs(result refsResult) (refsCompactResult, error) {
+	compact := refsCompactResult{
+		Slug:           result.Slug,
+		Anchor:         result.Anchor,
+		Direction:      result.Direction,
+		Declared:       result.Declared,
+		AnchorDeclared: result.AnchorDeclared,
+		References:     []refsDocument{},
+	}
+	position := map[string]int{}
+	for _, match := range result.References {
+		reference, err := compactReference(match)
+		if err != nil {
+			return refsCompactResult{}, err
+		}
+		at, seen := position[match.Path]
+		if !seen {
+			at = len(compact.References)
+			position[match.Path] = at
+			compact.References = append(compact.References,
+				refsDocument{Path: match.Path, References: []refsCompactReference{}})
+		}
+		compact.References[at].References = append(compact.References[at].References, reference)
+	}
+	return compact, nil
+}
+
+// compactReference reduces one reference to the compact view's fields.
+func compactReference(match refsMatch) (refsCompactReference, error) {
+	reference := refsCompactReference{
+		Line:            match.Span.StartLine,
+		Text:            match.Text,
+		AmbiguousAnchor: match.AmbiguousAnchor,
+	}
+	if _, body := match.Origin.AsBody(); !body {
+		origin := match.Origin
+		reference.Origin = &origin
+	}
+	if _, resolved := match.Resolution.AsResolved(); !resolved {
+		state, err := resolutionState(match.Resolution)
+		if err != nil {
+			return refsCompactReference{}, err
+		}
+		reference.Resolution = &refsResolutionState{State: state}
+	}
+	return reference, nil
+}
+
+// resolutionState reads the state tag a resolution marshals under, so the
+// compact view names a state exactly as the full view does rather than
+// keeping a second list of the schema's state names.
+func resolutionState(resolution specmodel.ReferenceResolution) (string, error) {
+	data, err := json.Marshal(resolution)
+	if err != nil {
+		return "", fmt.Errorf("rendering a reference resolution: %w", err)
+	}
+	var tagged struct {
+		State string `json:"state"`
+	}
+	if err := json.Unmarshal(data, &tagged); err != nil {
+		return "", fmt.Errorf("reading a reference resolution's state: %w", err)
+	}
+	return tagged.State, nil
 }

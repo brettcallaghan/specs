@@ -1,0 +1,5 @@
+description = "every match carries its heading path, the identifiers of its enclosing headings from the outermost down and then its own, joined by #, which tells two same-named headings apart"
+cites = ["AC-SPECSTR-003.1", "AC-SPECSTR-003.9"]
+artifacts = ["checks.log"]
+args = ["headings", "adr-500-roster#References"]
+exit_code = 0

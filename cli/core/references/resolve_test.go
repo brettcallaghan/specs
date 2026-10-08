@@ -248,3 +248,115 @@ func TestResolutionDoesNotDependOnIndexOrder(t *testing.T) {
 		t.Errorf("resolved to %q and %q, want %q either way", forward.Path, reversed.Path, first.Path)
 	}
 }
+
+// unreadable returns an index entry for a parse failure from which no slug
+// could be recovered.
+func unreadable(path string) specmodel.IndexEntry {
+	return specmodel.IndexEntry{Path: path, ParseError: &specmodel.ParseError{Message: "the frontmatter block is opened and never closed"}}
+}
+
+// nonMemberPath returns the path a resolution reached as a non-member,
+// failing the test when it resolved to anything else.
+func nonMemberPath(t *testing.T, resolution specmodel.ReferenceResolution) string {
+	t.Helper()
+	nonMember, ok := resolution.AsNonMember()
+	if !ok {
+		t.Fatalf("resolution = %+v, want a non-member", resolution.Value)
+	}
+	return nonMember.Path
+}
+
+// A slug reaches a parse failure no slug could be read from when it
+// equals the file's stem, or when it is a numbered slug — one ending in a
+// "-" and a number — and the stem begins with it followed by "-": the
+// <slug>-<title> naming of numbered types. Any other prefix of the stem,
+// such as [[adr]] or [[adr-012-reference]], is no member's slug, so it
+// matches nothing and stays an ordinary unresolved reference.
+//
+// AC: AC-SPEC-003.8, AC-SPECREF-002.7
+func TestASlugReachesAnUnreadableMemberByItsStemOrANumberedSlugPrefix(t *testing.T) {
+	index := indexOf([]specmodel.IndexEntry{unreadable("specs/adrs/adr-012-reference-conventions.md")})
+
+	for _, written := range []string{"adr-012", "ADR-012", "adr-012-reference-conventions", "ADR-012-Reference-Conventions"} {
+		if got := nonMemberPath(t, resolveOne(written, index)); got != "specs/adrs/adr-012-reference-conventions.md" {
+			t.Errorf("[[%s]] reached %q", written, got)
+		}
+	}
+	for _, nearMiss := range []string{"adr", "ADR", "adr-012-reference", "adr-01", "adr-012-ref", "reference-conventions"} {
+		if _, ok := resolveOne(nearMiss, index).AsUnresolved(); !ok {
+			t.Errorf("[[%s]] is no numbered-slug prefix of the stem and did not stay unresolved", nearMiss)
+		}
+	}
+}
+
+// Where two unreadable members' stems both begin with a slug, the first in
+// path order wins, whatever order the index holds them in.
+//
+// AC: AC-SPEC-003.8
+func TestTwoUnreadablePrefixMatchesResolveToTheFirstInPathOrder(t *testing.T) {
+	for _, entries := range [][]specmodel.IndexEntry{
+		{unreadable("specs/b/adr-012-second.md"), unreadable("specs/a/adr-012-first.md")},
+		{unreadable("specs/a/adr-012-first.md"), unreadable("specs/b/adr-012-second.md")},
+	} {
+		if got := nonMemberPath(t, resolveOne("adr-012", indexOf(entries))); got != "specs/a/adr-012-first.md" {
+			t.Errorf("[[adr-012]] reached %q, want the first in path order", got)
+		}
+	}
+}
+
+// An exact stem match outranks a prefix match, and a member outranks
+// both.
+//
+// AC: AC-SPEC-003.8
+func TestAnExactStemOutranksAPrefixAndAMemberOutranksBoth(t *testing.T) {
+	index := indexOf([]specmodel.IndexEntry{
+		unreadable("specs/a/adr-012-conventions.md"),
+		unreadable("specs/z/adr-012.md"),
+	})
+	if got := nonMemberPath(t, resolveOne("adr-012", index)); got != "specs/z/adr-012.md" {
+		t.Errorf("[[adr-012]] reached %q, want the exact stem", got)
+	}
+
+	withMember := indexOf([]specmodel.IndexEntry{
+		unreadable("specs/a/adr-012-conventions.md"),
+		member("specs/z/decision.md", "adr-012"),
+	})
+	if got := targetOf(t, resolveOne("adr-012", withMember)); got != "specs/z/decision.md" {
+		t.Errorf("[[adr-012]] resolved to %q, want the member", got)
+	}
+}
+
+// An excluded file is matched on its exact stem only: it never claimed to
+// be a member, so nothing named for it depends on it.
+//
+// AC: AC-SPECREF-002.7
+func TestAnExclusionIsNotMatchedByAStemPrefix(t *testing.T) {
+	index := indexOf(nil, specmodel.IndexExclusion{
+		Path:   "specs/notes/loose-notes.md",
+		Reason: specmodel.ExclusionReasonNoFrontmatter,
+	})
+	if _, ok := resolveOne("loose", index).AsUnresolved(); !ok {
+		t.Error("[[loose]] reached an exclusion by a stem prefix")
+	}
+	if got := nonMemberPath(t, resolveOne("loose-notes", index)); got != "specs/notes/loose-notes.md" {
+		t.Errorf("[[loose-notes]] reached %q, want the exclusion by its exact stem", got)
+	}
+}
+
+// A parse failure whose slug was recovered is a member under that slug,
+// and is not prefix-matched under any other.
+//
+// AC: AC-SPEC-003.8
+func TestARecoveredMemberIsNotPrefixMatched(t *testing.T) {
+	recovered := "adr-012"
+	entry := unreadable("specs/adrs/adr-012-reference-conventions.md")
+	entry.RecoveredSlug = &recovered
+	index := indexOf([]specmodel.IndexEntry{entry})
+
+	if got := targetOf(t, resolveOne("adr-012", index)); got != "specs/adrs/adr-012-reference-conventions.md" {
+		t.Errorf("[[adr-012]] resolved to %q, want the recovered member", got)
+	}
+	if _, ok := resolveOne("adr-012-reference", index).AsUnresolved(); !ok {
+		t.Error("[[adr-012-reference]] reached a recovered member by a stem prefix")
+	}
+}

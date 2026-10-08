@@ -13,9 +13,16 @@ import (
 // Feature returns the feature id names in c's index, and whether one was
 // found. The lookup reads c.index.Features exactly as it stands — warm or
 // freshly built — so it never re-walks the corpus (AC-GHK-007.6).
+//
+// id matches regardless of letter case, as a slug does, and the record
+// returned carries the identifier as declared (AC-GHK-007.7). Two
+// declared identifiers differing only in case — which a profile whose
+// patterns admit lower case would allow — resolve to the first in index
+// order; [Corpus.FeaturesByCode] and [Corpus.Criterion] compare the same
+// way.
 func (c *Corpus) Feature(id specmodel.FeatureId) (specmodel.Feature, bool) {
 	for _, feature := range c.index.Features {
-		if feature.Id == id {
+		if strings.EqualFold(string(feature.Id), string(id)) {
 			return feature, true
 		}
 	}
@@ -37,7 +44,7 @@ func (c *Corpus) Features() []specmodel.Feature {
 func (c *Corpus) FeaturesByCode(code specmodel.FeatureCode) []specmodel.Feature {
 	var matched []specmodel.Feature
 	for _, feature := range c.index.Features {
-		if feature.Code == code {
+		if strings.EqualFold(string(feature.Code), string(code)) {
 			matched = append(matched, feature)
 		}
 	}
@@ -50,7 +57,7 @@ func (c *Corpus) FeaturesByCode(code specmodel.FeatureCode) []specmodel.Feature 
 func (c *Corpus) Criterion(id specmodel.CriterionId) (specmodel.Criterion, bool) {
 	for _, feature := range c.index.Features {
 		for _, criterion := range feature.Criteria {
-			if criterion.Id == id {
+			if strings.EqualFold(string(criterion.Id), string(id)) {
 				return criterion, true
 			}
 		}
@@ -77,14 +84,21 @@ func (c *Corpus) CriteriaOf(featureId specmodel.FeatureId) []specmodel.Criterion
 // qualifier tag, per the active profile's registered vocabulary
 // (AC-GHK-007.3).
 //
-// tag is matched against [FeatureTagRules.Qualifiers] exactly as it is
-// registered — the host holds no qualifier spelling of its own — so a tag
-// the active profile does not register matches nothing, the same empty
-// selection a registered tag with no carriers answers.
-func (c *Corpus) CriteriaByTag(tag string) []specmodel.Criterion {
-	qualifier, ok := findQualifier(c.profile.FeatureTags().Qualifiers, tag)
+// tag may be written as Gherkin writes it, with one leading "@"
+// (AC-GHK-007.9); the rest is matched against [FeatureTagRules.Qualifiers]
+// exactly as it is registered — the host holds no qualifier spelling of its
+// own. A tag the active profile does not register is a malformed question
+// rather than an empty selection, since no document can make it valid: it
+// returns an error wrapping [ErrUnregisteredQualifier] that quotes the tag
+// and lists every registered qualifier in registration order
+// (AC-GHK-007.8). A registered tag no criterion carries answers an empty
+// selection and no error.
+func (c *Corpus) CriteriaByTag(tag string) ([]specmodel.Criterion, error) {
+	qualifiers := c.profile.FeatureTags().Qualifiers
+	name := strings.TrimPrefix(tag, "@")
+	qualifier, ok := findQualifier(qualifiers, name)
 	if !ok {
-		return nil
+		return nil, unregisteredQualifier(name, qualifiers)
 	}
 	var matched []specmodel.Criterion
 	for _, feature := range c.index.Features {
@@ -94,7 +108,26 @@ func (c *Corpus) CriteriaByTag(tag string) []specmodel.Criterion {
 			}
 		}
 	}
-	return matched
+	return matched, nil
+}
+
+// ErrUnregisteredQualifier reports a qualifier tag the active profile does
+// not register. Callers test for it with [errors.Is]; the wrapped error
+// carries the tag and the qualifiers that are registered.
+var ErrUnregisteredQualifier = errors.New("not a registered qualifier")
+
+// unregisteredQualifier builds the error for a qualifier the profile does
+// not register, in the same shape as an unregistered document type.
+func unregisteredQualifier(name string, qualifiers []QualifierTag) error {
+	registered := make([]string, 0, len(qualifiers))
+	for _, q := range qualifiers {
+		registered = append(registered, q.Tag)
+	}
+	list := "none are registered"
+	if len(registered) > 0 {
+		list = strings.Join(registered, ", ")
+	}
+	return fmt.Errorf("corpus: %q is %w; registered: %s", name, ErrUnregisteredQualifier, list)
 }
 
 // findQualifier returns the registration among qualifiers whose Tag is
@@ -316,7 +349,11 @@ func summarize(entry specmodel.IndexEntry) DocumentSummary {
 		shared := envelope.Of(entry.Frontmatter)
 		summary.Slug = ptrTo(shared.Slug)
 		summary.Type = ptrTo(shared.Type)
-		summary.Status = ptrTo(shared.Status)
+		// An undeclared status is omitted, as the YAML rendering omits it,
+		// rather than handed to the encoder that refuses the empty value.
+		if shared.Status != "" {
+			summary.Status = ptrTo(shared.Status)
+		}
 		summary.Title = ptrTo(shared.Title)
 		summary.Description = ptrTo(shared.Description)
 	}

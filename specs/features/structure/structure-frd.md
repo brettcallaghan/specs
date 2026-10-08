@@ -7,7 +7,7 @@ description: Records each document's headings with their section spans
 slug: frd-spec-structure
 type: frd
 status: approved
-updated_at: 2026-09-26T00:00:00Z
+updated_at: 2026-10-08T00:00:00Z
 sources:
   - "frd-spec-index"
 ---
@@ -128,7 +128,7 @@ Feature: Structure Queries
   @AC-SPECSTR-003.1
   Scenario: A heading selection returns each match with its section span
     When the CLI is asked for the spans of headings matching a given selection
-    Then the CLI returns each match as a file path, the heading text, its identifier, its level, and the span of the content beneath it
+    Then the CLI returns each match as a file path, the heading text, its identifier, its heading path, its level, and the span of the content beneath it
 
   @AC-SPECSTR-003.2
   Scenario: A selection matches a heading on its identifier
@@ -151,8 +151,9 @@ Feature: Structure Queries
 
   @AC-SPECSTR-003.5
   Scenario: The content beneath a match is returned on request
-    When the CLI is asked to emit the content the headings a selection matches stand over
-    Then the CLI returns the text of each match's section, read from its recorded span
+    Given a selection matching exactly one heading
+    When the CLI is asked to emit the content that heading stands over
+    Then the CLI writes the text of its section, read from its recorded span, as it stands in the document and with nothing added
 
   @AC-SPECSTR-003.6
   Scenario: A selection matching no heading is an answer rather than a failure
@@ -160,13 +161,76 @@ Feature: Structure Queries
     When the CLI runs the query
     Then the CLI reports that
     And the CLI exits zero
+
+  @AC-SPECSTR-003.7 @negative
+  Scenario: Emitting content for a selection matching several headings is refused
+    Given a selection matching more than one heading
+    When the CLI is asked to emit the content those headings stand over
+    Then the CLI writes nothing to standard output
+    And the CLI names every match with its heading path on standard error, so that the caller can narrow the selection to one heading path or request the matches without their content
+    And the CLI exits with the invocation-error status
+
+  @AC-SPECSTR-003.8
+  Scenario: A selection naming a document no corpus member declares is an answer
+    Given a selection qualified by a slug or path that no corpus member declares
+    When the CLI runs the query
+    Then the CLI returns an empty list of matches and a property stating that the document is not declared
+    And the CLI exits zero
+
+  @AC-SPECSTR-003.9
+  Scenario: A heading path is the identifiers of a heading and its ancestors
+    Given a heading nested beneath other headings
+    When the CLI reports it
+    Then its heading path is the identifier of each enclosing heading from the outermost down, followed by its own, joined by "#"
+
+  @AC-SPECSTR-003.10
+  Scenario Outline: A selection may name a heading by a path of headings
+    Given a document with a heading "<heading>" nested beneath a heading "<ancestor>"
+    And another heading "<heading>" elsewhere in that document
+    When the CLI runs the query for "<selection>"
+    Then the CLI matches only the heading nested beneath "<ancestor>"
+
+    Examples:
+      | ancestor   | heading    | selection                                  |
+      | Components | References | module-document-core#Components#References |
+
+  @AC-SPECSTR-003.11
+  Scenario: Each segment of a heading path is nested within the one before it at any depth
+    Given a selection whose heading half holds more than one segment separated by "#"
+    When the CLI runs the query
+    Then the CLI matches exactly the headings whose heading path is those segments, where some heading's is
+    And otherwise the CLI matches a heading named by the last segment whose enclosing headings include, in order from the outermost, a heading named by each earlier segment
+    And the CLI matches each segment on its identifier as AC-SPECSTR-003.2 states
 ```
 
 *Note:* AC-SPECSTR-003.4 is what answers a roster question — the
 components declared beneath a `Components` heading — without the caller
 knowing how many there are or what they are called. AC-SPECSTR-003.5 is
 what keeps the index free of section content: the span is recorded, and
-the text is read back through it on demand.
+the text is read back through it on demand. It is written raw, because
+the caller asked for the document's own words, and raw text has no place
+to say where one section ends and the next begins, which is why
+AC-SPECSTR-003.7 refuses a selection matching several headings rather
+than joining them; the query without emitting already lists every match,
+each with its heading path and span. That heading path selects its
+heading alone except where it is one segment another heading of the
+document shares — a top-level heading of a document with no H1 — or two
+siblings share text all the way up; such a heading's content is read
+through the span the query returns, and the refusal lists it apart from
+the selections that do name one heading alone. A heading path is the
+same form a nested wikilink anchor takes under
+[[cross-document-references]], so a path copied from a refusal works as
+a selection and as a citation. A single segment remains a valid
+selection. A full heading path takes precedence over a deeper heading
+it is also a subsequence of, which is what lets a pasted
+`document-core#references` name the top-level `References` alone though
+`document-core#components#references` satisfies it too
+(AC-SPECSTR-003.11); the precedence applies to a selection of more than
+one segment only, so a one-segment selection is matched on its
+identifier against every heading and names a top-level heading alone
+only where no other heading shares its identifier. The statuses in AC-SPECSTR-003.7 and AC-SPECSTR-003.8 are
+those [[cli-exit-status-standards]] assigns to an operand the command
+cannot act on and to a subject the corpus does not hold.
 
 ## References
 
@@ -178,6 +242,8 @@ the text is read back through it on demand.
 - [[frd-spec-anchor-references]] — resolves an anchor against the
   headings this feature records
 - [[adr-008]] — the element record blocks this feature extracts
+- [[cli-exit-status-standards]] — the exit statuses the structure query
+  reports
 - [[adr-021]] — Gherkin, the notation these features and acceptance
   criteria are written in
 - [[gherkin-guide]] — how to write them

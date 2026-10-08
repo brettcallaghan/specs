@@ -1,2 +1,116 @@
-FEAT-CHK-001	Checkout
-FEAT-CHK-002	Refunds
+declared: true
+features:
+  - id: FEAT-CHK-001
+    code: CHK
+    document_slug: frd-checkout
+    path: docs/features/frd-checkout.md
+    name: Checkout
+    description: |-
+      As a shopper
+      I want to pay for a basket
+      So that the goods are mine
+    source:
+      form: fenced-block
+      block_span:
+        offset: 305
+        length: 465
+        start_line: 15
+        start_column: 1
+        end_line: 35
+        end_column: 1
+    span:
+      offset: 316
+      length: 450
+      start_line: 16
+      start_column: 1
+      end_line: 34
+      end_column: 1
+    criteria:
+      - id: AC-CHK-001.1
+        path: docs/features/frd-checkout.md
+        feature_id: FEAT-CHK-001
+        tags:
+          - AC-CHK-001.1
+          - level-unit
+        name: A basket with something in it can be paid for
+        text: |-
+          Given a basket holding one item
+          When the shopper pays
+          Then the order is placed
+        negative: false
+        manual: false
+        level: unit
+        notation: gherkin
+        content_hash: sha256:6c0b89a15617d8f8bb006d3bf0b26d151593cfb34b99a2ce46c29566669c02c1
+        span:
+          offset: 423
+          length: 176
+          start_line: 23
+          start_column: 1
+          end_line: 27
+          end_column: 29
+      - id: AC-CHK-001.2
+        path: docs/features/frd-checkout.md
+        feature_id: FEAT-CHK-001
+        tags:
+          - AC-CHK-001.2
+          - negative
+          - level-unit
+        name: An empty basket cannot be paid for
+        text: |-
+          Given an empty basket
+          When the shopper pays
+          Then payment is refused
+        negative: true
+        manual: false
+        level: unit
+        notation: gherkin
+        content_hash: sha256:8e942b2d2200afa08ac2db1b9aa3dd44aa5b80cb696a0ee8640ed44baa80985b
+        span:
+          offset: 601
+          length: 164
+          start_line: 29
+          start_column: 1
+          end_line: 33
+          end_column: 28
+  - id: FEAT-CHK-002
+    code: CHK
+    document_slug: frd-checkout
+    path: docs/features/refunds.feature
+    name: Refunds
+    description: |-
+      As a shopper
+      I want a placed order refunded
+      So that a mistake costs me nothing
+    source:
+      form: feature-file
+    span:
+      offset: 0
+      length: 290
+      start_line: 1
+      start_column: 1
+      end_line: 13
+      end_column: 1
+    criteria:
+      - id: AC-CHK-002.1
+        path: docs/features/refunds.feature
+        feature_id: FEAT-CHK-002
+        tags:
+          - AC-CHK-002.1
+          - manual
+        name: A placed order is refunded
+        text: |-
+          Given a placed order
+          When the shopper asks for a refund
+          Then the order is refunded
+        negative: false
+        manual: true
+        notation: gherkin
+        content_hash: sha256:e31bb286ae549a29879da45ff5dc8efa3c9d2e0613bcbddf242b14f543e21a80
+        span:
+          offset: 132
+          length: 157
+          start_line: 8
+          start_column: 1
+          end_line: 12
+          end_column: 31

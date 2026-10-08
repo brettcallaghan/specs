@@ -72,26 +72,21 @@ resolves every `[[slug]]` reference — in the body and in the frontmatter
 properties that hold slugs — against the corpus. Read its findings; each
 names the rule, the span, and the value that violated it.
 
-**A single-document check reports what your edit broke elsewhere.**
+**A single-document check covers that document only.**
 `specs check <path>` resolves that document's own references against the
-whole corpus, and also reports the reference findings held by *other*
-documents, each at its own line. Rename an ADR's slug, retire it, or
-change its `type`, then check that one file: it names the documents left
-citing it. All four reference rules escape the narrowing to the file you
-named, because the document that breaks a reference is never the
-document that holds it. Every other rule stays scoped to the file you
-named.
+whole corpus and reports every finding located in it, each at its own
+line — an unresolved reference, a retired target, a type mismatch, a
+slug or identifier it shares with another document. It reports nothing
+located in another document, including a reference held elsewhere that
+your edit left pointing at nothing.
 
-What no form of the check can tell you is whether a broken reference is
-*yours*. It has no memory of what those references used to resolve to,
-so breakage already in the corpus is reported alongside breakage your
-edit caused. In a corpus you keep green that distinction is empty —
-anything reported is new. `specs refs <slug>` before you change, retire
-or re-type a document answers the blast-radius question ahead of time,
-and is the cheaper habit.
+So before you rename, retire or re-type a document, run
+`specs refs <slug>`: it names every document citing it, which is the
+blast radius of the change. After the change, a corpus-wide `specs check`
+reports what is broken anywhere.
 
 **Check the path you got back.** `specs check` on a path that names no
-corpus member exits 1 and says so, naming the exclusion reason where the
+corpus member exits 2 and says so, naming the exclusion reason where the
 file exists but was excluded. It never reports a clean document for a
 path the corpus does not hold.
 

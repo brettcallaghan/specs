@@ -148,8 +148,8 @@ func TestValidateReportsEveryViolationWithItsPointer(t *testing.T) {
 			if violation.Pointer != "/name" {
 				t.Errorf("schema-violation pointer = %q, want %q", violation.Pointer, "/name")
 			}
-			if violation.Constraint != "pattern" {
-				t.Errorf("schema-violation constraint = %q, want %q", violation.Constraint, "pattern")
+			if want := `pattern "^[a-z]+$"`; violation.Constraint != want {
+				t.Errorf("schema-violation constraint = %q, want %q", violation.Constraint, want)
 			}
 			sawPattern = true
 		case f.Rule == finding.RuleMissingProperty:
@@ -451,4 +451,92 @@ func documentTypeVocabulary(t *testing.T) map[string]bool {
 		vocabulary[value] = true
 	}
 	return vocabulary
+}
+
+// refSchema constrains two properties through $ref, the way the real
+// bundle constrains slug and status through shared definitions: one by a
+// pattern, one by an enum.
+const refSchema = `{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Slug": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "Status": {"type": "string", "enum": ["draft", "approved", "retired"]},
+    "Note": {
+      "type": "object",
+      "properties": {
+        "slug": {"$ref": "#/definitions/Slug"},
+        "status": {"$ref": "#/definitions/Status"}
+      }
+    }
+  }
+}`
+
+// A violation reached through $ref is reported by the constraint it
+// violated — the pattern, or every allowed value — rather than by the
+// $ref keyword that led to it, and names the offending value.
+//
+// AC: AC-SPEC-003.1, AC-SPEC-006.1
+func TestAViolationReachedThroughARefNamesItsLeafConstraint(t *testing.T) {
+	registry, err := schemaregistry.New([]byte(refSchema))
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	doc := mustParse(t, "---\nslug: New_Thing\nstatus: actve\n---\n")
+	findings, err := registry.Validate("notes/x.md", "note", doc)
+	if err != nil {
+		t.Fatalf("Validate: %v", err)
+	}
+	if len(findings) != 2 {
+		t.Fatalf("Validate reported %d findings, want 2: %+v", len(findings), findings)
+	}
+
+	want := map[string][]string{
+		"/slug":   {`"New_Thing"`, `pattern "^[a-z][a-z0-9-]*$"`},
+		"/status": {`"actve"`, "one of draft, approved, retired"},
+	}
+	for _, f := range findings {
+		violation, ok := f.Detail.AsSchemaViolation()
+		if !ok {
+			t.Errorf("finding carries no schema-violation detail: %+v", f)
+			continue
+		}
+		parts, ok := want[violation.Pointer]
+		if !ok {
+			t.Errorf("unexpected pointer %q: %+v", violation.Pointer, f)
+			continue
+		}
+		delete(want, violation.Pointer)
+		if strings.Contains(f.Message, "$ref") || strings.Contains(violation.Constraint, "$ref") {
+			t.Errorf("finding names $ref: %q (constraint %q)", f.Message, violation.Constraint)
+		}
+		for _, part := range parts {
+			if !strings.Contains(f.Message, part) {
+				t.Errorf("message %q does not carry %s", f.Message, part)
+			}
+		}
+	}
+	for pointer := range want {
+		t.Errorf("no finding at %s", pointer)
+	}
+}
+
+// Enum answers the values a property's schema allows, resolving through
+// $ref, and reports a property that is not an enum, or not declared, as
+// having none.
+//
+// AC: AC-SPEC-006.1
+func TestEnumResolvesAPropertysAllowedValuesThroughARef(t *testing.T) {
+	registry, err := schemaregistry.New([]byte(refSchema))
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	values, ok, err := registry.Enum("note", "status")
+	if err != nil || !ok || strings.Join(values, ",") != "draft,approved,retired" {
+		t.Errorf("Enum(note, status) = %v, %v, %v; want draft, approved, retired", values, ok, err)
+	}
+	for _, property := range []string{"slug", "nope"} {
+		if values, ok, err := registry.Enum("note", property); err != nil || ok {
+			t.Errorf("Enum(note, %s) = %v, %v, %v; want no enum", property, values, ok, err)
+		}
+	}
 }

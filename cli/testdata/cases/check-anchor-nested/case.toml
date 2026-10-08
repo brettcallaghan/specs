@@ -1,0 +1,5 @@
+description = "check resolves an anchor written as a path of headings through its enclosing headings: one naming a single heading is clean, a full heading path is clean though a deeper same-named heading also satisfies it, one no heading satisfies is unresolved, and one several satisfy is ambiguous, naming each match's heading path and line"
+cites = ["AC-SPECANCH-002.5", "AC-SPECANCH-002.10"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 1

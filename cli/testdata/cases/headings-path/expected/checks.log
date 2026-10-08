@@ -1,0 +1,26 @@
+declared: true
+matches:
+  - path: docs/adrs/adr-500-roster.md
+    text: References
+    identifier: references
+    heading_path: adr-500-roster#components#references
+    level: 3
+    section:
+      offset: 258
+      length: 67
+      start_line: 15
+      start_column: 1
+      end_line: 22
+      end_column: 1
+  - path: docs/adrs/adr-500-roster.md
+    text: Detail
+    identifier: detail
+    heading_path: adr-500-roster#components#references#detail
+    level: 4
+    section:
+      offset: 290
+      length: 35
+      start_line: 19
+      start_column: 1
+      end_line: 22
+      end_column: 1

@@ -1,0 +1,120 @@
+checks:
+  - rule: c4/ambiguous-node
+    outcome: passed
+  - rule: c4/bidirectional
+    outcome: passed
+  - rule: c4/contract-mismatch
+    outcome: passed
+  - rule: c4/contract-unresolved
+    outcome: passed
+  - rule: c4/drawing-conflict
+    outcome: passed
+  - rule: c4/duplicate-edge
+    outcome: passed
+  - rule: c4/interaction-conflict
+    outcome: passed
+  - rule: c4/parse
+    outcome: passed
+  - rule: c4/tag-separator
+    outcome: passed
+  - rule: c4/undeclared-node
+    outcome: passed
+  - rule: corpus/empty
+    outcome: passed
+  - rule: frontmatter/missing-property
+    outcome: passed
+  - rule: frontmatter/parse
+    outcome: passed
+  - rule: frontmatter/schema
+    outcome: passed
+  - rule: gherkin/criterion-code-mismatch
+    outcome: passed
+  - rule: gherkin/criterion-empty
+    outcome: passed
+  - rule: gherkin/criterion-untagged
+    outcome: passed
+  - rule: gherkin/examples-partially-tagged
+    outcome: passed
+  - rule: gherkin/feature-untagged
+    outcome: passed
+  - rule: gherkin/identifier-duplicate
+    outcome: passed
+  - rule: gherkin/identifier-malformed
+    outcome: passed
+  - rule: gherkin/identifier-multiple
+    outcome: passed
+  - rule: gherkin/owner-mismatch
+    outcome: passed
+  - rule: gherkin/owner-missing
+    outcome: passed
+  - rule: gherkin/owner-unresolved
+    outcome: passed
+  - rule: gherkin/parse
+    outcome: passed
+  - rule: gherkin/scenario-prose
+    outcome: passed
+  - rule: gherkin/tag-unregistered
+    outcome: passed
+  - rule: reference/ambiguous-anchor
+    outcome: passed
+  - rule: reference/pairing-incomplete
+    outcome: passed
+  - rule: reference/retired-target
+    outcome: failed
+  - rule: reference/type-mismatch
+    outcome: passed
+  - rule: reference/unresolved
+    outcome: failed
+  - rule: reference/unresolved-anchor
+    outcome: passed
+  - rule: slug/duplicate
+    outcome: passed
+  - rule: slug/pattern-mismatch
+    outcome: passed
+findings:
+  - rule: reference/unresolved
+    severity: error
+    path: docs/adrs/adr-201-referrer.md
+    span:
+      offset: 306
+      length: 14
+      start_line: 12
+      start_column: 23
+      end_line: 12
+      end_column: 37
+    message: "[[adr-999-absent]] matches no document's slug"
+    detail:
+      kind: unresolved-reference
+      slug: adr-999-absent
+      origin:
+        kind: body
+  - rule: reference/retired-target
+    severity: warning
+    path: docs/adrs/adr-201-referrer.md
+    span:
+      offset: 358
+      length: 15
+      start_line: 13
+      start_column: 3
+      end_line: 13
+      end_column: 18
+    message: "\"adr-202-retired\" is retired"
+    detail:
+      kind: retired-target
+      slug: adr-202-retired
+  - rule: reference/unresolved
+    severity: error
+    path: docs/adrs/adr-201-referrer.md
+    span:
+      offset: 413
+      length: 21
+      start_line: 14
+      start_column: 3
+      end_line: 14
+      end_column: 24
+    message: "[[adr-200-previous-name]] matches no document's slug"
+    detail:
+      kind: unresolved-reference
+      slug: adr-200-previous-name
+      origin:
+        kind: body

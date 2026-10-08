@@ -1,0 +1,4 @@
+checks:
+  - rule: frontmatter/schema
+    outcome: passed
+findings: []

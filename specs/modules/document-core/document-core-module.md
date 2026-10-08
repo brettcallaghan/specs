@@ -7,7 +7,7 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-10-07T00:00:00Z
+updated_at: 2026-10-08T00:00:00Z
 kind: standard
 visibility: internal
 source_paths:
@@ -111,8 +111,9 @@ the plugin, and no framework vocabulary is compiled into the host.
     feature's, and the qualifier tags together with what each of them
     means — as the authority for reading a tag, and SHALL contain no tag
     spelling of its own (AC-GHK-002.1). A tag matching no registered
-    pattern and named by no qualifier is carried on the record and
-    reported by nothing (AC-GHK-002.8).
+    pattern, carrying no owning-document prefix and named by no
+    qualifier is carried on the record with no meaning and reported as
+    a warning (AC-GHK-002.8).
   - The module SHALL check a criterion identifier's derivation from its
     feature's by comparing only the capture groups the registration
     names as shared, so that neither pattern's internal structure is
@@ -285,6 +286,7 @@ C4Component
         Component(num, "Numbering", "Go package", "Next-number derivation for numbered document types")
         Component(find, "Findings", "Go package", "Finding and severity model, and report emission")
         Component(mdlinks, "Markdown Links", "Go package", "Wikilink-to-markdown-link substitution and target resolution")
+        Component(rev, "Revisions", "Go package", "Resolves a git base revision and materializes a directory as a commit holds it")
     }
     Rel(corpus, fm, "Extracts frontmatter via")
     Rel(corpus, md, "Extracts structure via")
@@ -313,10 +315,10 @@ C4Component
     Rel(mdlinks, find, "Reports through")
 ```
 
-Twelve of the thirteen are built and carry a **Built** paragraph naming
+Thirteen of the fourteen are built and carry a **Built** paragraph naming
 the package that realizes them: Spans, Frontmatter, Gherkin, C4 Diagrams,
 C4 Elements, C4 Model, References, Schema Registry, Corpus, Numbering,
-Findings and Markdown Links. The
+Findings, Markdown Links and Revisions. The
 emitted index carries the resolved reference graph, and the corpus checks
 read it: a broken link, a live document citing a retired one, a
 half-declared pairing and a typed reference landing on the wrong
@@ -415,6 +417,20 @@ begins and ends is decided in one place: a caller that needs only where
 the block ends — the Corpus walk, for a document whose frontmatter did
 not parse — asks this component rather than re-deriving the delimiters,
 and a second derivation cannot disagree with the first.
+
+`TopLevelScalar` reads one top-level property's value by line from a
+block `Parse` rejected, so one malformed value elsewhere in the block
+does not make a property written correctly on its own line unreadable
+(AC-SPEC-003.7). It reads a value only where the block is delimited
+(`Locate` finds it — an unterminated block has no extent to read from),
+the key begins its line unindented, and the value is a non-empty
+single-line scalar, plain or quoted, with an optional trailing comment;
+anything else is no value rather than a guess. It takes the property's
+name from its caller and knows no envelope vocabulary: the Corpus asks
+it for `slug`. `TopLevelScalarAt` reads the same value and also returns its
+span — the value's source text on its line, which is what a parsed
+property's `Position` covers — so a duplicate-slug finding against a
+recovered slug points at the value (AC-SPEC-003.3).
 
 Six semantics are pinned by the implementation:
 
@@ -581,6 +597,37 @@ derivation rather than a second one. It is exposed as a function rather
 than recorded on a `Heading`, and the index model carries no identifier
 property for the same reason: it is recomputable from the text and is
 therefore not state.
+
+Two more pure functions name a heading among same-named ones, working on
+an `Outline` — a heading's text and level, which a parsed `Heading` and
+an indexed one both carry — so the package takes no dependency on the
+index model. `HeadingPaths` returns each heading's heading path: the
+identifier of every enclosing heading from the outermost down, then its
+own (AC-SPECSTR-003.9), `JoinPath` writing it with `#` between segments.
+A heading encloses the headings after it up to the next one at its own
+level or higher, the nesting its section follows, so a skipped level
+changes nothing and a document with no top-level heading has paths that
+begin at its shallowest. `MatchesPath` decides whether a query — one or
+more `#`-separated segments, each compared on its identifier — is
+satisfied by a heading's path: the last segment must be the heading's own
+identifier and every earlier one an enclosing heading's, in order from
+the outermost, at any depth (AC-SPECSTR-003.11, AC-SPECANCH-002.10).
+`SelectPaths` decides selection over one document's whole outline: a
+query of more than one segment that equals some heading's full heading
+path selects exactly the headings with that path, and any other query
+selects every heading satisfying it. Without that precedence a shallow
+heading's full path — `document-core#references` — is also satisfied by
+a deeper same-named heading (`document-core#components#references`), and
+a path the CLI prints would not paste back as a selection naming its
+heading alone. One segment is never narrowed: it is exactly an
+identifier comparison over every heading, so every selection and anchor
+written before paths existed answers as it did, and a heading whose path
+is one segment is named alone only where no other heading shares its
+identifier. A query holding an empty segment selects nothing. The
+`headings` query, `refs` and anchor resolution all select through
+`SelectPaths`, over paths derived by one conversion of the recorded
+headings (`references.HeadingPaths`), so a selection and an anchor
+written alike cannot select different headings.
 
 The comment-block location remains **not yet built**: no
 `cli/core/markdown` surface locates an HTML comment block yet.
@@ -882,12 +929,15 @@ there; an orphaned root stays in its orphaned collection. Only the
 relationships whose two endpoints are both in the narrowed set are kept,
 and only the excluded relationships whose statement sits in the
 blueprint of an element in it. Derived properties keep their
-whole-corpus values. A root naming no element is reported as naming no
-element, and no model is returned.
+whole-corpus values. A narrowed model carries `root_declared`: true for
+a root naming an element, and false for one naming none, the model then
+holding every collection empty — a root the corpus does not declare is an
+answer, not an error (AC-C4-004.6).
 
 **Built** — `cli/core/c4model`, reached through `Corpus.C4Model`, for the
 element tree, relationships, reserved tags, exclusions and the subtree
-query; a root naming no element is a `c4model.UnknownRootError`. The source scan that keeps
+query; a root naming no element answers a model with `root_declared`
+false. The source scan that keeps
 `cli/core/corpus` free of registered vocabulary covers this package: the
 properties it copies are named by the registered vocabulary or by the
 model's own field names.
@@ -959,17 +1009,32 @@ Five further semantics are pinned by the resolution half:
   member whose frontmatter could not be read, resolves to `non-member`
   rather than to nothing** (AC-SPECREF-002.7), carrying that file's path
   and the reason or the parse failure. The reader's next step differs:
-  the document is right there and what is wrong is its frontmatter.
+  the document is right there and what is wrong is its frontmatter. The
+  index records the outcome either way; check reports only the
+  exclusion's, because a reference reaching a parse failure depends on
+  that failure, which is already the one finding (AC-SPEC-003.8).
 - **A non-member is matched on its file name without the extension,
   lowercased**, because it is the only handle such a file has — a parse
-  failure has no readable frontmatter to declare a slug, and a file
+  failure with no legible slug has no readable frontmatter to declare
+  one (a member whose slug was recovered is a member under that slug,
+  AC-SPEC-003.7, and keeps the file-name match besides), and a file
   excluded for carrying no frontmatter has none either. The name is
   recorded on the index, so the match is reproducible by anything reading
-  the artifact rather than resting on knowledge only the build held. The
-  consequence is deliberate and one-directional: a non-member whose
-  intended slug differs from its file name matches nothing and reports as
-  an ordinary unresolved reference, which is the answer it received
-  before this rule existed.
+  the artifact rather than resting on knowledge only the build held. A
+  parse failure with no recovered slug is matched by a stem prefix as
+  well: a numbered slug — one ending in a `-` and a number — its file
+  name begins with, followed by `-`, reaches it, so `[[adr-012]]` finds
+  `adr-012-reference-conventions.md` under the `<slug>-<title>` naming of
+  numbered types (AC-SPEC-003.8). Any other prefix is no member's slug
+  and depends on no unreadable file: `[[adr]]` and
+  `[[adr-012-reference]]` match nothing there and report as unresolved.
+  The test is lexical, so resolution stays a function of the index. An exact
+  stem outranks a prefix, and between two prefix matches the first in
+  path order wins. An exclusion is matched on its exact stem only: it
+  never claimed to be a member. The consequence is deliberate: a
+  non-member whose intended slug matches its file name neither way —
+  `frd-spec-index` for `spec-index-frd.md` — matches nothing and reports
+  as an ordinary unresolved reference.
 - **A member always wins over a file named like one**, and where two
   non-members share a name the first in path order is reported, decided
   by comparison rather than by the order the index happens to hold its
@@ -983,6 +1048,17 @@ recording headings ([[frd-spec-structure]]):
   same derivation Markdown Structure exposes and Markdown Links consumes
   for its own fragment — an anchor this component resolves is an anchor
   an exported copy can target.
+- **An anchor written as a path of headings resolves through its
+  enclosing headings** (AC-SPECANCH-002.10): `#Components#References`
+  selects the `References` heading beneath `Components` at any depth, by
+  Markdown Structure's `SelectPaths`, so one of two same-named headings
+  can be named without renaming either. It is unresolved where no heading
+  satisfies every segment and ambiguous where several are selected — a
+  full heading path selecting only the headings with exactly that path —
+  by the same rule as a single-segment anchor. Every match the resolution records
+  carries its `heading_path`, and a resolved nested anchor's markdown
+  link fragment is its last heading's, since a fragment can address only
+  one heading.
 - **Exactly one match resolves the anchor to that heading; more than one
   resolves it to no heading and carries every match** (AC-SPECANCH-002.5),
   so the reader is told which headings to disambiguate rather than only
@@ -1039,6 +1115,15 @@ Nine semantics are pinned by the extraction half:
   never a place Gherkin content is written. Reading the tag vocabulary
   from Gherkin's exported `FenceTags` rather than a literal keeps the two
   components from drifting when that vocabulary changes.
+- **Gherkin-fenced references are indexed but not rewritten.**
+  `OutsideGherkinFences` takes the same `Options` `Extract` was given
+  and its references, and returns them without every body reference
+  inside a gherkin-tagged fence, order preserved; frontmatter references
+  pass through. It shares the one `goldmark` walk the mask uses, so the
+  two cannot disagree about where a fence ends. A caller rendering the
+  document applies it, because a renderer shows a fence literally; the
+  index never does, so `refs` and the checks still see the reference
+  (AC-GHK-004.1, AC-SPECMD-001.4).
 - **A `.feature` source is extracted the same way a document body is,**
   with no frontmatter and no reference-bearing properties: the whole
   file is body from its first byte, so a wikilink anywhere in it is
@@ -1117,7 +1202,22 @@ Change Guidance below without a per-type schema pointer from the profile.
 `Declares` answers, over that same branch, whether a type declares a
 property — directly or through `$ref` and `allOf`, never through an
 alternative — which is how a profile's architecture registration is
-checked against its own schema.
+checked against its own schema. `Enum` answers, over the same branch, the
+values a property's schema allows, followed through `$ref`.
+
+A violation reached through `$ref` is reported by its **leaf
+constraint**, not by the `$ref` that led to it: the registry walks the
+validation error's causes down to the ones that have none, so a pattern
+failure names its expression (`pattern "^[a-z0-9]+(?:-[a-z0-9]+)*$"`)
+and an enum failure every allowed value (`one of draft, approved, …`),
+beside the offending value (AC-SPEC-006.1). Every failed `oneOf`/`anyOf`
+branch and every sibling violation is still reported. A slug that fails
+its type's pattern is reported **once**, as `slug/pattern-mismatch`: the
+Corpus check drops the shared schema's pattern violation on the same
+`/slug` beside it, under `--only frontmatter/schema` as well, and keeps
+one only where the type's pattern passes. A message about the
+frontmatter object itself — a missing required property — carries no
+pointer prefix; its detail keeps the root pointer `""`.
 
 **Built** — `cli/core/envelope`. The index carries each document's
 frontmatter as the union variant its `type` selects
@@ -1128,7 +1228,27 @@ type: the variants are discovered from the generated union, each tag the
 kebab-case of its variant's name. It decodes without the generated
 required-field enforcement, because a document missing a required
 property must still be indexed for `frontmatter/missing-property` to
-report it.
+report it. A value its property's generated type refuses — a `status`
+outside the vocabulary — fails the decode with a `PropertyError` naming
+that property and the value as written, so the `frontmatter/parse`
+failure is located at the property; where its schema is an enum, Corpus
+asks the Schema Registry for the allowed values, compiling the schema on
+that failure path only, and the message names them all:
+`status: "actve" is not one of draft, ready-for-review, approved,
+in-progress, active, retired` (AC-SPEC-003.6, AC-SPEC-006.1). `Encode` is the matching write: Corpus encodes every entry's
+frontmatter through it when it renders the index, and it writes the
+`type` discriminator and then the variant's properties exactly as the
+generated encoder does, except that a required enum the document leaves
+undeclared — an ADR's `status`, a blueprint's `kind` — is **omitted from
+the index rather than refused**. The generated encoder refuses the empty
+value, which would make the index unwritable over a corpus that merely
+fails a check; the omission is that check's finding alone
+(AC-SPEC-002.4, AC-SPEC-002.5). For a frontmatter that declares every
+enum the bytes are the generated encoder's, so the index of a valid
+corpus is unchanged. Such an index does not load back through the
+generated decoder, which requires the property, so a corpus holding such
+a member always rebuilds rather than serving its cache warm; status and
+output are the same either way.
 
 ### Corpus
 
@@ -1166,7 +1286,9 @@ The vocabulary is:
 - **`IndexEntry`** — one corpus member: its repository-relative `path`,
   its parsed `frontmatter`, and a `parse_error` carrying a located
   failure for a member whose frontmatter could not be read
-  (AC-SPEC-002.4). Exactly one of the latter two is present. It also
+  (AC-SPEC-002.4). Exactly one of the latter two is present. A member
+  carrying a `parse_error` also carries a `recovered_slug` when its slug
+  is still legible (AC-SPEC-003.7), and every slug lookup honors it. It also
   carries the document's structure: its `headings` in document order
   (AC-SPECSTR-001.1), and the `record_blocks` attached to the document
   rather than to any heading — those written before the first heading,
@@ -1215,11 +1337,18 @@ The vocabulary is:
   changes what a consumer may do with the feature, so it is a value
   rather than something inferred from an absent property.
 - **`Criterion`** — one acceptance criterion, nested inside the feature
-  it qualifies rather than held in a sibling collection: its `id`, its
-  `name`, its body as `text`, its `description`, the `rule` it sits
-  beneath, the `negative` and `manual` qualifiers, its verification
-  `level`, its `notation`, its `content_hash`, and its `span`
-  (AC-GHK-005.2, AC-GHK-005.4). The body is one string and is not
+  it qualifies rather than held in a sibling collection: its `id`, the
+  `path` of the file it is written in and the `feature_id` of the feature
+  it belongs to — so a lookup of one criterion locates it without a
+  second query — every tag written on it as `tags`, in order and without
+  the leading `@` (unregistered tags included; an Examples-derived
+  criterion's scenario tags first), its `name`, its body as `text`, its
+  `description`, the `rule` it sits beneath, the `negative` and `manual`
+  qualifiers, its verification `level`, its `notation`, its
+  `content_hash`, and its `span` (AC-GHK-005.2, AC-GHK-005.4). `path`,
+  `feature_id` and `tags` are required, so a persisted index written
+  before they existed fails to decode and is rebuilt rather than served
+  warm. The body is one string and is not
   decomposed into typed steps and keyed example rows: a criterion is the
   atomic unit here, and a decomposed shape could be filled from one
   notation only (AC-GHK-005.3). The `content_hash` covers the criterion's
@@ -1300,6 +1429,15 @@ member, `OutboundReferences` and `InboundReferences` for the two
 directions of the reference graph, `FeatureFailures` for every Gherkin
 source that would not parse, and `FindingsFor` to narrow a
 whole-corpus result to one file.
+
+`Feature`, `FeaturesByCode` and `Criterion` match an identifier or code
+regardless of letter case and return the record as declared
+(AC-GHK-007.7). `CriteriaByTag` accepts a qualifier with or without
+Gherkin's leading `@` (AC-GHK-007.9) and returns an error wrapping
+`ErrUnregisteredQualifier` — quoting the value and listing every
+registered qualifier, the shape of `ErrUnregisteredType` — for a
+qualifier the active profile does not register, since no document could
+make it valid (AC-GHK-007.8).
 
 **`DocumentSummaries` is the listing query**, beside `Features` and
 `CriteriaOf` on the same query surface and for the same reason those are
@@ -1480,36 +1618,35 @@ here names a document type.
 **They also report every reference the graph recorded as broken.** One
 rule, `reference/unresolved`, covers a body reference matching no corpus
 member, a reference-bearing frontmatter value matching no corpus member,
-and a slug matching a non-member — the last carrying the non-member's
-path and reason rather than reading as an ordinary unresolved slug
-(AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7). `CheckFor`
-narrows that result to the document named with one exception: every
-reference finding survives wherever it was written, reported against the
-*referring* document at the referrer's own span, because that is the file
-a reader must open to fix it (AC-SPECREF-002.9, AC-SPECREF-002.11).
-Renaming a document's slug, retiring it and changing its `type` all break
-references held by other files, so a result narrowed strictly by path is
-silent about the very defect a write-time check exists to catch — and
-worse than silent, since the run report would then declare those rules
-`passed` over findings it had discarded. Membership in the exception is a
-property of where a rule's findings land, not of its `reference/` prefix.
-The exception costs nothing: those findings are derived from the
-reference collection the corpus holds in memory regardless of which file
-was named, so the narrowing was the only thing discarding them, and
-AC-SPEC-009.2's single-document budget is untouched. What it does not do
-is separate breakage this edit caused from breakage already present — an
-edit invalidates the content fingerprint, so the check reads a freshly
-rebuilt graph with no memory of what those references resolved to.
+and a slug matching an excluded file — the last carrying the file's path
+and reason rather than reading as an ordinary unresolved slug
+(AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7). A slug that
+reached a parse failure raises nothing against the referring document:
+it depends on that member's parse failure, which `frontmatter/parse`
+already reports, so one unreadable member is one finding however often
+it is cited (AC-SPEC-003.8). No anchor finding stands in for it, since
+an anchor is checked only against a member. A reference
+finding is located in the *referring* document, at the referrer's own
+span, because that is the file a reader must open to fix it. `CheckFor`
+narrows every finding to the document named, with no exception: it
+reports no finding located in another document, including one held
+elsewhere that no longer resolves to the named document
+(AC-SPECREF-002.9). The rules still run over the whole corpus, so every
+reference finding located in the named document is reported exactly as a
+corpus check reports it (AC-SPECREF-002.11). What an edit breaks
+elsewhere is answered by `refs` before the edit, or by a corpus check
+after it.
 
 **They also report the anchor half of a reference, under two rule
 identifiers of its own.** `reference/unresolved-anchor` fires at
 severity `error` when a reference's anchor matches no heading of a
 target whose headings are known, naming the target document and the
 anchor as authored (AC-SPECANCH-002.1); `reference/ambiguous-anchor`
-fires at `error` when the anchor's identifier is the identifier of more
-than one heading, carrying every match with its span, since the reader
-has to know which headings to disambiguate rather than only that a
-collision exists (AC-SPECANCH-002.5). Where the target's headings were
+fires at `error` when the anchor selects more than one heading,
+carrying every match with its span and heading path and naming each
+match's heading path and line in its message, since the reader has to
+know which headings to disambiguate — and the path that selects each
+one alone — rather than only that a collision exists (AC-SPECANCH-002.5). Where the target's headings were
 never recorded, `reference/unresolved-anchor` reports at
 `unverified` instead: the tool could not look, which is not the claim
 that it looked and found nothing (AC-SPECANCH-002.4) — the one rule
@@ -1518,11 +1655,10 @@ reference whose slug resolved to nothing gets no anchor finding at all;
 the unresolved slug is already reported and two findings for one mistake
 train a reader to skim (AC-SPECANCH-002.8). Both rules run over every
 anchored reference in an ordinary corpus check rather than behind an
-option (AC-SPECANCH-002.9), and both are corpus-wide on exactly the
-terms `reference/unresolved` is: a renamed heading breaks anchors held
-by files the renaming author never opened, so a single-document check
-reports them against the referring document at the referrer's own span
-(AC-SPECANCH-003.2). Unlike the three relational rules below, these two
+option (AC-SPECANCH-002.9), and both are narrowed by a single-document
+check exactly as `reference/unresolved` is: a check of the document whose
+heading was renamed reports no anchor finding located in a referring
+document (AC-SPECANCH-003.2). Unlike the three relational rules below, these two
 read no document off disk: what an anchor reached was settled by the
 References component during resolution, and this derives the finding
 from that record rather than matching a heading a second time.
@@ -1542,7 +1678,8 @@ find its candidates — but two of the three, in resolving a retired
 target's successor or a pairing's counterpart, call back into the
 corpus for the target document itself, which on a warm corpus reads and
 parses that one file off disk (and caches it for later callers); all
-three also run corpus-wide, unnarrowed by a single-document `CheckFor`.
+three also run over the whole corpus, and a single-document `CheckFor`
+reports the findings among them located in the named document.
 `reference/retired-target` — the first rule
 this package emits at severity `warning` rather than `error` — fires
 when a document at a status the active profile's `Lifecycle` registers
@@ -1570,7 +1707,7 @@ empty (AC-SPEC-006.9).
 
 **They also report whether a feature or a criterion is addressed,
 addressed once, and whether its address agrees with where it sits** —
-VTAG's nine identity rules, all raised from `gherkinIdentityFindings`.
+VTAG's ten identity rules, all raised from `gherkinIdentityFindings`.
 `gherkin/feature-untagged` and `gherkin/criterion-untagged` fire for a
 `Feature` or a `Scenario` resolving no identifier at all (AC-GHK-002.2);
 `gherkin/identifier-malformed` fires instead of the untagged rule when
@@ -1587,11 +1724,11 @@ naming every one of them (AC-GHK-002.5). `gherkin/identifier-duplicate`
 fires for a feature or a criterion identifier declared by two records in
 the corpus, against each and naming the other's location — features and
 criteria compared separately, the Gherkin analogue of `slug/duplicate`
-(AC-GHK-002.4, AC-GHK-003.4) — and is the one rule in this set that
-survives `CheckFor`'s narrowing on the same terms `reference/unresolved`
-does: `finding.IsCorpusWideRule` (renamed from `IsReferenceRule` to admit
-a non-`reference/`-prefixed member) covers it alongside the six
-reference rules. `gherkin/criterion-code-mismatch` fires when a
+(AC-GHK-002.4, AC-GHK-003.4). Uniqueness is resolved against the whole
+corpus even on a single-document check, so an identifier the named
+document shares with another file is reported in the named document,
+naming the other location (AC-GHK-006.7); the finding raised against the
+other file is narrowed away like any other. `gherkin/criterion-code-mismatch` fires when a
 criterion's identifier and its feature's disagree on the capture values
 the profile's `SharedCaptures` name (AC-GHK-003.6) — read from the two
 compiled patterns' own named captures, never from `Feature.Code`, which
@@ -1603,13 +1740,27 @@ tag (if it carries one) agrees with the document it is written in
 (AC-GHK-002.11), and whether a standalone source's owner tag resolves to
 a corpus member at all (AC-GHK-002.10) — the last reading as an
 unresolved reference rather than an ordinary mismatch, because ownership
-that names nothing has not been recorded.
+that names nothing has not been recorded. `gherkin/tag-unregistered`,
+the one Gherkin rule at severity warning, fires for each Feature or
+criterion tag the vocabulary assigns no meaning — matching neither
+identifier pattern in full, carrying no owning-document prefix, naming
+no registered qualifier — naming the tag and the registered qualifiers,
+so a misspelt `@negatve` does not silently lose its meaning while a
+project's own `@wip` still passes a default run (AC-GHK-002.8). Which
+element a registered tag sits on is not judged. A near-miss identifier
+on an element that resolved none is left to `identifier-malformed`; a
+scenario tag inherited by every Examples block of a divided outline is
+judged once, on the first block, through the Gherkin component's
+`Criterion.Inherited` and `FirstBlock`.
 
-**Every one of the nine reads from a fresh Gherkin parse, on a warm
-corpus and a cold one alike.** `specmodel.Feature` and `.Criterion` keep
-only a construct's *resolved* identity — an empty `Id` where nothing
-matched — never the tag that failed to match or the second tag that
-matched alongside the first, so `gherkinIdentityFindings` reads from
+**Every one of the ten reads from a fresh Gherkin parse, on a warm
+corpus and a cold one alike.** `specmodel.Feature` keeps only a
+construct's *resolved* identity — an empty `Id` where nothing matched —
+never the tag that failed to match or the second tag that matched
+alongside the first. A `.Criterion` record does carry its tags, but not
+which of them the vocabulary tried and rejected as an identifier, nor
+anything for a construct that never became a criterion, so
+`gherkinIdentityFindings` reads from
 `Corpus.recomputeGherkin`'s result, which walks the same `scanSources`
 `Build` does and calls the same extraction `blockFeatures` and
 `featureFileFeature` that a cold build's `builder` calls (features.go),
@@ -1665,8 +1816,7 @@ severity is `error`, matching `criterion-untagged`'s tier rather than
 `scenario-prose`'s, because the blueprint frames the mixture itself as
 unambiguous where a normative description is merely probable. Checking
 one document reports that document's own content findings and nothing
-more, on the same path-scoped narrowing every VTAG rule but
-`gherkin/identifier-duplicate` gets (AC-GHK-006.7).
+more, on the same path-scoped narrowing every rule gets (AC-GHK-006.7).
 
 **They check the C4 diagrams in architecture blueprints** — the first
 half of the `c4/*` family, raised from `c4NodeFindings` over the element
@@ -1790,7 +1940,7 @@ with nothing parsed at all, which is what keeps a reference query and the
 inbound half of a single-document check inside the AC-SPEC-009.1 and
 AC-SPEC-009.2 budgets (AC-SPECREF-003.4).
 
-Six semantics are pinned by the implementation:
+Eight semantics are pinned by the implementation:
 
 - **Every read passes through one choke point, and that choke point
   normalizes line endings.** A candidate's bytes are read through the
@@ -1817,6 +1967,38 @@ Six semantics are pinned by the implementation:
   document still indexes (AC-SPEC-002.4). An exclusion is reserved for the
   two judgements the reader needs — no frontmatter, and a type the profile
   does not define.
+- **A member whose frontmatter failed keeps a legible slug.** Where the
+  YAML parsed and the typed decode failed — a status outside the
+  vocabulary — the slug is read from the parsed `slug` property; where
+  the YAML itself failed inside a delimited block, Frontmatter's
+  `TopLevelScalarAt` reads it, and where its value sits, by line. Either
+  way a non-empty string is
+  recorded as the entry's `recovered_slug`, and every slug lookup reads an
+  entry's slug through `envelope.DeclaredSlug` — the envelope's slug,
+  else the recovered one — so the slug query, reference resolution and a
+  heading selection by slug find such a member as they would one that
+  parsed (AC-SPEC-003.7). One mistyped value therefore produces one
+  finding, the `frontmatter/parse` failure, rather than one
+  `reference/unresolved` per citation of the document. The checks that
+  read a target's typed frontmatter — retired target, type mismatch,
+  pairing — skip a target without one, so a reference reaching a
+  recovered member raises none of them; the slug-pattern and schema
+  checks still run only on members that parsed.
+- **A recovered slug takes part in duplicate detection** exactly as a
+  parsed one does (AC-SPEC-003.3, AC-SPEC-003.7): a member whose
+  frontmatter failed and a member declaring the same slug each get a
+  `slug/duplicate` finding naming the other, the recovered one placed at
+  its slug value's position, alongside the separate `frontmatter/parse`
+  failure. The warm path groups entries by `envelope.DeclaredSlug` and
+  places a recovered slug from the source by the same rule, so its
+  findings match the cold build's.
+- **A parsed member wins a slug lookup over a recovered one.** Where both
+  declare one slug, the slug query, reference resolution and the warm
+  index's slug table all answer the member whose frontmatter parsed,
+  whatever their path order; between two of the same kind the first in
+  path order wins. One rule, `envelope.HoldsSlugOver`, decides it at
+  every site, so a reference to a shared slug still reaches a target the
+  retired-target, type-mismatch and pairing checks can read.
 - **A `.md` file with frontmatter declaring no `type` at all is
   `unknown-type` with no declared value reported.** It is not a document
   the active profile governs, and reporting an empty `type` would claim
@@ -1856,7 +2038,13 @@ corpus that member sits. An index with no member of the type — an empty
 corpus included — has a highest-in-use of zero, so `Next` returns 1. A
 type the table does not register as numbered, whether absent from it or
 present with `Numbered` false, returns `ErrNotNumbered` rather than an
-answer derived from the wrong query.
+answer derived from the wrong query. `Format` writes a number back into
+the slug it forms for the type — the type, a hyphen, and the number
+zero-padded to the type's `DocumentTypeRules.NumberWidth` (`adr-031` at
+width 3; unpadded at 0; never truncated, so `adr-1000`) — and refuses an
+unnumbered type the same way. The width is the profile's to register
+rather than derived from the slug pattern, and the profile's own tests
+hold every numbered type's formatted slug to its pattern.
 
 ### Findings
 
@@ -1895,7 +2083,7 @@ is:
   variant whose subject is the corpus rather than a document, which is
   why it is not folded into a document-level one; an unresolved
   reference with its slug, its origin and — where the slug matched a
-  file the index excluded or could not parse — that file and the reason
+  file the index excluded — that file and the reason
   (AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7); a retired
   target with its slug and the successor it names, where it names one
   (AC-SPECREF-002.6); an incomplete pairing with both property names and
@@ -1918,14 +2106,15 @@ is:
   the anchor as authored and the target document's path
   (AC-SPECANCH-002.1); and an ambiguous anchor, with the anchor as
   authored, the target document's path and every heading it matches with
-  its span (AC-SPECANCH-002.5). The message is derivable from the
+  its heading path and span (AC-SPECANCH-002.5). The message is derivable from the
   variant, so a consumer branches on structure rather than parsing
   prose.
 - **`Severity`** — `error`, `warning` and `unverified`, the three
   [[frd-spec-index]] defines and no others.
 - **`FindingReport`** — the run envelope: every `Finding` produced, and a
-  `CheckResult` for every check the run knows about carrying an outcome
-  of `passed`, `failed`, `unverified` or `not-requested`.
+  `CheckResult` for every check the run was asked for carrying an outcome
+  of `passed`, `failed` or `unverified`. The `not-requested` outcome
+  stays in the vocabulary and is never emitted.
 
 **The detail is nested rather than inherited.** The alternative — a base
 `Finding` with each variant inheriting it — flattens in every target, so
@@ -1943,25 +2132,19 @@ pinned by the implementation:
 - **A requested check that has not reported is `unverified`, not
   `passed`.** Requesting a check sets that outcome, and only an explicit
   completion clears it, so a check that starts and never finishes cannot
-  read as clean (AC-SPEC-006.4). A check the caller did not request stays
-  `not-requested` and is still listed, which is what distinguishes it from
-  one that passed (AC-SPEC-006.9).
-- **Both renderings come from one recorded state.** The report emits the
-  generated JSON and a human-readable text form; the command surface
-  selects a rendering and never formats a finding itself.
+  read as clean (AC-SPEC-006.4). A check the caller did not request is
+  left out of `Model`'s checks entirely, so it can never read as passed
+  and a narrowed run lists only what it asked for (AC-SPEC-006.8,
+  AC-SPEC-006.9).
+- **Every rendering comes from one recorded state.** `Model` is the
+  answer a command writes to standard output, which the command surface
+  renders as YAML or JSON; `Text` is a human-readable form for standard
+  error, where no structured answer is written. Neither formats a finding
+  outside this package.
 - **Order is fixed here, not by the caller.** Checks are ordered by rule
   and findings by path, then position, then rule and message, so the same
   run yields byte-identical output (AC-SPEC-009.7) and snapshot cases stay
   stable.
-- **Which rules survive a single-document check's narrowing is decided
-  here, by membership rather than by a `reference/` prefix.**
-  `IsCorpusWideRule` (renamed from `IsReferenceRule` by VTAG) reports
-  whether a rule's findings are raised against the declaring document
-  rather than confined to the one file `CheckFor` named — true for the
-  four reference-integrity rules and for `gherkin/identifier-duplicate`,
-  which needs the same treatment for the same reason: an edit to one
-  document can duplicate an identifier declared in another, and a result
-  narrowed strictly by path would be silent about it.
 
 The unverified mechanism is built and no check registers against it yet;
 the diagram validation AC-SPEC-006.3 illustrates is a structure-feature
@@ -1983,8 +2166,7 @@ source and target aliases; a drawing conflict with those aliases and the
 other drawing's path and span; a contract tag with its slug and both
 aliases; and a tag-separator defect with the tags argument as written.
 `c4/parse` reports at `error` and at `unverified` under one identifier,
-as `reference/unresolved-anchor` does. None is corpus-wide in the sense
-of `IsCorpusWideRule`, and none is in the command surface's check list
+as `reference/unresolved-anchor` does. None is in the command surface's check list
 until the check that raises it lands — a rule listed there reads as
 passed whenever it is requested.
 
@@ -2071,10 +2253,63 @@ replaced (AC-SPECMD-003.1). Three semantics are pinned:
   the References component's output rather than a rule reimplemented
   here: a reference is never handed to `Substitute` for a wikilink
   written inside a code span, an indented block, or a fenced block.
+  `Extract` alone does not give that for a gherkin fence, whose
+  wikilinks the index keeps, so `links` passes `Extract`'s output
+  through `references.OutsideGherkinFences` before `Resolve`: a
+  wikilink in a gherkin fence is left as written, is not counted as
+  rewritten (AC-SPECMD-003.1), and raises no `links/*` finding, exactly
+  like one in any other fenced block.
 - **Only a body-origin reference is rewritten.** A frontmatter-origin
   reference's `Position` covers the property's raw YAML value rather
   than a `[[...]]` construct, so `Substitute` leaves it untouched even
   where it settled a target.
+
+### Revisions
+
+```component
+entity_name: Revisions
+slug: component-revisions
+description: Resolves a git base revision and materializes a directory as a commit holds it
+```
+
+(Go package) — Reads the spec root as a git commit holds it, so a
+comparison can build the corpus at a base revision with the same Corpus
+build the working tree uses. It resolves the base — the merge-base of
+HEAD and the repository's default branch, or of HEAD and a named
+revision — and copies a directory's tracked files at that commit into a
+temporary directory. It knows git and directories and nothing of
+documents, criteria or the index, which is why it is framework-agnostic
+and lives here rather than in the command surface ([[adr-031]]).
+
+**Built** — `cli/core/revisions`. `Open` locates the work tree
+containing a directory (`git rev-parse --show-toplevel`) and exposes its
+top level, cleaned and in OS form. `Repository.Base` resolves a revision
+string: empty names the default branch, the first that resolves of the
+target of `refs/remotes/origin/HEAD`, then `main`, `origin/main`,
+`master` and `origin/master`; anything else must resolve under
+`git rev-parse --verify '<revision>^{commit}'`. The base is
+`git merge-base HEAD <commit>`, returned as a full object name with the
+reference it was taken against. `Repository.Materialize` lists a
+repository-relative directory at a commit with
+`git ls-tree -r -z --full-tree`, keeps only `100644` and `100755`
+entries — no symbolic link, no submodule — and writes each blob, read
+through one `git cat-file --batch` process, byte for byte at its
+repository-relative path under a fresh temporary directory: no checkout
+filter, `.gitattributes` rule or `export-ignore` applies. A directory the
+commit does not hold gives an empty tree. The returned `Tree`'s `Close`
+removes the directory, and every error path removes it before returning.
+
+The package runs only `rev-parse`, `merge-base`, `ls-tree` and
+`cat-file`, always as `git -C <top level>` with `GIT_TERMINAL_PROMPT=0`
+and `GIT_OPTIONAL_LOCKS=0`, so it never writes to the repository or its
+`.git` directory and never changes HEAD, the index or the working tree.
+Every condition a caller can act on is a `revisions.Error` carrying a
+class rather than an exit status: a named revision that does not resolve
+is **invocation**; no work tree, no runnable `git`, no default branch
+(naming every reference tried and `--since`), no common ancestor (saying
+so, and that the clone is shallow where it is) and an unborn HEAD are
+**environment**. Nothing in this module uses it; the command surface of
+[[container-spec-cli]] does.
 
 The relationships below are stated for the module's whole component set.
 The Corpus → Markdown Structure edge is still the intended shape rather
@@ -2156,6 +2391,7 @@ This module SHALL comply with:
 
 ## Key Decisions
 
+
 - [[adr-015]] — Go, `goccy/go-yaml`, `santhosh-tekuri/jsonschema` and
   `goldmark` are the implementation choices this module is built on. All
   four are in use; `goldmark` arrived with References rather than with
@@ -2177,6 +2413,9 @@ This module SHALL comply with:
 - [[adr-030]] — the parser and the resolver live in this module, and the
   architecture vocabulary arrives as a profile registration, which is
   why C4 Elements takes its types and properties from `Architecture()`.
+- [[adr-031]] — base revisions are read through the `git` executable,
+  with the spec root's tracked blobs copied into a temporary directory,
+  which is why Revisions runs `git` rather than linking a git library.
 
 ## Open Questions
 

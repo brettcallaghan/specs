@@ -1,0 +1,5 @@
+description = "a member whose frontmatter fence is unterminated yields no legible slug: check reports its one frontmatter/parse failure, and a citation of it by slug, by anchored slug, from a frontmatter reference property or by its file name raises no finding against the citing document; a near miss that is not a <slug>- prefix of the file's name is still unresolved"
+cites = ["AC-SPEC-003.8", "AC-SPECREF-002.7"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 1

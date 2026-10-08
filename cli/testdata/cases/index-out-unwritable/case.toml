@@ -1,0 +1,5 @@
+description = "index --out naming a path beneath a regular file is an environment error: it exits 3, names the destination it could not write on standard error, and writes nothing to standard output"
+cites = ["AC-SPEC-010.1"]
+artifacts = ["checks.err"]
+args = ["index", "--out", "specs.toml/specs.json"]
+exit_code = 3

@@ -58,6 +58,19 @@ func LoadLinkMap(path string) (LinkMap, []specmodel.Finding) {
 		return nil, []specmodel.Finding{linkMapUnreadable(path, err)}
 	}
 
+	// Decoded untyped first, so a syntax fault — the file is not YAML —
+	// is told apart from a shape fault — it is YAML, but not a mapping of
+	// slugs to records declaring a path — and the shape fault is reported
+	// with the shape expected rather than with the decoder's account of
+	// the mismatch (AC-SPECMD-005.13).
+	var untyped any
+	if err := yaml.Unmarshal(src, &untyped); err != nil {
+		return nil, []specmodel.Finding{linkMapUnparseable(path, src, err)}
+	}
+	if shape := linkMapShapeFaults(path, src, untyped); len(shape) > 0 {
+		return nil, shape
+	}
+
 	var raw map[string]linkMapRecord
 	if err := yaml.Unmarshal(src, &raw); err != nil {
 		return nil, []specmodel.Finding{linkMapUnparseable(path, src, err)}
@@ -83,6 +96,61 @@ func LoadLinkMap(path string) (LinkMap, []specmodel.Finding) {
 		return nil, findings
 	}
 	return resolved, nil
+}
+
+// linkMapShapeFaults reports every way the decoded document departs from
+// a link map's shape: a top level that is not a mapping, and, ordered by
+// slug, each entry that is not a record or whose path is not a string. An
+// empty document is an empty map, not a fault.
+func linkMapShapeFaults(path string, src []byte, document any) []specmodel.Finding {
+	if document == nil {
+		return nil
+	}
+	entries, ok := document.(map[string]any)
+	if !ok {
+		return []specmodel.Finding{linkMapWrongShape(path, src, "", describeYAML(document))}
+	}
+
+	slugs := make([]string, 0, len(entries))
+	for slug := range entries {
+		slugs = append(slugs, slug)
+	}
+	sort.Strings(slugs)
+
+	var findings []specmodel.Finding
+	for _, slug := range slugs {
+		record, isRecord := entries[slug].(map[string]any)
+		if !isRecord {
+			findings = append(findings, linkMapWrongShape(path, src, slug, describeYAML(entries[slug])))
+			continue
+		}
+		if value, declared := record["path"]; declared {
+			if _, isString := value.(string); !isString {
+				findings = append(findings, linkMapWrongShape(path, src, slug, "a path that is "+describeYAML(value)))
+			}
+		}
+	}
+	return findings
+}
+
+// describeYAML names the kind of a decoded YAML value, as a finding
+// states what it found.
+func describeYAML(value any) string {
+	switch value.(type) {
+	case nil:
+		return "an empty value"
+	case string:
+		return "a string"
+	case bool:
+		return "a boolean"
+	case int, int64, uint64, float64:
+		return "a number"
+	case []any:
+		return "a list"
+	case map[string]any:
+		return "a mapping"
+	}
+	return "a scalar"
 }
 
 // wholeFile is the span a link-map finding carries when the fault has no

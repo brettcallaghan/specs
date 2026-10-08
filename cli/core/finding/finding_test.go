@@ -168,11 +168,14 @@ func TestEveryFindingIsSelfContained(t *testing.T) {
 			name: "ambiguous anchor",
 			finding: finding.AmbiguousAnchor("specs/adrs/adr-011.md", position, "References", "module-document-core.md",
 				[]specmodel.AnchorMatch{
-					{Text: "References", Span: position},
-					{Text: "References", Span: position},
+					{Text: "References", HeadingPath: "document-core#components#references", Span: position},
+					{Text: "References", HeadingPath: "document-core#references", Span: position},
 				}),
-			rule:     finding.RuleAmbiguousAnchor,
-			contains: []string{"References", "module-document-core.md", "2"},
+			rule: finding.RuleAmbiguousAnchor,
+			// AC-SPECANCH-002.5: every match named by the heading path
+			// that selects it alone, and its line.
+			contains: []string{"References", "module-document-core.md", "2",
+				"document-core#components#references (line ", "document-core#references (line "},
 			detail: func(t *testing.T, d specmodel.FindingDetail) {
 				v, ok := d.AsAmbiguousAnchor()
 				if !ok {
@@ -406,6 +409,21 @@ func TestEveryFindingIsSelfContained(t *testing.T) {
 				}
 				if v.DocumentSlug != nil {
 					t.Errorf("DocumentSlug = %v, want nil", v.DocumentSlug)
+				}
+			},
+		},
+		{
+			name:     "tag unregistered",
+			finding:  finding.TagUnregistered("specs/adrs/adr-011.md", position, "negatve", []string{"negative", "manual"}),
+			rule:     finding.RuleTagUnregistered,
+			contains: []string{`"@negatve"`, "negative, manual"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsUnregisteredTag()
+				if !ok {
+					t.Fatalf("detail is not an unregistered tag: %#v", d.Value)
+				}
+				if v.Tag != "negatve" || strings.Join(v.Registered, ",") != "negative,manual" {
+					t.Errorf("detail = %#v, want the tag and the registered qualifiers", v)
 				}
 			},
 		},
@@ -795,9 +813,9 @@ func TestARequestedCheckThatReportsNothingIsNotPassed(t *testing.T) {
 	}
 }
 
-// The report distinguishes a check that passed from one that was never
-// requested, and from one that failed — so a clean-looking report cannot
-// be read as covering checks that never ran.
+// The report distinguishes a check that passed from one that failed, and
+// leaves out one that was never requested — so a clean-looking report
+// cannot be read as covering checks that never ran.
 //
 // AC: AC-SPEC-006.9
 func TestTheReportDistinguishesPassedFromUnrequested(t *testing.T) {
@@ -811,12 +829,11 @@ func TestTheReportDistinguishesPassedFromUnrequested(t *testing.T) {
 	model := report.Model()
 
 	want := map[specmodel.RuleId]specmodel.CheckOutcome{
-		finding.RuleDuplicateSlug:   specmodel.CheckOutcomePassed,
-		finding.RuleSlugPattern:     specmodel.CheckOutcomeFailed,
-		finding.RuleMissingProperty: specmodel.CheckOutcomeNotRequested,
+		finding.RuleDuplicateSlug: specmodel.CheckOutcomePassed,
+		finding.RuleSlugPattern:   specmodel.CheckOutcomeFailed,
 	}
 	if len(model.Checks) != len(want) {
-		t.Fatalf("checks = %d, want %d — every known check is accounted for", len(model.Checks), len(want))
+		t.Fatalf("checks = %d, want %d — exactly the requested checks: %+v", len(model.Checks), len(want), model.Checks)
 	}
 	for rule, outcome := range want {
 		if got := checkResult(t, model, rule).Outcome; got != outcome {
@@ -824,13 +841,14 @@ func TestTheReportDistinguishesPassedFromUnrequested(t *testing.T) {
 		}
 	}
 
-	// The distinction must survive to the JSON an agent reads.
+	// The unrequested check must not reach the JSON an agent reads, where
+	// it could be read as covered.
 	encoded, err := report.JSON()
 	if err != nil {
 		t.Fatalf("JSON: %v", err)
 	}
-	if !strings.Contains(string(encoded), `"not-requested"`) {
-		t.Errorf("emitted report does not distinguish an un-requested check: %s", encoded)
+	if strings.Contains(string(encoded), string(finding.RuleMissingProperty)) {
+		t.Errorf("emitted report lists a check that was not requested: %s", encoded)
 	}
 }
 
@@ -894,7 +912,7 @@ func TestTheReportRendersAsTextAndAsJSON(t *testing.T) {
 	report.Ran(finding.RuleSlugPattern)
 
 	text := report.Text()
-	for _, want := range []string{"slug/pattern-mismatch", "error", "specs/adrs/adr-011.md:", "adr-011-x", "checks:", "not-requested"} {
+	for _, want := range []string{"slug/pattern-mismatch", "error", "specs/adrs/adr-011.md:", "adr-011-x", "checks:"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("text rendering does not mention %q:\n%s", want, text)
 		}
@@ -1141,5 +1159,26 @@ func TestUnresolvedReferenceMessageVariesByOriginAndNonMember(t *testing.T) {
 		})
 	if want := fmt.Sprintf("line %d", position.StartLine); !strings.Contains(parseFailed.Message, want) {
 		t.Errorf("parse-failure message = %q, want it to cite the failure's line (%s)", parseFailed.Message, want)
+	}
+}
+
+// A message about the frontmatter object itself names the property with
+// no pointer prefix, since the root pointer says nothing to a reader; a
+// nested pointer keeps its prefix, and the detail keeps the pointer as it
+// is in either case.
+//
+// AC: AC-SPEC-006.1
+func TestARootPointerIsNotWrittenIntoTheMessage(t *testing.T) {
+	root := finding.MissingProperty("adrs/x.md", at(t), "", "description")
+	if want := `required property "description" is not declared`; root.Message != want {
+		t.Errorf("message = %q, want %q", root.Message, want)
+	}
+	if detail, ok := root.Detail.AsMissingProperty(); !ok || detail.Pointer != "" {
+		t.Errorf("detail = %+v, want pointer \"\"", root.Detail)
+	}
+
+	nested := finding.SchemaViolation("adrs/x.md", at(t), "/releated", "additionalProperties", "x")
+	if !strings.HasPrefix(nested.Message, "/releated: ") {
+		t.Errorf("message = %q, want it to begin with the pointer /releated", nested.Message)
 	}
 }

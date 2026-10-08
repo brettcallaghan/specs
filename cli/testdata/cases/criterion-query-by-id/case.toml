@@ -1,4 +1,4 @@
-description = "criterion <id> returns that criterion's record"
+description = "criterion <id> answers with a YAML mapping whose one key, criteria, holds a one-element list: that criterion's record"
 cites = ["AC-GHK-007.2"]
 artifacts = ["checks.log"]
 args = ["criterion", "AC-CHK-001.1"]

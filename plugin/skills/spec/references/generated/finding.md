@@ -20,6 +20,7 @@
 - [FindingGherkinParse](#findinggherkinparse)
 - [FindingIdentifierPattern](#findingidentifierpattern)
 - [FindingDuplicateIdentifier](#findingduplicateidentifier)
+- [FindingUnregisteredTag](#findingunregisteredtag)
 - [FindingPartiallyTaggedOutline](#findingpartiallytaggedoutline)
 - [FindingOwningDocument](#findingowningdocument)
 - [FindingUnresolvedAnchor](#findingunresolvedanchor)
@@ -345,6 +346,23 @@ file to open and left to search it.
 | other_span | [Span](index.md#span) | Where in that file the other occurrence is written. |
 
 
+## FindingUnregisteredTag
+
+A Gherkin tag the active profile's tag vocabulary assigns no meaning: it
+matches neither identifier pattern, names no owning document and is no
+registered qualifier.
+
+A warning rather than an error, so a project's own tags coexist with the
+vocabulary; a misspelt qualifier is the case it exists for, since the
+tag silently loses its meaning. The registered qualifiers are carried
+because they are the spellings an author most likely meant.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| tag | String | The tag as written, without its leading `@`. |
+| registered | Array<String> | Every qualifier tag the active profile registers, in registration order. |
+
+
 ## FindingPartiallyTaggedOutline
 
 A scenario outline whose examples blocks are inconsistently tagged: some
@@ -427,6 +445,7 @@ record blocks.
 | Property | Type | Documentation |
 |----------|------|---------------|
 | text | String | The heading's text as authored, without the `#` markers that open the line. |
+| heading_path | String | The heading's heading path: the identifier of each enclosing heading from the outermost down, followed by its own, joined by `#`. Written as a selection or an anchor, it names this heading alone unless two sibling headings share identical text all the way up, and then no path can — or unless it is a single segment another heading's identifier shares, since a one-segment query is an identifier comparison over every heading. |
 | span | [Span](index.md#span) | Where the heading line itself is written. |
 
 
@@ -580,6 +599,7 @@ identifier, the severity, the path, the span and the message.
 | "duplicate-identifier" | DuplicateIdentifier | An identifier declared by two records in the corpus. |
 | "partially-tagged-outline" | PartiallyTaggedOutline | A scenario outline whose examples blocks are inconsistently tagged. |
 | "owning-document" | OwningDocument | A feature whose owning document is unstated, mismatched or unresolved. |
+| "unregistered-tag" | UnregisteredTag | A Gherkin tag the tag vocabulary assigns no meaning. |
 | "unresolved-anchor" | UnresolvedAnchor | An anchor matching no heading of its target document. |
 | "ambiguous-anchor" | AmbiguousAnchor | An anchor matching more than one heading of its target document. |
 | "c4-parse" | C4Parse | A C4 diagram statement the parser cannot read. |
@@ -650,7 +670,7 @@ Everything one check run produced.
 The two collections answer different questions and neither substitutes
 for the other. `findings` is what is wrong; `checks` is what was looked
 at. A report carrying no findings is only good news if every check the
-caller cares about is accounted for in `checks` as having passed.
+caller cares about is listed in `checks` as having passed.
 
 Both are lists rather than maps so that the emitter owns their order and
 can make output byte-identical across platforms without a change to this
@@ -658,7 +678,7 @@ model.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| checks | Array<[CheckResult](#checkresult)> | Every check the run knows about, in the order the emitter fixes, each with what became of it. |
+| checks | Array<[CheckResult](#checkresult)> | Every check the run was asked for, in the order the emitter fixes, each with what became of it. A check the run was not asked for is absent, so it can never read as passed. |
 | findings | Array<[Finding](#finding)> | Every finding the run produced, in the order the emitter fixes. |
 
 

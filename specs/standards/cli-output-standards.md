@@ -6,8 +6,8 @@ description: What every specs command writes to its output stream — YAML
 slug: cli-output-standards
 type: standards
 status: approved
-updated_at: 2026-10-07T00:00:00Z
-version: "0.1"
+updated_at: 2026-10-08T00:00:00Z
+version: "0.2"
 ---
 
 # Spec CLI Output Standards
@@ -27,13 +27,9 @@ so a reader who has met YAML once can read it and a consumer already has
 a parser for it. There is no line grammar to reverse-engineer, no column
 convention, no punctuation carrying meaning.
 
-**Status: approved, and met by the commands specified since.** The rest
-of the surface predates these standards; [Current
-conformance](#current-conformance) records what each command prints
-today, measured, and what each has to change. A command specified after
-this document is written to conform from the start, and `headings` is
-the first. `refs` is the first of the commands that predate them to be
-migrated, by the feature that next touched it.
+[Current conformance](#current-conformance) is the per-command record of
+what each command prints, measured, and what it has to change. A command
+specified after this document SHALL conform from the start.
 
 ---
 
@@ -41,16 +37,31 @@ migrated, by the feature that next touched it.
 
 ### YAML by default, JSON under `--json`
 
+Every command SHALL answer with structured output, except where its
+answer is a document payload as defined below.
+
 WHERE a command's answer is structured, the CLI SHALL render it as YAML,
 and SHALL render it as JSON when `--json` is passed.
 
 **Rationale:** two renderings, one flag, no third form. YAML is the
 default because a human and an agent both read it without a schema, and
 because this CLI's values routinely carry multi-line text — a criterion's
-steps, a finding's message, a heading's section — which survives YAML
+steps, a finding's message, a document's description — which survives YAML
 intact instead of arriving as `\n` inside a quoted string. JSON stays
 available so a consumer that already parses it need not acquire a YAML
-parser.
+parser. "Every command" is the point: a caller that has parsed one
+command's answer has parsed them all, with no per-command recipe for a
+tab-separated line, a bare number or a sentence.
+
+---
+
+The root of every structured answer SHALL be a mapping, in both
+renderings.
+
+**Rationale:** a root sequence or scalar has nowhere to put a property
+added later, so the first property a command acquires would change its
+shape and break every caller. A mapping at the root takes a new key
+without disturbing the ones a caller already reads.
 
 ---
 
@@ -63,13 +74,17 @@ caller comparing the two forms is comparing two spellings of one answer.
 
 ### A document payload is written as itself
 
-WHERE a command's answer is a document rather than a set of properties,
-the CLI SHALL write that document alone, with no envelope, no added
-heading, and no trailing summary.
+WHERE a command's answer is a document, or content taken from a
+document, rather than a set of properties, the CLI MAY write that
+content raw instead of as a structured answer.
+
+WHERE the CLI writes such content raw, it SHALL write that content
+alone, with no envelope, no added heading, and no trailing summary.
 
 **Rationale:** `links` emits a rewritten markdown document, `feature
 --emit` a Gherkin source, and a heading query's emit form the text of a
-section. Wrapping any of them in a mapping makes the caller unwrap it,
+section; any other command that prints content from a document is the
+same case. Wrapping any of them in a mapping makes the caller unwrap it,
 and quoting a document into a scalar changes the bytes they asked for.
 The test is what the caller does next: text they will write to a file or
 read as prose is a payload; anything they would index by name is an
@@ -120,10 +135,23 @@ later feature adds arrive as new keys rather than as a changed grammar.
 
 ---
 
+### One shape per command
+
+A command SHALL answer with the same shape whatever its arguments
+select. A lookup by one identifier SHALL return the same sequence of
+records as a lookup that matches many, holding one record.
+
+**Rationale:** a caller should not have to branch on what it passed. A
+bare record for an identifier and a sequence for a filter are two shapes
+for one command, and a caller handed either must first find out which.
+
+---
+
 ### An empty answer is an answer
 
 WHERE a query matches nothing, the CLI SHALL render the empty collection
-and SHALL exit zero.
+and SHALL exit `0`, as [[cli-exit-status-standards]] requires of every
+query that answered.
 
 **Rationale:** nothing found is a fact about the corpus, not a failure of
 the invocation. Exiting non-zero would make a caller branch on the shape
@@ -132,9 +160,10 @@ of the world rather than on whether the command worked.
 ### A malformed question is not an empty answer
 
 WHERE an argument names a value from a registered set (a rule
-identifier, a document type, a profile) and the value is not in that set,
-the CLI SHALL report the value and every registered name, SHALL NOT
-render an answer, and SHALL exit non-zero.
+identifier, a document type, a tag qualifier) and the value is not in
+that set, the CLI SHALL report the value and every registered name,
+SHALL NOT render an answer, and SHALL exit `2`, the invocation-error
+status of [[cli-exit-status-standards]].
 
 **Rationale:** an unregistered value is a fact about the invocation, not
 about the corpus. Answered as an empty collection or a clean report, a
@@ -168,6 +197,50 @@ terminal width nobody is looking at. Worse, every form of shortening
 turns one invocation into two — and the second costs a round trip, may
 observe changed state, and can only be composed by a caller who decoded
 the elision notice.
+
+---
+
+### A named view selects fields; it never truncates
+
+WHERE a command offers a named view — a documented subset of the fields
+its answer carries, selected by a flag or, where the command's
+specification makes it the default, deselected by `--full` — the view
+SHALL render every field it selects in full, for every record the full
+answer holds, and the command's specification or these standards SHALL
+list the fields it keeps.
+
+A named view SHALL NOT be selected by `--json`, which changes only the
+syntax of whichever view is rendered.
+
+**Rationale:** the common question an answer serves may need a fraction
+of its fields — "which documents cite this?" needs the path, not the byte
+offset. A view names that fraction once, so the caller asks for it by
+name and knows what it holds; it is not shortening, because every record
+remains and every value kept is whole.
+
+#### `refs`: the compact view and `--full`
+
+`refs` answers with the compact view by default and with the full
+answer under `--full`. The compact view groups references by citing
+document: one entry per document, keyed by `path`, holding that
+document's references.
+
+| field of the full answer | in the compact view |
+|---|---|
+| `path` | kept, as the grouping key — one entry per document |
+| `span.start_line` | kept, rendered `line` |
+| `text` | kept |
+| `origin` | kept only for a reference in frontmatter |
+| `resolution.state` | kept only when the reference is not resolved |
+| `slug` | dropped — the query names it |
+| `anchor` | dropped — `text` carries it |
+| `resolution.target_path` | dropped |
+| `span.offset`, `span.length`, `span.start_column`, `span.end_line`, `span.end_column` | dropped |
+| `anchor_resolution.heading` | dropped |
+| `ambiguous_anchor` | kept, written only where true |
+
+The properties the query established above the references are rendered
+as in the full answer.
 
 ---
 
@@ -282,22 +355,22 @@ Stated because the absence is a decision rather than an omission.
 
 ## Current conformance
 
-Measured with a binary built from this branch (`go build -C cli -o specs
-./specs`), run against this repository's corpus. Every command below
-predates these standards and none of them conforms yet; `headings`,
-specified after them, conforms and is listed last.
+Measured with a binary built from `main` at `12b2eda`
+(`go build -C cli -o ../build/specs ./specs`), run against this
+repository's corpus.
 
 | command | prints today | to conform |
 |---|---|---|
-| `refs <slug>[#<anchor>]` | a YAML mapping of the properties the query established, the references a sequence of mappings beneath it; `--json` the same values in the same order | conforms — migrated by the anchor-qualified form [[frd-spec-anchor-references]] adds |
-| `slug-exists <slug>` | `adr-012: found at specs/adrs/adr-012-reference-conventions.md` | a mapping of the properties it established |
-| `next-id <type>` | `29` | a mapping; the bare number is a value with no name |
-| `check [path]` | a document count, exclusions, findings, then a per-rule pass list | render as YAML; the findings are the answer |
-| `feature`, `criterion` | text summary; `--json` a compact object | render as YAML |
+| `refs <slug>[#<anchor>]` | a YAML mapping of the properties the query established, the references in the compact view beneath it, and every field of every reference under `--full`; `--json` the same values in the same order | conforms |
+| `list` | a YAML mapping whose one key is the sequence of documents; `--json` the same values in the same order | conforms |
+| `slug-exists <slug>` | a YAML mapping carrying `slug`, `declared` and `path` (`null` where undeclared); `--json` the same values in the same order | conforms |
+| `next-id <type>` | a YAML mapping carrying `number` and then `slug`, `number: 32` and `slug: adr-032`; `--json` the same values in the same order | conforms |
+| `check [path]` | a YAML mapping of `checks` (only the checks the run was asked for) and `findings`; `--json` the same values in the same order | conforms |
+| `feature`, `criterion` | a YAML mapping whose key `features` or `criteria` holds a list of records whatever the arguments select, one identifier included, preceded by `declared` where the arguments name a subject; `--json` the same values in the same order | conforms |
 | `links <path>` | the rewritten document | conforms — a document payload, written as itself |
-| `index` | the artifact, or the path it wrote | the artifact is out of scope; the printed path is an answer |
-| `headings <selection>` | a YAML mapping whose one key is the sequence of matches; `--json` the same values in the same order; `--emit` the matched sections as themselves | conforms — written against these standards, and the source of the `renderYAML` the other commands adopt |
-| `c4 [--root <slug>]` | a YAML mapping of the C4 model; `--json` the same values in the same order | conforms — written against these standards, and renders through `renderYAML` unchanged |
+| `index` | the artifact, or the bare path it wrote | the artifact is out of scope; the printed path is an answer |
+| `headings <selection>` | a YAML mapping whose key `matches` is the sequence of matches, each carrying its heading path, preceded by `declared` where the selection names a document; `--json` the same values in the same order; `--emit` the one matched section as itself, and refused with exit `2` when several match | conforms. Its rendering is the source of the `renderYAML` the other commands adopt |
+| `c4 [--root <slug>]` | a YAML mapping of the C4 model, carrying `root_declared` under `--root`; `--json` the same values in the same order | conforms — written against these standards, and renders through `renderYAML` unchanged |
 
 Migration is per command and belongs to whichever feature next touches
 it. Every command carries snapshot cases under `cli/testdata/cases/`,
@@ -310,6 +383,8 @@ observable output changes.
 
 - [[container-spec-cli]] — the container whose command surface these
   standards govern
+- [[cli-exit-status-standards]] — the exit status beside every answer;
+  this document governs only what is printed
 - [[frd-spec-index]] — the command surface, the finding engine and the
   index artifact these standards defer to
 - [[frd-spec-structure]] — the heading query, the first command
