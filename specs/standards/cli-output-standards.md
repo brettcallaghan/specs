@@ -267,7 +267,7 @@ reference to it. Inbound compact and every `--full` answer are as above.
 
 | field of the full answer | in the outbound compact view |
 |---|---|
-| `slug` | kept, as the grouping key — one entry per cited slug |
+| `slug` | kept, as the grouping key — one entry per cited slug, compared case-insensitively as slugs resolve, spelled as first cited |
 | `resolution.target_path` | kept, rendered `path`; `null` when the slug resolves to nothing |
 | `resolution.state` | kept, rendered `resolution: {state}`, only when the reference is not resolved |
 | `span.start_line` | kept, rendered `line`, one entry of `lines` per reference |

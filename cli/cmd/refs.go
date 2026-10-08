@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -436,7 +437,9 @@ type refsCitedReference struct {
 // compactOutboundRefs derives the outbound compact view from the same
 // full answer [compactRefs] reads, so both views cover the same
 // references (AC-SPECREF-003.8). An entry is placed by the first
-// reference to its slug and its lines keep the corpus's order.
+// reference to its slug and its lines keep the corpus's order. Slugs
+// resolve case-insensitively, so case variants of one slug share an
+// entry, which carries the spelling of its first citation.
 func compactOutboundRefs(result refsResult) (refsOutboundCompactResult, error) {
 	compact := refsOutboundCompactResult{
 		Slug:           result.Slug,
@@ -452,10 +455,11 @@ func compactOutboundRefs(result refsResult) (refsOutboundCompactResult, error) {
 		if err != nil {
 			return refsOutboundCompactResult{}, err
 		}
-		at, seen := position[match.Slug]
+		key := strings.ToLower(match.Slug)
+		at, seen := position[key]
 		if !seen {
 			at = len(compact.References)
-			position[match.Slug] = at
+			position[key] = at
 			cited := refsCitedReference{Slug: match.Slug, Lines: []refsCompactReference{}}
 			if resolved, ok := match.Resolution.AsResolved(); ok {
 				path := resolved.TargetPath

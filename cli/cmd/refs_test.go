@@ -237,6 +237,42 @@ func TestTheOutboundCompactRefsAnswerGroupsByCitedSlug(t *testing.T) {
 	}
 }
 
+// AC: AC-SPECREF-003.9
+//
+// Slugs resolve case-insensitively, so two spellings of one cited slug
+// are one entry, spelled as first cited, carrying both lines.
+func TestTheOutboundCompactRefsAnswerFoldsCaseVariantsOfOneSlug(t *testing.T) {
+	dir := t.TempDir()
+	writeRefsFixture(t, dir)
+	mustWriteFile(t, filepath.Join(dir, "docs", "adrs", "adr-902-case-variants.md"),
+		"---\ntitle: \"ADR-902: Case Variants\"\ndescription: A decision used by the refs view test.\n"+
+			"slug: adr-902-case-variants\ntype: adr\nstatus: approved\nupdated_at: 2026-08-01T00:00:00Z\n---\n\n"+
+			"# ADR-902: Case Variants\n\nBuilds on [[adr-901-new-approach]].\n\nAs does [[ADR-901-New-Approach]].\n")
+
+	code, compact, stderr := runInFixture(t, dir, []string{"refs", "adr-902-case-variants", "--outbound", "--json"})
+	if code != 0 {
+		t.Fatalf("compact exited %d: %s", code, stderr)
+	}
+	var answer struct {
+		References []struct {
+			Slug  string                   `json:"slug"`
+			Path  *string                  `json:"path"`
+			Lines []map[string]interface{} `json:"lines"`
+		} `json:"references"`
+	}
+	if err := json.Unmarshal([]byte(compact), &answer); err != nil {
+		t.Fatalf("decoding the compact answer: %v\n%s", err, compact)
+	}
+	if len(answer.References) != 1 {
+		t.Fatalf("got %d entries, want 1 for two spellings of one slug: %s", len(answer.References), compact)
+	}
+	entry := answer.References[0]
+	if entry.Slug != "adr-901-new-approach" || entry.Path == nil || len(entry.Lines) != 2 {
+		t.Errorf("entry %s path %v with %d lines, want adr-901-new-approach resolved with 2 lines",
+			entry.Slug, entry.Path, len(entry.Lines))
+	}
+}
+
 // byDocument groups triples by path, each group in its original order.
 func byDocument(triples []refsTriple) map[string][]refsTriple {
 	grouped := map[string][]refsTriple{}
