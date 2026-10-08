@@ -297,8 +297,8 @@ func Load(path string) (specmodel.SpecIndex, error) {
 		return specmodel.SpecIndex{}, fmt.Errorf("corpus: reading the index at %s: %w", path, err)
 	}
 
-	var index specmodel.SpecIndex
-	if err := json.Unmarshal(raw, &index); err != nil {
+	index, err := decodeIndex(raw)
+	if err != nil {
 		return specmodel.SpecIndex{}, fmt.Errorf("corpus: reading the index at %s: %w", path, err)
 	}
 	return index, nil

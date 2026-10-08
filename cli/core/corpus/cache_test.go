@@ -1032,3 +1032,121 @@ func copyTree(t *testing.T, from, to string) {
 func frontmatterOf(f specmodel.TypedFrontmatter) *specmodel.TypedFrontmatter {
 	return &f
 }
+
+// missingStatusDocument is a conforming ADR except that it omits its
+// required status — the shape of the list-json-missing-required-enum
+// snapshot case's input. The index writes it with the property omitted
+// rather than recording a parse failure, so the reader must accept it.
+const missingStatusDocument = `---
+title: "ADR-001: Example"
+description: "An example decision that omits its status."
+slug: adr-001
+type: adr
+updated_at: "2026-08-01T00:00:00Z"
+---
+
+# ADR-001: Example
+`
+
+// An index written over a member that omits a required enum reads back:
+// Load returns it without error, the entry keeps every property the
+// document declares with an empty status, and a later Open serves it
+// warm rather than rebuilding on every invocation.
+//
+// AC: AC-SPEC-010.5
+func TestAnIndexOverAMemberMissingARequiredEnumReadsBackAndIsServedWarm(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md", missingStatusDocument)
+	dest := buildAndWrite(t, repo)
+
+	loaded, err := corpus.Load(dest)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(loaded.Entries) != 1 || loaded.Entries[0].Frontmatter == nil {
+		t.Fatalf("entries = %+v, want the one ADR with its frontmatter", loaded.Entries)
+	}
+	adr, ok := loaded.Entries[0].Frontmatter.Value.(specmodel.Adr)
+	if !ok {
+		t.Fatalf("frontmatter = %T, want specmodel.Adr", loaded.Entries[0].Frontmatter.Value)
+	}
+	if adr.Status != "" {
+		t.Errorf("status = %q, want empty", adr.Status)
+	}
+	if adr.Slug != "adr-001" || adr.Title != "ADR-001: Example" || adr.Description == "" || adr.UpdatedAt.IsZero() {
+		t.Errorf("frontmatter = %+v, want every property the document declares", adr)
+	}
+
+	_, warm, err := corpus.Open(indexOptions(repo), dest)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	if !warm {
+		t.Error("an unchanged corpus with a member missing a required enum was rebuilt, want it served warm")
+	}
+}
+
+// For a corpus with no member missing a required enum, Load is the exact
+// inverse of the write: the index it returns is the one Build produced,
+// and re-rendering it reproduces the file byte for byte.
+func TestLoadRoundTripsAnIndexUnchanged(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md", document("adr", "adr-001", "First"))
+	write(t, repo, "specs/frds/frd-alpha.md", document("frd", "frd-alpha", "Alpha"))
+	write(t, repo, "specs/notes.md", "# No frontmatter\n")
+
+	built, err := corpus.Build(indexOptions(repo))
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+	dest := corpus.IndexPath(indexOptions(repo), "")
+	if err := corpus.Write(built.Index(), dest, nil); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+
+	loaded, err := corpus.Load(dest)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !reflect.DeepEqual(loaded, built.Index()) {
+		t.Errorf("loaded index differs from the built one\n got: %+v\nwant: %+v", loaded, built.Index())
+	}
+	file, err := os.ReadFile(dest)
+	if err != nil {
+		t.Fatalf("reading %s: %v", dest, err)
+	}
+	if got := rendered(t, loaded); !bytes.Equal(got, file) {
+		t.Errorf("re-rendered index differs from the file\n got: %s\nwant: %s", got, file)
+	}
+}
+
+// Load still refuses what is not an index: a file that is not JSON, and
+// an entry whose frontmatter holds an enum value outside its vocabulary.
+func TestLoadRefusesAnUnreadableIndex(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md", document("adr", "adr-001", "First"))
+	dest := buildAndWrite(t, repo)
+	file, err := os.ReadFile(dest)
+	if err != nil {
+		t.Fatalf("reading %s: %v", dest, err)
+	}
+
+	cases := map[string][]byte{
+		"not JSON":                    []byte("{not json"),
+		"an out-of-vocabulary status": bytes.Replace(file, []byte(`"status": "approved"`), []byte(`"status": "actve"`), 1),
+	}
+	for name, content := range cases {
+		t.Run(name, func(t *testing.T) {
+			if bytes.Equal(content, file) {
+				t.Fatal("the fixture was not doctored; the replacement found nothing to replace")
+			}
+			path := filepath.Join(t.TempDir(), "specs.json")
+			if err := os.WriteFile(path, content, 0o644); err != nil {
+				t.Fatalf("writing %s: %v", path, err)
+			}
+			if _, err := corpus.Load(path); err == nil {
+				t.Error("Load returned no error, want one")
+			}
+		})
+	}
+}

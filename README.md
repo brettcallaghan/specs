@@ -292,10 +292,10 @@ alone is visible rather than averaged away.
 <!-- coverage:table:start -->
 | Test layer | Statements covered | Coverage |
 |:---|---:|---:|
-| Unit tests | 4,642 / 5,469 | 84.9% |
-| Snapshot cases | 4,166 / 5,469 | 76.2% |
-| End-to-end (built binary) | 2,219 / 5,469 | 40.6% |
-| **All layers combined** | **5,004 / 5,469** | **91.5%** |
+| Unit tests | 4,675 / 5,503 | 85.0% |
+| Snapshot cases | 4,194 / 5,503 | 76.2% |
+| End-to-end (built binary) | 2,247 / 5,503 | 40.8% |
+| **All layers combined** | **5,037 / 5,503** | **91.5%** |
 
 | Package | Statements | Covered | Coverage |
 |:---|---:|---:|---:|
@@ -303,7 +303,7 @@ alone is visible rather than averaged away.
 | `cli/core/c4diagram` | 246 | 234 | 95.1% |
 | `cli/core/c4elements` | 284 | 277 | 97.5% |
 | `cli/core/c4model` | 313 | 297 | 94.9% |
-| `cli/core/corpus` | 1,401 | 1,302 | 92.9% |
+| `cli/core/corpus` | 1,435 | 1,335 | 93.0% |
 | `cli/core/envelope` | 123 | 103 | 83.7% |
 | `cli/core/finding` | 170 | 165 | 97.1% |
 | `cli/core/frontmatter` | 185 | 163 | 88.1% |
@@ -318,7 +318,7 @@ alone is visible rather than averaged away.
 | `cli/core/specindex` | 1 | 1 | 100.0% |
 | `cli/profile` | 64 | 60 | 93.8% |
 | `cli/specs` | 1 | 1 | 100.0% |
-| **Total** | **5,469** | **5,004** | **91.5%** |
+| **Total** | **5,503** | **5,037** | **91.5%** |
 
 Generated code is excluded from these figures: 3,387 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
 <!-- coverage:table:end -->

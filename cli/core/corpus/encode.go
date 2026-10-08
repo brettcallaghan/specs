@@ -108,3 +108,60 @@ func encodableEntries(src reflect.Value, entryType reflect.Type) (reflect.Value,
 	}
 	return dst, nil
 }
+
+// decodeIndex is the inverse of [encodable]: it reads raw through the
+// same view and decodes each entry's frontmatter with [envelope.Decode],
+// which accepts the required enum the write omitted while still decoding
+// every property through its generated type — an out-of-vocabulary value
+// or a malformed timestamp is still an error. The generated decoder would
+// refuse the omission, so an index the writer produced could not be read
+// back by its own reader.
+func decodeIndex(raw []byte) (specmodel.SpecIndex, error) {
+	types := indexView()
+	view := reflect.New(types.index)
+	if err := json.Unmarshal(raw, view.Interface()); err != nil {
+		return specmodel.SpecIndex{}, err
+	}
+	src := view.Elem()
+	var index specmodel.SpecIndex
+	dst := reflect.ValueOf(&index).Elem()
+	for i := 0; i < src.NumField(); i++ {
+		if types.index.Field(i).Name != entriesField {
+			dst.Field(i).Set(src.Field(i))
+			continue
+		}
+		entries, err := decodedEntries(src.Field(i), dst.Field(i).Type())
+		if err != nil {
+			return specmodel.SpecIndex{}, err
+		}
+		dst.Field(i).Set(entries)
+	}
+	return index, nil
+}
+
+func decodedEntries(src reflect.Value, sliceType reflect.Type) (reflect.Value, error) {
+	if src.IsNil() {
+		return reflect.Zero(sliceType), nil
+	}
+	dst := reflect.MakeSlice(sliceType, src.Len(), src.Len())
+	for j := 0; j < src.Len(); j++ {
+		from, to := src.Index(j), dst.Index(j)
+		for k := 0; k < from.NumField(); k++ {
+			if sliceType.Elem().Field(k).Name != frontmatterField {
+				to.Field(k).Set(from.Field(k))
+				continue
+			}
+			raw := from.Field(k).Interface().(json.RawMessage)
+			if len(raw) == 0 || string(raw) == "null" {
+				continue
+			}
+			decoded, err := envelope.Decode(raw)
+			if err != nil {
+				path := from.FieldByName("Path").String()
+				return reflect.Value{}, fmt.Errorf("%s: %w", path, err)
+			}
+			to.Field(k).Set(reflect.ValueOf(&decoded))
+		}
+	}
+	return dst, nil
+}
