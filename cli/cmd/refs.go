@@ -38,8 +38,9 @@ func newRefsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			"slug no corpus member declares is reported distinctly from one that is " +
 			"declared but unreferenced; both exit zero, as does an anchor nothing " +
 			"references. The answer is compact by default — one entry per referring " +
-			"document, each reference reduced to its line and text — and --full " +
-			"returns every field of every reference, its span included.",
+			"document, each reference reduced to its line and text; under --outbound, " +
+			"one entry per cited slug with its resolved path and the lines citing it — " +
+			"and --full returns every field of every reference, its span included.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			asked := parseSelection(args[0])
@@ -179,6 +180,13 @@ func runRefs(streams *ioStreams, configPath string, asked selection, outbound, f
 
 	if full {
 		return renderRefs(streams, result, jsonOut)
+	}
+	if outbound {
+		compact, err := compactOutboundRefs(result)
+		if err != nil {
+			return err
+		}
+		return renderRefs(streams, compact, jsonOut)
 	}
 	compact, err := compactRefs(result)
 	if err != nil {
@@ -399,4 +407,66 @@ func resolutionState(resolution specmodel.ReferenceResolution) (string, error) {
 		return "", fmt.Errorf("reading a reference resolution's state: %w", err)
 	}
 	return tagged.State, nil
+}
+
+// refsOutboundCompactResult is the default answer to an outbound query:
+// the query-level properties as [refsResult] carries them, and the
+// references grouped into one entry per cited slug (AC-SPECREF-003.9),
+// per [[cli-output-standards]]'s "refs --outbound".
+type refsOutboundCompactResult struct {
+	Slug           string               `json:"slug"`
+	Anchor         string               `json:"anchor,omitempty"`
+	Direction      string               `json:"direction"`
+	Declared       bool                 `json:"declared"`
+	AnchorDeclared *bool                `json:"anchor_declared,omitempty"`
+	References     []refsCitedReference `json:"references"`
+}
+
+// refsCitedReference is one cited slug's entry. Path is a pointer
+// without omitempty so a slug that resolves to nothing renders an
+// explicit null; Resolution is written only for a slug that did not
+// resolve.
+type refsCitedReference struct {
+	Slug       string                 `json:"slug"`
+	Path       *string                `json:"path"`
+	Resolution *refsResolutionState   `json:"resolution,omitempty"`
+	Lines      []refsCompactReference `json:"lines"`
+}
+
+// compactOutboundRefs derives the outbound compact view from the same
+// full answer [compactRefs] reads, so both views cover the same
+// references (AC-SPECREF-003.8). An entry is placed by the first
+// reference to its slug and its lines keep the corpus's order.
+func compactOutboundRefs(result refsResult) (refsOutboundCompactResult, error) {
+	compact := refsOutboundCompactResult{
+		Slug:           result.Slug,
+		Anchor:         result.Anchor,
+		Direction:      result.Direction,
+		Declared:       result.Declared,
+		AnchorDeclared: result.AnchorDeclared,
+		References:     []refsCitedReference{},
+	}
+	position := map[string]int{}
+	for _, match := range result.References {
+		line, err := compactReference(match)
+		if err != nil {
+			return refsOutboundCompactResult{}, err
+		}
+		at, seen := position[match.Slug]
+		if !seen {
+			at = len(compact.References)
+			position[match.Slug] = at
+			cited := refsCitedReference{Slug: match.Slug, Lines: []refsCompactReference{}}
+			if resolved, ok := match.Resolution.AsResolved(); ok {
+				path := resolved.TargetPath
+				cited.Path = &path
+			}
+			cited.Resolution = line.Resolution
+			compact.References = append(compact.References, cited)
+		}
+		// The entry carries the resolution once; a line repeats none.
+		line.Resolution = nil
+		compact.References[at].Lines = append(compact.References[at].Lines, line)
+	}
+	return compact, nil
 }

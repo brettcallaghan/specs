@@ -2,14 +2,18 @@ slug: adr-900-old-approach
 direction: outbound
 declared: true
 references:
-  - path: docs/adrs/adr-900-old-approach.md
-    references:
+  - slug: adr-901-new-approach
+    path: docs/adrs/adr-901-new-approach.md
+    lines:
       - line: 8
         text: adr-901-new-approach
         origin:
           kind: frontmatter-property
           property: superseded_by
+  - slug: adr-404-never-written
+    path: null
+    resolution:
+      state: unresolved
+    lines:
       - line: 13
         text: adr-404-never-written
-        resolution:
-          state: unresolved

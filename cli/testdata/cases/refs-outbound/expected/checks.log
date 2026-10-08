@@ -2,8 +2,9 @@ slug: adr-900-old-approach
 direction: outbound
 declared: true
 references:
-  - path: docs/adrs/adr-900-old-approach.md
-    references:
+  - slug: adr-901-new-approach
+    path: docs/adrs/adr-901-new-approach.md
+    lines:
       - line: 8
         text: adr-901-new-approach
         origin:

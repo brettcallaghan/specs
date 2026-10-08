@@ -195,7 +195,10 @@ every reference instead — its span, its origin (body or which
 frontmatter property) and what it resolved to — so a rewrite opens only
 the lines that carry the reference. `--outbound` reverses the direction
 and lists what that document itself references, which is what to read
-before editing one.
+before editing one. Its compact answer groups by cited slug instead of by
+document: one entry per slug, carrying the `path` to read it at (`null`
+when it resolves to nothing, with `resolution.state`) and the `lines`
+that cite it.
 
 ```
 $ specs refs adr-016
