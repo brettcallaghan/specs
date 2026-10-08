@@ -6,7 +6,7 @@ description: Parses cross-document references from a spec corpus, records
 slug: frd-spec-reference-integrity
 type: frd
 status: approved
-updated_at: 2026-10-08T12:00:00Z
+updated_at: 2026-10-08T18:00:00Z
 sources:
   - "frd-spec-index"
 ---
@@ -292,9 +292,11 @@ Feature: Reference Integrity Checks
   Severity is assigned here rather than left to implementation, because
   it is what the exit status of a build depends on.
 
-  A single-document check reports the findings located in that document
-  and no others. Which documents an edit breaks is a question for the
-  refs query, not for the check.
+  A single-document check reports the findings located in that document,
+  and of the findings located elsewhere only those of references that
+  this document's own change left pointing at nothing. Unrelated breakage
+  elsewhere stays out. Which documents an edit will break, asked before
+  the edit, is a question for the refs query, not for the check.
 
   @AC-SPECREF-002.1
   Scenario: A body reference matching no corpus member is an error
@@ -345,10 +347,10 @@ Feature: Reference Integrity Checks
     Then the CLI resolves a reference against corpus slugs without regard to letter case
 
   @AC-SPECREF-002.9 @negative
-  Scenario: A single-document check reports no finding located in another document
+  Scenario: A single-document check reports no unrelated finding located in another document
     When the CLI checks a single document
-    Then the CLI reports no finding located in a document other than the one named
-    And that holds for a reference held by another document that no longer resolves to the document named
+    Then the CLI reports no finding located in a document other than the one named, except those AC-SPECREF-002.11 names
+    And that holds for every finding of another document that does not arise from a reference to the document named
 
   @AC-SPECREF-002.10
   Scenario: A typed reference resolving to the wrong type is an error
@@ -358,10 +360,21 @@ Feature: Reference Integrity Checks
     Then the CLI reports a finding of severity error naming the property, the type expected and the type the target declares
 
   @AC-SPECREF-002.11
-  Scenario: A single-document check reports every reference finding located in that document
+  Scenario: A single-document check reports its own reference findings and the references its change broke
     When the CLI checks a single document
     Then the CLI reports every reference finding located in that document, on the same terms as a check of the corpus
     And that covers the unresolved reference of AC-SPECREF-002.1, the retired target of AC-SPECREF-002.6, the incomplete pairing of AC-SPECREF-002.5 and the type mismatch of AC-SPECREF-002.10
+    And the CLI also reports, located in each citing document, every unresolved-reference finding of a reference elsewhere citing a slug the document declared at git HEAD and no longer declares
+    And the CLI also reports, located in each citing document, every unresolved-anchor finding of a reference elsewhere that resolves to the document
+    And each such finding is the finding a check of the corpus reports for that reference
+
+  @AC-SPECREF-002.13
+  Scenario: A single-document check outside a git work tree reports the document's own findings
+    Given a single-document check whose spec root is not in a git work tree, or where git cannot be run
+    When the CLI checks the document
+    Then the CLI writes a note to standard error that references elsewhere broken by the document's change were not checked
+    And the CLI reports the document's own findings
+    And the CLI exits with the status those findings decide
 
   @AC-SPECREF-002.12
   Scenario: An anchor-only reference reaching a heading of its own document is not unresolved
@@ -394,9 +407,11 @@ reported once, against the document that has it (AC-SPECREF-002.7,
 AC-SPEC-003.8). `` `[[ADR-012]]` ``
 resolves to the document declaring `slug: adr-012` (AC-SPECREF-002.8). An
 agent changes an ADR's slug and the write-time check on that one file
-reports nothing about the seven documents now pointing at nothing;
-`specs refs` on the slug before the change, or a corpus check after it,
-is what finds them (AC-SPECREF-002.9). A feature blueprint whose `frd`
+reports its own findings and the seven references elsewhere now pointing
+at nothing, each at its line in the document holding it
+(AC-SPECREF-002.11), while a dangling reference in an unrelated document
+stays out of that check (AC-SPECREF-002.9); `specs refs` on the slug
+before the change is what tells the agent in advance. A feature blueprint whose `frd`
 names `adr-009` reports "frd expects type 'frd', target 'adr-009'
 declares type 'adr'" (AC-SPECREF-002.10). The write-time check on a live
 blueprint citing a retired ADR reports the retired-target warning at the
@@ -430,17 +445,30 @@ sub-feature.
 
 AC-SPECREF-002.9 keeps a single-document check about that document. A
 write-time hook runs it on the file just written, and a check that also
-reported other documents' findings would fail that hook on breakage the
-author did not cause and cannot fix in the file in front of them. An
-edit that breaks a reference held elsewhere — a changed slug, a
-retirement, a changed `type` — therefore passes its own check. Finding
-those references is the blast-radius question FEAT-SPECREF-003 answers,
-asked before the change; a corpus check reports whatever was missed.
+reported other documents' unrelated findings would fail that hook on
+breakage the author did not cause. What it does report from elsewhere is
+exactly what this author's edit caused: a reference citing a slug the
+document gave up, or an anchor into the document that no longer names a
+heading (AC-SPECREF-002.11). Excluding those too, because the author
+cannot fix them in the file in front of them, is the tempting
+simplification and the wrong one: the commonest cause is an uncommitted
+rename, whose fix is to revert it or to edit the citing documents, and
+an author told nothing at write time learns of the breakage only from a
+later corpus check — or not at all, where nothing runs one. The former
+slug is read from git HEAD because that is the version every citation
+was written against and an uncommitted rename is the common case; where
+there is no git work tree there is no HEAD to read, so the check reports
+what it can and says on standard error what it skipped
+(AC-SPECREF-002.13), rather than refusing a check whose own findings are
+still sound. A changed `type` or a retirement is not reported elsewhere:
+the citing reference still resolves, and those findings belong to a
+check of the citing document. FEAT-SPECREF-003 remains the blast-radius
+question asked before the change.
 
-AC-SPECREF-002.11 is the positive half, stated for every reference rule
-rather than unresolved references alone: narrowing a check to one
-document narrows the documents it reports on, never the rules it runs
-over that document. Under AC-SPEC-006.8's accounting
+AC-SPECREF-002.11 is also the positive half for the document's own
+findings, stated for every reference rule rather than unresolved
+references alone: narrowing a check to one document narrows the
+documents it reports on, never the rules it runs over that document. Under AC-SPEC-006.8's accounting
 `reference/retired-target passed` means "ran, found nothing", so a
 narrowed check that skipped a rule would report as passed a rule whose
 findings a check of the corpus raises in the same document.
@@ -498,7 +526,7 @@ Feature: Reference Queries
 
   @AC-SPECREF-003.6
   Scenario: The default answer lists each referring document once
-    When the refs subcommand is invoked without the full option
+    When the refs subcommand is invoked without the full option or the outbound option
     Then the CLI returns the compact answer: one entry per referring document holding every reference that document makes in the answer
     And each reference carries only the properties [[cli-output-standards]] defines for the compact view of a reference
 
@@ -518,6 +546,13 @@ Feature: Reference Queries
     Given a refs query invoked with the full option
     When the same query is invoked without it
     Then the compact answer holds every reference the full answer holds
+
+  @AC-SPECREF-003.9
+  Scenario: The default outbound answer lists each cited slug once
+    When the refs subcommand is invoked with the outbound option and without the full option
+    Then the CLI returns one entry per cited slug, in the order each is first cited, holding every reference to that slug in the answer
+    And each entry carries the "slug", the "path" of the document it resolves to, null where it resolves to none, a "resolution" holding its "state" only where it is not resolved, and its "lines"
+    And each of its "lines" carries the "line" and "text" of one reference, its "origin" only for a reference in frontmatter, and "ambiguous_anchor" only where that is true
 ```
 
 *Examples:* `specs refs adr-007` returns the four documents citing it, so
@@ -533,7 +568,9 @@ that a document is unreferenced, not a failure — the same contract
 `slug-exists` sets in AC-SPEC-007.2 (AC-SPECREF-003.5).
 `specs refs frd-spec-index` answers with one entry per citing document,
 each reference reduced to the line it starts on and its text
-(AC-SPECREF-003.6). `--json`, `--outbound` and
+(AC-SPECREF-003.6). `specs refs adr-012 --outbound` answers with one
+entry for each slug adr-012 cites, each carrying the path to read it at
+and the lines citing it (AC-SPECREF-003.9). `--json`, `--outbound` and
 `specs refs 'container-spec-cli#Command Surface'` each answer in the same
 compact form, and each adds `--full` for the full one (AC-SPECREF-003.7).
 A compact answer drops properties, never references (AC-SPECREF-003.8).
@@ -551,7 +588,12 @@ and at what lines", and the full answer repeats on every reference what
 the query already established — the slug asked about, the path it
 resolved to — and spends most of its lines on span offsets. The compact
 form is therefore the default, and `--full` is for the caller that
-rewrites by offset. It is a named view rather than a change of depth, which
+rewrites by offset. An outbound query's citing document is the
+document queried, so grouping by it would give one group and drop the
+one property an outbound query is for — where to read each dependency;
+AC-SPECREF-003.9 therefore groups the outbound compact answer by the
+slug cited and keeps its resolved path. Either compact answer is a
+named view rather than a change of depth, which
 [[cli-output-standards]] forbids `--json` to make, and AC-SPECREF-003.8
 keeps it a view rather than a truncation.
 

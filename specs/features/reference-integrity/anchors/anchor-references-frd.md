@@ -6,7 +6,7 @@ description: Resolves the anchor half of a wikilink — the heading it
 slug: frd-spec-anchor-references
 type: frd
 status: approved
-updated_at: 2026-10-08T00:00:00Z
+updated_at: 2026-10-08T18:00:00Z
 sources:
   - "frd-spec-reference-integrity"
 ---
@@ -354,11 +354,10 @@ Feature: Anchor Impact Queries
 documents that would break if that heading were renamed — the question
 [[adr-012]] created by making anchors the address of every un-promoted
 component (AC-SPECANCH-003.1). An agent renames a `### Element Registry`
-heading to `### Registry` and the write-time check on that one file
-reports nothing about the four documents whose anchors now point at
-nothing; the query asked before the rename, or a corpus check after it,
-is what finds them — AC-SPECREF-002.9 applied to the anchor half
-(AC-SPECANCH-003.2). An empty answer is an answer, not a failure,
+heading to `### Registry`; the query asked before the rename is what
+names the four documents whose anchors would point at nothing
+(AC-SPECANCH-003.2), and the write-time check on that one file reports
+them after it, located in the documents holding them (AC-SPECREF-002.11). An empty answer is an answer, not a failure,
 consistent with AC-SPECREF-003.5 and AC-SPEC-007.2 (AC-SPECANCH-003.3).
 An ambiguous reference resolves to no heading, and the author renaming
 one of the headings it matches is exactly the reader who has to see it,

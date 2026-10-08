@@ -7,7 +7,7 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-10-08T00:00:00Z
+updated_at: 2026-10-08T18:00:00Z
 kind: standard
 visibility: internal
 source_paths:
@@ -1056,7 +1056,7 @@ recording headings ([[frd-spec-structure]]):
   satisfies every segment and ambiguous where several are selected — a
   full heading path selecting only the headings with exactly that path —
   by the same rule as a single-segment anchor. Every match the resolution records
-  carries its `heading_path`, and a resolved nested anchor's markdown
+  carries its `anchor` (its heading path), and a resolved nested anchor's markdown
   link fragment is its last heading's, since a fragment can address only
   one heading.
 - **Exactly one match resolves the anchor to that heading; more than one

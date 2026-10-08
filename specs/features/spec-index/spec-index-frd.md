@@ -7,7 +7,7 @@ description: A command-line tool that indexes a specification corpus into
 slug: frd-spec-index
 type: frd
 status: approved
-updated_at: 2026-10-08T00:00:00Z
+updated_at: 2026-10-08T18:00:00Z
 sources: []
 ---
 
@@ -315,6 +315,19 @@ Feature: Metadata Conformance
     When the CLI checks the corpus
     Then the CLI attributes each finding that depends on that member's slug to the member's parse failure
     And the CLI does not report such a finding as an unresolved reference
+
+  @AC-SPEC-003.9
+  Scenario: A comment trailing a frontmatter value is a warning
+    Given a corpus member whose frontmatter carries a comment after a value on the same line
+    When the CLI checks the document
+    Then the CLI reports a "frontmatter/inline-comment" finding of severity warning located at the comment's "#"
+    And its message names the property, says that the text after the "#" is not part of the value, and says to quote the value to keep it
+
+  @AC-SPEC-003.10 @negative
+  Scenario: A comment on a line of its own is not reported
+    Given a corpus member whose frontmatter carries a comment on a line holding nothing else
+    When the CLI checks the document
+    Then the CLI reports no "frontmatter/inline-comment" finding for it
 ```
 
 *Examples:* a document declaring `type: adr` but omitting `description`
@@ -339,6 +352,16 @@ declared (AC-SPEC-003.7). A member whose fence is unterminated yields no
 legible slug; the check reports its parse failure and does not send the
 author to fix references elsewhere that were correct
 (AC-SPEC-003.8).
+
+*Rationale for AC-SPEC-003.9 and AC-SPEC-003.10:* in YAML an unquoted
+` #` begins a comment, so `description: replacing @ and the # element
+convention` is the value `replacing @ and the`. The file reads correctly
+to a person and the parsed value is silently shorter; every query that
+shows the value shows the truncated text faithfully. Only a comment
+trailing a value can cut one short, so a comment on a line of its own is
+an author's note and draws nothing. It is a warning rather than an
+error because the comment may be intended — and quoting the value is a
+fix either way.
 
 *Rationale for AC-SPEC-003.7 and AC-SPEC-003.8:* one mistyped value
 must produce one finding. Were the slug of a member that failed to parse
@@ -423,6 +446,24 @@ Feature: Findings, Severities, and Diagnostics
   Scenario: A subset naming an unknown check is refused
     When the check subcommand is invoked with an option naming a check the CLI does not know
     Then the CLI reports the unknown name and the name of every known check, writes no report, and exits with the invocation-error status
+
+  @AC-SPEC-006.11
+  Scenario: A check answer leads with its summary and then its findings
+    When the check subcommand runs
+    Then the answer holds a "summary" carrying the counts "errors", "warnings" and "unverified" of the findings it reports, followed by its "findings"
+    And the three counts are always present and sum to the number of findings reported
+    And the JSON option carries the same values in the same order
+
+  @AC-SPEC-006.12
+  Scenario: The per-check outcomes are listed only when asked for
+    When the check subcommand runs without the verbose option
+    Then the answer carries no list of checks
+    And with the verbose option the answer also carries, after its findings, every check the run accounts for with its outcome
+
+  @AC-SPEC-006.13 @negative
+  Scenario: The answer's shape does not change the exit status
+    Given a check run invoked with or without the verbose option
+    Then the CLI exits with the status AC-SPEC-006.6 and AC-SPEC-006.7 assign to its findings
 ```
 
 *Examples:* `slug/pattern-mismatch  error
@@ -439,7 +480,21 @@ agent typing `check --only frontmatter/pars` gets an error naming the
 known checks rather than a report: a report covering no known check
 would pass every gate that runs it (AC-SPEC-006.10). The gate-failed
 and invocation-error statuses are the ones [[cli-exit-status-standards]]
-assigns: `1` and `2`.
+assigns: `1` and `2`. A clean `check` answers
+`summary: {errors: 0, warnings: 0, unverified: 0}` and `findings: []`
+and nothing more, so the first lines of a failing run are its findings
+rather than thirty-odd passed checks (AC-SPEC-006.11, AC-SPEC-006.12);
+`check --verbose` adds the per-check outcomes, which is where "slug
+uniqueness passed" and "frontmatter schema was not checked" are told
+apart.
+
+*Rationale for AC-SPEC-006.11 and AC-SPEC-006.12:* the summary's counts
+are properties the run established — how many findings of each severity
+it raised — not a restatement of the answer, and they are what a reader
+scanning the head of the output needs first. The per-check outcomes are
+the run's accounting rather than its result: a failed check is already
+visible as its findings, and the checks not run are the ones the caller
+excluded, so the list is printed only when asked for.
 
 ### FEAT-SPEC-007: Corpus Queries
 
@@ -468,13 +523,16 @@ Feature: Corpus Queries
     When the slug-exists subcommand is invoked with a slug
     Then the CLI answers a mapping carrying the slug and whether a corpus member declares it
     And where one does, the mapping carries the path of that member
+    And the slug is written as that member declares it, and as given where no member declares it
 ```
 
 *Examples:* with ADRs numbered 001 through 030 in the corpus,
 `next-id adr` answers `number: 31` and `slug: adr-031`, so the author
 names the new file without formatting the number (AC-SPEC-007.1).
 `slug-exists adr-004` answers `slug: adr-004`, `declared: true` and
-`path: specs/adrs/adr-004-module-blueprint-and-atomic-component.md`
+`path: specs/adrs/adr-004-module-blueprint-and-atomic-component.md`, and
+`slug-exists ADR-004` answers the same, its slug as declared;
+`slug-exists NOPE-999` answers `slug: NOPE-999`, `declared: false`
 (AC-SPEC-007.2).
 
 ### FEAT-SPEC-008: Configuration
@@ -784,7 +842,7 @@ Feature: Command Surface
 
   @AC-SPEC-011.2
   Scenario: A check subcommand runs the conformance checks
-    Then the CLI exposes a check subcommand that runs conformance checks over the corpus, or over a single document when given a path, and reports findings per FEAT-SPEC-006, accepting the JSON, strict and only options
+    Then the CLI exposes a check subcommand that runs conformance checks over the corpus, or over a single document when given a path, and reports findings per FEAT-SPEC-006, accepting the JSON, strict, only and verbose options
 
   @AC-SPEC-011.3
   Scenario: A slug-exists subcommand answers the slug query
@@ -803,6 +861,13 @@ Feature: Command Surface
   Scenario: A check given a path that is not a corpus member is refused
     When the check subcommand is given a path that is not a member of the corpus
     Then the CLI reports the path, writes no report, and exits with the invocation-error status
+
+  @AC-SPEC-011.7
+  Scenario: The version option reports the build
+    When the CLI is invoked with the version option
+    Then the CLI writes a YAML mapping carrying "version", "revision", "time" and "modified", in that order, and exits zero
+    And "version" is the version stamped into a release build, else the module version, which is "(devel)" for a local build
+    And "revision", "time" and "modified" are the binary's version-control build settings, each null where the build recorded none
 ```
 
 *Examples:* `index` writes the default `specs.json` and `index --out -`
@@ -815,7 +880,10 @@ mapping of AC-SPEC-007.1 (AC-SPEC-011.4). Bare invocation prints the
 four subcommands above with a one-line synopsis of each
 (AC-SPEC-011.5). `check docs/adrs/ADR-04.md`, a path no corpus member
 has, exits `2` and reports nothing, because a gate that could not
-inspect its subject has decided nothing (AC-SPEC-011.6).
+inspect its subject has decided nothing (AC-SPEC-011.6). `--version`
+from a local build in a git checkout answers `version: (devel)` and the
+checkout's commit as `revision`, which is what a bug report needs
+(AC-SPEC-011.7).
 
 *Rationale:* The subcommand vocabulary is the tool's public interface,
 so it is fixed here rather than left to implementation. Later features

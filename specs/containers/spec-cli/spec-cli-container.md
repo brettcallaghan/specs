@@ -7,7 +7,7 @@ description: The command-line binary that indexes a specification corpus
 slug: container-spec-cli
 type: container-blueprint
 status: approved
-updated_at: 2026-10-08T00:00:00Z
+updated_at: 2026-10-08T18:00:00Z
 contracts_consumed: []
 modules:
   - "module-document-core"
@@ -499,10 +499,12 @@ heading half may be a path of headings separated by `#` —
 named by the last segment beneath a heading named by each earlier one, in
 order and at any depth (AC-SPECSTR-003.10, AC-SPECSTR-003.11), through
 Markdown Structure's `SelectPaths`, the selection anchor resolution uses.
-Each match's `heading_path` is the identifier of every enclosing heading
-from the outermost down, then its own, joined by `#` (AC-SPECSTR-003.9),
+Each match's `anchor` is its heading path — the identifier of every
+enclosing heading from the outermost down, then its own, joined by `#`
+(AC-SPECSTR-003.9) — and its `ref` is `<slug>#<anchor>`, the member's
+declared slug or, where it declares none, its path (AC-SPECSTR-003.12),
 so it tells two same-named headings apart and pastes back as a selection
-naming that heading alone wherever it has more than one segment: a query
+naming that heading alone wherever its anchor has more than one segment: a query
 spelling some heading's full path selects the headings with exactly that
 path before any whose path merely contains it. A one-segment path is
 matched on its identifier like any one-segment selection, so a top-level
@@ -517,7 +519,7 @@ through the recorded span and written as itself with no envelope
 which are carried but not counted as matches. A raw payload has no place
 for a delimiter, so a selection matching more than one heading is refused
 under `--emit` with exit `2`, nothing on standard output, and each match
-named on standard error as `<path>#<heading_path>` (AC-SPECSTR-003.7):
+named on standard error by its `ref` (AC-SPECSTR-003.7):
 under `Select one of:` those whose selection, run back through the same
 selection, matches that heading alone, and listed apart those no
 selection names alone, for which the query without `--emit` returns the
