@@ -292,20 +292,20 @@ alone is visible rather than averaged away.
 <!-- coverage:table:start -->
 | Test layer | Statements covered | Coverage |
 |:---|---:|---:|
-| Unit tests | 3,989 / 4,779 | 83.5% |
-| Snapshot cases | 3,815 / 4,779 | 79.8% |
-| End-to-end (built binary) | 1,316 / 4,779 | 27.5% |
-| **All layers combined** | **4,387 / 4,779** | **91.8%** |
+| Unit tests | 3,985 / 4,761 | 83.7% |
+| Snapshot cases | 3,798 / 4,761 | 79.8% |
+| End-to-end (built binary) | 1,474 / 4,761 | 31.0% |
+| **All layers combined** | **4,371 / 4,761** | **91.8%** |
 
 | Package | Statements | Covered | Coverage |
 |:---|---:|---:|---:|
-| `cli/cmd` | 1,331 | 1,156 | 86.9% |
+| `cli/cmd` | 1,328 | 1,155 | 87.0% |
 | `cli/core/c4diagram` | 246 | 234 | 95.1% |
 | `cli/core/c4elements` | 284 | 277 | 97.5% |
 | `cli/core/c4model` | 313 | 297 | 94.9% |
 | `cli/core/corpus` | 1,279 | 1,184 | 92.6% |
 | `cli/core/envelope` | 52 | 50 | 96.2% |
-| `cli/core/finding` | 178 | 172 | 96.6% |
+| `cli/core/finding` | 163 | 157 | 96.3% |
 | `cli/core/frontmatter` | 185 | 163 | 88.1% |
 | `cli/core/gherkin` | 289 | 267 | 92.4% |
 | `cli/core/markdown` | 106 | 100 | 94.3% |
@@ -317,7 +317,7 @@ alone is visible rather than averaged away.
 | `cli/core/specindex` | 1 | 1 | 100.0% |
 | `cli/profile` | 64 | 60 | 93.8% |
 | `cli/specs` | 1 | 1 | 100.0% |
-| **Total** | **4,779** | **4,387** | **91.8%** |
+| **Total** | **4,761** | **4,371** | **91.8%** |
 
 Generated code is excluded from these figures: 3,339 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
 <!-- coverage:table:end -->

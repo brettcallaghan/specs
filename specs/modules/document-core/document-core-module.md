@@ -1948,8 +1948,9 @@ is:
 - **`Severity`** — `error`, `warning` and `unverified`, the three
   [[frd-spec-index]] defines and no others.
 - **`FindingReport`** — the run envelope: every `Finding` produced, and a
-  `CheckResult` for every check the run knows about carrying an outcome
-  of `passed`, `failed`, `unverified` or `not-requested`.
+  `CheckResult` for every check the run was asked for carrying an outcome
+  of `passed`, `failed` or `unverified`. The `not-requested` outcome
+  stays in the vocabulary and is never emitted.
 
 **The detail is nested rather than inherited.** The alternative — a base
 `Finding` with each variant inheriting it — flattens in every target, so
@@ -1967,12 +1968,15 @@ pinned by the implementation:
 - **A requested check that has not reported is `unverified`, not
   `passed`.** Requesting a check sets that outcome, and only an explicit
   completion clears it, so a check that starts and never finishes cannot
-  read as clean (AC-SPEC-006.4). A check the caller did not request stays
-  `not-requested` and is still listed, which is what distinguishes it from
-  one that passed (AC-SPEC-006.9).
-- **Both renderings come from one recorded state.** The report emits the
-  generated JSON and a human-readable text form; the command surface
-  selects a rendering and never formats a finding itself.
+  read as clean (AC-SPEC-006.4). A check the caller did not request is
+  left out of `Model`'s checks entirely, so it can never read as passed
+  and a narrowed run lists only what it asked for (AC-SPEC-006.8,
+  AC-SPEC-006.9).
+- **Every rendering comes from one recorded state.** `Model` is the
+  answer a command writes to standard output, which the command surface
+  renders as YAML or JSON; `Text` is a human-readable form for standard
+  error, where no structured answer is written. Neither formats a finding
+  outside this package.
 - **Order is fixed here, not by the caller.** Checks are ordered by rule
   and findings by path, then position, then rule and message, so the same
   run yields byte-identical output (AC-SPEC-009.7) and snapshot cases stay

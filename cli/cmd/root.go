@@ -20,6 +20,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -167,25 +168,22 @@ func openCorpus(opts corpus.Options) (*corpus.Corpus, error) {
 	return c, nil
 }
 
-// renderReport writes report to streams.out as JSON when asJSON is set,
-// and as human-readable text otherwise.
-//
-// The two renderings are [finding.Report.JSON] and [finding.Report.Text]
-// — this package selects one, per the Design guidance not to format
-// findings itself. AC-SPEC-006.5 is what requires the JSON rendering to
-// be available at all; this function is what "the command surface turns
-// findings into the JSON that AC-SPEC-006.5 requires"
-// (spec-cli-container.md) means in code.
+// renderReport writes a check run's answer — the generated
+// [specmodel.FindingReport], its checks and findings — to streams.out as
+// YAML, or as JSON when asJSON is set (AC-SPEC-006.5). One model, two
+// syntaxes, so the two renderings carry the same values in the same
+// order by construction ([[cli-output-standards]]).
 func renderReport(streams *ioStreams, report *finding.Report, asJSON bool) error {
+	model := report.Model()
 	if asJSON {
-		data, err := report.JSON()
+		data, err := json.Marshal(model)
 		if err != nil {
 			return fmt.Errorf("rendering the finding report as JSON: %w", err)
 		}
 		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil
 	}
-	fmt.Fprint(streams.out, report.Text())
+	fmt.Fprint(streams.out, renderYAML(model))
 	return nil
 }
 

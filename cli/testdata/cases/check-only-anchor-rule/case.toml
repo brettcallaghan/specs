@@ -1,5 +1,5 @@
-description = "check --only reference/ambiguous-anchor requests that anchor rule alone, leaving reference/unresolved-anchor and slug resolution not requested"
-cites = ["AC-SPECANCH-002.9"]
+description = "check --only reference/ambiguous-anchor requests that anchor rule alone, leaving reference/unresolved-anchor and slug resolution absent from checks"
+cites = ["AC-SPECANCH-002.9", "AC-SPEC-006.9"]
 artifacts = ["checks.log"]
 args = ["check", "--only", "reference/ambiguous-anchor"]
 exit_code = 1

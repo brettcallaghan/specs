@@ -1028,38 +1028,6 @@ type Report struct {
 	results map[specmodel.RuleId]checkState
 	// findings is every finding recorded, unordered until rendering.
 	findings []specmodel.Finding
-
-	// documentCount and hasDocumentCount back [Report.SetDocumentCount].
-	// hasDocumentCount distinguishes "never told" from "told, and it was
-	// zero" — a caller that never calls SetDocumentCount (a specs.toml
-	// validation, a refs query) gets no count line from [Report.Text] at
-	// all, rather than a misleading "checked 0 documents".
-	documentCount    int
-	hasDocumentCount bool
-
-	// exclusions backs [Report.SetExclusions]. Nil (the default) renders
-	// no excluded section, exactly like documentCount's default.
-	exclusions []specmodel.IndexExclusion
-}
-
-// SetDocumentCount records how many documents the run examined, so
-// [Report.Text] prints a count line — on a clean run and a failing run
-// alike, which is what makes a zero-document run auditable by a human
-// reading output rather than only by [RuleCorpusEmpty]'s finding.
-//
-// Only a corpus-wide run has a meaningful count to report; a caller
-// checking one document leaves this unset.
-func (r *Report) SetDocumentCount(n int) {
-	r.documentCount = n
-	r.hasDocumentCount = true
-}
-
-// SetExclusions records the corpus's excluded candidate files, so
-// [Report.Text] lists each with its reason rather than letting a file
-// excluded for missing frontmatter or an unrecognized `type` read as
-// indistinguishable from one that was checked and passed.
-func (r *Report) SetExclusions(exclusions []specmodel.IndexExclusion) {
-	r.exclusions = exclusions
 }
 
 // checkState is the mutable half of one check's accounting.
@@ -1195,7 +1163,8 @@ func (r *Report) HasErrors() bool {
 }
 
 // Model returns the report as the generated envelope, with both
-// collections ordered deterministically and never nil.
+// collections ordered deterministically and never nil. Checks holds
+// exactly the checks the run was asked for.
 //
 // Checks are ordered by rule identifier and findings by path, then
 // position, then rule, then message. Determinism is this package's
@@ -1205,6 +1174,12 @@ func (r *Report) Model() specmodel.FindingReport {
 	checks := make([]specmodel.CheckResult, 0, len(r.order))
 	for _, rule := range r.order {
 		state := r.results[rule]
+		// A check the run was not asked for is not reported at all, so
+		// it can never read as passed (AC-SPEC-006.9) and a narrowed run
+		// lists only what it was asked (AC-SPEC-006.8).
+		if state.outcome == specmodel.CheckOutcomeNotRequested {
+			continue
+		}
 		result := specmodel.CheckResult{Rule: rule, Outcome: state.outcome}
 		if state.outcome == specmodel.CheckOutcomeUnverified && state.reason != "" {
 			reason := state.reason
@@ -1251,45 +1226,20 @@ func (r *Report) JSON() ([]byte, error) {
 	return json.Marshal(r.Model())
 }
 
-// Text renders the report for a human reader.
-//
-// When [Report.SetDocumentCount] was called, a count line opens the
-// report, on a clean run and a failing run alike, followed — when
-// [Report.SetExclusions] recorded any — by the excluded files and their
-// reasons. Neither section appears for a report that never received
-// them, so a report built for something other than a corpus scan (a
-// specs.toml validation, a refs query) renders exactly as before.
-//
-// Findings follow, grouped under a header naming the file they are
-// against — [Report.Model] already sorts them by path first, so a run of
-// findings sharing a file is contiguous and this only inserts the
-// header:
+// Text renders the report for a human reader: the findings, grouped
+// under a header naming the file they are against — [Report.Model]
+// already sorts them by path first, so a run of findings sharing a file
+// is contiguous and this only inserts the header:
 //
 //	specs/adrs/adr-011.md:
 //	  slug/pattern-mismatch  error  4:7  "adr-011-x" does not match pattern "^adr-[0-9]{3}$"
 //
-// The check accounting follows last, so a reader who sees no findings can
-// tell at a glance which checks that verdict actually covers.
+// The check accounting follows last. It is the rendering for standard
+// error — a specs.toml defect, a links run — where no structured answer
+// is written; a command's answer on standard output is the model itself.
 func (r *Report) Text() string {
 	model := r.Model()
 	var b strings.Builder
-
-	if r.hasDocumentCount {
-		fmt.Fprintf(&b, "checked %d document%s\n", r.documentCount, plural(r.documentCount))
-	}
-	if len(r.exclusions) > 0 {
-		b.WriteString("\nexcluded:\n")
-		for _, ex := range r.exclusions {
-			fmt.Fprintf(&b, "  %s  %s", ex.Path, ex.Reason)
-			if ex.Type != nil && *ex.Type != "" {
-				fmt.Fprintf(&b, " (declared type %q)", *ex.Type)
-			}
-			b.WriteString("\n")
-		}
-	}
-	if r.hasDocumentCount || len(r.exclusions) > 0 {
-		b.WriteString("\n")
-	}
 
 	writeFindingsByFile(&b, model.Findings)
 
@@ -1331,13 +1281,4 @@ func writeFindingsByFile(b *strings.Builder, findings []specmodel.Finding) {
 		fmt.Fprintf(b, "  %s  %s  %d:%d  %s\n",
 			f.Rule, f.Severity, f.Span.StartLine, f.Span.StartColumn, f.Message)
 	}
-}
-
-// plural returns "" for a count of exactly one and "s" otherwise, so a
-// count line reads "1 document" rather than "1 documents".
-func plural(n int) string {
-	if n == 1 {
-		return ""
-	}
-	return "s"
 }

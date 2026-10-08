@@ -2941,10 +2941,10 @@
     },
     "FindingReport": {
       "additionalProperties": false,
-      "description": "Everything one check run produced.\n\nThe two collections answer different questions and neither substitutes\nfor the other. `findings` is what is wrong; `checks` is what was looked\nat. A report carrying no findings is only good news if every check the\ncaller cares about is accounted for in `checks` as having passed.\n\nBoth are lists rather than maps so that the emitter owns their order and\ncan make output byte-identical across platforms without a change to this\nmodel.",
+      "description": "Everything one check run produced.\n\nThe two collections answer different questions and neither substitutes\nfor the other. `findings` is what is wrong; `checks` is what was looked\nat. A report carrying no findings is only good news if every check the\ncaller cares about is listed in `checks` as having passed.\n\nBoth are lists rather than maps so that the emitter owns their order and\ncan make output byte-identical across platforms without a change to this\nmodel.",
       "properties": {
         "checks": {
-          "description": "Every check the run knows about, in the order the emitter fixes, each\nwith what became of it.",
+          "description": "Every check the run was asked for, in the order the emitter fixes, each\nwith what became of it. A check the run was not asked for is absent, so\nit can never read as passed.",
           "items": {
             "$ref": "#/definitions/CheckResult"
           },

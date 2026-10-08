@@ -226,13 +226,17 @@ standard error as text whatever `--json` says, and the run exits `3`.
 failed to parse is recorded in the index like any other, so `index`
 exits zero regardless (AC-SPEC-002.5). `check` opens the corpus warm at
 the default index path and accepts `--json`, `--strict` and `--only`.
-`--json` selects `finding.Report.JSON` over `.Text` (AC-SPEC-006.5).
-`--only` narrows a report built from `finding.NewReport`'s own
-requested/passed/failed/not-requested accounting rather than by
-filtering text: a rule named by `--only` is requested and then marked
-ran from the matching findings (if any), and a rule left out is simply
-never requested, which is what lets the rendered report tell "checked
-and clean" apart from "not asked for" (AC-SPEC-006.8). Exit status
+Its answer is the generated `specmodel.FindingReport` — a mapping of
+`checks` and `findings`, nothing else — rendered as YAML by `renderYAML`
+by default and as JSON under `--json`, one model in two syntaxes so the
+two carry the same values in the same order (AC-SPEC-006.5,
+[[cli-output-standards]]). `--only` narrows a report built from
+`finding.NewReport`'s own accounting rather than by filtering text: a
+rule named by `--only` is requested and then marked ran from the
+matching findings (if any), and a rule left out is never requested, so
+`checks` lists exactly the checks the run was asked for, each `passed`,
+`failed` or `unverified`, and an unrequested check is absent rather than
+reported passed (AC-SPEC-006.8, AC-SPEC-006.9). Exit status
 follows `finding.Report.HasErrors`: any error exits 1 unconditionally;
 warning or unverified findings alone exit 0 unless `--strict` is given
 (AC-SPEC-006.6, AC-SPEC-006.7). `checkRules` declares every rule a run

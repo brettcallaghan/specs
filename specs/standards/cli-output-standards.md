@@ -368,7 +368,7 @@ repository's corpus.
 | `list` | a YAML mapping whose one key is the sequence of documents; `--json` the same values in the same order | conforms |
 | `slug-exists <slug>` | a sentence, `adr-001: found at specs/adrs/adr-001-html-comments-for-instructions.md`; no `--json` | a mapping carrying `slug`, `declared` and `path`, with `--json` |
 | `next-id <type>` | a bare number, `31`; no `--json` | a mapping carrying `number` and `slug`, with `--json`; the bare number is a value with no name |
-| `check [path]` | its own text layout: a document count, exclusions, findings, then a per-rule pass list; `--json` a mapping of `checks` and `findings` | render as YAML; the findings are the answer |
+| `check [path]` | a YAML mapping of `checks` (only the checks the run was asked for) and `findings`; `--json` the same values in the same order | conforms |
 | `feature`, `criterion` | tab-separated text; `--json` an array for a filter and a bare object for one identifier | render as YAML, one shape whatever the arguments select |
 | `links <path>` | the rewritten document | conforms — a document payload, written as itself |
 | `index` | the artifact, or the bare path it wrote | the artifact is out of scope; the printed path is an answer |

@@ -63,11 +63,14 @@ it rather than assuming `docs/`.
 **`specs check`** validates every document's frontmatter against the
 active profile's schema and slug patterns, reports duplicate slugs, and
 applies the four reference rules in the next section. Given a path it
-narrows to that one document — the form to use after authoring — except
-for unresolved references, which it reports wherever they were written,
-so renaming a slug names the documents left pointing at nothing. `--json`
-emits the full finding set with spans; `--strict` makes warning and
-unverified findings fail too. `--only <rule>` narrows to named rules.
+reports only the findings located in that one document — the form to use
+after authoring; `specs refs <slug>` names the documents a rename would
+leave pointing at nothing. Its answer is a YAML mapping of `checks` (the
+checks the run was asked for, each `passed`, `failed` or `unverified`)
+and `findings` (each with its rule, severity, path, span and message);
+`--json` writes the same values as JSON. `--strict` makes warning and
+unverified findings fail too. `--only <rule>` narrows to named rules, and
+`checks` then lists only those.
 
 **`specs index`** writes the corpus index. Read it when you need many
 documents' metadata at once — every slug in use, every document of a

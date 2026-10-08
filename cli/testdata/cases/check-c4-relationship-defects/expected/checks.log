@@ -1,49 +1,186 @@
-checked 5 documents
-
-docs/containers/alpha.md:
-  c4/bidirectional  error  24:5  BiRel(a, g) states no direction; draw the dependency as Rel
-  c4/duplicate-edge  error  26:5  a -> b is drawn more than once in this diagram
-  c4/interaction-conflict  error  28:5  g -> a is tagged both sync and async
-  c4/contract-unresolved  error  29:5  contract:contract-missing names no contract
-  c4/contract-mismatch  warning  30:5  contract:contract-good on b -> g: container-beta does not list it among the contracts it consumes, and its provider is not container-gamma
-  c4/tag-separator  warning  31:5  tags "async,audited" contain a comma; join tags with +
-
-docs/containers/beta.md:
-  c4/drawing-conflict  warning  20:5  a -> b differs in technology from its drawing at docs/containers/alpha.md:25
-
 checks:
-  c4/ambiguous-node  passed
-  c4/bidirectional  failed
-  c4/contract-mismatch  failed
-  c4/contract-unresolved  failed
-  c4/drawing-conflict  failed
-  c4/duplicate-edge  failed
-  c4/interaction-conflict  failed
-  c4/parse  passed
-  c4/tag-separator  failed
-  c4/undeclared-node  passed
-  corpus/empty  passed
-  frontmatter/missing-property  passed
-  frontmatter/parse  passed
-  frontmatter/schema  passed
-  gherkin/criterion-code-mismatch  passed
-  gherkin/criterion-empty  passed
-  gherkin/criterion-untagged  passed
-  gherkin/examples-partially-tagged  passed
-  gherkin/feature-untagged  passed
-  gherkin/identifier-duplicate  passed
-  gherkin/identifier-malformed  passed
-  gherkin/identifier-multiple  passed
-  gherkin/owner-mismatch  passed
-  gherkin/owner-missing  passed
-  gherkin/owner-unresolved  passed
-  gherkin/parse  passed
-  gherkin/scenario-prose  passed
-  reference/ambiguous-anchor  passed
-  reference/pairing-incomplete  passed
-  reference/retired-target  passed
-  reference/type-mismatch  passed
-  reference/unresolved  passed
-  reference/unresolved-anchor  passed
-  slug/duplicate  passed
-  slug/pattern-mismatch  passed
+  - rule: c4/ambiguous-node
+    outcome: passed
+  - rule: c4/bidirectional
+    outcome: failed
+  - rule: c4/contract-mismatch
+    outcome: failed
+  - rule: c4/contract-unresolved
+    outcome: failed
+  - rule: c4/drawing-conflict
+    outcome: failed
+  - rule: c4/duplicate-edge
+    outcome: failed
+  - rule: c4/interaction-conflict
+    outcome: failed
+  - rule: c4/parse
+    outcome: passed
+  - rule: c4/tag-separator
+    outcome: failed
+  - rule: c4/undeclared-node
+    outcome: passed
+  - rule: corpus/empty
+    outcome: passed
+  - rule: frontmatter/missing-property
+    outcome: passed
+  - rule: frontmatter/parse
+    outcome: passed
+  - rule: frontmatter/schema
+    outcome: passed
+  - rule: gherkin/criterion-code-mismatch
+    outcome: passed
+  - rule: gherkin/criterion-empty
+    outcome: passed
+  - rule: gherkin/criterion-untagged
+    outcome: passed
+  - rule: gherkin/examples-partially-tagged
+    outcome: passed
+  - rule: gherkin/feature-untagged
+    outcome: passed
+  - rule: gherkin/identifier-duplicate
+    outcome: passed
+  - rule: gherkin/identifier-malformed
+    outcome: passed
+  - rule: gherkin/identifier-multiple
+    outcome: passed
+  - rule: gherkin/owner-mismatch
+    outcome: passed
+  - rule: gherkin/owner-missing
+    outcome: passed
+  - rule: gherkin/owner-unresolved
+    outcome: passed
+  - rule: gherkin/parse
+    outcome: passed
+  - rule: gherkin/scenario-prose
+    outcome: passed
+  - rule: reference/ambiguous-anchor
+    outcome: passed
+  - rule: reference/pairing-incomplete
+    outcome: passed
+  - rule: reference/retired-target
+    outcome: passed
+  - rule: reference/type-mismatch
+    outcome: passed
+  - rule: reference/unresolved
+    outcome: passed
+  - rule: reference/unresolved-anchor
+    outcome: passed
+  - rule: slug/duplicate
+    outcome: passed
+  - rule: slug/pattern-mismatch
+    outcome: passed
+findings:
+  - rule: c4/bidirectional
+    severity: error
+    path: docs/containers/alpha.md
+    span:
+      offset: 554
+      length: 25
+      start_line: 24
+      start_column: 5
+      end_line: 24
+      end_column: 30
+    message: BiRel(a, g) states no direction; draw the dependency as Rel
+    detail:
+      kind: c4-relationship
+      source: a
+      target: g
+  - rule: c4/duplicate-edge
+    severity: error
+    path: docs/containers/alpha.md
+    span:
+      offset: 665
+      length: 29
+      start_line: 26
+      start_column: 5
+      end_line: 26
+      end_column: 34
+    message: a -> b is drawn more than once in this diagram
+    detail:
+      kind: c4-relationship
+      source: a
+      target: b
+  - rule: c4/interaction-conflict
+    severity: error
+    path: docs/containers/alpha.md
+    span:
+      offset: 724
+      length: 43
+      start_line: 28
+      start_column: 5
+      end_line: 28
+      end_column: 48
+    message: g -> a is tagged both sync and async
+    detail:
+      kind: c4-relationship
+      source: g
+      target: a
+  - rule: c4/contract-unresolved
+    severity: error
+    path: docs/containers/alpha.md
+    span:
+      offset: 772
+      length: 53
+      start_line: 29
+      start_column: 5
+      end_line: 29
+      end_column: 58
+    message: contract:contract-missing names no contract
+    detail:
+      kind: c4-contract
+      slug: contract-missing
+      source: g
+      target: b
+  - rule: c4/contract-mismatch
+    severity: warning
+    path: docs/containers/alpha.md
+    span:
+      offset: 830
+      length: 50
+      start_line: 30
+      start_column: 5
+      end_line: 30
+      end_column: 55
+    message: "contract:contract-good on b -> g: container-beta does not list it among the contracts it consumes, and its provider is not container-gamma"
+    detail:
+      kind: c4-contract
+      slug: contract-good
+      source: b
+      target: g
+  - rule: c4/tag-separator
+    severity: warning
+    path: docs/containers/alpha.md
+    span:
+      offset: 885
+      length: 42
+      start_line: 31
+      start_column: 5
+      end_line: 31
+      end_column: 47
+    message: tags "async,audited" contain a comma; join tags with +
+    detail:
+      kind: c4-tag-separator
+      tags: async,audited
+  - rule: c4/drawing-conflict
+    severity: warning
+    path: docs/containers/beta.md
+    span:
+      offset: 398
+      length: 76
+      start_line: 20
+      start_column: 5
+      end_line: 20
+      end_column: 81
+    message: a -> b differs in technology from its drawing at docs/containers/alpha.md:25
+    detail:
+      kind: c4-drawing-conflict
+      source: a
+      target: b
+      other_path: docs/containers/alpha.md
+      other_span:
+        offset: 584
+        length: 76
+        start_line: 25
+        start_column: 5
+        end_line: 25
+        end_column: 81

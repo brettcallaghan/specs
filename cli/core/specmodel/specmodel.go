@@ -4169,14 +4169,15 @@ func (v *CheckResult) UnmarshalJSON(data []byte) error {
 // The two collections answer different questions and neither substitutes
 // for the other. `findings` is what is wrong; `checks` is what was looked
 // at. A report carrying no findings is only good news if every check the
-// caller cares about is accounted for in `checks` as having passed.
+// caller cares about is listed in `checks` as having passed.
 //
 // Both are lists rather than maps so that the emitter owns their order and
 // can make output byte-identical across platforms without a change to this
 // model.
 type FindingReport struct {
-	// Every check the run knows about, in the order the emitter fixes, each
-	// with what became of it.
+	// Every check the run was asked for, in the order the emitter fixes, each
+	// with what became of it. A check the run was not asked for is absent, so
+	// it can never read as passed.
 	Checks []CheckResult `json:"checks"`
 	// Every finding the run produced, in the order the emitter fixes.
 	Findings []Finding `json:"findings"`

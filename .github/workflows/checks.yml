@@ -168,8 +168,8 @@ jobs:
       # root, so the rule set is narrowed to the document-local rules.
       # The corpus-global rules (reference/*, slug/duplicate) are
       # deliberately not requested — cross-root citations would report as
-      # unresolved. The report renders them not-requested rather than
-      # passed, so the narrowed scope is visible rather than implied.
+      # unresolved. The narrowed report lists only the requested rules,
+      # so the narrowed scope is visible in the answer rather than implied.
       - name: The RFC queue conforms
         run: |
           specs check --config rfcs/specs.toml \

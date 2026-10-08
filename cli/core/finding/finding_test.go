@@ -795,9 +795,9 @@ func TestARequestedCheckThatReportsNothingIsNotPassed(t *testing.T) {
 	}
 }
 
-// The report distinguishes a check that passed from one that was never
-// requested, and from one that failed — so a clean-looking report cannot
-// be read as covering checks that never ran.
+// The report distinguishes a check that passed from one that failed, and
+// leaves out one that was never requested — so a clean-looking report
+// cannot be read as covering checks that never ran.
 //
 // AC: AC-SPEC-006.9
 func TestTheReportDistinguishesPassedFromUnrequested(t *testing.T) {
@@ -811,12 +811,11 @@ func TestTheReportDistinguishesPassedFromUnrequested(t *testing.T) {
 	model := report.Model()
 
 	want := map[specmodel.RuleId]specmodel.CheckOutcome{
-		finding.RuleDuplicateSlug:   specmodel.CheckOutcomePassed,
-		finding.RuleSlugPattern:     specmodel.CheckOutcomeFailed,
-		finding.RuleMissingProperty: specmodel.CheckOutcomeNotRequested,
+		finding.RuleDuplicateSlug: specmodel.CheckOutcomePassed,
+		finding.RuleSlugPattern:   specmodel.CheckOutcomeFailed,
 	}
 	if len(model.Checks) != len(want) {
-		t.Fatalf("checks = %d, want %d — every known check is accounted for", len(model.Checks), len(want))
+		t.Fatalf("checks = %d, want %d — exactly the requested checks: %+v", len(model.Checks), len(want), model.Checks)
 	}
 	for rule, outcome := range want {
 		if got := checkResult(t, model, rule).Outcome; got != outcome {
@@ -824,13 +823,14 @@ func TestTheReportDistinguishesPassedFromUnrequested(t *testing.T) {
 		}
 	}
 
-	// The distinction must survive to the JSON an agent reads.
+	// The unrequested check must not reach the JSON an agent reads, where
+	// it could be read as covered.
 	encoded, err := report.JSON()
 	if err != nil {
 		t.Fatalf("JSON: %v", err)
 	}
-	if !strings.Contains(string(encoded), `"not-requested"`) {
-		t.Errorf("emitted report does not distinguish an un-requested check: %s", encoded)
+	if strings.Contains(string(encoded), string(finding.RuleMissingProperty)) {
+		t.Errorf("emitted report lists a check that was not requested: %s", encoded)
 	}
 }
 
@@ -894,7 +894,7 @@ func TestTheReportRendersAsTextAndAsJSON(t *testing.T) {
 	report.Ran(finding.RuleSlugPattern)
 
 	text := report.Text()
-	for _, want := range []string{"slug/pattern-mismatch", "error", "specs/adrs/adr-011.md:", "adr-011-x", "checks:", "not-requested"} {
+	for _, want := range []string{"slug/pattern-mismatch", "error", "specs/adrs/adr-011.md:", "adr-011-x", "checks:"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("text rendering does not mention %q:\n%s", want, text)
 		}
