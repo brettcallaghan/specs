@@ -207,7 +207,7 @@ Feature: Anchor Resolution Checks
   Scenario: An ambiguous anchor is an error naming every match
     Given an anchor whose identifier is the identifier of more than one heading in the target document
     When the CLI checks the reference
-    Then the CLI reports a finding of severity error naming every matching heading and its span
+    Then the CLI reports a finding of severity error naming every matching heading with its span and the heading path that selects it alone
     And the CLI does not report the anchor as resolved
 
   @AC-SPECANCH-002.6
@@ -233,6 +233,13 @@ Feature: Anchor Resolution Checks
     When the CLI checks the corpus
     Then the CLI checks the anchor of every reference carrying one
     And the CLI reports an anchor matching no heading and an ambiguous anchor under stable rule identifiers of their own
+
+  @AC-SPECANCH-002.10
+  Scenario: A nested anchor resolves through its enclosing headings
+    Given a reference whose anchor holds more than one segment separated by "#"
+    When the CLI checks the reference
+    Then the CLI resolves it to the heading named by the last segment whose enclosing headings include, in order, a heading named by each earlier segment
+    And the CLI reports an unresolved anchor where no heading satisfies every segment, and an ambiguous anchor where more than one does
 ```
 
 *Examples:* `reference/unresolved-anchor  error … "no heading named

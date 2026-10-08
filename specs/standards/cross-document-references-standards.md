@@ -6,8 +6,8 @@ description: How documents reference each other and the elements they
 slug: cross-document-references
 type: standards
 status: active
-updated_at: 2026-09-03T00:00:00Z
-version: "0.4"
+updated_at: 2026-10-08T00:00:00Z
+version: "0.5"
 ---
 
 # Cross-Document Reference Standards
@@ -70,6 +70,17 @@ link: `the checkout FRD ([[frd-checkout]])`.
 WHERE an anchor names a section of the document containing the
 reference, the slug MAY be omitted: `[[#Terminology]]`. Such a reference
 resolves against the containing document.
+
+WHERE a heading's text is shared by another heading in the same
+document, an anchor MAY name the heading by a path of headings, each
+nested within the one before it:
+`[[module-document-core#Components#References]]`.
+
+**Rationale:** this is Obsidian's own syntax for a nested heading, so
+the link keeps working in the editor that defines the convention. It
+disambiguates without renaming either heading, and the path is the same
+form `specs headings` reports, so a path the CLI prints can be pasted as
+a citation.
 
 **Rationale:** An unambiguous closing delimiter lets tooling extract and
 validate every reference against the frontmatter index and build

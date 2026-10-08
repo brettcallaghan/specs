@@ -128,7 +128,7 @@ Feature: Structure Queries
   @AC-SPECSTR-003.1
   Scenario: A heading selection returns each match with its section span
     When the CLI is asked for the spans of headings matching a given selection
-    Then the CLI returns each match as a file path, the heading text, its identifier, its level, and the span of the content beneath it
+    Then the CLI returns each match as a file path, the heading text, its identifier, its heading path, its level, and the span of the content beneath it
 
   @AC-SPECSTR-003.2
   Scenario: A selection matches a heading on its identifier
@@ -167,7 +167,7 @@ Feature: Structure Queries
     Given a selection matching more than one heading
     When the CLI is asked to emit the content those headings stand over
     Then the CLI writes nothing to standard output
-    And the CLI names every match on standard error, so that the caller can narrow the selection or request the matches without their content
+    And the CLI names every match with its heading path on standard error, so that the caller can narrow the selection to one heading path or request the matches without their content
     And the CLI exits with the invocation-error status
 
   @AC-SPECSTR-003.8
@@ -176,6 +176,30 @@ Feature: Structure Queries
     When the CLI runs the query
     Then the CLI returns an empty list of matches and a property stating that the document is not declared
     And the CLI exits zero
+
+  @AC-SPECSTR-003.9
+  Scenario: A heading path is the identifiers of a heading and its ancestors
+    Given a heading nested beneath other headings
+    When the CLI reports it
+    Then its heading path is the identifier of each enclosing heading from the outermost down, followed by its own, joined by "#"
+
+  @AC-SPECSTR-003.10
+  Scenario Outline: A selection may name a heading by a path of headings
+    Given a document with a heading "<heading>" nested beneath a heading "<ancestor>"
+    And another heading "<heading>" elsewhere in that document
+    When the CLI runs the query for "<selection>"
+    Then the CLI matches only the heading nested beneath "<ancestor>"
+
+    Examples:
+      | ancestor   | heading    | selection                              |
+      | Components | References | module-document-core#Components#References |
+
+  @AC-SPECSTR-003.11
+  Scenario: Each segment of a heading path is nested within the one before it at any depth
+    Given a selection whose heading half holds more than one segment separated by "#"
+    When the CLI runs the query
+    Then the CLI matches a heading named by the last segment whose enclosing headings include, in order from the outermost, a heading named by each earlier segment
+    And the CLI matches each segment on its identifier as AC-SPECSTR-003.2 states
 ```
 
 *Note:* AC-SPECSTR-003.4 is what answers a roster question — the
@@ -187,7 +211,12 @@ the caller asked for the document's own words, and raw text has no place to
 say where one section ends and the next begins, which is why
 AC-SPECSTR-003.7 refuses a selection matching several headings rather
 than joining them; the query without emitting already lists every
-match. The statuses in AC-SPECSTR-003.7 and AC-SPECSTR-003.8 are those
+match, each with the heading path that selects it alone. A heading path
+is the same form a nested wikilink anchor takes under
+[[cross-document-references]], so a path copied from a refusal
+works as a selection and as a citation. A single segment remains a
+valid selection. The
+statuses in AC-SPECSTR-003.7 and AC-SPECSTR-003.8 are those
 [[cli-exit-status-standards]] assigns to an operand the command cannot act
 on and to a subject the corpus does not hold.
 
