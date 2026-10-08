@@ -259,7 +259,7 @@ func inlineComments(src []byte, region span.Region, tokens token.Tokens, plain m
 		if prev == nil || !plain[prev] {
 			continue
 		}
-		start := absolute(region, src, tok)
+		start := commentHash(src, absolute(region, src, tok))
 		if ownLine(src, start) {
 			continue
 		}
@@ -321,6 +321,22 @@ func collectPlainScalars(node ast.Node, plain map[*token.Token]bool) {
 	case *ast.AnchorNode:
 		collectPlainScalars(n.Value, plain)
 	}
+}
+
+// commentHash returns the offset of the "#" opening the comment the lexer
+// places at offset. The lexer's column for a comment runs short when tabs
+// precede it on the line, landing on a tab or on the value itself, so the
+// "#" is found in the source: the first one at or after offset that starts
+// the line or follows a space or tab, which in a plain scalar is always
+// where the comment begins. offset is returned unchanged if the line holds
+// none.
+func commentHash(src []byte, offset int) int {
+	for i := offset; i < len(src) && src[i] != '\n'; i++ {
+		if src[i] == '#' && (i == 0 || src[i-1] == ' ' || src[i-1] == '\t' || src[i-1] == '\n') {
+			return i
+		}
+	}
+	return offset
 }
 
 // ownLine reports whether only whitespace precedes offset on its line.

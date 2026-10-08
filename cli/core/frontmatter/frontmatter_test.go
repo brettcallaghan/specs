@@ -701,6 +701,38 @@ func TestInlineCommentsAreTheCommentsTrailingAValue(t *testing.T) {
 	}
 }
 
+// A comment preceded by tabs — between the value and the "#", or between
+// the key and the value — is located at its "#", not at a tab or at the
+// value.
+//
+// AC: AC-SPEC-003.9
+func TestAnInlineCommentAfterTabsIsLocatedAtItsHash(t *testing.T) {
+	for _, tc := range []struct {
+		line   string
+		column uint64
+	}{
+		{"description: a\t# b\n", 16},
+		{"x: a\t\t\t# c\n", 8},
+		{"x:\t\ta # c\n", 7},
+		{"x: a \t # c\n", 8},
+	} {
+		src := "---\n" + tc.line + "---\nbody\n"
+		doc, perr := frontmatter.Parse([]byte(src))
+		if perr != nil {
+			t.Fatalf("Parse(%q): %v", src, perr)
+		}
+		got := doc.InlineComments()
+		if len(got) != 1 {
+			t.Fatalf("InlineComments(%q) = %+v, want one", src, got)
+		}
+		text := src[got[0].Span.Offset : got[0].Span.Offset+got[0].Span.Length]
+		if text[0] != '#' || got[0].Span.StartLine != 2 || got[0].Span.StartColumn != tc.column {
+			t.Errorf("InlineComments(%q) span = %q at %d:%d, want the \"#\" at 2:%d",
+				src, text, got[0].Span.StartLine, got[0].Span.StartColumn, tc.column)
+		}
+	}
+}
+
 // A full-line comment directly after a block scalar is not an inline
 // comment, whichever of the four block indicators introduces it, and nor
 // is a comment on the indicator's own line.
