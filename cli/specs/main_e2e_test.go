@@ -294,17 +294,17 @@ func TestBinaryReportsAMissingConfigurationAndExitsThree(t *testing.T) {
 		t.Errorf("the failure does not name the file it looked for, which AC-SPEC-008.3 requires:\n%s", out)
 	}
 	// Every directory searched, from the working directory up: dir has no
-	// .git above it, so the search reaches the filesystem root.
+	// .git above it, so the search reaches the filesystem root. The
+	// working directory may be reported as given or with its symbolic
+	// links resolved (macOS's TMPDIR sits under /var, a link to
+	// /private/var), so either spelling of the chain is accepted.
 	resolved, err := filepath.EvalSymlinks(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for d := resolved; ; d = filepath.Dir(d) {
-		if !containsPath(string(out), d) {
-			t.Errorf("the failure does not name the searched directory %s:\n%s", d, out)
-		}
-		if filepath.Dir(d) == d {
-			break
+	if missing := unnamedAncestors(string(out), dir); len(missing) > 0 {
+		if missingResolved := unnamedAncestors(string(out), resolved); len(missingResolved) > 0 {
+			t.Errorf("the failure does not name the searched directories %v:\n%s", missingResolved, out)
 		}
 	}
 	if !containsPath(string(out), "--config") {
@@ -326,4 +326,18 @@ func containsPath(output, fragment string) bool {
 		}
 	}
 	return false
+}
+
+// unnamedAncestors returns each directory from dir up to the filesystem
+// root that out does not name.
+func unnamedAncestors(out, dir string) []string {
+	var missing []string
+	for d := dir; ; d = filepath.Dir(d) {
+		if !containsPath(out, d) {
+			missing = append(missing, d)
+		}
+		if filepath.Dir(d) == d {
+			return missing
+		}
+	}
 }
