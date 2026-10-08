@@ -446,7 +446,7 @@ reads "conforms" once its command does.
 
 | command | prints today | to conform |
 |---|---|---|
-| `check [path]` | a YAML mapping of `checks` (only the checks the run was asked for) and `findings`; `--json` the same values in the same order | not yet conforming: lead with `summary` (`errors`, `warnings`, `unverified`) then `findings`, with `checks` only under `--verbose` (AC-SPEC-006.11, AC-SPEC-006.12) |
+| `check [path]` | a YAML mapping of `summary` (`errors`, `warnings`, `unverified`) and then `findings`, with `checks` (only the checks the run was asked for) after them only under `--verbose`; `--json` the same values in the same order | conforms |
 | `list` | a YAML mapping whose one key is the sequence of documents; `--json` the same values in the same order | conforms |
 | `feature` | a YAML mapping whose key `features` holds a list of full feature records whatever the arguments select, one identifier included, preceded by `declared` where the arguments name a subject; `--json` the same values in the same order | conforms — the compact view above by default and the full record under `--full` (AC-GHK-007.10 to AC-GHK-007.12) |
 | `next-id <type>` | a YAML mapping carrying `number` and then `slug`, `number: 32` and `slug: adr-032`; `--json` the same values in the same order | conforms |

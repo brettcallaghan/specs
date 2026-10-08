@@ -131,19 +131,34 @@ modified: false
 **`specs check`** validates every document's frontmatter against the
 active profile's schema and slug patterns, reports duplicate slugs, and
 applies the reference, C4, Gherkin and metadata rules in the sections
-below. Its answer is a YAML mapping of `checks` (every rule the run was
-asked for, each `passed`, `failed` or `unverified`) and `findings` (each
-with its rule, severity, path, span and message); `--json` writes the
-same values as JSON. `--strict` makes warning and unverified findings
-fail too. `--only <rule>` narrows to named rules — repeatable or
-comma-separated — and `checks` then lists only those:
+below. Its answer leads with a `summary` — the counts of `errors`,
+`warnings` and `unverified` findings, all three always present — and then
+the `findings` (each with its rule, severity, path, span and message), so
+the head of a failing run's output is its findings. `--json` writes the
+same values in the same order. `--strict` makes warning and unverified
+findings fail too. `--verbose` adds `checks` after the findings: every
+rule the run was asked for, each `passed`, `failed` or `unverified`. The
+answer's shape never changes the exit status. `--only <rule>` narrows to
+named rules — repeatable or comma-separated — and the summary then counts
+only their findings, and `checks` lists only those:
 
 ```
-$ specs check --only reference/unresolved
+$ specs check
+summary:
+  errors: 0
+  warnings: 0
+  unverified: 0
+findings: []
+
+$ specs check --verbose --only reference/unresolved
+summary:
+  errors: 0
+  warnings: 0
+  unverified: 0
+findings: []
 checks:
   - rule: reference/unresolved
     outcome: passed
-findings: []
 ```
 
 **`specs check <path>` reports only the findings located in that

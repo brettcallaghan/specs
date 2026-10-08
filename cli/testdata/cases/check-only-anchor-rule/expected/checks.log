@@ -1,6 +1,7 @@
-checks:
-  - rule: reference/ambiguous-anchor
-    outcome: failed
+summary:
+  errors: 1
+  warnings: 0
+  unverified: 0
 findings:
   - rule: reference/ambiguous-anchor
     severity: error
@@ -36,3 +37,6 @@ findings:
             start_column: 1
             end_line: 21
             end_column: 1
+checks:
+  - rule: reference/ambiguous-anchor
+    outcome: failed

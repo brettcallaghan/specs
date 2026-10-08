@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -80,7 +81,7 @@ var checkRules = []specmodel.RuleId{
 // newCheckCmd builds the `check` subcommand: run conformance checks over
 // the corpus, or over one document, per FEAT-SPEC-006 (AC-SPEC-011.2).
 func newCheckCmd(streams *ioStreams, configPath *string) *cobra.Command {
-	var jsonOut, strict bool
+	var jsonOut, strict, verbose bool
 	var only []string
 
 	cmd := &cobra.Command{
@@ -96,7 +97,7 @@ func newCheckCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			if len(args) == 1 {
 				path = args[0]
 			}
-			return runCheck(streams, *configPath, path, jsonOut, strict, only)
+			return runCheck(streams, *configPath, path, jsonOut, strict, verbose, only)
 		},
 	}
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
@@ -105,6 +106,8 @@ func newCheckCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		"exit non-zero when the run produces only warning or unverified findings")
 	cmd.Flags().StringSliceVar(&only, "only", nil,
 		"run only the named checks (by rule identifier); repeatable or comma-separated")
+	cmd.Flags().BoolVar(&verbose, "verbose", false,
+		"also list every check the run accounts for, with its outcome")
 	return cmd
 }
 
@@ -117,7 +120,7 @@ func newCheckCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // building fresh, because a check is exactly the query FEAT-SPEC-009's
 // latency budgets are measured against, and a persisted index at the
 // default location answers it without re-walking the corpus.
-func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict bool, only []string) error {
+func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict, verbose bool, only []string) error {
 	// An --only value naming no known check is a malformed question, not
 	// a request the corpus happens to satisfy: answered with a report, a
 	// misspelt rule would read as "every requested check passed" and exit
@@ -169,10 +172,77 @@ func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict bool,
 	}
 
 	report := buildCheckReport(raw, only)
-	if err := renderReport(streams, report, jsonOut); err != nil {
+	if err := renderCheck(streams, checkAnswerFor(report, verbose), jsonOut); err != nil {
 		return err
 	}
+	// The exit status is the report's, whatever view of it was rendered
+	// (AC-SPEC-006.13).
 	streams.exitCode = exitCodeFor(report, strict)
+	return nil
+}
+
+// checkAnswer is what check writes: a command-level view over the
+// generated [specmodel.FindingReport], as refs' compact view is over its
+// full result. It leads with the summary, then the findings, and carries
+// the per-check outcomes only under --verbose (AC-SPEC-006.11,
+// AC-SPEC-006.12; [[cli-output-standards]]'s summary carve-out).
+//
+// The field order is the rendering order in both syntaxes.
+type checkAnswer struct {
+	Summary  checkSummary            `json:"summary"`
+	Findings []specmodel.Finding     `json:"findings"`
+	Checks   []specmodel.CheckResult `json:"checks,omitempty"`
+}
+
+// checkSummary counts the answer's findings by severity. Every severity
+// the finding vocabulary defines is always present, so the three counts
+// sum to the number of findings the answer holds.
+type checkSummary struct {
+	Errors     int `json:"errors"`
+	Warnings   int `json:"warnings"`
+	Unverified int `json:"unverified"`
+}
+
+// checkAnswerFor derives the answer from report. Under --only the report
+// holds only the requested rules' findings, so the summary counts only
+// those. Without verbose the answer carries no checks key at all: a
+// failed check is already visible as its findings, and a check not
+// requested is one the caller left out of --only.
+func checkAnswerFor(report *finding.Report, verbose bool) checkAnswer {
+	model := report.Model()
+	answer := checkAnswer{Findings: model.Findings}
+	if answer.Findings == nil {
+		answer.Findings = []specmodel.Finding{}
+	}
+	for _, f := range model.Findings {
+		switch f.Severity {
+		case finding.SeverityError:
+			answer.Summary.Errors++
+		case finding.SeverityWarning:
+			answer.Summary.Warnings++
+		case finding.SeverityUnverified:
+			answer.Summary.Unverified++
+		}
+	}
+	if verbose {
+		answer.Checks = model.Checks
+	}
+	return answer
+}
+
+// renderCheck writes answer to streams.out as YAML, or as JSON under
+// --json: one value, two syntaxes, so the renderings carry the same
+// values in the same order by construction ([[cli-output-standards]]).
+func renderCheck(streams *ioStreams, answer checkAnswer, asJSON bool) error {
+	if asJSON {
+		data, err := json.Marshal(answer)
+		if err != nil {
+			return fmt.Errorf("rendering the check answer as JSON: %w", err)
+		}
+		fmt.Fprintf(streams.out, "%s\n", data)
+		return nil
+	}
+	fmt.Fprint(streams.out, renderYAML(answer))
 	return nil
 }
 

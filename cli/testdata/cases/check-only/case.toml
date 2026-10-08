@@ -1,5 +1,5 @@
-description = "--only narrows the report to the named rule identifier; the other known rules are absent from checks rather than reported passed"
-cites = ["AC-SPEC-006.8", "AC-SPEC-006.9"]
+description = "check --verbose --only narrows the report to the named rule identifier; the other known rules are absent from checks rather than reported passed"
+cites = ["AC-SPEC-006.8", "AC-SPEC-006.9", "AC-SPEC-006.12"]
 artifacts = ["checks.log"]
-args = ["check", "--json", "--only", "slug/pattern-mismatch"]
+args = ["check", "--json", "--verbose", "--only", "slug/pattern-mismatch"]
 exit_code = 1
