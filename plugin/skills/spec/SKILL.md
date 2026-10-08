@@ -248,16 +248,17 @@ specs.
    `status` and `updated_at` when you do.
 
    **Before retiring or renaming a document, run `specs refs <slug>`.**
-   It lists every document that cites this one, at the line and column
-   of each citation — the blast radius, decided rather than estimated.
+   It lists every document that cites this one, at the line of each
+   citation (`--full` adds the span) — the blast radius, decided rather
+   than estimated.
    Retiring a document leaves those references resolving to a retired
    target, which `specs check` reports as a warning naming the successor;
    declare `superseded_by` so it has one to name. Renaming a slug breaks
    them outright, and the rename is not finished until every line `refs`
-   listed has been updated. Either way `specs check <path>` on the
-   document you edited reports the findings against the documents citing
-   it, so the narrow form is enough to see the blast radius after the
-   fact — `refs` is how you see it before.
+   listed has been updated. `specs check <path>` reports only the
+   findings located in the document it names, so it cannot show the
+   breakage in the documents citing it: run `specs refs <slug>` before
+   the change and a whole-corpus `specs check` after it.
 6. **Preflight feature blueprints.** Before setting a feature blueprint
    to `ready-for-review`, run the decision sweep and self-check against
    `references/shared/blueprint-readiness-checklist.md`, then re-run the checklist
