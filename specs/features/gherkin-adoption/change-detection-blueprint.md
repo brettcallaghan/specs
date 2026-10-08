@@ -6,8 +6,8 @@ description: Replaces the persisted-index baseline of criterion --changed
   command
 slug: feature-gherkin-change-detection
 type: feature-blueprint
-status: draft
-updated_at: 2026-10-08T00:00:00Z
+status: retired
+updated_at: 2026-10-08T12:00:00Z
 delivery: single-pr
 frd: frd-gherkin-adoption
 ---
@@ -219,26 +219,26 @@ DIFF = change listing delta in [[container-spec-cli]].
 
 ## Definition of Done
 
-- [ ] Every delta above is folded into its owning blueprint:
-  - [ ] [[module-document-core]] — Revisions added to the Components
+- [x] Every delta above is folded into its owning blueprint:
+  - [x] [[module-document-core]] — Revisions added to the Components
     roster, the diagram and its record block
-  - [ ] [[container-spec-cli]] — the `criterion --changed` paragraph of
+  - [x] [[container-spec-cli]] — the `criterion --changed` paragraph of
     Command Surface rewritten for the git base, `--since` and
     `--exit-code`
-- [ ] [[adr-031]] status: draft → approved, and referenced from the Key
+- [x] [[adr-031]] status: draft → approved, and referenced from the Key
   Decisions of [[module-document-core]] and [[container-spec-cli]]
-- [ ] Every AC in the coverage table is verified at its declared level
+- [x] Every AC in the coverage table is verified at its declared level
   and cited from its tests per [[ac-traceability-standards]]
-- [ ] Every behaviour this blueprint decided that no FRD criterion asks
+- [x] Every behaviour this blueprint decided that no FRD criterion asks
   for (the default-branch order, the answer's shape, `--since` without
   `--changed`, a spec root outside the work tree) is lifted into
   [[frd-gherkin-adoption]] as a criterion and cited from its test
-- [ ] `specs-xqm.3` is closed
-- [ ] No live document references this blueprint (`specs refs
+- [x] `specs-xqm.3` is closed
+- [x] No live document references this blueprint (`specs refs
   feature-gherkin-change-detection` names no live document), per
   [[document-relationship-standards]]
-- [ ] This blueprint's status → retired
-- [ ] With this blueprint already retired, `specs check --strict` over
+- [x] This blueprint's status → retired
+- [x] With this blueprint already retired, `specs check --strict` over
   the corpus is green
 
 ## Open Questions

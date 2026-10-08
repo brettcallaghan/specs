@@ -68,10 +68,17 @@ func coverDir(t *testing.T) string {
 	return dir
 }
 
-// buildSpec builds the specs binary once per test binary and returns its
-// path. It uses the module the test itself lives in, so it always builds
-// the working tree's code rather than anything previously installed.
+// buildSpec builds the specs binary into a fresh temporary directory and
+// returns its path. It uses the module the test itself lives in, so it
+// always builds the working tree's code rather than anything previously
+// installed.
 func buildSpec(t *testing.T) string {
+	t.Helper()
+	return buildSpecIn(t, t.TempDir())
+}
+
+// buildSpecIn builds the specs binary into dir and returns its path.
+func buildSpecIn(t *testing.T, dir string) string {
 	t.Helper()
 
 	if testing.Short() {
@@ -90,7 +97,7 @@ func buildSpec(t *testing.T) string {
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
-	bin := filepath.Join(t.TempDir(), name)
+	bin := filepath.Join(dir, name)
 	args := []string{"build"}
 	if coverDir(t) != "" {
 		args = append(args, "-cover", "-coverpkg="+coverPkg)

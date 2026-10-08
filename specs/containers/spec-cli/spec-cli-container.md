@@ -7,7 +7,7 @@ description: The command-line binary that indexes a specification corpus
 slug: container-spec-cli
 type: container-blueprint
 status: approved
-updated_at: 2026-10-07T00:00:00Z
+updated_at: 2026-10-08T00:00:00Z
 contracts_consumed: []
 modules:
   - "module-document-core"
@@ -354,22 +354,38 @@ given: the command's `Args` validator and `RunE` branch on `--emit` before
 either flag-conversion path runs, so the two never share logic.
 
 `criterion --changed` lists every acceptance criterion whose content
-hash differs between the persisted index and the current corpus,
+hash differs between the corpus at a git base and the current corpus,
 classifying each as changed, added or removed by whether its identifier
-is present in both, only now, or only before (AC-GHK-008.1,
-AC-GHK-008.3). It reads the persisted side with `corpus.Load` rather
-than through `corpus.Open`'s warm cache: `Open` rebuilds silently on a
-hash mismatch and hands back the corpus it just built, discarding the
-earlier state this comparison needs, which is exactly the case
-`--changed` exists to report. The current side always builds fresh
-(`corpus.Build`), and neither call writes the artifact back — a
-`--changed` run must never replace the baseline it is comparing against
-with the state it is reporting as different from that baseline. A
-criterion whose content hash is unchanged is never listed, regardless of
-whether its position moved (AC-GHK-008.2): only identifier and content
-hash are compared, never a position or a markdown diff. Where no
-persisted index exists to compare against, the command says so rather
-than reporting every criterion as added.
+is present in both, only now, or only at the base (AC-GHK-008.1,
+AC-GHK-008.3). The base is the merge-base of HEAD and the repository's
+default branch — the first that resolves of `origin/HEAD`'s target,
+`main`, `origin/main`, `master` and `origin/master` — or of HEAD and the
+branch, tag or commit `--since` names (AC-GHK-008.4, AC-GHK-008.5,
+AC-GHK-008.10). Both sides are built by `corpus.Build`. The current side
+walks the working tree, so committed, staged, unstaged and untracked
+documents are all compared (AC-GHK-008.6); the base side walks the spec
+root as the base commit holds it, which
+[[module-document-core#Revisions]] materializes into a temporary
+directory, with `RepoRoot` and `Root` rebased there at the same
+repository-relative paths so an unmoved document reports one path on
+both sides. Neither side reads, writes or requires `specs.json`: any
+query may rebuild it, so it cannot stand for an earlier state
+(AC-GHK-008.7). Only identifier and content hash are compared, never a
+position or a markdown diff, so a criterion that only moved is not
+listed (AC-GHK-008.2). The answer is a mapping holding `base` —
+`revision`, the revision as named or the default branch found, and
+`commit`, the merge-base's full object name — then `criteria`, one
+`{id, classification, path}` per listed criterion sorted by identifier,
+`path` being the document's in the current corpus or, for a removed
+criterion, in the base (AC-GHK-008.11); it renders as YAML, or as JSON
+under `--json`. The listing is a query: it exits 0 whatever it lists,
+and 1 for a non-empty list only under `--exit-code` (AC-GHK-008.8). A
+comparison that cannot be made answers nothing: an unknown `--since`
+revision exits 2, while no work tree, no runnable `git`, no default
+branch, no merge-base (a shallow clone is named as the cause where it
+is one) and a spec root outside the work tree, named with the work tree
+(AC-GHK-008.13), exit 3 (AC-GHK-008.9). `--since` and `--exit-code`
+without `--changed` exit 2 (AC-GHK-008.12).
 
 Querying a criterion without `--changed` reads the same warm index by a
 different corpus call. `criterion <id>` returns that criterion's record
@@ -389,7 +405,7 @@ naming a feature nothing declares, or `--tag` naming a qualifier no
 criterion carries, is an empty selection instead, `criteria: []`, and
 exits zero for the
 same reason `--code` does on `feature`. `--changed` cannot be combined
-with an identifier, `--of`, `--tag` or `--json`; an identifier cannot be
+with an identifier, `--of` or `--tag`; an identifier cannot be
 combined with `--of` or `--tag`; and `--of` and `--tag` cannot both be
 given — `criterion`'s `RunE` validates these combinations before either
 flag-conversion path runs, the same separation `feature` keeps between
@@ -626,6 +642,10 @@ section is authoritative for its deployment.
 
 - **Exclusive infrastructure:** none. The CLI has no database, no queue,
   and no network dependency at runtime.
+- **Runtime dependency:** `criterion --changed` alone needs the `git`
+  executable on `PATH`, because it reads its base revision through git
+  ([[adr-031]]). Its absence is an environment error (exit 3) for that
+  command; no other command runs git.
 - **Deployment:** the CLI is distributed as a per-platform binary.
   FEAT-SPEC-009.4 through FEAT-SPEC-009.6 govern the shape: it runs with
   no language runtime installed beyond itself, it retrieves no
@@ -706,9 +726,13 @@ does not apply to a compiled binary.
 - [[adr-021]] — Gherkin is the notation for features and acceptance
   criteria. Command Surface queries the feature and criterion records
   Document Core extracts, emits a feature back out as a standalone
-  `.feature` file, and reports which criteria changed locally; the
-  parsing and the rendering are Document Core's, and the tag vocabulary
-  is [[module-spec-profile]]'s.
+  `.feature` file, and reports which criteria changed against a git
+  base; the parsing and the rendering are Document Core's, and the tag
+  vocabulary is [[module-spec-profile]]'s.
+- [[adr-031]] — `criterion --changed` reads its base revision through
+  the `git` executable, building the spec root as the base commit holds
+  it with the same `corpus.Build` the working tree uses, which is why
+  that one command needs `git` on `PATH`.
 
 ## Open Questions
 

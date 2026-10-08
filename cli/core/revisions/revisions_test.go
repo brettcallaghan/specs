@@ -182,7 +182,7 @@ func qualify(branch string) string {
 // main, origin/main, master and origin/master, and the base is the
 // merge-base of HEAD and it.
 //
-// AC: AC-GHK-008.4
+// AC: AC-GHK-008.4, AC-GHK-008.10
 func TestDefaultBranchIsOriginHEADThenMainOriginMainMasterOriginMaster(t *testing.T) {
 	order := []string{"origin/trunk", "main", "origin/main", "master", "origin/master"}
 

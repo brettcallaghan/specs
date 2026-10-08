@@ -6,7 +6,7 @@ description: The CLI parses Gherkin from FRD blocks and standalone feature
 slug: frd-gherkin-adoption
 type: frd
 status: approved
-updated_at: 2026-10-08T00:00:00Z
+updated_at: 2026-10-08T12:00:00Z
 sources: []
 ---
 
@@ -822,6 +822,45 @@ Feature: Local Change Detection
       | naming no revision where no default branch can be resolved | environment error | 3      |
       | where HEAD and the base share no merge-base                | environment error | 3      |
       | naming a revision git does not know                        | invocation error  | 2      |
+
+  @AC-GHK-008.10
+  Scenario Outline: The default branch is the first candidate that exists
+    Given a repository holding "<references>"
+    When a query for changed criteria names no revision
+    Then the base is the merge-base of HEAD and "<default>"
+
+    Examples:
+      | references                            | default       |
+      | origin/HEAD naming origin/trunk, main | origin/trunk  |
+      | main, origin/main, master             | main          |
+      | origin/main, master                   | origin/main   |
+      | master, origin/master                 | master        |
+      | origin/master                         | origin/master |
+
+  @AC-GHK-008.11
+  Scenario: A change listing names its base and locates each listed criterion
+    When the CLI lists changed criteria
+    Then the answer holds the base, as the revision compared against and the merge-base commit, followed by the listed criteria
+    And each listed criterion carries its identifier, its classification and the path of its document, the base's path for a removed criterion
+    And the listed criteria are ordered by identifier
+
+  @AC-GHK-008.12 @negative
+  Scenario Outline: A comparison option without --changed is an invocation error
+    When a criterion query is given "<option>" without --changed
+    Then the CLI writes nothing to standard output
+    And the CLI exits 2
+
+    Examples:
+      | option       |
+      | --since main |
+      | --exit-code  |
+
+  @AC-GHK-008.13 @negative
+  Scenario: A spec root outside the git work tree cannot be compared
+    Given a configured spec root that lies outside the git work tree
+    When a query for changed criteria runs
+    Then the CLI writes nothing to standard output
+    And the CLI reports an environment error naming the spec root and the work tree, and exits 3
 ```
 
 ### FEAT-GHK-009: Publication

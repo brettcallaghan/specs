@@ -7,7 +7,7 @@ description: What every specs command's exit status means — success and
 slug: cli-exit-status-standards
 type: standards
 status: draft
-updated_at: 2026-10-08T00:00:00Z
+updated_at: 2026-10-08T12:00:00Z
 version: "0.1"
 ---
 
@@ -257,8 +257,10 @@ Stated here because the status is only as good as the way it is read.
 ## Current conformance
 
 Measured with a binary built from `main` at `31b3079`, run against this
-repository's corpus; the last two rows at `12b2eda`. Every non-zero
-status today is `1`.
+repository's corpus; the `headings` row at `12b2eda`. The last row was
+re-measured on the change that moved `criterion --changed` onto a git
+base, in a directory outside any repository: exit `3`, nothing on
+standard output.
 
 | invocation | today | under these standards |
 |---|---|---|
@@ -274,7 +276,7 @@ status today is `1`.
 | `list --json` or `index` on a document missing a required enum | `1` | `0` and the artifact written; until fixed, `4` |
 | a panic | `2` (Go's default) | `4` |
 | `headings 'module-document-core#references' --emit`, two matches | `0`, both sections joined | `2`, each match named on standard error |
-| `criterion --changed` outside a git repository | `0`, "no local changes" | `3` |
+| `criterion --changed` outside a git repository | `3` | `3` |
 
 ---
 
