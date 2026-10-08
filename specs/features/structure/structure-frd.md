@@ -212,7 +212,12 @@ the caller asked for the document's own words, and raw text has no place
 to say where one section ends and the next begins, which is why
 AC-SPECSTR-003.7 refuses a selection matching several headings rather
 than joining them; the query without emitting already lists every match,
-each with the heading path that selects it alone. A heading path is the
+each with its heading path and span. That heading path selects its
+heading alone except where it is one segment another heading of the
+document shares — a top-level heading of a document with no H1 — or two
+siblings share text all the way up; such a heading's content is read
+through the span the query returns, and the refusal lists it apart from
+the selections that do name one heading alone. A heading path is the
 same form a nested wikilink anchor takes under
 [[cross-document-references]], so a path copied from a refusal works as
 a selection and as a citation. A single segment remains a valid

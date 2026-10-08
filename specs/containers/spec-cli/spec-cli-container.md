@@ -502,9 +502,13 @@ Markdown Structure's `SelectPaths`, the selection anchor resolution uses.
 Each match's `heading_path` is the identifier of every enclosing heading
 from the outermost down, then its own, joined by `#` (AC-SPECSTR-003.9),
 so it tells two same-named headings apart and pastes back as a selection
-naming that heading alone: a query spelling some heading's full path
-selects the headings with exactly that path before any whose path merely
-contains it.
+naming that heading alone wherever it has more than one segment: a query
+spelling some heading's full path selects the headings with exactly that
+path before any whose path merely contains it. A one-segment path is
+matched on its identifier like any one-segment selection, so a top-level
+heading of a document with no H1 that shares its identifier with another
+heading — or one of two siblings sharing text all the way up — has no
+selection of its own, and its content is read through its span.
 A matched heading is returned with every heading nested inside its
 section, each carrying its own level (AC-SPECSTR-003.4). `--emit` writes
 the content the one matching heading stands over instead, read back
@@ -513,8 +517,11 @@ through the recorded span and written as itself with no envelope
 which are carried but not counted as matches. A raw payload has no place
 for a delimiter, so a selection matching more than one heading is refused
 under `--emit` with exit `2`, nothing on standard output, and each match
-named on standard error as `<path>#<heading_path>`, a selection that
-matches it alone (AC-SPECSTR-003.7). A selection matching nothing renders the empty
+named on standard error as `<path>#<heading_path>` (AC-SPECSTR-003.7):
+under `Select one of:` those whose selection, run back through the same
+selection, matches that heading alone, and listed apart those no
+selection names alone, for which the query without `--emit` returns the
+span. A selection matching nothing renders the empty
 collection and exits zero (AC-SPECSTR-003.6). A selection with a document
 half also carries `declared` before `matches`, false when no corpus
 member is that document, so a missing heading reads apart from a missing

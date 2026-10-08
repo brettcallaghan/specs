@@ -1,0 +1,5 @@
+description = "headings --emit refusing a selection that matches a top-level heading of a document with no H1 and a deeper heading sharing its identifier lists under Select one of only the selection that matches its heading alone, and names the top-level heading separately as selectable by no selection, pointing to the query without --emit for its span; exits 2"
+cites = ["AC-SPECSTR-003.7", "AC-SPECSTR-003.11"]
+artifacts = ["checks.err"]
+args = ["headings", "adr-600-unselectable#references", "--emit"]
+exit_code = 2

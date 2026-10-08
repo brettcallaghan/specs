@@ -1,0 +1,5 @@
+"adr-600-unselectable#references" matches 2 headings; --emit needs exactly one. Select one of:
+    docs/adrs/adr-600-unselectable.md#components#references
+No selection matches these alone; the query without --emit returns each one's span:
+    docs/adrs/adr-600-unselectable.md#references
+or drop --emit to list the matches
