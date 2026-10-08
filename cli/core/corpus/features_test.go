@@ -4,6 +4,7 @@
 package corpus_test
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -435,4 +436,134 @@ func fingerprint(t *testing.T, opts corpus.Options) string {
 		t.Fatalf("Fingerprint: %v", err)
 	}
 	return hash
+}
+
+// locatedSource holds a plain scenario carrying an unregistered tag, and a
+// divided outline whose Examples blocks are criteria of their own.
+const locatedSource = `@FEAT-CHK-002 @frd-checkout
+Feature: Located criteria
+
+  A fixture feature.
+
+  @AC-CHK-002.1 @negative @wip
+  Scenario: A criterion says where it lives
+    Given a criterion
+    Then its record names its file and feature
+
+  @negative
+  Scenario Outline: A divided outline
+    Given a "<thing>"
+    Then it is refused
+
+    @AC-CHK-002.2 @level-unit
+    Examples: First block
+      | thing |
+      | a     |
+`
+
+// A criterion record carries the path of the file it is written in, the
+// identifier of its feature, and every tag written on it in order without
+// its "@" — an unregistered one included, and for an Examples-derived
+// criterion its scenario's tags before its own — in both admissible forms.
+//
+// AC: AC-GHK-005.2
+func TestACriterionRecordCarriesItsPathFeatureAndTags(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/features/frd-checkout.md",
+		blockDocument("frd", "frd-checkout", "Checkout", locatedSource))
+	write(t, repo, "specs/other/checkout.feature",
+		strings.NewReplacer("FEAT-CHK-002", "FEAT-CHK-003", "AC-CHK-002.", "AC-CHK-003.").Replace(locatedSource))
+
+	index := featureCorpusAt(t, repo).Index()
+
+	for _, tc := range []struct{ path, feature, prefix string }{
+		{"specs/features/frd-checkout.md", "FEAT-CHK-002", "AC-CHK-002."},
+		{"specs/other/checkout.feature", "FEAT-CHK-003", "AC-CHK-003."},
+	} {
+		t.Run(tc.path, func(t *testing.T) {
+			feature := featureNamed(t, index, tc.path)
+			if len(feature.Criteria) != 2 {
+				t.Fatalf("%d criteria, want 2", len(feature.Criteria))
+			}
+			want := [][]string{
+				{tc.prefix + "1", "negative", "wip"},
+				{"negative", tc.prefix + "2", "level-unit"},
+			}
+			for i, criterion := range feature.Criteria {
+				if criterion.Path != tc.path {
+					t.Errorf("%s: Path = %q, want %q", criterion.Id, criterion.Path, tc.path)
+				}
+				if string(criterion.FeatureId) != tc.feature {
+					t.Errorf("%s: FeatureId = %q, want %q", criterion.Id, criterion.FeatureId, tc.feature)
+				}
+				if strings.Join(criterion.Tags, " ") != strings.Join(want[i], " ") {
+					t.Errorf("%s: Tags = %q, want %q", criterion.Id, criterion.Tags, want[i])
+				}
+				if !criterion.Negative {
+					t.Errorf("%s: Negative = false, want the negation tag to have set it", criterion.Id)
+				}
+			}
+		})
+	}
+}
+
+// A persisted index written before criterion records carried their path,
+// feature and tags is not served warm: those properties are required, so
+// the earlier index fails to decode and the query rebuilds rather than
+// answering with records that lack them. The same index with them intact
+// is served warm, so it is the missing properties that decide it.
+//
+// AC: AC-GHK-005.2, AC-SPEC-010.5
+func TestAnIndexWhoseCriteriaLackTheirLocationIsNotServedWarm(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/features/frd-checkout.md",
+		blockDocument("frd", "frd-checkout", "Checkout", locatedSource))
+	opts := featureOptions(repo, featureProfile())
+	dest := corpus.IndexPath(opts, "")
+	if err := corpus.Write(featureCorpusAt(t, repo).Index(), dest, nil); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+
+	if _, warm, err := corpus.Open(opts, dest); err != nil || !warm {
+		t.Fatalf("Open of the index as written: warm = %v, err = %v; want it served warm", warm, err)
+	}
+
+	raw, err := os.ReadFile(dest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var index map[string]any
+	if err := json.Unmarshal(raw, &index); err != nil {
+		t.Fatal(err)
+	}
+	stripped := 0
+	for _, feature := range index["features"].([]any) {
+		for _, criterion := range feature.(map[string]any)["criteria"].([]any) {
+			for _, key := range []string{"path", "feature_id", "tags"} {
+				delete(criterion.(map[string]any), key)
+			}
+			stripped++
+		}
+	}
+	if stripped == 0 {
+		t.Fatal("the fixture index holds no criteria")
+	}
+	older, err := json.Marshal(index)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(dest, older, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	opened, warm, err := corpus.Open(opts, dest)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	if warm {
+		t.Error("an index whose criteria lack path, feature_id and tags was served warm")
+	}
+	if got := opened.Index().Features[0].Criteria[0].Path; got != "specs/features/frd-checkout.md" {
+		t.Errorf("the rebuilt criterion's Path = %q", got)
+	}
 }

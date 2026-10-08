@@ -1253,11 +1253,18 @@ The vocabulary is:
   changes what a consumer may do with the feature, so it is a value
   rather than something inferred from an absent property.
 - **`Criterion`** — one acceptance criterion, nested inside the feature
-  it qualifies rather than held in a sibling collection: its `id`, its
-  `name`, its body as `text`, its `description`, the `rule` it sits
-  beneath, the `negative` and `manual` qualifiers, its verification
-  `level`, its `notation`, its `content_hash`, and its `span`
-  (AC-GHK-005.2, AC-GHK-005.4). The body is one string and is not
+  it qualifies rather than held in a sibling collection: its `id`, the
+  `path` of the file it is written in and the `feature_id` of the feature
+  it belongs to — so a lookup of one criterion locates it without a
+  second query — every tag written on it as `tags`, in order and without
+  the leading `@` (unregistered tags included; an Examples-derived
+  criterion's scenario tags first), its `name`, its body as `text`, its
+  `description`, the `rule` it sits beneath, the `negative` and `manual`
+  qualifiers, its verification `level`, its `notation`, its
+  `content_hash`, and its `span` (AC-GHK-005.2, AC-GHK-005.4). `path`,
+  `feature_id` and `tags` are required, so a persisted index written
+  before they existed fails to decode and is rebuilt rather than served
+  warm. The body is one string and is not
   decomposed into typed steps and keyed example rows: a criterion is the
   atomic unit here, and a decomposed shape could be filled from one
   notation only (AC-GHK-005.3). The `content_hash` covers the criterion's
@@ -1642,10 +1649,13 @@ unresolved reference rather than an ordinary mismatch, because ownership
 that names nothing has not been recorded.
 
 **Every one of the nine reads from a fresh Gherkin parse, on a warm
-corpus and a cold one alike.** `specmodel.Feature` and `.Criterion` keep
-only a construct's *resolved* identity — an empty `Id` where nothing
-matched — never the tag that failed to match or the second tag that
-matched alongside the first, so `gherkinIdentityFindings` reads from
+corpus and a cold one alike.** `specmodel.Feature` keeps only a
+construct's *resolved* identity — an empty `Id` where nothing matched —
+never the tag that failed to match or the second tag that matched
+alongside the first. A `.Criterion` record does carry its tags, but not
+which of them the vocabulary tried and rejected as an identifier, nor
+anything for a construct that never became a criterion, so
+`gherkinIdentityFindings` reads from
 `Corpus.recomputeGherkin`'s result, which walks the same `scanSources`
 `Build` does and calls the same extraction `blockFeatures` and
 `featureFileFeature` that a cold build's `builder` calls (features.go),

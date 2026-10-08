@@ -1,5 +1,10 @@
 criteria:
   - id: AC-CHK-002.1
+    path: docs/features/refunds.feature
+    feature_id: FEAT-CHK-002
+    tags:
+      - AC-CHK-002.1
+      - manual
     name: A placed order is refunded
     text: |-
       Given a placed order

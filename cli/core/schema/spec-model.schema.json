@@ -1380,6 +1380,10 @@
             "null"
           ]
         },
+        "feature_id": {
+          "$ref": "#/definitions/FeatureId",
+          "description": "The identifier of the feature the criterion belongs to — the same value\nas its feature's `id`."
+        },
         "id": {
           "$ref": "#/definitions/CriterionId",
           "description": "The criterion's identifier, from the tag that declares it."
@@ -1414,6 +1418,10 @@
           "$ref": "#/definitions/CriterionNotation",
           "description": "The notation this criterion was written in."
         },
+        "path": {
+          "description": "The path of the file the criterion is written in, relative to the\nrepository root and written with forward slashes on every platform.\n\nThe same value as its feature's `path`, carried here so that a lookup\nof one criterion locates it without a second query.",
+          "type": "string"
+        },
         "rule": {
           "description": "The name of the business rule this criterion sits beneath, absent where\nit sits directly under its feature.\n\nThe rule's name is an assertion — \"a build failure is the checker's job,\nnot the indexer's\" — so recording it puts the reason several criteria\nexist together in the index, scoped explicitly rather than inferred from\nposition in a document.",
           "type": [
@@ -1425,6 +1433,13 @@
           "$ref": "#/definitions/Span",
           "description": "Where in its document the criterion is written, as a span rather than a\nbare line number, so that a report and a rewrite both address the\ncriterion itself."
         },
+        "tags": {
+          "description": "Every tag written on the criterion, in the order written, each without\nits leading `@`: the identifier tag, the qualifier tags and any tag the\nprofile does not register alike.\n\nA criterion derived from an `Examples` block carries its scenario's tags\nfirst and then the block's own. The qualifier properties below are\nread from these tags; the tags are carried as written so that one the\nprofile does not recognize — a misspelled qualifier — is still visible\non the record.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "text": {
           "description": "The criterion's body, exactly as written.\n\nFor a Gherkin criterion this is its steps and any example table,\nverbatim, with the block's common indentation removed. For a prose\ncriterion it is the sentence. One property serves both because the\ncriterion is the unit, and its text is what every notation has.",
           "type": "string"
@@ -1432,6 +1447,9 @@
       },
       "required": [
         "id",
+        "path",
+        "feature_id",
+        "tags",
         "text",
         "negative",
         "manual",
@@ -1442,7 +1460,7 @@
       "type": "object"
     },
     "CriterionId": {
-      "description": "The identifier of one acceptance criterion, as written in the tag that\ndeclares it.\n\nConstrained here rather than checked in code, because this is the join\nbetween three things that must agree: the criterion in a specification,\nthe citation a test carries, and the row a central store holds. The\npattern is the one the framework's acceptance-criterion traceability\nstandard already fixes, minus\nthe leading `@` that makes it a Gherkin tag — the identifier is the\nvalue, and the tag is only how it is written down.\n\nThe middle segments are the owning feature's code and number, which is\nwhat allows a criterion to name its feature without carrying a second\nproperty: `AC-GHK-001.1` belongs to the feature coded `GHK` numbered\n`001`.",
+      "description": "The identifier of one acceptance criterion, as written in the tag that\ndeclares it.\n\nConstrained here rather than checked in code, because this is the join\nbetween three things that must agree: the criterion in a specification,\nthe citation a test carries, and the row a central store holds. The\npattern is the one the framework's acceptance-criterion traceability\nstandard already fixes, minus\nthe leading `@` that makes it a Gherkin tag — the identifier is the\nvalue, and the tag is only how it is written down.\n\nThe middle segments are the owning feature's code and number:\n`AC-GHK-001.1` belongs to the feature coded `GHK` numbered `001`. A\ncriterion record carries its feature's identifier as a property of its\nown besides, so a lookup of one criterion locates it without deriving\nanything.",
       "pattern": "^AC-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{3}\\.[0-9]+$",
       "type": "string"
     },

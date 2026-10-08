@@ -1,5 +1,10 @@
 criteria:
   - id: AC-CHK-001.1
+    path: docs/features/frd-checkout.md
+    feature_id: FEAT-CHK-001
+    tags:
+      - AC-CHK-001.1
+      - level-unit
     name: A basket with something in it can be paid for
     text: |-
       Given a basket holding one item

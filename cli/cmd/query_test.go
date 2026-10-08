@@ -76,6 +76,9 @@ func plantedFeature() specmodel.Feature {
 		Criteria: []specmodel.Criterion{
 			{
 				Id:          "AC-PLANTED-999.1",
+				Path:        "docs/features/frd-warm.md",
+				FeatureId:   "FEAT-PLANTED-999",
+				Tags:        []string{"AC-PLANTED-999.1"},
 				Text:        "Given the index is warm\nWhen a query runs\nThen the planted record is returned",
 				Notation:    specmodel.CriterionNotationGherkin,
 				ContentHash: "sha256:0000000000000000000000000000000000000000000000000000000000000",

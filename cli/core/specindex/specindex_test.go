@@ -272,7 +272,7 @@ func TestACriterionsBodyIsCarriedAsTextRatherThanDecomposed(t *testing.T) {
 	definition := loadDefinition(t, "Criterion")
 
 	want := []string{
-		"id", "text", "negative", "manual", "notation", "content_hash", "span",
+		"id", "path", "feature_id", "tags", "text", "negative", "manual", "notation", "content_hash", "span",
 		"name", "description", "rule", "level",
 	}
 	got := propertyNames(t, definition)
@@ -375,8 +375,12 @@ func featureWith(id specmodel.FeatureId, criteria ...specmodel.Criterion) specmo
 
 // gherkinCriterion returns a minimally populated Gherkin criterion.
 func gherkinCriterion(id specmodel.CriterionId, name string) specmodel.Criterion {
+	feature, _, _ := strings.Cut(strings.TrimPrefix(string(id), "AC-"), ".")
 	return specmodel.Criterion{
 		Id:          id,
+		Path:        "specs/features/gherkin-adoption/gherkin-adoption-frd.md",
+		FeatureId:   specmodel.FeatureId("FEAT-" + feature),
+		Tags:        []string{string(id)},
 		Name:        &name,
 		Text:        "    Given a corpus\n    When the CLI extracts it\n    Then a record is produced\n",
 		Negative:    false,

@@ -1434,10 +1434,11 @@ type FeatureId string
 // the leading `@` that makes it a Gherkin tag — the identifier is the
 // value, and the tag is only how it is written down.
 //
-// The middle segments are the owning feature's code and number, which is
-// what allows a criterion to name its feature without carrying a second
-// property: `AC-GHK-001.1` belongs to the feature coded `GHK` numbered
-// `001`.
+// The middle segments are the owning feature's code and number:
+// `AC-GHK-001.1` belongs to the feature coded `GHK` numbered `001`. A
+// criterion record carries its feature's identifier as a property of its
+// own besides, so a lookup of one criterion locates it without deriving
+// anything.
 type CriterionId string
 
 // A digest over a criterion's content, written as `sha256:` followed by
@@ -1723,6 +1724,25 @@ func (u *FeatureSource) UnmarshalJSON(data []byte) error {
 type Criterion struct {
 	// The criterion's identifier, from the tag that declares it.
 	Id CriterionId `json:"id"`
+	// The path of the file the criterion is written in, relative to the
+	// repository root and written with forward slashes on every platform.
+	//
+	// The same value as its feature's `path`, carried here so that a lookup
+	// of one criterion locates it without a second query.
+	Path string `json:"path"`
+	// The identifier of the feature the criterion belongs to — the same value
+	// as its feature's `id`.
+	FeatureId FeatureId `json:"feature_id"`
+	// Every tag written on the criterion, in the order written, each without
+	// its leading `@`: the identifier tag, the qualifier tags and any tag the
+	// profile does not register alike.
+	//
+	// A criterion derived from an `Examples` block carries its scenario's tags
+	// first and then the block's own. The qualifier properties below are
+	// read from these tags; the tags are carried as written so that one the
+	// profile does not recognize — a misspelled qualifier — is still visible
+	// on the record.
+	Tags []string `json:"tags"`
 	// The criterion's name — the text following the `Scenario`,
 	// `Scenario Outline` or `Examples` keyword that declares it.
 	//
@@ -1788,6 +1808,21 @@ func (v *Criterion) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Id); err != nil {
 		return prefixField("id", err)
 	}
+	if m, ok := raw["path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Criterion: required field \"path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Path); err != nil {
+		return prefixField("path", err)
+	}
+	if m, ok := raw["feature_id"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Criterion: required field \"feature_id\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.FeatureId); err != nil {
+		return prefixField("feature_id", err)
+	}
+	if m, ok := raw["tags"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Criterion: required field \"tags\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Tags); err != nil {
+		return prefixField("tags", err)
+	}
 	if m, ok := raw["name"]; ok {
 		if err := json.Unmarshal(m, &v.Name); err != nil {
 			return prefixField("name", err)
@@ -1841,7 +1876,7 @@ func (v *Criterion) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "id", "name", "text", "description", "rule", "negative", "manual", "level", "notation", "content_hash", "span":
+		case "id", "path", "feature_id", "tags", "name", "text", "description", "rule", "negative", "manual", "level", "notation", "content_hash", "span":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key

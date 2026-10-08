@@ -1,5 +1,10 @@
 criteria:
   - id: AC-CHK-001.1
+    path: docs/features/frd-checkout.md
+    feature_id: FEAT-CHK-001
+    tags:
+      - AC-CHK-001.1
+      - level-unit
     name: A basket with something in it can be paid for
     text: |-
       Given a basket holding one item
@@ -18,6 +23,12 @@ criteria:
       end_line: 27
       end_column: 29
   - id: AC-CHK-001.2
+    path: docs/features/frd-checkout.md
+    feature_id: FEAT-CHK-001
+    tags:
+      - AC-CHK-001.2
+      - negative
+      - level-unit
     name: An empty basket cannot be paid for
     text: |-
       Given an empty basket
