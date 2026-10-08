@@ -760,10 +760,10 @@ Feature: Local Change Detection
     Then the CLI reports it as "<classification>"
 
     Examples:
-      | state                          | classification |
-      | present in both, content differs | changed      |
-      | present now, absent before     | added          |
-      | absent now, present before     | removed        |
+      | state                            | classification |
+      | present in both, content differs | changed        |
+      | present now, absent before       | added          |
+      | absent now, present before       | removed        |
 
   @AC-GHK-008.4
   Scenario: The default base is the repository's default branch
@@ -817,9 +817,11 @@ Feature: Local Change Detection
     And the CLI reports a "<class>" naming the condition and exits "<status>"
 
     Examples:
-      | condition                            | class             | status |
-      | outside a git repository             | environment error | 3      |
-      | naming a revision git does not know  | invocation error  | 2      |
+      | condition                                                  | class             | status |
+      | outside a git repository                                   | environment error | 3      |
+      | naming no revision where no default branch can be resolved | environment error | 3      |
+      | where HEAD and the base share no merge-base                | environment error | 3      |
+      | naming a revision git does not know                        | invocation error  | 2      |
 ```
 
 ### FEAT-GHK-009: Publication

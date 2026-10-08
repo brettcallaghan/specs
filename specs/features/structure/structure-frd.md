@@ -191,7 +191,7 @@ Feature: Structure Queries
     Then the CLI matches only the heading nested beneath "<ancestor>"
 
     Examples:
-      | ancestor   | heading    | selection                              |
+      | ancestor   | heading    | selection                                  |
       | Components | References | module-document-core#Components#References |
 
   @AC-SPECSTR-003.11
@@ -207,18 +207,17 @@ components declared beneath a `Components` heading — without the caller
 knowing how many there are or what they are called. AC-SPECSTR-003.5 is
 what keeps the index free of section content: the span is recorded, and
 the text is read back through it on demand. It is written raw, because
-the caller asked for the document's own words, and raw text has no place to
-say where one section ends and the next begins, which is why
+the caller asked for the document's own words, and raw text has no place
+to say where one section ends and the next begins, which is why
 AC-SPECSTR-003.7 refuses a selection matching several headings rather
-than joining them; the query without emitting already lists every
-match, each with the heading path that selects it alone. A heading path
-is the same form a nested wikilink anchor takes under
-[[cross-document-references]], so a path copied from a refusal
-works as a selection and as a citation. A single segment remains a
-valid selection. The
-statuses in AC-SPECSTR-003.7 and AC-SPECSTR-003.8 are those
-[[cli-exit-status-standards]] assigns to an operand the command cannot act
-on and to a subject the corpus does not hold.
+than joining them; the query without emitting already lists every match,
+each with the heading path that selects it alone. A heading path is the
+same form a nested wikilink anchor takes under
+[[cross-document-references]], so a path copied from a refusal works as
+a selection and as a citation. A single segment remains a valid
+selection. The statuses in AC-SPECSTR-003.7 and AC-SPECSTR-003.8 are
+those [[cli-exit-status-standards]] assigns to an operand the command
+cannot act on and to a subject the corpus does not hold.
 
 ## References
 

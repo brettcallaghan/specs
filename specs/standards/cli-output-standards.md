@@ -164,10 +164,10 @@ of the world rather than on whether the command worked.
 ### A malformed question is not an empty answer
 
 WHERE an argument names a value from a registered set (a rule
-identifier, a document type, a profile) and the value is not in that set,
-the CLI SHALL report the value and every registered name, SHALL NOT
-render an answer, and SHALL exit `2`, the invocation-error status of
-[[cli-exit-status-standards]].
+identifier, a document type, a tag qualifier) and the value is not in
+that set, the CLI SHALL report the value and every registered name,
+SHALL NOT render an answer, and SHALL exit `2`, the invocation-error
+status of [[cli-exit-status-standards]].
 
 **Rationale:** an unregistered value is a fact about the invocation, not
 about the corpus. Answered as an empty collection or a clean report, a
@@ -364,7 +364,7 @@ repository's corpus.
 
 | command | prints today | to conform |
 |---|---|---|
-| `refs <slug>[#<anchor>]` | a YAML mapping of the properties the query established, the references a sequence of mappings beneath it; `--json` the same values in the same order | conforms — migrated by the anchor-qualified form [[frd-spec-anchor-references]] adds |
+| `refs <slug>[#<anchor>]` | a YAML mapping of the properties the query established, the references a sequence of mappings beneath it; `--json` the same values in the same order | the compact view by default, today's answer under `--full` |
 | `list` | a YAML mapping whose one key is the sequence of documents; `--json` the same values in the same order | conforms |
 | `slug-exists <slug>` | a sentence, `adr-001: found at specs/adrs/adr-001-html-comments-for-instructions.md`; no `--json` | a mapping carrying `slug`, `declared` and `path`, with `--json` |
 | `next-id <type>` | a bare number, `31`; no `--json` | a mapping carrying `number` and `slug`, with `--json`; the bare number is a value with no name |
@@ -372,7 +372,7 @@ repository's corpus.
 | `feature`, `criterion` | tab-separated text; `--json` an array for a filter and a bare object for one identifier | render as YAML, one shape whatever the arguments select |
 | `links <path>` | the rewritten document | conforms — a document payload, written as itself |
 | `index` | the artifact, or the bare path it wrote | the artifact is out of scope; the printed path is an answer |
-| `headings <selection>` | a YAML mapping whose one key is the sequence of matches; `--json` the same values in the same order; `--emit` the matched sections as themselves | conforms — written against these standards, and the source of the `renderYAML` the other commands adopt |
+| `headings <selection>` | a YAML mapping whose one key is the sequence of matches; `--json` the same values in the same order; `--emit` the matched sections as themselves, joined when several match | each match carrying its heading path; `--emit` refused for more than one match. Its rendering is the source of the `renderYAML` the other commands adopt |
 | `c4 [--root <slug>]` | a YAML mapping of the C4 model; `--json` the same values in the same order | conforms — written against these standards, and renders through `renderYAML` unchanged |
 
 Migration is per command and belongs to whichever feature next touches

@@ -98,7 +98,7 @@ same facts and must report them through the status differently.
 |---|---|
 | gate | `check` |
 | query | `list`, `refs`, `headings`, `feature`, `criterion`, `next-id`, `slug-exists`, `c4` |
-| producer | `index`, `links`, `feature --emit` — a query whose answer is an artifact |
+| producer | `index`, `links`, `feature --emit`, `headings --emit` — a query whose answer is an artifact |
 
 ### A query never answers through its status
 
@@ -133,9 +133,12 @@ what moves `criterion <id>` and `c4 --root <slug>` from `1` to `0`.
 ### A value outside a registered set is an invocation error
 
 WHEN an argument names a value from a set the active profile or the CLI
-registers — a document type, a rule identifier, a tag qualifier, a
-profile — and the value is not in that set, the CLI SHALL report the
-value and every registered name on standard error and SHALL exit `2`.
+registers — a document type, a rule identifier, a tag qualifier — and
+the value is not in that set, the CLI SHALL report the value and every
+registered name on standard error and SHALL exit `2`.
+
+WHERE the same value is named by the configuration file rather than by
+an argument, the CLI SHALL exit `3`.
 
 **Rationale:** the line between this rule and the previous one is
 whether the corpus could ever make the value valid. No document an
@@ -143,7 +146,10 @@ author writes turns `adrx` into a document type; a configuration change
 does. So a misspelt type is a mistake in the question, and answering it
 with an empty list would make a typo indistinguishable from "none
 exist" — the gate passing `check --only reference/unresolvd` forever
-is the cost.
+is the cost. The caller cannot fix a value written in `specs.toml`, so
+the same unknown name there — `[profile] name`, for one — is the
+repository maintainer's, which is why an unknown profile is listed under
+`3`.
 
 ---
 
@@ -251,7 +257,8 @@ Stated here because the status is only as good as the way it is read.
 ## Current conformance
 
 Measured with a binary built from `main` at `31b3079`, run against this
-repository's corpus. Every non-zero status today is `1`.
+repository's corpus; the last two rows at `12b2eda`. Every non-zero
+status today is `1`.
 
 | invocation | today | under these standards |
 |---|---|---|
@@ -266,6 +273,8 @@ repository's corpus. Every non-zero status today is `1`.
 | `slug-exists zzz`, `feature --code ZZ`, `headings 'zzz#q'` | `0` | `0`, with the subject marked not declared |
 | `list --json` or `index` on a document missing a required enum | `1` | `0` and the artifact written; until fixed, `4` |
 | a panic | `2` (Go's default) | `4` |
+| `headings 'module-document-core#references' --emit`, two matches | `0`, both sections joined | `2`, each match named on standard error |
+| `criterion --changed` outside a git repository | `0`, "no local changes" | `3` |
 
 ---
 

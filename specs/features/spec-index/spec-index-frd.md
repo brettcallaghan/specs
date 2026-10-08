@@ -500,7 +500,7 @@ Feature: Configuration
 
   @AC-SPEC-008.3
   Scenario: An absent configuration is reported rather than guessed at
-    Given no "specs.toml" in the working directory or in any directory above it up to the repository root
+    Given no "specs.toml" in any directory the search of AC-SPEC-008.7 or AC-SPEC-008.9 visits
     And no configuration option naming a file
     When the CLI runs
     Then the CLI reports the absence, naming the directories it searched
@@ -529,6 +529,11 @@ Feature: Configuration
     Then the CLI searches the working directory and then each directory above it, stopping at the repository root
     And the CLI uses the first "specs.toml" it finds
 
+  @AC-SPEC-008.8
+  Scenario: A configuration option overrides discovery
+    When the CLI is invoked with the configuration option naming a file
+    Then the CLI reads its configuration from that file and searches for no other
+
   @AC-SPEC-008.9
   Scenario: Outside a repository the search runs to the filesystem root
     Given no configuration option naming a file
@@ -536,11 +541,6 @@ Feature: Configuration
     When the CLI runs
     Then the CLI searches the working directory and then each directory above it, stopping at the filesystem root
     And the CLI uses the first "specs.toml" it finds
-
-  @AC-SPEC-008.8
-  Scenario: A configuration option overrides discovery
-    When the CLI is invoked with the configuration option naming a file
-    Then the CLI reads its configuration from that file and searches for no other
 ```
 
 *Examples:* `specs.toml` declares `root = "docs/specs"` and the workspace
@@ -557,7 +557,9 @@ this repository, the CLI finds `specs.toml` at the repository root; run
 from `rfcs/drafts/` in a repository that also holds `rfcs/specs.toml`, it
 uses that nearer file (AC-SPEC-008.7). `--config build/alt.toml` reads
 that file even where a `specs.toml` sits in the working directory
-(AC-SPEC-008.8).
+(AC-SPEC-008.8). Run from a directory unpacked from an archive, with no
+`.git` above it, the CLI searches up to `/` and uses the first
+`specs.toml` on the way (AC-SPEC-008.9).
 
 ### FEAT-SPEC-009: Invocation, Performance, and Portability
 
@@ -779,6 +781,11 @@ Feature: Command Surface
   Scenario: A bare invocation lists the surface rather than acting
     When the CLI is invoked with no subcommand or with the help option
     Then the CLI lists the available subcommands and their options rather than performing a default action
+
+  @AC-SPEC-011.6 @negative
+  Scenario: A check given a path that is not a corpus member is refused
+    When the check subcommand is given a path that is not a member of the corpus
+    Then the CLI reports the path, writes no report, and exits with the invocation-error status
 ```
 
 *Examples:* `index` writes the default `specs.json` and `index --out -`
@@ -787,8 +794,11 @@ whole corpus, while
 `check docs/adrs/ADR-004-module-blueprint-and-atomic-component.md --json`
 validates one document and emits JSON (AC-SPEC-011.2).
 `slug-exists frd-checkout` (AC-SPEC-011.3). `next-id adr` answers the
-mapping of AC-SPEC-007.1 (AC-SPEC-011.4). Bare invocation prints the four subcommands above with a
-one-line synopsis of each (AC-SPEC-011.5).
+mapping of AC-SPEC-007.1 (AC-SPEC-011.4). Bare invocation prints the
+four subcommands above with a one-line synopsis of each
+(AC-SPEC-011.5). `check docs/adrs/ADR-04.md`, a path no corpus member
+has, exits `2` and reports nothing, because a gate that could not
+inspect its subject has decided nothing (AC-SPEC-011.6).
 
 *Rationale:* The subcommand vocabulary is the tool's public interface,
 so it is fixed here rather than left to implementation. Later features
