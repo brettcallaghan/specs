@@ -230,25 +230,30 @@ func Parse(src []byte) (*Document, *specmodel.ParseError) {
 	return doc, nil
 }
 
-// inlineComments finds the comments in the block that follow another
-// token on the same line, attributing each to the property whose key most
-// closely precedes it. It reads the lexer's tokens rather than parsing
-// with comments retained, so nothing [Parse] reports about values or
-// spans depends on it.
+// inlineComments finds the comments in the block that cut a plain
+// (unquoted) scalar short: a comment sharing a line with the end of a
+// plain scalar, which is the one place text a reader meant as value is
+// lost. A comment after a key with no value on its line, after a flow
+// collection or a quoted scalar, inside or after a block scalar, or on a
+// line of its own cuts nothing short and is not reported. Each is
+// attributed to the property whose key most closely precedes it. It reads
+// the lexer's tokens rather than parsing with comments retained, so
+// nothing [Parse] reports about values or spans depends on it.
 func inlineComments(src []byte, region span.Region, inner []byte, properties []Property) []InlineComment {
 	var found []InlineComment
-	lastLine := 0
+	var prev, beforePrev *token.Token
 	for _, tok := range lexer.Tokenize(string(inner)) {
 		if tok.Type != token.CommentType {
-			// A plain or quoted scalar can run over several lines; the
-			// line it ends on is the one a trailing comment shares.
-			lastLine = tok.Position.Line + strings.Count(strings.TrimSpace(tok.Origin), "\n")
+			beforePrev, prev = prev, tok
 			continue
 		}
-		if tok.Position.Line != lastLine {
-			continue // a comment on a line of its own
+		if !cutsPlainScalar(prev, beforePrev) {
+			continue
 		}
 		start := absolute(region, src, tok)
+		if ownLine(src, start) {
+			continue
+		}
 		end := start
 		for end < len(src) && src[end] != '\n' {
 			end++
@@ -265,6 +270,32 @@ func inlineComments(src []byte, region span.Region, inner []byte, properties []P
 		found = append(found, InlineComment{Property: owner, Span: span.Of(src, start, end-start)})
 	}
 	return found
+}
+
+// cutsPlainScalar reports whether the token a comment follows is a plain
+// scalar, the only value a trailing comment can cut short. The content of
+// a block scalar is lexed as a plain string too, so the token before it
+// tells the two apart. The lexer reports the line of a folded scalar's
+// content differently from a literal one's, which is why the comment's
+// own line is tested against the source rather than against it.
+func cutsPlainScalar(prev, beforePrev *token.Token) bool {
+	if prev == nil || prev.Type != token.StringType {
+		return false
+	}
+	if beforePrev != nil && (beforePrev.Type == token.LiteralType || beforePrev.Type == token.FoldedType) {
+		return false
+	}
+	return true
+}
+
+// ownLine reports whether only whitespace precedes offset on its line.
+func ownLine(src []byte, offset int) bool {
+	for i := offset - 1; i >= 0 && src[i] != '\n'; i-- {
+		if src[i] != ' ' && src[i] != '\t' {
+			return false
+		}
+	}
+	return true
 }
 
 // Property returns the named property.

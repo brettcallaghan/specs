@@ -639,11 +639,13 @@ func TestTopLevelScalarAtLocatesTheValueAsParseWould(t *testing.T) {
 	}
 }
 
-// A comment trailing a value — on the value's own line, or on the last
-// line of a plain scalar running over two — is reported at its "#" and
-// attributed to its property; a full-line comment, a "#" inside a quoted
-// value, a "#" with no space before it and one inside a block scalar are
-// not comments trailing a value.
+// A comment trailing a plain scalar — on the value's own line, or on the
+// last line of a plain scalar running over two — is reported at its "#"
+// and attributed to its property; a full-line comment, a "#" inside a
+// quoted value, a "#" with no space before it and one inside a block
+// scalar are not comments trailing a value, and a comment after a key
+// whose value is a block on the lines below, after a flow collection or
+// after a quoted scalar cuts nothing short and is not reported either.
 //
 // AC: AC-SPEC-003.9, AC-SPEC-003.10
 func TestInlineCommentsAreTheCommentsTrailingAValue(t *testing.T) {
@@ -655,6 +657,11 @@ func TestInlineCommentsAreTheCommentsTrailingAValue(t *testing.T) {
 		"summary: one\n  two # three\n" +
 		"block: |\n  text # kept\n" +
 		"tags:\n  - x # y\n" +
+		"items: # list below\n  - x\n" +
+		"aliases: [a, b] # flow\n" +
+		"mapped: {a: b} # flow\n" +
+		"slug: \"a\" # note\n" +
+		"single: 'a' # note\n" +
 		"---\nbody\n"
 	doc, perr := frontmatter.Parse([]byte(src))
 	if perr != nil {
@@ -678,5 +685,28 @@ func TestInlineCommentsAreTheCommentsTrailingAValue(t *testing.T) {
 	}
 	if d, _ := doc.Property("description"); d.Value != "a" {
 		t.Errorf("description = %q, want the value cut short at the comment, \"a\"", d.Value)
+	}
+}
+
+// A full-line comment directly after a block scalar is not an inline
+// comment, whichever of the four block indicators introduces it, and nor
+// is a comment on the indicator's own line.
+//
+// AC: AC-SPEC-003.10
+func TestAFullLineCommentAfterABlockScalarIsNotInline(t *testing.T) {
+	for _, indicator := range []string{"|", "|-", ">", ">-"} {
+		for _, src := range []string{
+			"---\ndescription: " + indicator + "\n  one\n  two\n# own line\nslug: x\n---\nbody\n",
+			"---\ndescription: " + indicator + "\n  one\n  two\n  # indented own line\n---\nbody\n",
+			"---\ndescription: " + indicator + " # header\n  one\n---\nbody\n",
+		} {
+			doc, perr := frontmatter.Parse([]byte(src))
+			if perr != nil {
+				t.Fatalf("Parse(%q): %v", src, perr)
+			}
+			if got := doc.InlineComments(); len(got) != 0 {
+				t.Errorf("InlineComments(%q) = %+v, want none", src, got)
+			}
+		}
 	}
 }
