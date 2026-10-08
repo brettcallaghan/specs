@@ -2285,8 +2285,14 @@ and lives here rather than in the command surface ([[adr-031]]).
 containing a directory (`git rev-parse --show-toplevel`) and exposes its
 top level, cleaned and in OS form. `Repository.Base` resolves a revision
 string: empty names the default branch, the first that resolves of the
-target of `refs/remotes/origin/HEAD`, then `main`, `origin/main`,
-`master` and `origin/master`; anything else must resolve under
+target of `refs/remotes/origin/HEAD`, then `origin/main`,
+`origin/master`, `main` and `master` — remote-tracking branches first,
+because a fetch refreshes them and nothing refreshes a local branch. When
+the branch chosen is remote-tracking and a local branch of the same name
+is a strict ancestor of it, the returned `Base` carries that local branch
+and both commits in `Behind` so the command surface can warn
+(AC-GHK-008.14); an equal, ahead or diverged local branch does not.
+Anything else must resolve under
 `git rev-parse --verify '<revision>^{commit}'`. The base is
 `git merge-base HEAD <commit>`, returned as a full object name with the
 reference it was taken against. `Repository.Materialize` lists a

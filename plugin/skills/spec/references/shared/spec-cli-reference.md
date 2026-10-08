@@ -446,6 +446,12 @@ differs from the corpus at a git base, classifying each as `changed`,
 `added` or `removed`. The base is the merge-base of `HEAD` and the
 repository's default branch, or of `HEAD` and the branch, tag or commit
 `--since` names, and the current side includes uncommitted edits. The
+default branch is the first that exists of `origin/HEAD`'s target,
+`origin/main`, `origin/master`, `main` and `master`, so a stale local
+`main` never wins over `origin/main`; when a local branch of the same
+name is behind the one chosen, standard error carries `warning: local
+main (<short>) is behind origin/main (<short>); comparing against
+origin/main` and standard output is unchanged. The
 answer holds `base` (the revision and the merge-base commit) and then
 `criteria`. It exits 0 whatever it lists; `--exit-code` makes a
 non-empty list exit 1, for a gate. It needs `git` on `PATH`.

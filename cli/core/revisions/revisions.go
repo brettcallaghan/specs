@@ -74,7 +74,9 @@ func environment(format string, args ...any) error {
 
 // DefaultBranchCandidates are the branches tried, in order, after the
 // target of refs/remotes/origin/HEAD, when a comparison names no revision.
-var DefaultBranchCandidates = []string{"main", "origin/main", "master", "origin/master"}
+// The remote-tracking branches come first: a fetch refreshes them, while a
+// local branch is only as current as the last time someone updated it.
+var DefaultBranchCandidates = []string{"origin/main", "origin/master", "main", "master"}
 
 // originHEAD is the symbolic reference whose target is tried first.
 const originHEAD = "refs/remotes/origin/HEAD"
@@ -127,6 +129,20 @@ type Base struct {
 	Ref string
 	// Commit is the merge-base of HEAD and Ref, as a full object name.
 	Commit string
+	// Behind is set only when no revision was named, the default branch
+	// found is a remote-tracking branch, and a local branch of the same
+	// name exists that is a strict ancestor of it: the local branch is
+	// stale and was not used.
+	Behind *StaleLocal
+}
+
+// StaleLocal names a local branch that is behind the remote-tracking
+// branch a comparison was taken against.
+type StaleLocal struct {
+	Local        string // the local branch, such as "main"
+	LocalCommit  string // its full object name
+	Remote       string // the remote-tracking branch, such as "origin/main"
+	RemoteCommit string // its full object name
 }
 
 // Base resolves the base of a comparison against revision: the merge-base
@@ -163,7 +179,37 @@ func (r *Repository) Base(revision string) (Base, error) {
 	if base == "" {
 		return Base{}, environment("HEAD and %s have no common ancestor: git merge-base printed nothing", ref)
 	}
-	return Base{Ref: ref, Commit: base}, nil
+	result := Base{Ref: ref, Commit: base}
+	if revision == "" {
+		behind, err := r.staleLocal(ref, commit)
+		if err != nil {
+			return Base{}, err
+		}
+		result.Behind = behind
+	}
+	return result, nil
+}
+
+// staleLocal reports the local branch named like the remote-tracking ref
+// when its commit differs from the remote's and is an ancestor of it. A
+// ref that is not remote-tracking, or a local branch that is absent, equal,
+// ahead or diverged, reports nil.
+func (r *Repository) staleLocal(ref, remoteCommit string) (*StaleLocal, error) {
+	name, ok := strings.CutPrefix(ref, "origin/")
+	if !ok || name == "" {
+		return nil, nil
+	}
+	local, ok, err := r.commitOf("refs/heads/" + name)
+	if err != nil || !ok || local == remoteCommit {
+		return nil, err
+	}
+	if _, err := r.run("merge-base", "--is-ancestor", local, remoteCommit); err != nil {
+		if gerr := (*gitError)(nil); errors.As(err, &gerr) && gerr.code == 1 {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &StaleLocal{Local: name, LocalCommit: local, Remote: ref, RemoteCommit: remoteCommit}, nil
 }
 
 // target resolves the revision a base is taken against: the named one, or

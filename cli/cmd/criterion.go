@@ -133,6 +133,11 @@ func runCriterionChanged(streams *ioStreams, configPath, since string, exitCode,
 		return err
 	}
 
+	if b := base.Behind; b != nil {
+		fmt.Fprintf(streams.err, "warning: local %s (%s) is behind %s (%s); comparing against %s\n",
+			b.Local, shortCommit(b.LocalCommit), b.Remote, shortCommit(b.RemoteCommit), b.Remote)
+	}
+
 	result := criterionChangesResult{
 		Base:     changeBase{Revision: base.Ref, Commit: base.Commit},
 		Criteria: changedCriteria(before, current.Index()),
@@ -141,6 +146,14 @@ func runCriterionChanged(streams *ioStreams, configPath, since string, exitCode,
 		streams.exitCode = statusGateFailed
 	}
 	return renderCriterionChanges(streams, result, jsonOut)
+}
+
+// shortCommit is the first seven hex characters of a full object name.
+func shortCommit(oid string) string {
+	if len(oid) > 7 {
+		return oid[:7]
+	}
+	return oid
 }
 
 // buildBaseIndex builds the corpus at the base the comparison runs

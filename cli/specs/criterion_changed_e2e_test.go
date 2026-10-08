@@ -511,3 +511,45 @@ func TestChangedRefusesASpecRootOutsideTheWorkTree(t *testing.T) {
 		t.Errorf("stderr = %q, want it to begin with the spec root %s and name the work tree", stderr, spec)
 	}
 }
+
+// With origin/HEAD unset and a local main behind origin/main, the base is
+// origin/main, one warning line goes to stderr, and stdout is the answer a
+// repository without the stale branch gives. No warning where the local
+// branch is current or --since names the revision.
+//
+// AC: AC-GHK-008.10, AC-GHK-008.14, AC-GHK-008.15
+func TestChangedPrefersOriginMainOverAStaleLocalMain(t *testing.T) {
+	bin := sharedSpec(t)
+	dir, first := newSpecRepo(t, scenario{"AC-CHK-001.1", "the order is placed"})
+	writeFile(t, dir, checkoutPath, frd("frd-checkout", "FEAT-CHK-001",
+		scenario{"AC-CHK-001.1", "the order is placed and confirmed"}))
+	second := commitAll(t, dir, "reword")
+	gitIn(t, dir, "update-ref", "refs/remotes/origin/main", second)
+	gitIn(t, dir, "checkout", "-q", "-b", "work")
+	want := wantYAML("origin/main", second)
+
+	stdout, stderr, code := runAll(t, bin, dir, "criterion", "--changed")
+	if code != 0 || stdout != want {
+		t.Fatalf("exit %d, stdout\n%s\nwant\n%s\nstderr %s", code, stdout, want, stderr)
+	}
+	wantWarning := fmt.Sprintf("warning: local main (%s) is behind origin/main (%s); comparing against origin/main\n",
+		first[:7], second[:7])
+	// main is at second here; move it back to make it stale.
+	gitIn(t, dir, "update-ref", "refs/heads/main", first)
+	stdout, stderr, code = runAll(t, bin, dir, "criterion", "--changed")
+	if code != 0 || stdout != want {
+		t.Fatalf("stale: exit %d, stdout\n%s\nwant\n%s", code, stdout, want)
+	}
+	if stderr != wantWarning {
+		t.Errorf("stderr = %q, want %q", stderr, wantWarning)
+	}
+
+	_, stderr, _ = runAll(t, bin, dir, "criterion", "--changed", "--since", "origin/main")
+	if stderr != "" {
+		t.Errorf("--since stderr = %q, want none", stderr)
+	}
+	gitIn(t, dir, "update-ref", "refs/heads/main", second)
+	if _, stderr, _ = runAll(t, bin, dir, "criterion", "--changed"); stderr != "" {
+		t.Errorf("current local main: stderr = %q, want none", stderr)
+	}
+}

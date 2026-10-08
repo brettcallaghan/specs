@@ -414,9 +414,12 @@ classifying each as changed, added or removed by whether its identifier
 is present in both, only now, or only at the base (AC-GHK-008.1,
 AC-GHK-008.3). The base is the merge-base of HEAD and the repository's
 default branch — the first that resolves of `origin/HEAD`'s target,
-`main`, `origin/main`, `master` and `origin/master` — or of HEAD and the
+`origin/main`, `origin/master`, `main` and `master` — or of HEAD and the
 branch, tag or commit `--since` names (AC-GHK-008.4, AC-GHK-008.5,
-AC-GHK-008.10). Both sides are built by `corpus.Build`. The current side
+AC-GHK-008.10). Where the default branch chosen is remote-tracking and a
+local branch of the same name is behind it, the command writes one
+warning line to standard error and leaves standard output unchanged
+(AC-GHK-008.14, AC-GHK-008.15). Both sides are built by `corpus.Build`. The current side
 walks the working tree, so committed, staged, unstaged and untracked
 documents are all compared (AC-GHK-008.6); the base side walks the spec
 root as the base commit holds it, which
