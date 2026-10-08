@@ -204,16 +204,14 @@ the finding concerns without parsing a message.
   the label matched; `c4/drawing-conflict`'s SHALL carry the path and
   span of the other drawing; `c4/parse`'s unverified detail SHALL carry
   the diagram type name.
-- No `c4/*` rule SHALL be corpus-wide in the sense of
-  `IsCorpusWideRule`: each finding is narrowed to the file it sits in,
-  like every rule outside the reference family.
+- Each `c4/*` finding SHALL be narrowed by a single-document check to
+  the file it sits in, like every other rule.
 - This delta SHALL NOT add any `c4/*` identifier to `checkRules` in
   `cli/cmd/check.go`. A rule listed there is reported as passed whenever
   it is requested, so each identifier is added by the check delta that
   runs it, and never before.
 
-**Anchors:** `cli/core/finding/finding.go` (the rule constants and
-`corpusWideRules`); `schemas/finding.strata` (`FindingDetail`),
+**Anchors:** `cli/core/finding/finding.go` (the rule constants); `schemas/finding.strata` (`FindingDetail`),
 regenerated with `scripts/generate-schemas.sh`, which needs the `strata`
 compiler.
 

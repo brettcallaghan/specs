@@ -1497,24 +1497,17 @@ rule, `reference/unresolved`, covers a body reference matching no corpus
 member, a reference-bearing frontmatter value matching no corpus member,
 and a slug matching a non-member — the last carrying the non-member's
 path and reason rather than reading as an ordinary unresolved slug
-(AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7). `CheckFor`
-narrows that result to the document named with one exception: every
-reference finding survives wherever it was written, reported against the
-*referring* document at the referrer's own span, because that is the file
-a reader must open to fix it (AC-SPECREF-002.9, AC-SPECREF-002.11).
-Renaming a document's slug, retiring it and changing its `type` all break
-references held by other files, so a result narrowed strictly by path is
-silent about the very defect a write-time check exists to catch — and
-worse than silent, since the run report would then declare those rules
-`passed` over findings it had discarded. Membership in the exception is a
-property of where a rule's findings land, not of its `reference/` prefix.
-The exception costs nothing: those findings are derived from the
-reference collection the corpus holds in memory regardless of which file
-was named, so the narrowing was the only thing discarding them, and
-AC-SPEC-009.2's single-document budget is untouched. What it does not do
-is separate breakage this edit caused from breakage already present — an
-edit invalidates the content fingerprint, so the check reads a freshly
-rebuilt graph with no memory of what those references resolved to.
+(AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7). A reference
+finding is located in the *referring* document, at the referrer's own
+span, because that is the file a reader must open to fix it. `CheckFor`
+narrows every finding to the document named, with no exception: it
+reports no finding located in another document, including one held
+elsewhere that no longer resolves to the named document
+(AC-SPECREF-002.9). The rules still run over the whole corpus, so every
+reference finding located in the named document is reported exactly as a
+corpus check reports it (AC-SPECREF-002.11). What an edit breaks
+elsewhere is answered by `refs` before the edit, or by a corpus check
+after it.
 
 **They also report the anchor half of a reference, under two rule
 identifiers of its own.** `reference/unresolved-anchor` fires at
@@ -1533,11 +1526,10 @@ reference whose slug resolved to nothing gets no anchor finding at all;
 the unresolved slug is already reported and two findings for one mistake
 train a reader to skim (AC-SPECANCH-002.8). Both rules run over every
 anchored reference in an ordinary corpus check rather than behind an
-option (AC-SPECANCH-002.9), and both are corpus-wide on exactly the
-terms `reference/unresolved` is: a renamed heading breaks anchors held
-by files the renaming author never opened, so a single-document check
-reports them against the referring document at the referrer's own span
-(AC-SPECANCH-003.2). Unlike the three relational rules below, these two
+option (AC-SPECANCH-002.9), and both are narrowed by a single-document
+check exactly as `reference/unresolved` is: a check of the document whose
+heading was renamed reports no anchor finding located in a referring
+document (AC-SPECANCH-003.2). Unlike the three relational rules below, these two
 read no document off disk: what an anchor reached was settled by the
 References component during resolution, and this derives the finding
 from that record rather than matching a heading a second time.
@@ -1557,7 +1549,8 @@ find its candidates — but two of the three, in resolving a retired
 target's successor or a pairing's counterpart, call back into the
 corpus for the target document itself, which on a warm corpus reads and
 parses that one file off disk (and caches it for later callers); all
-three also run corpus-wide, unnarrowed by a single-document `CheckFor`.
+three also run over the whole corpus, and a single-document `CheckFor`
+reports the findings among them located in the named document.
 `reference/retired-target` — the first rule
 this package emits at severity `warning` rather than `error` — fires
 when a document at a status the active profile's `Lifecycle` registers
@@ -1602,11 +1595,11 @@ naming every one of them (AC-GHK-002.5). `gherkin/identifier-duplicate`
 fires for a feature or a criterion identifier declared by two records in
 the corpus, against each and naming the other's location — features and
 criteria compared separately, the Gherkin analogue of `slug/duplicate`
-(AC-GHK-002.4, AC-GHK-003.4) — and is the one rule in this set that
-survives `CheckFor`'s narrowing on the same terms `reference/unresolved`
-does: `finding.IsCorpusWideRule` (renamed from `IsReferenceRule` to admit
-a non-`reference/`-prefixed member) covers it alongside the six
-reference rules. `gherkin/criterion-code-mismatch` fires when a
+(AC-GHK-002.4, AC-GHK-003.4). Uniqueness is resolved against the whole
+corpus even on a single-document check, so an identifier the named
+document shares with another file is reported in the named document,
+naming the other location (AC-GHK-006.7); the finding raised against the
+other file is narrowed away like any other. `gherkin/criterion-code-mismatch` fires when a
 criterion's identifier and its feature's disagree on the capture values
 the profile's `SharedCaptures` name (AC-GHK-003.6) — read from the two
 compiled patterns' own named captures, never from `Feature.Code`, which
@@ -1680,8 +1673,7 @@ severity is `error`, matching `criterion-untagged`'s tier rather than
 `scenario-prose`'s, because the blueprint frames the mixture itself as
 unambiguous where a normative description is merely probable. Checking
 one document reports that document's own content findings and nothing
-more, on the same path-scoped narrowing every VTAG rule but
-`gherkin/identifier-duplicate` gets (AC-GHK-006.7).
+more, on the same path-scoped narrowing every rule gets (AC-GHK-006.7).
 
 **They check the C4 diagrams in architecture blueprints** — the first
 half of the `c4/*` family, raised from `c4NodeFindings` over the element
@@ -1985,15 +1977,6 @@ pinned by the implementation:
   and findings by path, then position, then rule and message, so the same
   run yields byte-identical output (AC-SPEC-009.7) and snapshot cases stay
   stable.
-- **Which rules survive a single-document check's narrowing is decided
-  here, by membership rather than by a `reference/` prefix.**
-  `IsCorpusWideRule` (renamed from `IsReferenceRule` by VTAG) reports
-  whether a rule's findings are raised against the declaring document
-  rather than confined to the one file `CheckFor` named — true for the
-  four reference-integrity rules and for `gherkin/identifier-duplicate`,
-  which needs the same treatment for the same reason: an edit to one
-  document can duplicate an identifier declared in another, and a result
-  narrowed strictly by path would be silent about it.
 
 The unverified mechanism is built and no check registers against it yet;
 the diagram validation AC-SPEC-006.3 illustrates is a structure-feature
@@ -2015,8 +1998,7 @@ source and target aliases; a drawing conflict with those aliases and the
 other drawing's path and span; a contract tag with its slug and both
 aliases; and a tag-separator defect with the tags argument as written.
 `c4/parse` reports at `error` and at `unverified` under one identifier,
-as `reference/unresolved-anchor` does. None is corpus-wide in the sense
-of `IsCorpusWideRule`, and none is in the command surface's check list
+as `reference/unresolved-anchor` does. None is in the command surface's check list
 until the check that raises it lands — a rule listed there reads as
 passed whenever it is requested.
 

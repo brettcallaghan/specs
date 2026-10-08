@@ -58,13 +58,14 @@ func (c *Corpus) Check() ([]specmodel.Finding, error) {
 // file, which is what keeps a single-document check from paying for the
 // whole corpus.
 //
-// Reference findings are the exception to that narrowing: every one of
-// them is reported against the document that holds the reference,
-// whichever document that is, in addition to the findings against the
-// file named (AC-SPECREF-002.9, AC-SPECREF-002.11). Renaming a
-// document's slug, retiring it, or changing its `type` all break
-// references held by *other* files, and a result narrowed strictly by
-// path would report nothing for the edit that caused them.
+// Every finding is narrowed to the named document, with no exception:
+// what an edit breaks elsewhere is answered by a corpus check, or by
+// `refs` before the edit (AC-SPECREF-002.9). The rules that need the
+// whole corpus still run over it, so a finding located in the named
+// document — an unresolved, retired-target, type-mismatched or
+// incompletely paired reference out of it, a duplicate identifier or slug
+// it shares with another document — is reported exactly as a corpus check
+// reports it (AC-SPECREF-002.11).
 //
 // It returns [ErrNotAMember] for a path no corpus member occupies, so
 // that a mistyped path, a file outside the spec root and a file the
@@ -234,42 +235,11 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 		return findings, nil
 	}
 
-	// AC-SPECREF-002.9 and AC-SPECREF-002.11: every reference finding
-	// survives the narrowing, wherever it was written. A finding belongs
-	// to the document a reader must open to fix it, and for a reference
-	// that is the referrer — so an edit to the file named breaks *other*
-	// files, and a result narrowed strictly by path is silent about the
-	// very defect a write-time check exists to catch.
-	//
-	// All four rules share that property, not only the unresolved one:
-	// renaming a slug leaves references unresolved, retiring a document
-	// leaves them resolving to a retired target, changing its type leaves
-	// them mismatched, and dropping a paired property leaves the pairing
-	// incomplete. In every case the edit is here and the finding is
-	// elsewhere. Scoping the exception to unresolved references made the
-	// report state something false rather than merely incomplete: under
-	// AC-SPEC-006.8's accounting `reference/retired-target passed` means
-	// "ran, found nothing", which is not what had happened
-	// (agent-plugins-bk4).
-	//
-	// This costs nothing. The loops above already derive these findings
-	// for the whole corpus regardless of only, because the references are
-	// in memory either way; the narrowing was the only thing discarding
-	// them.
-	//
-	// What it cannot do is separate "broken by this edit" from "already
-	// broken": an edit changes the corpus's input hash, so the check reads
-	// a freshly rebuilt graph with no memory of what those references used
-	// to resolve to. In a corpus kept green that distinction is empty —
-	// everything reported is new. In one already red, a single-document
-	// check repeats the corpus's existing breakage. Telling them apart
-	// needs real prior state, which is agent-plugins-h6c.1 (per-file
-	// digests, so a check can prove the only changed file is the one
-	// named) rather than a diff against whatever index happened to be on
-	// disk, whose age is unbounded.
+	// A single-document check reports the named document's own findings
+	// and nothing located elsewhere (AC-SPECREF-002.9).
 	var narrowed []specmodel.Finding
 	for _, f := range findings {
-		if f.Path == *only || finding.IsCorpusWideRule(f.Rule) {
+		if f.Path == *only {
 			narrowed = append(narrowed, f)
 		}
 	}

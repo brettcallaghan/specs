@@ -209,36 +209,6 @@ const (
 	RuleC4TagSeparator specmodel.RuleId = "c4/tag-separator"
 )
 
-// corpusWideRules is every rule whose finding is raised against the
-// document that *holds* the defect's declaration rather than the
-// document or record the defect is about.
-//
-// That distinction is what a single-document check turns on: an edit to
-// one document breaks a reference or a duplicated identifier held by
-// another, so these findings are reported wherever they were written
-// rather than narrowed to the file a caller named (AC-SPECREF-002.9,
-// AC-SPECREF-002.11, and — for the Gherkin identifier rule — VTAG's own
-// corpus-wide uniqueness requirement). Membership is a property of where
-// a rule's findings land, not of a `reference/` prefix: the Gherkin rule
-// below belongs here on exactly the same test the reference rules do,
-// despite carrying no such prefix itself.
-var corpusWideRules = map[specmodel.RuleId]bool{
-	RuleUnresolvedReference: true,
-	RuleUnresolvedAnchor:    true,
-	RuleAmbiguousAnchor:     true,
-	RuleRetiredTarget:       true,
-	RuleIncompletePairing:   true,
-	RuleTypeMismatch:        true,
-	RuleIdentifierDuplicate: true,
-}
-
-// IsCorpusWideRule reports whether findings of this rule are raised
-// against the declaring document rather than narrowed to the one file a
-// single-document check named — see [corpusWideRules].
-func IsCorpusWideRule(rule specmodel.RuleId) bool {
-	return corpusWideRules[rule]
-}
-
 // rootPointer is what an empty JSON Pointer is rendered as, so a message
 // about the frontmatter object itself does not begin with a bare colon.
 const rootPointer = "/"

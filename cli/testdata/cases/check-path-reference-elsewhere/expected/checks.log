@@ -1,6 +1,4 @@
-docs/adrs/adr-201-referrer.md:
-  reference/unresolved  error  12:23  [[adr-999-absent]] matches no document's slug
-  reference/retired-target  warning  13:3  "adr-202-retired" is retired
+no findings
 
 checks:
   c4/ambiguous-node  passed
@@ -32,9 +30,9 @@ checks:
   gherkin/scenario-prose  passed
   reference/ambiguous-anchor  passed
   reference/pairing-incomplete  passed
-  reference/retired-target  failed
+  reference/retired-target  passed
   reference/type-mismatch  passed
-  reference/unresolved  failed
+  reference/unresolved  passed
   reference/unresolved-anchor  passed
   slug/duplicate  passed
   slug/pattern-mismatch  passed

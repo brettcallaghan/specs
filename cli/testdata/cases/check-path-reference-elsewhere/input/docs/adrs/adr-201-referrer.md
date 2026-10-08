@@ -10,4 +10,5 @@ updated_at: 2026-08-01T00:00:00Z
 # ADR-201: The Referring Document
 
 This decision cites [[adr-999-absent]], which no document declares, and
-[[adr-202-retired]], which is retired.
+[[adr-202-retired]], which is retired. It also refines
+[[adr-200-previous-name]], the slug ADR-200 carried before it was renamed.

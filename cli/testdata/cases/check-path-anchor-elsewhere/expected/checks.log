@@ -1,5 +1,4 @@
-docs/adrs/adr-301-referrer.md:
-  reference/unresolved-anchor  error  12:25  no heading named "Decision" in docs/adrs/adr-300-renamed.md
+no findings
 
 checks:
   c4/ambiguous-node  passed
@@ -34,6 +33,6 @@ checks:
   reference/retired-target  passed
   reference/type-mismatch  passed
   reference/unresolved  passed
-  reference/unresolved-anchor  failed
+  reference/unresolved-anchor  passed
   slug/duplicate  passed
   slug/pattern-mismatch  passed

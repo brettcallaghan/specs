@@ -1,6 +1,6 @@
 ---
 title: "ADR-3: An Unrelated Defective Document"
-description: A document with a non-reference defect, present to prove that only reference findings escape the narrowing.
+description: A document with a non-reference defect, present to prove that a check of another document reports none of its findings.
 slug: adr-3
 type: adr
 status: approved

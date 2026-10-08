@@ -1,5 +1,5 @@
-description = "check <path> reports the inbound anchor references to that document that no longer resolve, each at the span in the referring document, while still narrowing every non-reference finding to the file named"
+description = "check <path> on a document whose heading was renamed reports no anchor finding located in the referring document, and exits 0; the referrer's broken anchor stays in the corpus"
 cites = ["AC-SPECANCH-003.2"]
 artifacts = ["checks.log"]
 args = ["check", "docs/adrs/adr-300-renamed.md"]
-exit_code = 1
+exit_code = 0

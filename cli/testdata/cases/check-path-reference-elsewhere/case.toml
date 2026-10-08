@@ -1,5 +1,5 @@
-description = "check <path> reports reference findings held by other documents — an unresolved reference and a retired target — while still narrowing every non-reference finding to the file named"
-cites = ["AC-SPECREF-002.9", "AC-SPECREF-002.11"]
+description = "check <path> on a clean document reports no finding located in another document, even one holding a reference that no longer resolves to the named document, and exits 0; the foreign breakage stays in the corpus"
+cites = ["AC-SPECREF-002.9"]
 artifacts = ["checks.log"]
 args = ["check", "docs/adrs/adr-200-checked.md"]
-exit_code = 1
+exit_code = 0

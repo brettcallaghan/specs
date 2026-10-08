@@ -1,0 +1,41 @@
+docs/adrs/adr-201-referrer.md:
+  reference/unresolved  error  12:23  [[adr-999-absent]] matches no document's slug
+  reference/retired-target  warning  13:3  "adr-202-retired" is retired
+  reference/unresolved  error  14:3  [[adr-200-previous-name]] matches no document's slug
+
+checks:
+  c4/ambiguous-node  passed
+  c4/bidirectional  passed
+  c4/contract-mismatch  passed
+  c4/contract-unresolved  passed
+  c4/drawing-conflict  passed
+  c4/duplicate-edge  passed
+  c4/interaction-conflict  passed
+  c4/parse  passed
+  c4/tag-separator  passed
+  c4/undeclared-node  passed
+  corpus/empty  passed
+  frontmatter/missing-property  passed
+  frontmatter/parse  passed
+  frontmatter/schema  passed
+  gherkin/criterion-code-mismatch  passed
+  gherkin/criterion-empty  passed
+  gherkin/criterion-untagged  passed
+  gherkin/examples-partially-tagged  passed
+  gherkin/feature-untagged  passed
+  gherkin/identifier-duplicate  passed
+  gherkin/identifier-malformed  passed
+  gherkin/identifier-multiple  passed
+  gherkin/owner-mismatch  passed
+  gherkin/owner-missing  passed
+  gherkin/owner-unresolved  passed
+  gherkin/parse  passed
+  gherkin/scenario-prose  passed
+  reference/ambiguous-anchor  passed
+  reference/pairing-incomplete  passed
+  reference/retired-target  failed
+  reference/type-mismatch  passed
+  reference/unresolved  failed
+  reference/unresolved-anchor  passed
+  slug/duplicate  passed
+  slug/pattern-mismatch  passed

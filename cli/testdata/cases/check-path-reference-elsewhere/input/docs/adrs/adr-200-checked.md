@@ -9,5 +9,6 @@ updated_at: 2026-08-01T00:00:00Z
 
 # ADR-200: The Checked Document
 
-Nothing is wrong with this document. The findings this case expects are
-held by others.
+Nothing is wrong with this document. Every finding in this corpus is
+located in another one, including a reference that no longer resolves to
+this document because it was renamed.

@@ -230,23 +230,21 @@ reaches a real document that says it has been replaced — so it does not
 fail a build unless you pass `--strict`. It is also the one finding that
 tells an author what to cite instead.
 
-**`specs check <path>` reports the reference findings your edit caused
-elsewhere.** All four reference rules escape the narrowing to the file
-you name, because the document that breaks a reference is never the
-document that holds it: rename a slug, retire a document or change its
-`type`, check that one file, and it names every document left citing it,
-at that document's own line. Every other rule stays scoped to the file
-you named.
+**`specs check <path>` reports that document's own findings only.** It
+resolves the document's references against the whole corpus and reports
+every finding located in it — an unresolved reference, a retired target,
+a type mismatch, a slug or identifier it shares with another document —
+at its own line. It reports nothing located in another document,
+including a reference held elsewhere that no longer resolves to the
+document you named.
 
-What no form of the check can tell you is whether a broken reference is
-*yours*. It has no memory of what those references used to resolve to,
-so breakage already in the corpus is reported alongside breakage you
-caused. In a corpus you keep green that distinction is empty. `specs refs
-<slug>` before the change still answers the blast-radius question ahead
-of time, and is the cheaper habit.
+Before you rename a slug, retire a document or change its `type`, run
+`specs refs <slug>`: it names every document citing it, which is the
+blast radius of the change. After it, a corpus-wide `specs check` reports
+what is broken anywhere.
 
 **A path that names no corpus member is an error, not a pass.**
-`specs check docs/typo.md` exits 1 and says the path is not a member —
+`specs check docs/typo.md` exits 2 and says the path is not a member —
 and where the file exists but was excluded, it names the reason
 (`no-frontmatter`, `unknown-type`). A clean report is never what you get
 for a path the corpus does not hold.
@@ -284,8 +282,8 @@ are defined in [[c4-standards]].
 | `c4/contract-mismatch` | warning | A `contract:` tag naming a contract the source element does not consume or the target element does not provide |
 | `c4/tag-separator` | warning | A tags argument that joins tags with a comma instead of `+` |
 
-Unlike the reference rules, no `c4/*` rule escapes the narrowing to the
-file you name. `c4/drawing-conflict` still compares that file's drawings
+Like every rule, each `c4/*` rule is narrowed to the file you name.
+`c4/drawing-conflict` still compares that file's drawings
 against every architecture blueprint's, but reports only the findings that
 sit in the named file.
 

@@ -454,34 +454,36 @@ func TestAPartiallyTaggedOutlinesUntaggedBlockIsNotAlsoReportedAsCriterionUntagg
 	}
 }
 
-// CheckFor narrows every Gherkin identity finding to the file named
-// except gherkin/identifier-duplicate, which resolves corpus-wide even
-// on a single-document check — the same exception reference/unresolved
-// already carries.
+// CheckFor narrows every Gherkin identity finding to the file named, and
+// still resolves identifier uniqueness against the whole corpus: an
+// identifier the named document shares with another file is reported in
+// the named document, naming the other location, while findings located
+// in other files are not reported at all (AC-SPECREF-002.9).
 //
-// AC: AC-SPECREF-002.9's own pattern, extended to VTAG's identity rules.
-func TestCheckForResolvesIdentifierDuplicateCorpusWideButNarrowsOtherGherkinFindings(t *testing.T) {
+// AC: AC-GHK-006.7
+func TestCheckForResolvesIdentifierUniquenessCorpusWideAndReportsOnlyTheNamedDocument(t *testing.T) {
 	repo := t.TempDir()
-	write(t, repo, "specs/features/frd-checkout.md", document("frd", "frd-checkout", "Checkout"))
-	write(t, repo, "specs/features/checkout.feature", "@FEAT-CHK-001 @frd-checkout\nFeature: Checkout\n")
+	write(t, repo, "specs/features/frd-checkout.md",
+		blockDocument("frd", "frd-checkout", "Checkout", "@FEAT-CHK-001\nFeature: Checkout\n"))
 	write(t, repo, "specs/features/checkout2.feature", "@FEAT-CHK-001 @frd-checkout\nFeature: Checkout again\n")
 	write(t, repo, "specs/features/refunds.feature", "@frd-checkout\nFeature: Refunds\n") // untagged, elsewhere
 
 	built := identityCorpusAt(t, repo)
-	// A `.feature` file is never a corpus member (AC-GHK-001.2), so
-	// CheckFor is asked about the one file here that is: the FRD the
-	// features are attributed to. gherkin/identifier-duplicate's
-	// corpus-wide exception is what surfaces a finding against paths
-	// other than the one named at all.
 	findings, err := built.CheckFor("specs/features/frd-checkout.md")
 	if err != nil {
 		t.Fatalf("CheckFor: %v", err)
 	}
 
-	if got := findingsWithRule(findings, finding.RuleIdentifierDuplicate, "specs/features/checkout.feature"); len(got) != 1 {
-		t.Errorf("CheckFor(checkout2.feature) reported %d duplicate findings against checkout.feature, want 1: %+v", len(got), findings)
+	duplicates := findingsWithRule(findings, finding.RuleIdentifierDuplicate, "specs/features/frd-checkout.md")
+	if len(duplicates) != 1 {
+		t.Fatalf("CheckFor(frd-checkout) reported %d duplicate findings in the named document, want 1: %+v", len(duplicates), findings)
 	}
-	if got := findingsWithRule(findings, finding.RuleFeatureUntagged, "specs/features/refunds.feature"); len(got) != 0 {
-		t.Errorf("CheckFor(checkout2.feature) reported another file's feature-untagged finding, want 0 (narrowed): %+v", got)
+	if !strings.Contains(duplicates[0].Message, "checkout2.feature") {
+		t.Errorf("message = %q, want it to name the other location", duplicates[0].Message)
+	}
+	for _, f := range findings {
+		if f.Path != "specs/features/frd-checkout.md" {
+			t.Errorf("CheckFor(frd-checkout) reported a finding located in %s: %s %s", f.Path, f.Rule, f.Message)
+		}
 	}
 }
