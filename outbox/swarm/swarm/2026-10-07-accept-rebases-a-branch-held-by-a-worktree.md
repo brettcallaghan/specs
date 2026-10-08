@@ -5,10 +5,10 @@ slug: issue-accept-rebases-a-branch-held-by-a-worktree
 audience: skill
 target: swarm
 priority: 2
-updated_at: 2026-10-07T06:36:09Z
+updated_at: 2026-10-08T22:04:20Z
 
-findings: ["c4s1#8"]
-recurrence: 0
+findings: ["c4s1#8", "qqnx#3"]
+recurrence: 4
 report: docs/retros/2026-10-07-c4s1-c4-diagrams-parser.md
 
 run: specs-c4s1
@@ -26,6 +26,8 @@ When a second concurrent dispatch is accepted after another has advanced the spr
 Finding ids are `<bead>#<ordinal>` in agent-plugins' tracker, `specs-` prefix dropped.
 
 - `c4s1#8` — "retro:tooling:swarm swarm dispatch accept could not rebase a concurrent dispatch branch: 'git rebase' exited 128, "fatal: 'bb/dev-specs-c4s1-2' is already used by worktree" — it rebases the branch from the main checkout while the dispatch's worktree still holds it. Repaired by running git rebase 36f09ee inside the worktree (clean), then accept exit 0."
+- `qqnx#3` (run `specs-qqnx`, 2026-10-08; record `docs/retros/2026-10-08-qqnx-spec-cli-qa-round-2-fixes.md`) — "retro:tooling:swarm swarm dispatch accept's concurrent case runs 'git rebase <target-sha> bb/<dispatch>' from the main checkout while bb/<dispatch> is still checked out in its worktree, so it always fails: dev-qqnx-7 accept exit 2, 'fatal: bb/dev-qqnx-7 is already used by worktree at /home/user/.bb-worktrees/dev-qqnx-7'. Workaround: git rebase sprint/specs-qqnx inside the worktree (exit 0, clean), then accept takes the serialized path. Expected: rebase inside the dispatch worktree (git -C <worktree> rebase <target-sha>)."
+- Recurrence 4: besides `specs-c4s1`, the records of `agent-plugins-d7w5`, `agent-plugins-59ic`, `specs-c4s2` and `specs-qqnx` quote the same "already used by worktree" refusal.
 
 ## Proposed change
 

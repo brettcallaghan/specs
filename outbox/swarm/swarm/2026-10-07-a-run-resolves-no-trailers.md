@@ -5,9 +5,9 @@ slug: issue-a-run-resolves-no-trailers
 audience: skill
 target: swarm
 priority: 2
-updated_at: 2026-10-07T06:05:00Z
-findings: []
-recurrence: 2
+updated_at: 2026-10-08T22:04:20Z
+findings: ["qqnx.1#7", "qqnx#2"]
+recurrence: 4
 report: docs/retros/2026-10-07-sra-c4-prerequisites-record-blocks.md
 run: specs-sra
 branch: claude/project-thread-es7x8o
@@ -26,3 +26,13 @@ ten empty blocks.
 **Proposed change.** As filed for `59ic`: the scope step resolves `trailers`
 onto the manifest, and the close step always passes `--trailers-from`. Done
 when a run's commits carry them.
+
+**Recurrence: `specs-xqm` and `specs-qqnx` (2026-10-08).** `specs-xqm`'s
+record measured 31 of 34 commits without the trailer. In `specs-qqnx`, the
+first close hit the same refusal. `qqnx.1#7`: "`--trailers-from specs-qqnx`
+exited 2 with "specs-qqnx carries no `trailers` in its manifest". The session
+attribution trailers were therefore written into the commit message by hand."
+`qqnx#2`: "--trailers-from specs-qqnx exited 2 because the manifest carried no
+trailers; the coordinator has now set manifest.trailers." Once the coordinator
+had set the trailers by hand, every later close carried them. All 22 commits in
+`4676bc4..74ee559` carry both trailers, as measured by this run's retro.
