@@ -107,7 +107,7 @@ func newCriterionCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // persisted index is rebuilt by any query, so it cannot stand for an
 // earlier state (AC-GHK-008.7).
 func runCriterionChanged(streams *ioStreams, configPath, since string, exitCode, jsonOut bool) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}
@@ -253,7 +253,7 @@ func revisionError(err error) error {
 // an empty selection exits zero rather than being confused with an
 // unknown identifier.
 func runCriterionQuery(streams *ioStreams, configPath string, args []string, of, tag string, jsonOut bool) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}

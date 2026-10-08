@@ -291,7 +291,30 @@ func TestBinaryReportsAMissingConfigurationAndExitsThree(t *testing.T) {
 		t.Errorf("process exit status = %d, want 3 (environment error)", exit.ExitCode())
 	}
 	if !containsPath(string(out), "specs.toml") {
-		t.Errorf("the failure does not name the path it looked for, which AC-SPEC-008.3 requires:\n%s", out)
+		t.Errorf("the failure does not name the file it looked for, which AC-SPEC-008.3 requires:\n%s", out)
+	}
+	// Every directory searched, from the working directory up: dir has no
+	// .git above it, so the search reaches the filesystem root.
+	resolved, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for d := resolved; ; d = filepath.Dir(d) {
+		if !containsPath(string(out), d) {
+			t.Errorf("the failure does not name the searched directory %s:\n%s", d, out)
+		}
+		if filepath.Dir(d) == d {
+			break
+		}
+	}
+	if !containsPath(string(out), "--config") {
+		t.Errorf("the failure does not say --config is the remedy:\n%s", out)
+	}
+
+	// stdout stays empty: the report is the error, on standard error.
+	stdout, _ := run(t, bin, dir, "check")
+	if stdout != "" {
+		t.Errorf("stdout = %q, want nothing", stdout)
 	}
 }
 

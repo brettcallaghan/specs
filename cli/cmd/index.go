@@ -50,7 +50,7 @@ func newIndexCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // could not run at all (no profile, no spec root, or an unreadable spec
 // root), which is a real operational error rather than a corpus defect.
 func runIndex(streams *ioStreams, configPath, out string) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}

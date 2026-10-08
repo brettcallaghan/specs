@@ -55,7 +55,7 @@ func newC4Cmd(streams *ioStreams, configPath *string) *cobra.Command {
 // slug, which is written to standard error with exit 1; nothing has
 // reached standard output by then.
 func runC4(streams *ioStreams, configPath, root string, jsonOut bool) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}

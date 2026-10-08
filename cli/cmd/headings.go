@@ -134,7 +134,7 @@ func (s selection) isPath() bool {
 // It always exits zero. A selection matching nothing is a fact about the
 // corpus rather than a failure of the invocation (AC-SPECSTR-003.6).
 func runHeadings(streams *ioStreams, configPath, operand string, emit, jsonOut bool) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}

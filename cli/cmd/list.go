@@ -158,7 +158,7 @@ type listResult struct {
 // with an empty collection would make a typo indistinguishable from an
 // empty category.
 func runList(streams *ioStreams, configPath string, types []string, all, jsonOut bool) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}

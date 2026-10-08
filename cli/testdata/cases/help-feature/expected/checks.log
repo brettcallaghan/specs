@@ -11,4 +11,4 @@ Flags:
       --out string    where to write the emitted file: a path, or omitted for standard output
 
 Global Flags:
-      --config string   path to the repository's specs.toml (default "specs.toml")
+      --config string   path to specs.toml (default: the nearest specs.toml in the working directory or above it, up to the repository root)

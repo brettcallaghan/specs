@@ -32,13 +32,6 @@ import (
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
-// defaultConfigPath is where the CLI looks for specs.toml when the
-// caller does not override it with --config: the current working
-// directory, which AC-SPEC-008.1 calls "the repository root" — this tool
-// is invoked from there, and nothing in this sprint walks upward looking
-// for one.
-const defaultConfigPath = "specs.toml"
-
 // ioStreams carries the two output streams a run writes to and the exit
 // status a gate decided on.
 //
@@ -84,7 +77,9 @@ func newRootCmd(streams *ioStreams) *cobra.Command {
 		Short: "Index and check a specification corpus",
 		Long: "specs indexes a specification corpus and reports conformance findings " +
 			"against the rules the active profile registers. Configuration is read " +
-			"from specs.toml at the repository root.",
+			"from the nearest specs.toml in the working directory or a directory " +
+			"above it, searching up to the repository root, or from the file " +
+			"--config names.",
 		SilenceUsage: true,
 		// Args is left unset (rather than cobra.NoArgs) precisely so a
 		// bare invocation is accepted and falls through to the default
@@ -99,8 +94,12 @@ func newRootCmd(streams *ioStreams) *cobra.Command {
 	// for cobra's own addition), so it is turned off rather than left to
 	// appear as an uncounted extra.
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.PersistentFlags().StringVar(&configPath, "config", defaultConfigPath,
-		"path to the repository's specs.toml")
+	// The default is empty, which means "discover": loadConfig searches
+	// for the nearest specs.toml inside the command, never here, so help
+	// and argument errors work in a directory holding none.
+	root.PersistentFlags().StringVar(&configPath, "config", "",
+		"path to specs.toml (default: the nearest specs.toml in the working "+
+			"directory or above it, up to the repository root)")
 
 	root.AddCommand(newIndexCmd(streams, &configPath))
 	root.AddCommand(newCheckCmd(streams, &configPath))

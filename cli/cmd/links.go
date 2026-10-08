@@ -60,7 +60,7 @@ func newLinksCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // refs, slug-exists and next-id do, because resolving a citation still
 // needs its index.
 func runLinks(streams *ioStreams, configPath, operand, mapPath string) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}

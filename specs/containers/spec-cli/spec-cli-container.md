@@ -137,7 +137,24 @@ run, returns the spec root, workspace identifier, activated profile and
 resolved conventions the rest of the container needs (AC-SPEC-008.2). An
 absent `specs.toml` is reported as `*cmd.ErrConfigNotFound` rather than a
 finding, per [[contract-specs-configuration]]'s "no file to carry a span
-into" (AC-SPEC-008.3).
+into" (AC-SPEC-008.3), and exits 3.
+
+Every command reaches `Load` through `loadConfig`, which reads the file
+`--config` names and searches for no other (AC-SPEC-008.8), or, with no
+`--config`, runs `discoverConfig`: the working directory and then each
+directory above it, the nearest `specs.toml` winning (AC-SPEC-008.7). The
+search stops after the repository root, the nearest directory holding a
+`.git` entry — a directory in a clone, a file in a worktree or submodule
+— and, outside any repository, runs to the filesystem root
+(AC-SPEC-008.9). The root is found by looking for `.git` rather than by
+running `git`, so discovery costs no subprocess and works where `git` is
+not installed; [[adr-031]]'s `git` dependency is change detection's
+alone. A failed search names every directory it checked, nearest first,
+and `--config` as the remedy (AC-SPEC-008.3). The discovered path is
+handed on to `corpusOptions`, so the paths the file declares resolve
+beside it and every reported path is relative to its directory
+(AC-SPEC-008.1). Discovery runs inside a command, never before one, so
+help and invocation errors need no `specs.toml`.
 
 `Registry` is the profile registry [[contract-specs-configuration]]
 names as the customization seam: it maps a `[profile].name` value to a

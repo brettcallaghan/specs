@@ -53,7 +53,7 @@ type nextIDResult struct {
 // document an author writes makes an unnumbered type numbered
 // ([[cli-exit-status-standards]]'s "A value outside a registered set").
 func runNextID(streams *ioStreams, configPath, docType string, jsonOut bool) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}

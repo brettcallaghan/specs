@@ -1,4 +1,4 @@
-specs indexes a specification corpus and reports conformance findings against the rules the active profile registers. Configuration is read from specs.toml at the repository root.
+specs indexes a specification corpus and reports conformance findings against the rules the active profile registers. Configuration is read from the nearest specs.toml in the working directory or a directory above it, searching up to the repository root, or from the file --config names.
 
 Usage:
   specs [command]
@@ -18,7 +18,7 @@ Available Commands:
   slug-exists Report whether a corpus member declares the given slug
 
 Flags:
-      --config string   path to the repository's specs.toml (default "specs.toml")
+      --config string   path to specs.toml (default: the nearest specs.toml in the working directory or above it, up to the repository root)
   -h, --help            help for specs
 
 Use "specs [command] --help" for more information about a command.

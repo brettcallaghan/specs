@@ -80,7 +80,7 @@ func newFeatureCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // identifier is exactly the kind of corpus query those subcommands'
 // shared latency budget is measured against.
 func runFeatureEmit(streams *ioStreams, configPath, id, out string) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func runFeatureEmit(streams *ioStreams, configPath, id, out string) error {
 // feature in the corpus — both are selections, and an empty selection
 // exits zero rather than being confused with an unknown identifier.
 func runFeatureQuery(streams *ioStreams, configPath string, args []string, code string, jsonOut bool) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}

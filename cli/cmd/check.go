@@ -126,7 +126,7 @@ func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict bool,
 		return invocationError("%w", err)
 	}
 
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}

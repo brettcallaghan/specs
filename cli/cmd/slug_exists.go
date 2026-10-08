@@ -46,7 +46,7 @@ type slugExistsResult struct {
 // warm (corpus.Open), the same as check, because this is exactly the
 // corpus query FEAT-SPEC-009.1's latency budget is measured against.
 func runSlugExists(streams *ioStreams, configPath, slug string, jsonOut bool) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}

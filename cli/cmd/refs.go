@@ -121,7 +121,7 @@ type refsMatch struct {
 // because this is exactly the corpus query FEAT-SPEC-009.1's latency
 // budget is measured against (AC-SPECREF-003.4).
 func runRefs(streams *ioStreams, configPath string, asked selection, outbound, full, jsonOut bool) error {
-	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}
