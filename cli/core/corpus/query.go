@@ -13,9 +13,16 @@ import (
 // Feature returns the feature id names in c's index, and whether one was
 // found. The lookup reads c.index.Features exactly as it stands — warm or
 // freshly built — so it never re-walks the corpus (AC-GHK-007.6).
+//
+// id matches regardless of letter case, as a slug does, and the record
+// returned carries the identifier as declared (AC-GHK-007.7). Two
+// declared identifiers differing only in case — which a profile whose
+// patterns admit lower case would allow — resolve to the first in index
+// order; [Corpus.FeaturesByCode] and [Corpus.Criterion] compare the same
+// way.
 func (c *Corpus) Feature(id specmodel.FeatureId) (specmodel.Feature, bool) {
 	for _, feature := range c.index.Features {
-		if feature.Id == id {
+		if strings.EqualFold(string(feature.Id), string(id)) {
 			return feature, true
 		}
 	}
@@ -37,7 +44,7 @@ func (c *Corpus) Features() []specmodel.Feature {
 func (c *Corpus) FeaturesByCode(code specmodel.FeatureCode) []specmodel.Feature {
 	var matched []specmodel.Feature
 	for _, feature := range c.index.Features {
-		if feature.Code == code {
+		if strings.EqualFold(string(feature.Code), string(code)) {
 			matched = append(matched, feature)
 		}
 	}
@@ -50,7 +57,7 @@ func (c *Corpus) FeaturesByCode(code specmodel.FeatureCode) []specmodel.Feature 
 func (c *Corpus) Criterion(id specmodel.CriterionId) (specmodel.Criterion, bool) {
 	for _, feature := range c.index.Features {
 		for _, criterion := range feature.Criteria {
-			if criterion.Id == id {
+			if strings.EqualFold(string(criterion.Id), string(id)) {
 				return criterion, true
 			}
 		}

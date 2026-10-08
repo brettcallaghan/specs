@@ -381,7 +381,10 @@ groups under that code, and `feature` with no argument and no `--code`
 every feature `corpus.Corpus.Features` holds (AC-GHK-003.3, AC-GHK-007.3).
 A feature identifier resolves the same way regardless of which admissible
 form or file it sits in, because the lookup reads the index's `Id` field
-and never its `Path` (AC-GHK-003.1). The answer has one shape whatever
+and never its `Path` (AC-GHK-003.1). An identifier and a code match
+regardless of letter case, as a slug does, and the record carries the
+spelling the corpus declares rather than the caller's (AC-GHK-007.7).
+The answer has one shape whatever
 the arguments select: a mapping whose one key, `features`, holds a list
 of the matching generated `specmodel.Feature` records, one identifier's
 lookup included, rendered as YAML by `renderYAML` by default and as JSON
@@ -431,7 +434,9 @@ without `--changed` exit 2 (AC-GHK-008.12).
 
 Querying a criterion without `--changed` reads the same warm index by a
 different corpus call. `criterion <id>` returns that criterion's record
-via `corpus.Corpus.Criterion` (AC-GHK-007.2). `criterion --of <feature-id>`
+via `corpus.Corpus.Criterion` (AC-GHK-007.2), and a criterion identifier,
+like a feature identifier given to `--of`, matches regardless of letter
+case (AC-GHK-007.7). `criterion --of <feature-id>`
 returns every criterion `corpus.Corpus.CriteriaOf` that feature holds, and
 `criterion --tag <qualifier>` every criterion `corpus.Corpus.CriteriaByTag`
 matches against the active profile's registered qualifier vocabulary —
