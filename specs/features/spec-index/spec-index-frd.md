@@ -530,11 +530,12 @@ Feature: Configuration
     And the CLI uses the first "specs.toml" it finds
 
   @AC-SPEC-008.9
-  Scenario: Outside a repository only the working directory is searched
+  Scenario: Outside a repository the search runs to the filesystem root
     Given no configuration option naming a file
     And a working directory that is not inside a git repository
     When the CLI runs
-    Then the CLI searches the working directory alone for "specs.toml"
+    Then the CLI searches the working directory and then each directory above it, stopping at the filesystem root
+    And the CLI uses the first "specs.toml" it finds
 
   @AC-SPEC-008.8
   Scenario: A configuration option overrides discovery
