@@ -1,8 +1,9 @@
 package frontmatter
 
 import (
-	"strconv"
 	"strings"
+
+	"github.com/goccy/go-yaml"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/span"
 )
@@ -63,8 +64,12 @@ func singleLineScalar(text string) (string, bool) {
 		if end < 0 || !onlyComment(text[end+1:]) {
 			return "", false
 		}
-		value, err := strconv.Unquote(text[:end+1])
-		if err != nil {
+		// Unescaped by the YAML library rather than strconv.Unquote: YAML's
+		// escape set is not Go's (`\/`, `\ `, `\e`, `\N` …), and the
+		// parser that decides whether the block parsed is the one that
+		// should decide what a quoted value says.
+		var value string
+		if err := yaml.Unmarshal([]byte(text[:end+1]), &value); err != nil {
 			return "", false
 		}
 		return value, true
