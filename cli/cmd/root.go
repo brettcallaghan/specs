@@ -20,7 +20,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -101,6 +100,8 @@ func newRootCmd(streams *ioStreams) *cobra.Command {
 		"path to specs.toml (default: the nearest specs.toml in the working "+
 			"directory or above it, up to the repository root)")
 
+	installVersionFlag(root)
+
 	root.AddCommand(newIndexCmd(streams, &configPath))
 	root.AddCommand(newCheckCmd(streams, &configPath))
 	root.AddCommand(newSlugExistsCmd(streams, &configPath))
@@ -166,25 +167,6 @@ func openCorpus(opts corpus.Options) (*corpus.Corpus, error) {
 		_ = corpus.Write(c.Index(), dest, nil)
 	}
 	return c, nil
-}
-
-// renderReport writes a check run's answer — the generated
-// [specmodel.FindingReport], its checks and findings — to streams.out as
-// YAML, or as JSON when asJSON is set (AC-SPEC-006.5). One model, two
-// syntaxes, so the two renderings carry the same values in the same
-// order by construction ([[cli-output-standards]]).
-func renderReport(streams *ioStreams, report *finding.Report, asJSON bool) error {
-	model := report.Model()
-	if asJSON {
-		data, err := json.Marshal(model)
-		if err != nil {
-			return fmt.Errorf("rendering the finding report as JSON: %w", err)
-		}
-		fmt.Fprintf(streams.out, "%s\n", data)
-		return nil
-	}
-	fmt.Fprint(streams.out, renderYAML(model))
-	return nil
 }
 
 // reportConfigDefects writes specs.toml's findings to standard error and

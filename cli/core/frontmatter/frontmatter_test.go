@@ -638,3 +638,147 @@ func TestTopLevelScalarAtLocatesTheValueAsParseWould(t *testing.T) {
 			at, src[at.Offset:at.Offset+at.Length])
 	}
 }
+
+// A comment trailing a plain scalar of any type — a string, number, bool,
+// null or infinity, on the value's own line, or on the last line of a
+// plain scalar running over two — is reported at its "#"
+// and attributed to its property; a full-line comment, a "#" inside a
+// quoted value, a "#" with no space before it and one inside a block
+// scalar are not comments trailing a value, and a comment after a key
+// whose value is a block on the lines below, after a flow collection or
+// after a quoted scalar cuts nothing short and is not reported either.
+//
+// AC: AC-SPEC-003.9, AC-SPEC-003.10
+func TestInlineCommentsAreTheCommentsTrailingAValue(t *testing.T) {
+	src := "---\n" +
+		"# a full-line comment\n" +
+		"title: \"quoted # kept\"\n" +
+		"description: a # b\n" +
+		"url: http://x#y\n" +
+		"summary: one\n  two # three\n" +
+		"block: |\n  text # kept\n" +
+		"tags:\n  - x # y\n" +
+		"items: # list below\n  - x\n" +
+		"aliases: [a, b] # flow\n" +
+		"mapped: {a: b} # flow\n" +
+		"slug: \"a\" # note\n" +
+		"single: 'a' # note\n" +
+		"version: 1.2 # beta\n" +
+		"count: 5 # five\n" +
+		"draft: true # for now\n" +
+		"nothing: null # c\n" +
+		"hex: 0x1F # c\n" +
+		"inf: .inf # c\n" +
+		"---\nbody\n"
+	doc, perr := frontmatter.Parse([]byte(src))
+	if perr != nil {
+		t.Fatalf("Parse: %v", perr)
+	}
+	type got struct {
+		property, text string
+		line, column   uint64
+	}
+	var comments []got
+	for _, c := range doc.InlineComments() {
+		comments = append(comments, got{c.Property, src[c.Span.Offset : c.Span.Offset+c.Span.Length], c.Span.StartLine, c.Span.StartColumn})
+	}
+	want := []got{
+		{"description", "# b", 4, 16},
+		{"summary", "# three", 7, 7},
+		{"tags", "# y", 11, 7},
+		{"version", "# beta", 18, 14},
+		{"count", "# five", 19, 10},
+		{"draft", "# for now", 20, 13},
+		{"nothing", "# c", 21, 15},
+		{"hex", "# c", 22, 11},
+		{"inf", "# c", 23, 11},
+	}
+	if !reflect.DeepEqual(comments, want) {
+		t.Errorf("InlineComments = %+v, want %+v", comments, want)
+	}
+	if d, _ := doc.Property("description"); d.Value != "a" {
+		t.Errorf("description = %q, want the value cut short at the comment, \"a\"", d.Value)
+	}
+}
+
+// A comment preceded by tabs — between the value and the "#", or between
+// the key and the value — is located at its "#", not at a tab or at the
+// value.
+//
+// AC: AC-SPEC-003.9
+func TestAnInlineCommentAfterTabsIsLocatedAtItsHash(t *testing.T) {
+	for _, tc := range []struct {
+		line   string
+		column uint64
+	}{
+		{"description: a\t# b\n", 16},
+		{"x: a\t\t\t# c\n", 8},
+		{"x:\t\ta # c\n", 7},
+		{"x: a \t # c\n", 8},
+	} {
+		src := "---\n" + tc.line + "---\nbody\n"
+		doc, perr := frontmatter.Parse([]byte(src))
+		if perr != nil {
+			t.Fatalf("Parse(%q): %v", src, perr)
+		}
+		got := doc.InlineComments()
+		if len(got) != 1 {
+			t.Fatalf("InlineComments(%q) = %+v, want one", src, got)
+		}
+		text := src[got[0].Span.Offset : got[0].Span.Offset+got[0].Span.Length]
+		if text[0] != '#' || got[0].Span.StartLine != 2 || got[0].Span.StartColumn != tc.column {
+			t.Errorf("InlineComments(%q) span = %q at %d:%d, want the \"#\" at 2:%d",
+				src, text, got[0].Span.StartLine, got[0].Span.StartColumn, tc.column)
+		}
+	}
+}
+
+// A comment after an anchor or tag whose collection follows on the next
+// lines cuts nothing short: the anchor's name lexes as
+// a string but is not a value. A comment after an anchored plain scalar
+// still does.
+//
+// AC: AC-SPEC-003.9, AC-SPEC-003.10
+func TestACommentAfterAnAnchoredCollectionIsNotInline(t *testing.T) {
+	for _, tc := range []struct {
+		yaml string
+		want int
+	}{
+		{"a: &anc # note\n  - x\n", 0},
+		{"a: &anc # note\n  k: v\n", 0},
+		{"a: !!seq # note\n  - x\n", 0},
+		{"a: &anc v # note\n", 1},
+	} {
+		src := "---\n" + tc.yaml + "---\nbody\n"
+		doc, perr := frontmatter.Parse([]byte(src))
+		if perr != nil {
+			t.Fatalf("Parse(%q): %v", src, perr)
+		}
+		if got := doc.InlineComments(); len(got) != tc.want {
+			t.Errorf("InlineComments(%q) = %+v, want %d", src, got, tc.want)
+		}
+	}
+}
+
+// A full-line comment directly after a block scalar is not an inline
+// comment, whichever of the four block indicators introduces it, and nor
+// is a comment on the indicator's own line.
+//
+// AC: AC-SPEC-003.10
+func TestAFullLineCommentAfterABlockScalarIsNotInline(t *testing.T) {
+	for _, indicator := range []string{"|", "|-", ">", ">-"} {
+		for _, src := range []string{
+			"---\ndescription: " + indicator + "\n  one\n  two\n# own line\nslug: x\n---\nbody\n",
+			"---\ndescription: " + indicator + "\n  one\n  two\n  # indented own line\n---\nbody\n",
+			"---\ndescription: " + indicator + " # header\n  one\n---\nbody\n",
+		} {
+			doc, perr := frontmatter.Parse([]byte(src))
+			if perr != nil {
+				t.Fatalf("Parse(%q): %v", src, perr)
+			}
+			if got := doc.InlineComments(); len(got) != 0 {
+				t.Errorf("InlineComments(%q) = %+v, want none", src, got)
+			}
+		}
+	}
+}

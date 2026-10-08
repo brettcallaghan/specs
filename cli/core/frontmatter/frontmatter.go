@@ -32,6 +32,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
+	"github.com/goccy/go-yaml/lexer"
 	"github.com/goccy/go-yaml/parser"
 	"github.com/goccy/go-yaml/token"
 
@@ -117,8 +118,33 @@ type Document struct {
 	// document declares them.
 	Properties []Property
 
-	values map[string]any
-	index  map[string]int
+	values   map[string]any
+	index    map[string]int
+	comments []InlineComment
+}
+
+// InlineComment is a YAML comment trailing a value on the same line of a
+// frontmatter block. Unquoted, a "#" preceded by whitespace starts a
+// comment, so the text after it is silently not part of the value.
+type InlineComment struct {
+	// Property is the top-level property whose source the comment sits
+	// in.
+	Property string
+
+	// Span runs from the comment's "#" to the end of its line, in
+	// whole-document coordinates.
+	Span specmodel.Span
+}
+
+// InlineComments returns, in source order, every comment that cuts a
+// plain scalar short: one that directly follows, on the same line, a value
+// written without quotes — a string, number, bool, null or infinity — as
+// classified from the parsed tree. A comment on a line holding nothing
+// else, or one after a quoted scalar, a flow collection, a block scalar's
+// header, an alias, or a key, anchor or tag whose value is on the lines
+// below, cuts no value short and is not one (AC-SPEC-003.10).
+func (d *Document) InlineComments() []InlineComment {
+	return d.comments
 }
 
 // Locate reports the region of src's frontmatter block: Outer over both
@@ -169,7 +195,8 @@ func Parse(src []byte) (*Document, *specmodel.ParseError) {
 	}
 
 	inner := span.Slice(src, region.Inner)
-	file, err := parser.ParseBytes(inner, 0)
+	tokens := lexer.Tokenize(string(inner))
+	file, err := parser.Parse(tokens, 0)
 	if err != nil {
 		return nil, syntaxError(src, region, err)
 	}
@@ -204,7 +231,122 @@ func Parse(src []byte) (*Document, *specmodel.ParseError) {
 		doc.Properties = append(doc.Properties, property)
 		doc.values[property.Name] = property.Value
 	}
+	plain := map[*token.Token]bool{}
+	collectPlainScalars(body, plain)
+	doc.comments = inlineComments(src, region, tokens, plain, doc.Properties)
 	return doc, nil
+}
+
+// inlineComments finds the comments in the block that cut a plain
+// (unquoted) scalar short: a comment whose preceding token is the token of
+// a plain scalar in the parsed tree — a string, number, bool, null or
+// infinity written without quotes — which is the one place text a reader
+// meant as value is lost. A comment after a key with no value on its line,
+// after an anchor or tag whose collection follows on the next lines, after
+// an alias, a flow collection or a quoted scalar, inside or after a block
+// scalar, or on a line of its own cuts nothing short and is not reported.
+// Each is attributed to the property whose key most closely precedes it.
+// It reads the tokens [Parse] parsed, so the tree and the comments agree
+// on which token is which.
+func inlineComments(src []byte, region span.Region, tokens token.Tokens, plain map[*token.Token]bool, properties []Property) []InlineComment {
+	var found []InlineComment
+	var prev *token.Token
+	for _, tok := range tokens {
+		if tok.Type != token.CommentType {
+			prev = tok
+			continue
+		}
+		if prev == nil || !plain[prev] {
+			continue
+		}
+		start := commentHash(src, absolute(region, src, tok))
+		if ownLine(src, start) {
+			continue
+		}
+		end := start
+		for end < len(src) && src[end] != '\n' {
+			end++
+		}
+		for end > start && src[end-1] == '\r' {
+			end--
+		}
+		owner := ""
+		for _, p := range properties {
+			if int(p.Key.Offset) <= start {
+				owner = p.Name
+			}
+		}
+		found = append(found, InlineComment{Property: owner, Span: span.Of(src, start, end-start)})
+	}
+	return found
+}
+
+// collectPlainScalars records the token of every plain scalar value in the
+// tree under node. An anchor's or alias's name lexes as a string but is
+// not a value, and a block scalar's content is lexed as a plain string
+// though it is not one, so none of them is recorded.
+func collectPlainScalars(node ast.Node, plain map[*token.Token]bool) {
+	switch n := node.(type) {
+	case *ast.StringNode:
+		if n.Token != nil && n.Token.Type == token.StringType {
+			plain[n.Token] = true
+		}
+	case *ast.IntegerNode:
+		plain[n.Token] = true
+	case *ast.FloatNode:
+		plain[n.Token] = true
+	case *ast.BoolNode:
+		plain[n.Token] = true
+	case *ast.NullNode:
+		plain[n.Token] = true
+	case *ast.InfinityNode:
+		plain[n.Token] = true
+	case *ast.NanNode:
+		plain[n.Token] = true
+	case *ast.MappingNode:
+		for _, v := range n.Values {
+			collectPlainScalars(v, plain)
+		}
+	case *ast.MappingValueNode:
+		collectPlainScalars(n.Key, plain)
+		collectPlainScalars(n.Value, plain)
+	case *ast.MappingKeyNode:
+		collectPlainScalars(n.Value, plain)
+	case *ast.SequenceNode:
+		for _, v := range n.Values {
+			collectPlainScalars(v, plain)
+		}
+	case *ast.TagNode:
+		collectPlainScalars(n.Value, plain)
+	case *ast.AnchorNode:
+		collectPlainScalars(n.Value, plain)
+	}
+}
+
+// commentHash returns the offset of the "#" opening the comment the lexer
+// places at offset. The lexer's column for a comment runs short when tabs
+// precede it on the line, landing on a tab or on the value itself, so the
+// "#" is found in the source: the first one at or after offset that starts
+// the line or follows a space or tab, which in a plain scalar is always
+// where the comment begins. offset is returned unchanged if the line holds
+// none.
+func commentHash(src []byte, offset int) int {
+	for i := offset; i < len(src) && src[i] != '\n'; i++ {
+		if src[i] == '#' && (i == 0 || src[i-1] == ' ' || src[i-1] == '\t' || src[i-1] == '\n') {
+			return i
+		}
+	}
+	return offset
+}
+
+// ownLine reports whether only whitespace precedes offset on its line.
+func ownLine(src []byte, offset int) bool {
+	for i := offset - 1; i >= 0 && src[i] != '\n'; i-- {
+		if src[i] != ' ' && src[i] != '\t' {
+			return false
+		}
+	}
+	return true
 }
 
 // Property returns the named property.

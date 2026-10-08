@@ -1,1 +1,1 @@
-{"checks":[{"rule":"reference/pairing-incomplete","outcome":"passed"}],"findings":[]}
+{"summary":{"errors":0,"warnings":0,"unverified":0},"findings":[],"checks":[{"rule":"reference/pairing-incomplete","outcome":"passed"}]}

@@ -1,0 +1,5 @@
+description = "check --verbose lists every check the run accounts for after its findings, and keeps the exit status"
+cites = ["AC-SPEC-006.12", "AC-SPEC-006.13"]
+artifacts = ["checks.log"]
+args = ["check", "--verbose"]
+exit_code = 1

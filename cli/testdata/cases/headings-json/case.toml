@@ -1,5 +1,5 @@
-description = "headings --json carries the same values in the same order as the YAML rendering"
-cites = ["AC-SPECSTR-003.1"]
+description = "(full view) headings --json carries the same values in the same order as the YAML rendering"
+cites = ["AC-SPECSTR-003.1", "AC-SPECSTR-003.1"]
 artifacts = ["checks.json"]
-args = ["headings", "adr-001-first#Overview", "--json"]
+args = ["headings", "adr-001-first#Overview", "--json", "--full"]
 exit_code = 0

@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -10,6 +12,7 @@ import (
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
+	"github.com/brettcallaghan/agent-plugins/cli/core/revisions"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
@@ -42,6 +45,7 @@ var checkRules = []specmodel.RuleId{
 	finding.RuleFrontmatterParse,
 	finding.RuleSchemaViolation,
 	finding.RuleMissingProperty,
+	finding.RuleInlineComment,
 	finding.RuleSlugPattern,
 	finding.RuleDuplicateSlug,
 	finding.RuleUnresolvedReference,
@@ -80,7 +84,7 @@ var checkRules = []specmodel.RuleId{
 // newCheckCmd builds the `check` subcommand: run conformance checks over
 // the corpus, or over one document, per FEAT-SPEC-006 (AC-SPEC-011.2).
 func newCheckCmd(streams *ioStreams, configPath *string) *cobra.Command {
-	var jsonOut, strict bool
+	var jsonOut, strict, verbose bool
 	var only []string
 
 	cmd := &cobra.Command{
@@ -96,7 +100,7 @@ func newCheckCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			if len(args) == 1 {
 				path = args[0]
 			}
-			return runCheck(streams, *configPath, path, jsonOut, strict, only)
+			return runCheck(streams, *configPath, path, jsonOut, strict, verbose, only)
 		},
 	}
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
@@ -105,6 +109,8 @@ func newCheckCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		"exit non-zero when the run produces only warning or unverified findings")
 	cmd.Flags().StringSliceVar(&only, "only", nil,
 		"run only the named checks (by rule identifier); repeatable or comma-separated")
+	cmd.Flags().BoolVar(&verbose, "verbose", false,
+		"also list every check the run accounts for, with its outcome")
 	return cmd
 }
 
@@ -117,7 +123,7 @@ func newCheckCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // building fresh, because a check is exactly the query FEAT-SPEC-009's
 // latency budgets are measured against, and a persisted index at the
 // default location answers it without re-walking the corpus.
-func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict bool, only []string) error {
+func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict, verbose bool, only []string) error {
 	// An --only value naming no known check is a malformed question, not
 	// a request the corpus happens to satisfy: answered with a report, a
 	// misspelt rule would read as "every requested check passed" and exit
@@ -149,7 +155,17 @@ func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict bool,
 	if path == "" {
 		raw, err = c.Check()
 	} else {
-		raw, err = c.CheckFor(path)
+		var former []string
+		if member, ok := c.MemberPath(path); ok {
+			slug, note := formerSlug(opts.RepoRoot, member)
+			if note != "" {
+				fmt.Fprintf(streams.err, "note: %s; references elsewhere that this document's change broke are not checked\n", note)
+			}
+			if slug != "" {
+				former = append(former, slug)
+			}
+		}
+		raw, err = c.CheckFor(path, former...)
 	}
 	if err != nil {
 		// A path naming no corpus member is the caller's mistake, not a
@@ -169,10 +185,77 @@ func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict bool,
 	}
 
 	report := buildCheckReport(raw, only)
-	if err := renderReport(streams, report, jsonOut); err != nil {
+	if err := renderCheck(streams, checkAnswerFor(report, verbose), jsonOut); err != nil {
 		return err
 	}
+	// The exit status is the report's, whatever view of it was rendered
+	// (AC-SPEC-006.13).
 	streams.exitCode = exitCodeFor(report, strict)
+	return nil
+}
+
+// checkAnswer is what check writes: a command-level view over the
+// generated [specmodel.FindingReport], as refs' compact view is over its
+// full result. It leads with the summary, then the findings, and carries
+// the per-check outcomes only under --verbose (AC-SPEC-006.11,
+// AC-SPEC-006.12; [[cli-output-standards]]'s summary carve-out).
+//
+// The field order is the rendering order in both syntaxes.
+type checkAnswer struct {
+	Summary  checkSummary            `json:"summary"`
+	Findings []specmodel.Finding     `json:"findings"`
+	Checks   []specmodel.CheckResult `json:"checks,omitempty"`
+}
+
+// checkSummary counts the answer's findings by severity. Every severity
+// the finding vocabulary defines is always present, so the three counts
+// sum to the number of findings the answer holds.
+type checkSummary struct {
+	Errors     int `json:"errors"`
+	Warnings   int `json:"warnings"`
+	Unverified int `json:"unverified"`
+}
+
+// checkAnswerFor derives the answer from report. Under --only the report
+// holds only the requested rules' findings, so the summary counts only
+// those. Without verbose the answer carries no checks key at all: a
+// failed check is already visible as its findings, and a check not
+// requested is one the caller left out of --only.
+func checkAnswerFor(report *finding.Report, verbose bool) checkAnswer {
+	model := report.Model()
+	answer := checkAnswer{Findings: model.Findings}
+	if answer.Findings == nil {
+		answer.Findings = []specmodel.Finding{}
+	}
+	for _, f := range model.Findings {
+		switch f.Severity {
+		case finding.SeverityError:
+			answer.Summary.Errors++
+		case finding.SeverityWarning:
+			answer.Summary.Warnings++
+		case finding.SeverityUnverified:
+			answer.Summary.Unverified++
+		}
+	}
+	if verbose {
+		answer.Checks = model.Checks
+	}
+	return answer
+}
+
+// renderCheck writes answer to streams.out as YAML, or as JSON under
+// --json: one value, two syntaxes, so the renderings carry the same
+// values in the same order by construction ([[cli-output-standards]]).
+func renderCheck(streams *ioStreams, answer checkAnswer, asJSON bool) error {
+	if asJSON {
+		data, err := json.Marshal(answer)
+		if err != nil {
+			return fmt.Errorf("rendering the check answer as JSON: %w", err)
+		}
+		fmt.Fprintf(streams.out, "%s\n", data)
+		return nil
+	}
+	fmt.Fprint(streams.out, renderYAML(answer))
 	return nil
 }
 
@@ -212,6 +295,42 @@ func buildCheckReport(findings []specmodel.Finding, only []string) *finding.Repo
 		}
 	}
 	return report
+}
+
+// formerSlug reads the slug the corpus member at member — a path relative
+// to repoRoot, the corpus's own spelling — declared at git HEAD, the
+// version every citation of it was written against (AC-SPECREF-002.11).
+// It returns "" with no note for a document HEAD does not hold, which has
+// no former slug, and "" with a note saying why where HEAD cannot be read
+// at all: no git, no work tree, no commit yet (AC-SPECREF-002.13). A
+// missing base never fails the check, whose own findings are still sound.
+func formerSlug(repoRoot, member string) (string, string) {
+	file := filepath.Join(repoRoot, filepath.FromSlash(member))
+	repo, err := revisions.Open(filepath.Dir(file))
+	if err != nil {
+		return "", err.Error()
+	}
+	top, err := filepath.EvalSymlinks(repo.Root())
+	if err != nil {
+		return "", err.Error()
+	}
+	resolved, err := filepath.EvalSymlinks(file)
+	if err != nil {
+		return "", err.Error()
+	}
+	rel, err := filepath.Rel(top, resolved)
+	if err != nil || !filepath.IsLocal(rel) {
+		return "", fmt.Sprintf("%s is not inside the git work tree at %s", member, repo.Root())
+	}
+	src, found, err := repo.FileAt("HEAD", filepath.ToSlash(rel))
+	if err != nil {
+		return "", err.Error()
+	}
+	if !found {
+		return "", ""
+	}
+	slug, _ := corpus.DeclaredSlug(src)
+	return slug, ""
 }
 
 // requestedRules converts --only's raw values into a lookup set, or nil

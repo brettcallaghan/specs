@@ -1,4 +1,5 @@
-checks:
-  - rule: frontmatter/schema
-    outcome: passed
+summary:
+  errors: 0
+  warnings: 0
+  unverified: 0
 findings: []

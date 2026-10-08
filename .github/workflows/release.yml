@@ -115,7 +115,7 @@ jobs:
 
             echo "==> $goos/$goarch"
             GOOS="$goos" GOARCH="$goarch" \
-              go build -trimpath -ldflags="-s -w" -o "$stage/$binary" ./specs
+              go build -trimpath -ldflags="-s -w -X github.com/brettcallaghan/agent-plugins/cli/cmd.version=${version}" -o "$stage/$binary" ./specs
 
             name="specs_${version}_${goos}_${goarch}"
             if [ "$goos" = "windows" ]; then

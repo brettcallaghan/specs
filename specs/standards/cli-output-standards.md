@@ -6,8 +6,8 @@ description: What every specs command writes to its output stream — YAML
 slug: cli-output-standards
 type: standards
 status: approved
-updated_at: 2026-10-08T00:00:00Z
-version: "0.2"
+updated_at: 2026-10-08T18:00:00Z
+version: "0.3"
 ---
 
 # Spec CLI Output Standards
@@ -120,6 +120,22 @@ see the collection. No summary — a summary of a mapping in view is a
 second copy of it. No outcome line — the exit status carries the outcome,
 and a process printing its own exit status tells the caller what they
 already hold.
+
+WHERE a count is a property the run established rather than a
+restatement of a collection the answer renders, the answer MAY carry it.
+`check`'s `summary` is such a property: the number of findings of each
+severity the run raised, which decides the exit status and is what a
+reader scanning the head of the output needs before the findings
+themselves. It is rendered first, carries every severity the finding
+vocabulary defines whether or not its count is zero, and never replaces
+the findings it counts.
+
+**Rationale:** the rule forbids a second copy of what the reader can
+already see, not a fact the run established. A count of findings by
+severity is the run's verdict in numbers — the property a gate reads —
+and a reader cannot see it at the head of a long answer without
+counting. The carve-out is narrow on purpose: a count that merely
+announces the length of the list beneath it remains forbidden.
 
 ---
 
@@ -242,6 +258,73 @@ document's references.
 The properties the query established above the references are rendered
 as in the full answer.
 
+#### `refs --outbound`: the compact view groups by target
+
+An outbound query's citing document is always the document queried, so
+its compact view groups references by the slug they cite instead: one
+entry per cited slug, in the order each is first cited, holding every
+reference to it. Inbound compact and every `--full` answer are as above.
+
+| field of the full answer | in the outbound compact view |
+|---|---|
+| `slug` | kept, as the grouping key — one entry per cited slug, compared case-insensitively as slugs resolve, spelled as first cited |
+| `resolution.target_path` | kept, rendered `path`; `null` when the slug resolves to nothing |
+| `resolution.state` | kept, rendered `resolution: {state}`, only when the reference is not resolved |
+| `span.start_line` | kept, rendered `line`, one entry of `lines` per reference |
+| `text` | kept, in each entry of `lines` |
+| `origin` | kept in each entry of `lines`, only for a reference in frontmatter |
+| `ambiguous_anchor` | kept in each entry of `lines`, written only where true |
+| `path` | dropped — it is the document queried |
+| `anchor` | dropped — `text` carries it |
+| `span.offset`, `span.length`, `span.start_column`, `span.end_line`, `span.end_column` | dropped |
+| `anchor_resolution.heading` | dropped |
+
+#### `headings`: the compact view and `--full`
+
+`headings` answers with the compact view by default and with the full
+answer under `--full`. `--emit` writes a section as itself and takes
+neither view; `--full` with `--emit` is an invocation error.
+
+| field of the full answer | in the compact view |
+|---|---|
+| `anchor` | kept |
+| `ref` | kept |
+| `level` | kept |
+| `path` | dropped — `ref` carries the document |
+| `text`, `identifier` | dropped — `anchor` carries the identifier |
+| `section` (the span of the content beneath the heading) | dropped |
+
+`start_line` is the one field the compact view derives rather than
+selects: the line the heading itself stands on, which the full match
+does not carry as a field of its own (its `section` begins after the
+heading line).
+
+The properties the query established above the matches — `declared`,
+where the selection names a document — are rendered as in the full
+answer.
+
+#### `feature`: the compact view and `--full`
+
+`feature` answers with the compact view by default and with the full
+record under `--full`. `--emit` writes a Gherkin source as itself and
+takes neither view; `--full` with `--emit` is an invocation error.
+
+| field of the full answer | in the compact view |
+|---|---|
+| `id` | kept |
+| `code` | kept |
+| `name` | kept |
+| `path` | kept |
+| `criteria` | dropped; its length is rendered `criteria_count` |
+| `document_slug`, `description`, `source`, `span` | dropped |
+
+`criteria_count` is the one field the compact view derives rather than
+selects: the full record carries the criteria themselves, not their
+count. It is named apart from `criteria` so that one key never holds two
+types across the two views. The properties the query established above
+the features — `declared`, where the arguments name a subject — are
+rendered as in the full answer.
+
 ---
 
 WHERE a command's design says its output belongs in a file, the command
@@ -355,22 +438,25 @@ Stated because the absence is a decision rather than an omission.
 
 ## Current conformance
 
-Measured with a binary built from `main` at `12b2eda`
+"Prints today" is measured with a binary built at `47d4215`
 (`go build -C cli -o ../build/specs ./specs`), run against this
-repository's corpus.
+repository's corpus. "Not yet conforming" names behavior the amended
+specifications require and that binary does not yet have; each row
+reads "conforms" once its command does.
 
 | command | prints today | to conform |
 |---|---|---|
-| `refs <slug>[#<anchor>]` | a YAML mapping of the properties the query established, the references in the compact view beneath it, and every field of every reference under `--full`; `--json` the same values in the same order | conforms |
+| `check [path]` | a YAML mapping of `summary` (`errors`, `warnings`, `unverified`) and then `findings`, with `checks` (only the checks the run was asked for) after them only under `--verbose`; `--json` the same values in the same order | conforms |
 | `list` | a YAML mapping whose one key is the sequence of documents; `--json` the same values in the same order | conforms |
-| `slug-exists <slug>` | a YAML mapping carrying `slug`, `declared` and `path` (`null` where undeclared); `--json` the same values in the same order | conforms |
+| `feature` | a YAML mapping whose key `features` holds a list of feature records in the compact view (`id`, `code`, `name`, `path`, `criteria_count`) by default and every field under `--full`, whatever the arguments select, one identifier included, preceded by `declared` where the arguments name a subject; `--json` the same values in the same order | conforms (AC-GHK-007.10 to AC-GHK-007.12) |
 | `next-id <type>` | a YAML mapping carrying `number` and then `slug`, `number: 32` and `slug: adr-032`; `--json` the same values in the same order | conforms |
-| `check [path]` | a YAML mapping of `checks` (only the checks the run was asked for) and `findings`; `--json` the same values in the same order | conforms |
-| `feature`, `criterion` | a YAML mapping whose key `features` or `criteria` holds a list of records whatever the arguments select, one identifier included, preceded by `declared` where the arguments name a subject; `--json` the same values in the same order | conforms |
+| `criterion` | a YAML mapping whose key `criteria` holds a list of records whatever the arguments select, one identifier included, preceded by `declared` where the arguments name a subject; under `--changed`, `base` then `criteria` carrying `id`, `name`, `classification` and `path`, plus `record` and `base_record` under `--full`; `--json` the same values in the same order | conforms |
 | `links <path>` | the rewritten document | conforms — a document payload, written as itself |
+| `refs <slug>[#<anchor>]` | a YAML mapping of the properties the query established, the references in the compact view beneath it, and every field of every reference under `--full`; `--json` the same values in the same order | conforms |
 | `index` | the artifact, or the bare path it wrote | the artifact is out of scope; the printed path is an answer |
-| `headings <selection>` | a YAML mapping whose key `matches` is the sequence of matches, each carrying its heading path, preceded by `declared` where the selection names a document; `--json` the same values in the same order; `--emit` the one matched section as itself, and refused with exit `2` when several match | conforms. Its rendering is the source of the `renderYAML` the other commands adopt |
+| `slug-exists <slug>` | a YAML mapping carrying `slug` (as the member declares it where one does, as given where none does), `declared` and `path` (`null` where undeclared); `--json` the same values in the same order | conforms |
 | `c4 [--root <slug>]` | a YAML mapping of the C4 model, carrying `root_declared` under `--root`; `--json` the same values in the same order | conforms — written against these standards, and renders through `renderYAML` unchanged |
+| `headings <selection>` | a YAML mapping whose key `matches` is the sequence of full matches, each carrying its heading path, preceded by `declared` where the selection names a document; `--json` the same values in the same order; `--emit` the one matched section as itself, and refused with exit `2` when several match | conforms — carries `anchor` and `ref`; answers in the compact view above by default and the full match under `--full`; omits members no longer in effect unless `--all`; refuses `--emit` matching nothing (AC-SPECSTR-003.1, AC-SPECSTR-003.12 to AC-SPECSTR-003.17). Its rendering is the source of the `renderYAML` the other commands adopt |
 
 Migration is per command and belongs to whichever feature next touches
 it. Every command carries snapshot cases under `cli/testdata/cases/`,

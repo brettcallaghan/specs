@@ -111,35 +111,75 @@ $ specs criterion --tag nonsense        # exit 2
 | `specs criterion [<id>]` | What does this acceptance criterion say — and which changed? |
 | `specs links <path>` | This document with its wikilinks rewritten as markdown links |
 
+**`specs --version`** answers which build is running — what a bug
+report needs. It writes a YAML mapping of `version`, `revision`, `time`
+and `modified` and exits 0, with no subcommand and nothing on standard
+error; it has no `--json` form. `version` is the version stamped into a
+release build, else the module version (`(devel)` for a local build);
+`revision`, `time` and `modified` are the binary's version-control build
+settings, each `null` where the build recorded none (a `go install` of a
+tagged module records none).
+
+```
+$ specs --version
+version: (devel)
+revision: 3f1c0a9e2b7d4c5a8e6f1b0d9c2a7e4f5b6a8c1d
+time: 2026-10-08T20:51:03Z
+modified: false
+```
+
 **`specs check`** validates every document's frontmatter against the
 active profile's schema and slug patterns, reports duplicate slugs, and
 applies the reference, C4, Gherkin and metadata rules in the sections
-below. Its answer is a YAML mapping of `checks` (every rule the run was
-asked for, each `passed`, `failed` or `unverified`) and `findings` (each
-with its rule, severity, path, span and message); `--json` writes the
-same values as JSON. `--strict` makes warning and unverified findings
-fail too. `--only <rule>` narrows to named rules — repeatable or
-comma-separated — and `checks` then lists only those:
+below. Its answer leads with a `summary` — the counts of `errors`,
+`warnings` and `unverified` findings, all three always present — and then
+the `findings` (each with its rule, severity, path, span and message), so
+the head of a failing run's output is its findings. `--json` writes the
+same values in the same order. `--strict` makes warning and unverified
+findings fail too. `--verbose` adds `checks` after the findings: every
+rule the run was asked for, each `passed`, `failed` or `unverified`. The
+answer's shape never changes the exit status. `--only <rule>` narrows to
+named rules — repeatable or comma-separated — and the summary then counts
+only their findings, and `checks` lists only those:
 
 ```
-$ specs check --only reference/unresolved
+$ specs check
+summary:
+  errors: 0
+  warnings: 0
+  unverified: 0
+findings: []
+
+$ specs check --verbose --only reference/unresolved
+summary:
+  errors: 0
+  warnings: 0
+  unverified: 0
+findings: []
 checks:
   - rule: reference/unresolved
     outcome: passed
-findings: []
 ```
 
-**`specs check <path>` reports only the findings located in that
-file.** It resolves the document's references against the whole corpus
-and reports every finding that sits in it — an unresolved reference or
-anchor, a retired target, a type mismatch, a slug or identifier it
-shares with another document — at its own line. It reports nothing
-located in another document, including a reference held elsewhere that
-no longer resolves to the document you named. Before you rename a slug,
-retire a document or change its `type`, run `specs refs <slug>`: it
-names every document citing it, which is the blast radius of the
-change. After it, a whole-corpus `specs check` reports what is broken
-anywhere.
+**`specs check <path>` reports the findings located in that file, and
+the references elsewhere that your change to it broke.** It resolves
+the document's references against the whole corpus and reports every
+finding that sits in it — an unresolved reference or anchor, a retired
+target, a type mismatch, a slug or identifier it shares with another
+document — at its own line. It also reports, each at its line in the
+citing document, every reference elsewhere that cites a slug the
+document declared at git HEAD and no longer declares — an uncommitted
+rename — and every anchor elsewhere into the document that no longer
+names a heading of it. Nothing else located in another document is
+reported: an unrelated broken link elsewhere stays out. Outside a git
+work tree (or without git) there is no HEAD to compare with, so the
+check writes one `note:` line to standard error saying the references
+elsewhere were not checked and answers with the document's own findings.
+A changed `type` or a retirement is not reported elsewhere, because the
+citing reference still resolves. Before you rename a slug, retire a
+document or change its `type`, run `specs refs <slug>`: it names every
+document citing it, which is the blast radius of the change. After it, a
+whole-corpus `specs check` reports what is broken anywhere.
 
 **A path that names no corpus member is a refusal, not a pass.** Where
 the file exists but was excluded, the message names the reason
@@ -181,7 +221,9 @@ slug: adr-032
 
 **`specs slug-exists <slug>`** answers whether any document declares that
 slug, and where. Case-insensitive, because a case-insensitive filesystem
-cannot hold two files that differ only in case. It exits 0 either way.
+cannot hold two files that differ only in case. The slug is written as the
+document declares it where one does, so `ADR-012` answers `adr-012`; where no
+document declares it, the slug is written as given. It exits 0 either way.
 Run it before claiming a slug.
 
 ```
@@ -200,7 +242,10 @@ every reference instead — its span, its origin (body or which
 frontmatter property) and what it resolved to — so a rewrite opens only
 the lines that carry the reference. `--outbound` reverses the direction
 and lists what that document itself references, which is what to read
-before editing one.
+before editing one. Its compact answer groups by cited slug instead of by
+document: one entry per slug, carrying the `path` to read it at (`null`
+when it resolves to nothing, with `resolution.state`) and the `lines`
+that cite it.
 
 ```
 $ specs refs adr-016
@@ -351,18 +396,20 @@ is a repository-relative path; otherwise it is a slug. A heading is
 matched on its identifier, so letter case and punctuation do not decide
 a match. The heading half may be a path of headings joined by `#`,
 outermost first, each nested anywhere inside the one before it. Each
-match carries its file `path`, `text`, `identifier`, `heading_path`,
-`level` and the `section` span of the content beneath it, and is
+match is compact by default: its `anchor`, its `ref`, its `level` and the
+`start_line` its heading stands on. `--full` adds the file `path`, `text`,
+`identifier` and the `section` span of the content beneath it. A match is
 followed by every heading nested inside its section.
 
 ```
-$ specs headings 'module-document-core#Components#References'
+$ specs headings 'module-document-core#Components#References' --full
 declared: true
 matches:
   - path: specs/modules/document-core/document-core-module.md
     text: References
     identifier: references
-    heading_path: document-core#components#references
+    anchor: document-core#components#references
+    ref: module-document-core#document-core#components#references
     level: 3
     section:
       offset: 55158
@@ -370,33 +417,49 @@ matches:
       start_line: 943
 ```
 
+Without `--full` the same match is `anchor`, `ref`, `level: 3` and the
+`start_line` of the heading line itself.
+
 **`--emit`** writes the section's content as itself instead — the
 cheapest way to read one part of a long document. It requires the
 selection to match exactly one heading. A selection matching several is
-refused (exit 2), naming each match by a selection that matches it
-alone, which you paste back:
+refused (exit 2), naming each match by its `ref` that selects it
+alone, which you paste back (`ref` is the declared slug, `#`, and the
+`anchor`; a member declaring no slug is named by its path in place of
+the slug):
 
 ```
 $ specs headings 'module-document-core#References' --emit     # exit 2
 "module-document-core#References" matches 2 headings; --emit needs exactly one. Select one of:
-    specs/modules/document-core/document-core-module.md#document-core#components#references
-    specs/modules/document-core/document-core-module.md#document-core#references
+    module-document-core#document-core#components#references
+    module-document-core#document-core#references
 or drop --emit to list the matches
 ```
 
 A document the corpus does not declare answers `declared: false`; a
 heading matching nothing in a declared document answers `declared: true`
-with no matches. Both exit 0.
+with no matches. Both exit 0. Under `--emit`, where raw text cannot say
+either, both are refused (exit 2, nothing on standard output) with a
+message naming the selection and whether the document is undeclared or
+the heading absent.
 
-**`specs feature`** returns features, each with its criteria, from the
-Gherkin in the corpus. `feature <id>` returns that one, `--code <CODE>`
+Like `specs list`, `headings` omits members at a status no longer in
+effect unless `--all` is given, from the answer and from the `--emit`
+refusal's list alike. A selection that names such a document by slug or
+path still answers with its headings.
+
+**`specs feature`** returns features from the Gherkin in the corpus. The
+answer is compact by default — each feature's `id`, `code`, `name`, `path`
+and `criteria_count`; `--full` returns the whole record, description and
+criteria included. `feature <id>` returns that one, `--code <CODE>`
 every feature grouped under that code, and no argument every feature.
 Identifiers and codes match regardless of letter case. The answer is a
 `features` list in every case, preceded by `declared` where the
 arguments name a subject. `feature <id> --emit` writes the feature as a
 standalone Gherkin `.feature` file — tags, description and criteria — to
 standard output, or to the path `--out` names; an unknown id there is
-refused (exit 2), since there is nothing to write.
+refused (exit 2), since there is nothing to write, and `--full` there is
+refused too.
 
 ```
 $ specs feature FEAT-SPEC-010 --emit
@@ -424,8 +487,19 @@ differs from the corpus at a git base, classifying each as `changed`,
 `added` or `removed`. The base is the merge-base of `HEAD` and the
 repository's default branch, or of `HEAD` and the branch, tag or commit
 `--since` names, and the current side includes uncommitted edits. The
+default branch is the first that exists of `origin/HEAD`'s target,
+`origin/main`, `origin/master`, `main` and `master`, so a stale local
+`main` never wins over `origin/main`; when a local branch of the same
+name is behind the one chosen, standard error carries `warning: local
+main (<short>) is behind origin/main (<short>); comparing against
+origin/main` and standard output is unchanged. The
 answer holds `base` (the revision and the merge-base commit) and then
-`criteria`. It exits 0 whatever it lists; `--exit-code` makes a
+`criteria`, each carrying `id`, `name` (omitted where the criterion has
+none; the base's name for a removed one), `classification` and `path`.
+**`--full`** adds `record` (the criterion exactly as `specs criterion
+<id>` lists it) for an added or changed criterion and `base_record` (the
+same taken from the base) for a changed or removed one; `--full` without
+`--changed` exits 2. It exits 0 whatever it lists; `--exit-code` makes a
 non-empty list exit 1, for a gate. It needs `git` on `PATH`.
 
 ```
@@ -435,6 +509,7 @@ base:
   commit: 88b49ac97d2d2374d9bea22ca0fc14fadadf32b9
 criteria:
   - id: AC-C4-004.6
+    name: Every node is declared before an edge cites it
     classification: changed
     path: specs/features/spec-c4/spec-c4-frd.md
 ```
@@ -579,6 +654,7 @@ coexist with the vocabulary; only a misspelt one loses a meaning. Pass
 | `frontmatter/parse` | error | A frontmatter block that could not be read as a document envelope — most often a `status` outside the vocabulary or an `updated_at` that is not an RFC 3339 date-time — so nothing else examined the document |
 | `frontmatter/schema` | error | A frontmatter value that violates its type's schema, naming the property, the value and the constraint — `/reviewer: "someone" does not satisfy additionalProperties` |
 | `frontmatter/missing-property` | error | A required frontmatter property the document does not declare |
+| `frontmatter/inline-comment` | warning | A YAML comment trailing a frontmatter value on the same line — `description: a # b` — located at the `#`: unquoted, the text after it is not part of the value. Quote the value to keep it |
 | `slug/pattern-mismatch` | error | A slug that does not match its type's pattern |
 | `slug/duplicate` | error | A slug declared by more than one document, naming the other |
 | `corpus/empty` | error | A run whose spec root holds no corpus member at all, so a clean report would mean nothing was examined |

@@ -64,6 +64,18 @@ struct FindingSchemaViolation {
 }
 
 """
+A comment trailing a frontmatter value on the same line.
+
+Unquoted, a `#` preceded by whitespace starts a YAML comment, so the text
+after it is silently dropped from the value. Modelled apart so a consumer
+offering to quote the value has the property name as a value.
+"""
+struct FindingInlineComment {
+  """The name of the top-level property the comment trails."""
+  property: String
+}
+
+"""
 A property the document's type requires and the document does not
 declare.
 
@@ -522,7 +534,7 @@ struct AnchorMatch {
   text: String
 
   """
-  The heading's heading path: the identifier of each enclosing heading
+  The heading's anchor: the identifier of each enclosing heading
   from the outermost down, followed by its own, joined by `#`. Written as
   a selection or an anchor, it names this heading alone unless two
   sibling headings share identical text all the way up, and then no path
@@ -530,7 +542,7 @@ struct AnchorMatch {
   shares, since a one-segment query is an identifier comparison over
   every heading.
   """
-  heading_path: String
+  anchor: String
 
   """Where the heading line itself is written."""
   span: Span
@@ -702,6 +714,9 @@ union FindingDetail {
 
   """A required frontmatter property the document does not declare."""
   @tag("missing-property") MissingProperty: FindingMissingProperty
+
+  """A comment trailing a frontmatter value, cutting the value short."""
+  @tag("inline-comment") InlineComment: FindingInlineComment
 
   """A slug not matching the pattern registered for its type."""
   @tag("slug-pattern") SlugPattern: FindingSlugPattern

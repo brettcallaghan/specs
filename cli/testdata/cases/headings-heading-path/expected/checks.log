@@ -1,38 +1,14 @@
 declared: true
 matches:
-  - path: docs/adrs/adr-500-roster.md
-    text: References
-    identifier: references
-    heading_path: adr-500-roster#components#references
+  - anchor: adr-500-roster#components#references
+    ref: adr-500-roster#adr-500-roster#components#references
     level: 3
-    section:
-      offset: 258
-      length: 67
-      start_line: 15
-      start_column: 1
-      end_line: 22
-      end_column: 1
-  - path: docs/adrs/adr-500-roster.md
-    text: Detail
-    identifier: detail
-    heading_path: adr-500-roster#components#references#detail
+    start_line: 14
+  - anchor: adr-500-roster#components#references#detail
+    ref: adr-500-roster#adr-500-roster#components#references#detail
     level: 4
-    section:
-      offset: 290
-      length: 35
-      start_line: 19
-      start_column: 1
-      end_line: 22
-      end_column: 1
-  - path: docs/adrs/adr-500-roster.md
-    text: References
-    identifier: references
-    heading_path: adr-500-roster#references
+    start_line: 18
+  - anchor: adr-500-roster#references
+    ref: adr-500-roster#adr-500-roster#references
     level: 2
-    section:
-      offset: 376
-      length: 32
-      start_line: 27
-      start_column: 1
-      end_line: 29
-      end_column: 1
+    start_line: 26

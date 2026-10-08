@@ -42,19 +42,23 @@ func c4Run(t *testing.T, args ...string) specmodel.FindingReport {
 	return c4RunCase(t, nodeCase, 1, args...)
 }
 
-// c4RunCase runs check with args over a case's fixture, expecting exit
-// status code, and decodes its JSON report.
+// c4RunCase runs check --verbose with args over a case's fixture,
+// expecting exit status code, and decodes its JSON answer's checks and
+// findings.
 func c4RunCase(t *testing.T, name string, code int, args ...string) specmodel.FindingReport {
 	t.Helper()
-	got, stdout, stderr := runInFixture(t, c4CheckFixture(t, name), append([]string{"check", "--json"}, args...))
+	got, stdout, stderr := runInFixture(t, c4CheckFixture(t, name), append([]string{"check", "--json", "--verbose"}, args...))
 	if got != code {
 		t.Fatalf("exit %d, want %d\n--- stderr ---\n%s", got, code, stderr)
 	}
-	var report specmodel.FindingReport
-	if err := json.Unmarshal([]byte(stdout), &report); err != nil {
+	var answer struct {
+		Findings []specmodel.Finding     `json:"findings"`
+		Checks   []specmodel.CheckResult `json:"checks"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &answer); err != nil {
 		t.Fatalf("decoding the report: %v\n%s", err, stdout)
 	}
-	return report
+	return specmodel.FindingReport{Checks: answer.Checks, Findings: answer.Findings}
 }
 
 // c4Findings returns the report's c4 findings as "rule severity

@@ -49,7 +49,7 @@ import (
 // An error is returned only when the active profile's schema does not
 // compile; a document's own defects are always findings, never errors.
 func (c *Corpus) Check() ([]specmodel.Finding, error) {
-	return c.check(nil)
+	return c.check(nil, nil)
 }
 
 // CheckFor narrows [Corpus.Check] to one file, resolving against the full
@@ -59,14 +59,26 @@ func (c *Corpus) Check() ([]specmodel.Finding, error) {
 // file, which is what keeps a single-document check from paying for the
 // whole corpus.
 //
-// Every finding is narrowed to the named document, with no exception:
-// what an edit breaks elsewhere is answered by a corpus check, or by
-// `refs` before the edit (AC-SPECREF-002.9). The rules that need the
-// whole corpus still run over it, so a finding located in the named
-// document — an unresolved, retired-target, type-mismatched or
-// incompletely paired reference out of it, a duplicate identifier or slug
-// it shares with another document — is reported exactly as a corpus check
-// reports it (AC-SPECREF-002.11).
+// The rules that need the whole corpus still run over it, so a finding
+// located in the named document — an unresolved, retired-target,
+// type-mismatched or incompletely paired reference out of it, a duplicate
+// identifier or slug it shares with another document — is reported
+// exactly as a corpus check reports it (AC-SPECREF-002.11).
+//
+// Of the findings located in other documents it reports exactly those the
+// named document's change caused, and nothing else (AC-SPECREF-002.9,
+// AC-SPECREF-002.11):
+//
+//   - every reference/unresolved finding of a reference citing one of
+//     formerSlugs that the document no longer declares — formerSlugs being
+//     the slugs it declared at the comparison base, which the caller reads
+//     (the command surface reads git HEAD); and
+//   - every reference/unresolved-anchor finding of a reference that
+//     resolves to the document.
+//
+// Each is the finding a corpus check reports for that reference, located
+// in the citing document. With no formerSlugs the first set is empty: a
+// new document, or a caller with no base to read, has no former slug.
 //
 // It returns [ErrNotAMember] for a path no corpus member occupies, so
 // that a mistyped path, a file outside the spec root and a file the
@@ -77,12 +89,46 @@ func (c *Corpus) Check() ([]specmodel.Finding, error) {
 // path may be absolute or repository-relative. On Windows it may use
 // either separator; on other platforms a backslash is an ordinary
 // character in a filename and is left alone.
-func (c *Corpus) CheckFor(path string) ([]specmodel.Finding, error) {
+func (c *Corpus) CheckFor(path string, formerSlugs ...string) ([]specmodel.Finding, error) {
 	wanted := c.normalize(path)
 	if _, member := c.byPath[wanted]; !member {
 		return nil, c.notAMember(wanted)
 	}
-	return c.check(&wanted)
+	return c.check(&wanted, formerSlugs)
+}
+
+// MemberPath resolves path — absolute or relative to the repository root
+// — to the corpus's own spelling of it: repository-relative and
+// slash-separated, as every finding's path is. It reports false where no
+// corpus member occupies it.
+func (c *Corpus) MemberPath(path string) (string, bool) {
+	wanted := c.normalize(path)
+	_, member := c.byPath[wanted]
+	return wanted, member
+}
+
+// DeclaredSlug reads the slug a document's bytes declare, as the index
+// reads it: from the parsed frontmatter, or, where the block does not
+// parse, from a legible top-level slug line (AC-SPEC-003.7). It reports
+// false for bytes declaring no slug. It is how a caller holding a
+// document as an earlier revision held it learns the slug it declared
+// there, for [Corpus.CheckFor]'s formerSlugs.
+func DeclaredSlug(src []byte) (string, bool) {
+	doc, perr := frontmatter.Parse(src)
+	if perr != nil {
+		recovered, _, found := frontmatter.TopLevelScalarAt(src, slugProperty)
+		if slug := legible(recovered, found); slug != nil {
+			return *slug, true
+		}
+		return "", false
+	}
+	if doc == nil {
+		return "", false
+	}
+	if slug := legible(stringProperty(doc, slugProperty)); slug != nil {
+		return *slug, true
+	}
+	return "", false
 }
 
 // ErrNotAMember reports that a path a caller named is not a corpus
@@ -113,8 +159,10 @@ func (c *Corpus) notAMember(normalized string) error {
 
 // check is the shared implementation behind Check and CheckFor. only,
 // when non-nil, is a normalized path: schema and slug-pattern checking run
-// for that member alone, and the result is narrowed to it after folding.
-func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
+// for that member alone, and the result is narrowed after folding to it
+// and to the findings elsewhere its change caused (see CheckFor), formerSlugs
+// being the slugs it declared at the comparison base.
+func (c *Corpus) check(only *string, formerSlugs []string) ([]specmodel.Finding, error) {
 	registry, err := c.schemaRegistry()
 	if err != nil {
 		return nil, err
@@ -181,6 +229,13 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 		if mismatch != nil {
 			report.Add(*mismatch)
 		}
+
+		// A comment trailing a value cuts the value short at its "#"
+		// without making the block unreadable, so nothing above sees it
+		// (AC-SPEC-003.9, AC-SPEC-003.10).
+		for _, comment := range doc.InlineComments() {
+			report.Add(finding.InlineComment(entry.Path, comment.Span, comment.Property))
+		}
 	}
 
 	// Every reference the graph recorded as unresolved or as reaching a
@@ -246,15 +301,86 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 		return findings, nil
 	}
 
-	// A single-document check reports the named document's own findings
-	// and nothing located elsewhere (AC-SPECREF-002.9).
+	// A single-document check reports the named document's own findings,
+	// and of those located elsewhere only the ones its change caused
+	// (AC-SPECREF-002.9, AC-SPECREF-002.11).
+	caused := c.brokenElsewhere(*only, formerSlugs)
 	var narrowed []specmodel.Finding
 	for _, f := range findings {
-		if f.Path == *only {
+		if f.Path == *only || caused[referenceFindingKey(f.Rule, f.Path, f.Span)] {
 			narrowed = append(narrowed, f)
 		}
 	}
 	return narrowed, nil
+}
+
+// referenceKey identifies a reference finding by its rule and the
+// citing reference's location, which is what a reference finding is
+// raised at.
+type referenceKey struct {
+	rule specmodel.RuleId
+	path string
+	span specmodel.Span
+}
+
+func referenceFindingKey(rule specmodel.RuleId, path string, sp specmodel.Span) referenceKey {
+	return referenceKey{rule: rule, path: path, span: sp}
+}
+
+// brokenElsewhere names the reference findings located outside the
+// document at path that the document's change caused: an unresolved
+// reference citing a slug of formerSlugs the document no longer
+// declares, and an unresolved anchor of a reference resolving to the
+// document. Slugs compare without regard to letter case, as resolution
+// does (AC-SPECREF-002.8).
+func (c *Corpus) brokenElsewhere(path string, formerSlugs []string) map[referenceKey]bool {
+	current := c.currentSlug(path)
+	var given []string
+	for _, slug := range formerSlugs {
+		slug = strings.TrimSpace(slug)
+		if slug != "" && !strings.EqualFold(slug, current) {
+			given = append(given, slug)
+		}
+	}
+	isGiven := func(slug string) bool {
+		for _, former := range given {
+			if strings.EqualFold(slug, former) {
+				return true
+			}
+		}
+		return false
+	}
+
+	caused := map[referenceKey]bool{}
+	for _, ref := range c.index.References {
+		if ref.Path == path {
+			continue
+		}
+		if ref.Slug != "" && isGiven(ref.Slug) {
+			caused[referenceFindingKey(finding.RuleUnresolvedReference, ref.Path, ref.Span)] = true
+		}
+		if target, ok := references.AnchorTarget(ref); ok && target == path {
+			caused[referenceFindingKey(finding.RuleUnresolvedAnchor, ref.Path, ref.Span)] = true
+		}
+	}
+	return caused
+}
+
+// currentSlug is the slug the member at path declares now, as the index
+// recorded it, or "" where it declares none legibly.
+func (c *Corpus) currentSlug(path string) string {
+	i, ok := c.byPath[path]
+	if !ok {
+		return ""
+	}
+	entry := c.index.Entries[i]
+	if entry.Frontmatter != nil {
+		return string(envelope.Of(entry.Frontmatter).Slug)
+	}
+	if entry.RecoveredSlug != nil {
+		return *entry.RecoveredSlug
+	}
+	return ""
 }
 
 // unresolvedReferenceFinding derives the reference/unresolved finding a

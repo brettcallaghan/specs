@@ -6,7 +6,7 @@ description: Resolves the anchor half of a wikilink — the heading it
 slug: frd-spec-anchor-references
 type: frd
 status: approved
-updated_at: 2026-10-08T00:00:00Z
+updated_at: 2026-10-08T18:00:00Z
 sources:
   - "frd-spec-reference-integrity"
 ---
@@ -319,10 +319,10 @@ Feature: Anchor Impact Queries
     Then the CLI lists every reference whose anchor resolves to that heading, each with its referring document and span
 
   @AC-SPECANCH-003.2 @negative
-  Scenario: A single-document check reports no anchor finding located in another document
+  Scenario: A single-document check reports no anchor finding located in another document beyond those its change broke
     When the CLI checks a single document
-    Then the CLI reports no anchor finding located in a document other than the one named
-    And that holds for an anchor reference held by another document into a heading of the document named that no longer resolves
+    Then the CLI reports no anchor finding located in a document other than the one named, except the unresolved-anchor findings AC-SPECREF-002.11 names
+    And that holds for an ambiguous anchor held by another document, and for any anchor held by another document into a different document
 
   @AC-SPECANCH-003.3
   Scenario: An anchor nothing references is an answer rather than a failure
@@ -354,11 +354,10 @@ Feature: Anchor Impact Queries
 documents that would break if that heading were renamed — the question
 [[adr-012]] created by making anchors the address of every un-promoted
 component (AC-SPECANCH-003.1). An agent renames a `### Element Registry`
-heading to `### Registry` and the write-time check on that one file
-reports nothing about the four documents whose anchors now point at
-nothing; the query asked before the rename, or a corpus check after it,
-is what finds them — AC-SPECREF-002.9 applied to the anchor half
-(AC-SPECANCH-003.2). An empty answer is an answer, not a failure,
+heading to `### Registry`; the query asked before the rename is what
+names the four documents whose anchors would point at nothing
+(AC-SPECANCH-003.2), and the write-time check on that one file reports
+them after it, located in the documents holding them (AC-SPECREF-002.11). An empty answer is an answer, not a failure,
 consistent with AC-SPECREF-003.5 and AC-SPEC-007.2 (AC-SPECANCH-003.3).
 An ambiguous reference resolves to no heading, and the author renaming
 one of the headings it matches is exactly the reader who has to see it,
@@ -376,10 +375,13 @@ references and states that the anchor is not declared — as
 
 *Rationale:* AC-SPECANCH-003.1 is what makes anchors safe to adopt at
 all. A heading rename is the edit a single-document check cannot see:
-the breakage lives entirely in files the author did not touch, and
-AC-SPECANCH-003.2 keeps it out of that check, as the parent feature does
-for slugs, so a write-time hook never fails on a file nobody edited. The
-query asked before the rename is where the blast radius surfaces.
+the breakage lives entirely in files the author did not touch. The
+write-time check on the renamed document reports exactly that breakage —
+references into it that no longer resolve — and AC-SPECANCH-003.2 keeps
+every other anchor finding elsewhere out of it, as the parent feature
+does for slugs, so a write-time hook never fails on breakage the author
+did not cause. The query asked before the rename is where the blast
+radius surfaces in advance.
 
 AC-SPECANCH-003.6 exists because, without it, a misspelt anchor and an
 uncited heading return the same empty answer, and an agent checking the

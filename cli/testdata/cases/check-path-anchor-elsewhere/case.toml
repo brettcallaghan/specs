@@ -1,5 +1,5 @@
-description = "check <path> on a document whose heading was renamed reports no anchor finding located in the referring document, and exits 0; the referrer's broken anchor stays in the corpus"
-cites = ["AC-SPECANCH-003.2"]
+description = "check <path> on a document whose heading was renamed reports the referring document's now-unresolved anchor, located in the referrer exactly as a corpus check reports it, and exits 1"
+cites = ["AC-SPECREF-002.11", "AC-SPECANCH-003.2"]
 artifacts = ["checks.log"]
 args = ["check", "docs/adrs/adr-300-renamed.md"]
-exit_code = 0
+exit_code = 1

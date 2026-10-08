@@ -7,7 +7,7 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-10-08T00:00:00Z
+updated_at: 2026-10-08T18:00:00Z
 kind: standard
 visibility: internal
 source_paths:
@@ -410,6 +410,17 @@ span of its value, the value's raw source text, and the parsed value.
 `JSON` converts it for decoding into a generated record — one parse
 serving both, so a property's position and its value cannot disagree.
 `goccy/go-yaml` is the parser, per [[adr-015]].
+
+`Document.InlineComments` lists every YAML comment that follows another
+token on its own line — `description: a # b`, whose value an unquoted
+`#` has silently cut to `a` — each with the top-level property whose
+source it sits in and its span from the `#` to the end of the line. A
+comment on a line holding nothing else is not listed: it cuts no value
+short (AC-SPEC-003.9, AC-SPEC-003.10). The comments are read from
+`goccy/go-yaml`'s lexer tokens, the line a multi-line scalar ends on
+counting as its line, rather than by parsing with comments retained, so
+no value or span `Parse` reports depends on them. The Corpus reports
+each as a `frontmatter/inline-comment` warning.
 
 Beside `Parse` the package exposes `Locate`, which reports the block's
 `Region` and nothing else. `Parse` is written on it, so where a block
@@ -1056,7 +1067,7 @@ recording headings ([[frd-spec-structure]]):
   satisfies every segment and ambiguous where several are selected — a
   full heading path selecting only the headings with exactly that path —
   by the same rule as a single-segment anchor. Every match the resolution records
-  carries its `heading_path`, and a resolved nested anchor's markdown
+  carries its `anchor` (its heading path), and a resolved nested anchor's markdown
   link fragment is its last heading's, since a fragment can address only
   one heading.
 - **Exactly one match resolves the anchor to that heading; more than one
@@ -1385,9 +1396,10 @@ The vocabulary is:
   it across the JSON boundary; the Spans component below owns its
   semantics and is the only place spans are computed.
 
-`schema_version` is required and pinned to `2.0` (AC-SPEC-002.2). 2.0
+`schema_version` is required and pinned to `2.1` (AC-SPEC-002.2). 2.0
 renamed every `Span`-typed property to `span` (or `<role>_span`, such as
-`section_span`), a change to what was already there and so a bump. The
+`section_span`), a change to what was already there and so a bump. 2.1
+renamed the heading-path property of `AnchorMatch` to `anchor`, likewise a bump. The
 model is additive. The reference collection is the first exercise of that
 rule and it is a deliberate no-bump rather than an oversight —
 `references` is an addition alongside the existing shape,
@@ -1506,6 +1518,11 @@ unlike the type filter: it declares no status either, so it is at none of
 the withheld ones, and the unfiltered listing is where a caller looking
 for holes in the corpus finds it.
 
+`Corpus.InEffect(entry)` offers the same predicate to the other
+queries that withhold retired members, so that `headings` filters by the
+registered `RetiredStatuses` and not by a status spelling of its own
+(AC-SPECSTR-003.14).
+
 The two compose — a call carrying both returns only what satisfies both
 (AC-SPECLIST-003.4) — and a filter matching nothing yields an empty
 collection rather than a failure.
@@ -1607,7 +1624,8 @@ same shape a duplicate-slug finding has.
 
 `Check` and `CheckFor` run the Schema Registry's validation and the
 active profile's per-type slug-pattern check for every member with parsed
-frontmatter — `CheckFor` narrowed to one file the same way `FindingsFor`
+frontmatter, and report each comment trailing one of its values as
+`frontmatter/inline-comment` (AC-SPEC-003.9) — `CheckFor` narrowed to one file the same way `FindingsFor`
 is — folding the result into one `finding.Report` together with the
 corpus's own duplicate-slug findings, so a caller reads one ordered list
 rather than reconciling discovery-time and check-time findings as two
@@ -1627,15 +1645,23 @@ already reports, so one unreadable member is one finding however often
 it is cited (AC-SPEC-003.8). No anchor finding stands in for it, since
 an anchor is checked only against a member. A reference
 finding is located in the *referring* document, at the referrer's own
-span, because that is the file a reader must open to fix it. `CheckFor`
-narrows every finding to the document named, with no exception: it
-reports no finding located in another document, including one held
-elsewhere that no longer resolves to the named document
-(AC-SPECREF-002.9). The rules still run over the whole corpus, so every
-reference finding located in the named document is reported exactly as a
-corpus check reports it (AC-SPECREF-002.11). What an edit breaks
-elsewhere is answered by `refs` before the edit, or by a corpus check
-after it.
+span, because that is the file a reader must open to fix it. The rules
+still run over the whole corpus, so every reference finding located in
+the document `CheckFor` names is reported exactly as a corpus check
+reports it (AC-SPECREF-002.11). Of the findings located in other
+documents, `CheckFor` reports exactly those the named document's change
+caused and nothing else (AC-SPECREF-002.9): every `reference/unresolved`
+finding of a reference citing a slug the caller passes as one the
+document declared at the comparison base and that the document no longer
+declares (compared without regard to letter case, as resolution
+compares), and every `reference/unresolved-anchor` finding of a
+reference resolving to the document. Each is the finding a corpus check
+reports for that reference, located in the citing document. Corpus reads
+no revision itself: the caller passes the former slugs, which the command
+surface reads from git HEAD through Revisions and `corpus.DeclaredSlug`,
+and with none passed — a new document, or no base to read — the first
+set is empty. A changed `type` or a retirement is not reported
+elsewhere, since the citing reference still resolves.
 
 **They also report the anchor half of a reference, under two rule
 identifiers of its own.** `reference/unresolved-anchor` fires at
@@ -1656,9 +1682,10 @@ the unresolved slug is already reported and two findings for one mistake
 train a reader to skim (AC-SPECANCH-002.8). Both rules run over every
 anchored reference in an ordinary corpus check rather than behind an
 option (AC-SPECANCH-002.9), and both are narrowed by a single-document
-check exactly as `reference/unresolved` is: a check of the document whose
-heading was renamed reports no anchor finding located in a referring
-document (AC-SPECANCH-003.2). Unlike the three relational rules below, these two
+check as above: a check of the document whose heading was renamed
+reports the `reference/unresolved-anchor` findings of references into it
+held elsewhere, and no other anchor finding located in another document
+(AC-SPECANCH-003.2, AC-SPECREF-002.11). Unlike the three relational rules below, these two
 read no document off disk: what an anchor reached was settled by the
 References component during resolution, and this derives the finding
 from that record rather than matching a heading a second time.
@@ -2146,6 +2173,14 @@ pinned by the implementation:
   run yields byte-identical output (AC-SPEC-009.7) and snapshot cases stay
   stable.
 
+**`frontmatter/inline-comment` is a warning.** `InlineComment` reports
+a comment trailing a frontmatter value at its `#`, naming the property
+in the message and in its `inline-comment` detail, and saying that the
+text after the `#` is not part of the value and to quote the value to
+keep it (AC-SPEC-003.9). It is a warning rather than an error because
+the block still parses and the shortened value may even be valid, so
+only `--strict` fails on it.
+
 The unverified mechanism is built and no check registers against it yet;
 the diagram validation AC-SPEC-006.3 illustrates is a structure-feature
 concern. A later check adds a variant to the union without changing the
@@ -2285,8 +2320,14 @@ and lives here rather than in the command surface ([[adr-031]]).
 containing a directory (`git rev-parse --show-toplevel`) and exposes its
 top level, cleaned and in OS form. `Repository.Base` resolves a revision
 string: empty names the default branch, the first that resolves of the
-target of `refs/remotes/origin/HEAD`, then `main`, `origin/main`,
-`master` and `origin/master`; anything else must resolve under
+target of `refs/remotes/origin/HEAD`, then `origin/main`,
+`origin/master`, `main` and `master` — remote-tracking branches first,
+because a fetch refreshes them and nothing refreshes a local branch. When
+the branch chosen is remote-tracking and a local branch of the same name
+is a strict ancestor of it, the returned `Base` carries that local branch
+and both commits in `Behind` so the command surface can warn
+(AC-GHK-008.14); an equal, ahead or diverged local branch does not.
+Anything else must resolve under
 `git rev-parse --verify '<revision>^{commit}'`. The base is
 `git merge-base HEAD <commit>`, returned as a full object name with the
 reference it was taken against. `Repository.Materialize` lists a
@@ -2298,6 +2339,11 @@ repository-relative path under a fresh temporary directory: no checkout
 filter, `.gitattributes` rule or `export-ignore` applies. A directory the
 commit does not hold gives an empty tree. The returned `Tree`'s `Close`
 removes the directory, and every error path removes it before returning.
+`Repository.FileAt` reads one repository-relative file's bytes at a
+revision (`git ls-tree` then `git cat-file blob`), reporting it absent
+where the commit holds no regular file there; an unborn HEAD is
+**environment**, any other revision that does not resolve
+**invocation**.
 
 The package runs only `rev-parse`, `merge-base`, `ls-tree` and
 `cat-file`, always as `git -C <top level>` with `GIT_TERMINAL_PROMPT=0`

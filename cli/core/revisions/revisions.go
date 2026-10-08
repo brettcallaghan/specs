@@ -1,10 +1,12 @@
-// Package revisions reads a directory as a git commit holds it.
+// Package revisions reads a directory, or one file, as a git commit holds
+// it.
 //
 // It resolves the base revision of a comparison — the merge-base of HEAD
 // and the repository's default branch, or of HEAD and a named revision —
 // and materializes a repository-relative directory's tracked files at a
 // commit into a fresh temporary directory, so a caller can build that
-// directory exactly as it builds the working tree.
+// directory exactly as it builds the working tree. It also reads a single
+// file's bytes at a revision ([Repository.FileAt]).
 //
 // The package knows git and directories, and nothing of documents,
 // criteria or the index. It runs the git executable as a subprocess and
@@ -74,7 +76,9 @@ func environment(format string, args ...any) error {
 
 // DefaultBranchCandidates are the branches tried, in order, after the
 // target of refs/remotes/origin/HEAD, when a comparison names no revision.
-var DefaultBranchCandidates = []string{"main", "origin/main", "master", "origin/master"}
+// The remote-tracking branches come first: a fetch refreshes them, while a
+// local branch is only as current as the last time someone updated it.
+var DefaultBranchCandidates = []string{"origin/main", "origin/master", "main", "master"}
 
 // originHEAD is the symbolic reference whose target is tried first.
 const originHEAD = "refs/remotes/origin/HEAD"
@@ -127,6 +131,20 @@ type Base struct {
 	Ref string
 	// Commit is the merge-base of HEAD and Ref, as a full object name.
 	Commit string
+	// Behind is set only when no revision was named, the default branch
+	// found is a remote-tracking branch, and a local branch of the same
+	// name exists that is a strict ancestor of it: the local branch is
+	// stale and was not used.
+	Behind *StaleLocal
+}
+
+// StaleLocal names a local branch that is behind the remote-tracking
+// branch a comparison was taken against.
+type StaleLocal struct {
+	Local        string // the local branch, such as "main"
+	LocalCommit  string // its full object name
+	Remote       string // the remote-tracking branch, such as "origin/main"
+	RemoteCommit string // its full object name
 }
 
 // Base resolves the base of a comparison against revision: the merge-base
@@ -163,7 +181,37 @@ func (r *Repository) Base(revision string) (Base, error) {
 	if base == "" {
 		return Base{}, environment("HEAD and %s have no common ancestor: git merge-base printed nothing", ref)
 	}
-	return Base{Ref: ref, Commit: base}, nil
+	result := Base{Ref: ref, Commit: base}
+	if revision == "" {
+		behind, err := r.staleLocal(ref, commit)
+		if err != nil {
+			return Base{}, err
+		}
+		result.Behind = behind
+	}
+	return result, nil
+}
+
+// staleLocal reports the local branch named like the remote-tracking ref
+// when its commit differs from the remote's and is an ancestor of it. A
+// ref that is not remote-tracking, or a local branch that is absent, equal,
+// ahead or diverged, reports nil.
+func (r *Repository) staleLocal(ref, remoteCommit string) (*StaleLocal, error) {
+	name, ok := strings.CutPrefix(ref, "origin/")
+	if !ok || name == "" {
+		return nil, nil
+	}
+	local, ok, err := r.commitOf("refs/heads/" + name)
+	if err != nil || !ok || local == remoteCommit {
+		return nil, err
+	}
+	if _, err := r.run("merge-base", "--is-ancestor", local, remoteCommit); err != nil {
+		if gerr := (*gitError)(nil); errors.As(err, &gerr) && gerr.code == 1 {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &StaleLocal{Local: name, LocalCommit: local, Remote: ref, RemoteCommit: remoteCommit}, nil
 }
 
 // target resolves the revision a base is taken against: the named one, or
@@ -283,6 +331,56 @@ func (r *Repository) Materialize(commit, dir string) (*Tree, error) {
 		return nil, err
 	}
 	return tree, nil
+}
+
+// FileAt returns the bytes of the regular file at file — a
+// repository-relative, slash-separated path — as the commit revision
+// names holds it, and false when the commit holds no regular file there:
+// a document that did not exist at that revision. A revision that does
+// not resolve to a commit is an [Error]: an unborn HEAD is
+// [Environment], any other [Invocation].
+func (r *Repository) FileAt(revision, file string) ([]byte, bool, error) {
+	if revision == "" || strings.HasPrefix(revision, "-") {
+		return nil, false, invocation("%q does not name a revision", revision)
+	}
+	name, err := repoRelative(file)
+	if err != nil {
+		return nil, false, err
+	}
+	if name == "" {
+		return nil, false, invocation("%s is not a repository-relative file", file)
+	}
+	commit, ok, err := r.commitOf(revision)
+	if err != nil {
+		return nil, false, err
+	}
+	if !ok {
+		if revision == "HEAD" {
+			return nil, false, environment("HEAD names no commit (the current branch has no commits yet), so there is no committed version of %s to compare against", name)
+		}
+		return nil, false, invocation("%s does not resolve to a commit in %s", revision, r.root)
+	}
+
+	out, err := r.run("ls-tree", "-z", "--full-tree", commit, "--", name)
+	if err != nil {
+		return nil, false, err
+	}
+	for _, record := range bytes.Split(out, []byte{0}) {
+		meta, listed, found := bytes.Cut(record, []byte{'\t'})
+		if !found || string(listed) != name {
+			continue
+		}
+		fields := strings.Fields(string(meta))
+		if len(fields) != 3 || fields[1] != "blob" || (fields[0] != "100644" && fields[0] != "100755") {
+			return nil, false, nil
+		}
+		content, err := r.run("cat-file", "blob", fields[2])
+		if err != nil {
+			return nil, false, err
+		}
+		return content, true, nil
+	}
+	return nil, false, nil
 }
 
 // repoRelative cleans dir to a slash-separated path inside the work tree,

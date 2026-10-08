@@ -1,0 +1,4 @@
+"#overview" matches 2 headings; --emit needs exactly one. Select one of:
+    adr-001-first#adr-001-first#overview
+    adr-002-second#adr-002-second#overview
+or drop --emit to list the matches

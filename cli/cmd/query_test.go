@@ -160,7 +160,7 @@ func TestFeatureQueryIsServedFromTheWarmIndexWithoutRewalking(t *testing.T) {
 	}
 	plantFeature(t, indexPath, plantedFeature())
 
-	exitCode, stdout, stderr := runInFixture(t, dir, []string{"feature", "FEAT-PLANTED-999"})
+	exitCode, stdout, stderr := runInFixture(t, dir, []string{"feature", "FEAT-PLANTED-999", "--full"})
 	if exitCode != 0 {
 		t.Fatalf("exit code = %d, want 0\nstderr: %s", exitCode, stderr)
 	}

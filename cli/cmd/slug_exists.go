@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
 	"github.com/spf13/cobra"
 )
 
@@ -15,10 +16,11 @@ func newSlugExistsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		Use:   "slug-exists <slug>",
 		Short: "Report whether a corpus member declares the given slug",
 		Long: "slug-exists answers whether any corpus member declares the given " +
-			"slug: a YAML mapping holding slug, as asked, declared, true or false, " +
-			"and path, the declaring member's path or null where none declares it. " +
-			"The comparison ignores letter case. It exits 0 either way. --json " +
-			"writes the same values as JSON.",
+			"slug: a YAML mapping holding slug, declared, true or false, and path, " +
+			"the declaring member's path or null where none declares it. The slug " +
+			"is written as the member declares it where one does, and as given " +
+			"where none does. The comparison ignores letter case. It exits 0 " +
+			"either way. --json writes the same values as JSON.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			return runSlugExists(streams, *configPath, args[0], jsonOut)
@@ -29,9 +31,10 @@ func newSlugExistsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 	return cmd
 }
 
-// slugExistsResult is slug-exists's answer (AC-SPEC-007.2): the slug as
-// asked, whether a member declares it, and that member's path — null where
-// none does, so the command has one key set whatever it finds.
+// slugExistsResult is slug-exists's answer (AC-SPEC-007.2): the slug as the
+// declaring member writes it where one does and as asked where none does,
+// whether a member declares it, and that member's path — null where none
+// does, so the command has one key set whatever it finds.
 type slugExistsResult struct {
 	Slug     string  `json:"slug"`
 	Declared bool    `json:"declared"`
@@ -67,6 +70,7 @@ func runSlugExists(streams *ioStreams, configPath, slug string, jsonOut bool) er
 	result := slugExistsResult{Slug: slug}
 	if entry, found := c.Slug(slug); found {
 		path := entry.Path
+		result.Slug = envelope.DeclaredSlug(entry)
 		result.Declared = true
 		result.Path = &path
 	}

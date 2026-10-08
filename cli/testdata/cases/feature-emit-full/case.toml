@@ -1,0 +1,5 @@
+description = "feature --emit with --full is refused: an emitted feature file takes neither view, so nothing is written to standard output and the exit status is 2"
+cites = ["AC-GHK-007.12"]
+artifacts = ["checks.err"]
+args = ["feature", "FEAT-CHK-001", "--emit", "--full"]
+exit_code = 2

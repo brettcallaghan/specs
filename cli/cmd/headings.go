@@ -26,7 +26,7 @@ import (
 // this surface is. It is the query that makes agent review auditable as
 // well as cheap: two runs given the same selection read the same spans.
 func newHeadingsCmd(streams *ioStreams, configPath *string) *cobra.Command {
-	var jsonOut, emit bool
+	var jsonOut, emit, all, full bool
 
 	cmd := &cobra.Command{
 		Use:   "headings [<document>#<heading>]",
@@ -43,17 +43,22 @@ func newHeadingsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			"a path of headings separated by #, outermost first, each nested within " +
 			"the one before it at any depth, so <document>#Components#References " +
 			"selects the References heading beneath Components; every match carries " +
-			"its heading path, which pastes back as such a selection, naming that heading " +
-			"alone unless the path is a single segment another heading shares. A matched heading " +
+			"its anchor and a ref, which pastes back as a selection, naming that heading " +
+			"alone unless the anchor is a single segment another heading shares. A matched heading " +
 			"is returned with every heading nested inside its section. Given --emit, " +
 			"the content the one matching heading stands over is written as itself " +
 			"instead; --emit requires the selection to match exactly one heading, " +
+			"and a selection matching none is refused, naming whether the document " +
+			"is undeclared or the heading absent, " +
 			"and a selection matching several is refused with each match named: those a " +
 			"selection matches alone as selections to choose from, and the rest as " +
 			"reachable only through the span the query without --emit returns. A " +
 			"selection with no heading half matches " +
 			"every heading of the document, so a caller after a whole document reads " +
-			"the file.",
+			"the file. The answer is compact by default (anchor, ref, level and " +
+			"start_line) and --full returns every field, including the span of each " +
+			"section; --json changes the syntax, never the view. Members at a status no longer in effect are omitted unless " +
+			"--all asks for them, except a document the selection names itself.",
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			operand := ""
@@ -63,11 +68,18 @@ func newHeadingsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			if emit && jsonOut {
 				return invocationError("%w", errNoEmitWithJSON)
 			}
-			return runHeadings(streams, *configPath, operand, emit, jsonOut)
+			if emit && full {
+				return invocationError("%w", errNoFullWithEmit)
+			}
+			return runHeadings(streams, *configPath, operand, emit, all, full, jsonOut)
 		},
 	}
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
 		"write the matches as JSON instead of YAML")
+	cmd.Flags().BoolVar(&all, "all", false,
+		"report headings of members at every status, including ones no longer in effect")
+	cmd.Flags().BoolVar(&full, "full", false,
+		"return every field of every match, including the span of its section")
 	cmd.Flags().BoolVar(&emit, "emit", false,
 		"write the content the one matching heading stands over, instead of the match")
 	return cmd
@@ -77,6 +89,11 @@ func newHeadingsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // --emit writes a document payload as itself, which has no JSON form to
 // select.
 var errNoEmitWithJSON = errors.New("--json cannot be combined with --emit")
+
+// errNoFullWithEmit rejects --full beside --emit for the same reason: an
+// emitted section is a document payload, to which neither view applies
+// (AC-SPECSTR-003.17).
+var errNoFullWithEmit = errors.New("--full cannot be combined with --emit")
 
 // headingMatch is one heading a selection matched, carrying exactly what
 // AC-SPECSTR-003.1 names.
@@ -88,14 +105,23 @@ type headingMatch struct {
 	Path       string `json:"path"`
 	Text       string `json:"text"`
 	Identifier string `json:"identifier"`
-	// HeadingPath is the identifier of each enclosing heading from the
+	// Anchor is the identifier of each enclosing heading from the
 	// outermost down, then the heading's own, joined by "#"
-	// (AC-SPECSTR-003.9). Written as a selection's heading half it
-	// selects this heading alone, unless a sibling shares its text all
-	// the way up.
-	HeadingPath string         `json:"heading_path"`
-	Level       uint64         `json:"level"`
-	Section     specmodel.Span `json:"section"`
+	// (AC-SPECSTR-003.9): the part after the "#" of a reference.
+	Anchor string `json:"anchor"`
+	// Ref is the member's declared slug, "#" and Anchor, or its path in
+	// place of the slug where it declares none. Pasted into specs
+	// headings, specs refs or a [[...]] wikilink it selects this heading
+	// alone, unless a sibling shares its text all the way up.
+	Ref     string         `json:"ref"`
+	Level   uint64         `json:"level"`
+	Section specmodel.Span `json:"section"`
+
+	// headingLine is the line the heading itself stands on, which the
+	// full match does not carry (its Section begins after that line).
+	// Unexported, so neither rendering writes it; the compact view
+	// reads it as start_line.
+	headingLine uint64
 }
 
 // headingsResult is the answer: the matches, and whether the document the
@@ -160,7 +186,7 @@ func (s selection) isPath() bool {
 //
 // It always exits zero. A selection matching nothing is a fact about the
 // corpus rather than a failure of the invocation (AC-SPECSTR-003.6).
-func runHeadings(streams *ioStreams, configPath, operand string, emit, jsonOut bool) error {
+func runHeadings(streams *ioStreams, configPath, operand string, emit, all, full, jsonOut bool) error {
 	cfg, configPath, findings, err := loadConfig(configPath)
 	if err != nil {
 		return err
@@ -180,16 +206,64 @@ func runHeadings(streams *ioStreams, configPath, operand string, emit, jsonOut b
 	}
 
 	sel := parseSelection(operand)
-	matches, direct := selectHeadings(c.Index(), sel)
+	// A member no longer in effect is withheld unless every status was
+	// asked for (AC-SPECSTR-003.14); the same filter serves the query and
+	// the --emit refusal that lists its matches.
+	var inEffect func(specmodel.IndexEntry) bool
+	if !all {
+		inEffect = c.InEffect
+	}
+	matches, direct := selectHeadings(c.Index(), sel, inEffect)
 
 	if emit {
-		return emitSection(streams, c.Index(), opts.RepoRoot, operand, matches, direct)
+		return emitSection(streams, c.Index(), opts.RepoRoot, operand, sel, inEffect, matches, direct)
 	}
 	result := headingsResult{Matches: matches}
 	if sel.document != "" {
 		result.Declared = declared(sel.declaredIn(c.Index()))
 	}
-	return renderHeadings(streams, result, jsonOut)
+	if full {
+		return renderHeadings(streams, result, jsonOut)
+	}
+	return renderHeadings(streams, compactHeadings(result), jsonOut)
+}
+
+// headingsCompactResult is the default answer: the properties the query
+// established, exactly as [headingsResult] carries them, over the matches
+// in the compact view of [[cli-output-standards]] (AC-SPECSTR-003.16).
+type headingsCompactResult struct {
+	Declared *bool                 `json:"declared,omitempty"`
+	Matches  []headingCompactMatch `json:"matches"`
+}
+
+// headingCompactMatch keeps what a caller needs to locate and re-select a
+// heading: its anchor, its ref, its level and the line the heading itself
+// stands on. The path, text, identifier and the section span are dropped;
+// the ref carries the document and the anchor the identifier.
+type headingCompactMatch struct {
+	Anchor    string `json:"anchor"`
+	Ref       string `json:"ref"`
+	Level     uint64 `json:"level"`
+	StartLine uint64 `json:"start_line"`
+}
+
+// compactHeadings derives the compact view from the full answer, so the
+// two list the same matches in the same order by construction
+// (AC-SPECSTR-003.16).
+func compactHeadings(result headingsResult) headingsCompactResult {
+	compact := headingsCompactResult{
+		Declared: result.Declared,
+		Matches:  make([]headingCompactMatch, 0, len(result.Matches)),
+	}
+	for _, match := range result.Matches {
+		compact.Matches = append(compact.Matches, headingCompactMatch{
+			Anchor:    match.Anchor,
+			Ref:       match.Ref,
+			Level:     match.Level,
+			StartLine: match.headingLine,
+		})
+	}
+	return compact
 }
 
 // declaredIn reports whether some corpus member is the document the
@@ -214,11 +288,16 @@ func (s selection) declaredIn(index specmodel.SpecIndex) bool {
 // itself names, as opposed to those carried only because they are nested
 // inside a match (AC-SPECSTR-003.4). A selection with no heading half
 // names every heading of the documents it selects (AC-SPECSTR-003.3).
-func selectHeadings(index specmodel.SpecIndex, sel selection) (matches []headingMatch, direct []bool) {
+func selectHeadings(index specmodel.SpecIndex, sel selection, inEffect func(specmodel.IndexEntry) bool) (matches []headingMatch, direct []bool) {
 	matches = []headingMatch{}
 
 	for _, entry := range index.Entries {
 		if !sel.selects(entry) {
+			continue
+		}
+		// A document named explicitly is answered whatever its status
+		// (AC-SPECSTR-003.15): the caller asked for it.
+		if sel.document == "" && inEffect != nil && !inEffect(entry) {
 			continue
 		}
 
@@ -228,6 +307,12 @@ func selectHeadings(index specmodel.SpecIndex, sel selection) (matches []heading
 		chosen := make([]bool, len(entry.Headings))
 		named := make([]bool, len(entry.Headings))
 		paths := references.HeadingPaths(entry.Headings)
+		// A reference is addressed by the declared slug; a member that
+		// declares none is reached only by its path.
+		refPrefix := envelope.DeclaredSlug(entry)
+		if refPrefix == "" {
+			refPrefix = entry.Path
+		}
 		// The heading half is a heading path query: one segment is
 		// matched on its identifier, and several select the heading
 		// named by the last beneath each earlier one, at any depth
@@ -259,13 +344,16 @@ func selectHeadings(index specmodel.SpecIndex, sel selection) (matches []heading
 			if !chosen[i] {
 				continue
 			}
+			anchor := markdown.JoinPath(paths[i])
 			matches = append(matches, headingMatch{
 				Path:        entry.Path,
 				Text:        heading.Text,
 				Identifier:  paths[i][len(paths[i])-1],
-				HeadingPath: markdown.JoinPath(paths[i]),
+				Anchor:      anchor,
+				Ref:         refPrefix + "#" + anchor,
 				Level:       heading.Level,
 				Section:     heading.SectionSpan,
+				headingLine: heading.Span.StartLine,
 			})
 			direct = append(direct, named[i])
 		}
@@ -291,7 +379,7 @@ func (s selection) selects(entry specmodel.IndexEntry) bool {
 
 // renderHeadings writes the answer as YAML, or as JSON under --json, both
 // carrying the same values in the same order.
-func renderHeadings(streams *ioStreams, result headingsResult, asJSON bool) error {
+func renderHeadings(streams *ioStreams, result any, asJSON bool) error {
 	if asJSON {
 		data, err := json.Marshal(result)
 		if err != nil {
@@ -313,11 +401,14 @@ func renderHeadings(streams *ioStreams, result headingsResult, asJSON bool) erro
 // exactly one heading. The headings nested inside it are carried as
 // matches but are not counted, since its span already covers their text.
 //
-// No heading named is an answer and writes nothing (AC-SPECSTR-003.6).
-// More than one is an invocation error that writes nothing to standard
+// No heading named is refused, writing nothing to standard output
+// (AC-SPECSTR-003.13): raw text cannot carry the `declared` property or an
+// empty `matches`, so an empty output would read the same for an absent
+// heading, an undeclared document and an empty section. The message says
+// which of the first two it was. More than one is an invocation error that writes nothing to standard
 // output and names every heading the selection named, so the caller can
 // narrow it (AC-SPECSTR-003.7). Under "Select one of:" go only the
-// matches whose <path>#<heading_path>, pasted back, names that heading
+// matches whose ref, pasted back, names that heading
 // alone — tested by running that very selection, not predicted. The rest
 // are listed apart: a one-segment heading path is an identifier
 // comparison and full-path precedence applies to several segments only
@@ -330,7 +421,7 @@ func renderHeadings(streams *ioStreams, result headingsResult, asJSON bool) erro
 // normalized them, because the span was computed against the normalized
 // form and would otherwise be off by one byte per line on a CRLF
 // checkout.
-func emitSection(streams *ioStreams, index specmodel.SpecIndex, repoRoot, operand string, matches []headingMatch, direct []bool) error {
+func emitSection(streams *ioStreams, index specmodel.SpecIndex, repoRoot, operand string, sel selection, inEffect func(specmodel.IndexEntry) bool, matches []headingMatch, direct []bool) error {
 	var named []headingMatch
 	for i, match := range matches {
 		if direct[i] {
@@ -340,12 +431,15 @@ func emitSection(streams *ioStreams, index specmodel.SpecIndex, repoRoot, operan
 
 	switch len(named) {
 	case 0:
-		return nil
+		if sel.document != "" && !sel.declaredIn(index) {
+			return invocationError("%q: no corpus member is the document it names (%q); --emit needs exactly one heading", operand, sel.document)
+		}
+		return invocationError("%q: the selection matches no heading; --emit needs exactly one", operand)
 	case 1:
 	default:
 		var alone, shared []headingMatch
 		for _, match := range named {
-			if selectsAlone(index, match) {
+			if selectsAlone(index, match, inEffect) {
 				alone = append(alone, match)
 			} else {
 				shared = append(shared, match)
@@ -356,13 +450,13 @@ func emitSection(streams *ioStreams, index specmodel.SpecIndex, repoRoot, operan
 		if len(alone) > 0 {
 			b.WriteString(" Select one of:")
 			for _, match := range alone {
-				fmt.Fprintf(&b, "\n    %s#%s", match.Path, match.HeadingPath)
+				fmt.Fprintf(&b, "\n    %s", match.Ref)
 			}
 		}
 		if len(shared) > 0 {
 			b.WriteString("\nNo selection matches these alone; the query without --emit returns each one's span:")
 			for _, match := range shared {
-				fmt.Fprintf(&b, "\n    %s#%s", match.Path, match.HeadingPath)
+				fmt.Fprintf(&b, "\n    %s", match.Ref)
 			}
 		}
 		b.WriteString("\nor drop --emit to list the matches")
@@ -380,12 +474,12 @@ func emitSection(streams *ioStreams, index specmodel.SpecIndex, repoRoot, operan
 	return nil
 }
 
-// selectsAlone reports whether match's own <path>#<heading_path>, given
+// selectsAlone reports whether match's own ref, given
 // back as a selection, names exactly that heading — the question a caller
 // pasting it back with --emit is asking, answered by the same selection
 // the command runs.
-func selectsAlone(index specmodel.SpecIndex, match headingMatch) bool {
-	matches, direct := selectHeadings(index, parseSelection(match.Path+"#"+match.HeadingPath))
+func selectsAlone(index specmodel.SpecIndex, match headingMatch, inEffect func(specmodel.IndexEntry) bool) bool {
+	matches, direct := selectHeadings(index, parseSelection(match.Ref), inEffect)
 	var named []headingMatch
 	for i, m := range matches {
 		if direct[i] {

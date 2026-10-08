@@ -6,7 +6,7 @@ description: The CLI parses Gherkin from FRD blocks and standalone feature
 slug: frd-gherkin-adoption
 type: frd
 status: approved
-updated_at: 2026-10-08T12:00:00Z
+updated_at: 2026-10-08T18:00:00Z
 sources: []
 ---
 
@@ -631,7 +631,7 @@ Feature: Queries by Tag
   @AC-GHK-007.1
   Scenario: A feature is fetched by its identifier
     When a query names a feature identifier
-    Then the CLI returns a list holding that feature's record, including its criteria
+    Then the CLI returns a list holding that feature, in the view the query selects, its record including its criteria under the full option
     And the answer has the shape of every other feature query
 
   @AC-GHK-007.2
@@ -647,7 +647,7 @@ Feature: Queries by Tag
 
     Examples:
       | selection                     | result                                  |
-      | all features                  | every feature record in the corpus      |
+      | all features                  | every feature in the corpus             |
       | features carrying a code      | every feature grouped under that code   |
       | criteria of a feature         | every criterion beneath that feature    |
       | criteria carrying a qualifier | every criterion tagged with it          |
@@ -698,11 +698,40 @@ Feature: Queries by Tag
   Scenario: A qualifier may be written with its leading at sign
     When a query selects criteria by "@negative"
     Then the CLI returns the same answer as a query selecting by "negative"
+
+  @AC-GHK-007.10
+  Scenario: A feature query answers in the compact view by default
+    When a feature query runs without the full option
+    Then the CLI returns each feature as its "id", its "code", its "name", its "path" and its "criteria_count", the number of criteria it holds, and nothing else
+    And the compact answer holds every feature the full answer holds, in the same order
+
+  @AC-GHK-007.11
+  Scenario: The full option returns every feature's whole record
+    When a feature query runs with the full option
+    Then the CLI returns each feature's record as AC-GHK-005.1 and AC-GHK-005.4 describe it, its criteria included
+
+  @AC-GHK-007.12 @negative
+  Scenario: The full option is refused with the emit option
+    When a feature query is asked to emit a feature file with the full option
+    Then the CLI writes nothing to standard output
+    And the CLI exits 2
 ```
 
 *Rationale:* AC-GHK-007.6 binds these queries to the warm-index
 behaviour [[frd-spec-index]] already specifies, rather than
 restating a latency budget this feature does not own.
+
+*Rationale for AC-GHK-007.10 to AC-GHK-007.12:* a feature record
+carries its description and every criterion's text, so listing every
+feature in full answers "which features exist?" with most of the corpus's
+normative text. The compact view is the default for the reason the
+reference query's is, and is a named view as [[cli-output-standards]]
+defines one: every feature stays and every kept value is whole.
+`criteria_count` is derived — the full record carries the criteria
+themselves, not their count — and is named apart from the full view's
+`criteria` so one key never holds two types. An emitted feature file is a
+document payload rather than an answer, so neither view applies to it,
+and the combination is refused rather than one option ignored.
 
 *Rationale for AC-GHK-007.4 and AC-GHK-007.8:* an identifier or a code
 is a fact about the corpus, which an author may write tomorrow; a
@@ -828,20 +857,24 @@ Feature: Local Change Detection
     Given a repository holding "<references>"
     When a query for changed criteria names no revision
     Then the base is the merge-base of HEAD and "<default>"
+    And the candidates are tried in the order: the target of origin/HEAD, origin/main, origin/master, main, master
 
     Examples:
       | references                            | default       |
       | origin/HEAD naming origin/trunk, main | origin/trunk  |
-      | main, origin/main, master             | main          |
+      | main, origin/main, master             | origin/main   |
       | origin/main, master                   | origin/main   |
-      | master, origin/master                 | master        |
+      | master, origin/master                 | origin/master |
       | origin/master                         | origin/master |
+      | main, master                          | main          |
+      | master                                | master        |
 
   @AC-GHK-008.11
   Scenario: A change listing names its base and locates each listed criterion
     When the CLI lists changed criteria
     Then the answer holds the base, as the revision compared against and the merge-base commit, followed by the listed criteria
-    And each listed criterion carries its identifier, its classification and the path of its document, the base's path for a removed criterion
+    And each listed criterion carries its identifier, its "name", its classification and the path of its document, the base's path for a removed criterion
+    And the "name" is the current name for an added or changed criterion and the base's name for a removed one, and is omitted where the criterion has none
     And the listed criteria are ordered by identifier
 
   @AC-GHK-008.12 @negative
@@ -854,6 +887,7 @@ Feature: Local Change Detection
       | option       |
       | --since main |
       | --exit-code  |
+      | --full       |
 
   @AC-GHK-008.13 @negative
   Scenario: A spec root outside the git work tree cannot be compared
@@ -861,7 +895,61 @@ Feature: Local Change Detection
     When a query for changed criteria runs
     Then the CLI writes nothing to standard output
     And the CLI reports an environment error naming the spec root and the work tree, and exits 3
+
+  @AC-GHK-008.14
+  Scenario: A local default branch behind its remote-tracking branch is reported
+    Given a query for changed criteria that names no revision
+    And the default branch chosen is a remote-tracking branch
+    And a local branch of the same name exists whose commit is a strict ancestor of the remote-tracking branch's
+    When the CLI compares
+    Then the CLI writes a warning to standard error naming both branches and their short commits
+    And the CLI writes to standard output exactly the answer it writes where no such local branch exists
+
+  @AC-GHK-008.15 @negative
+  Scenario Outline: No staleness warning is written where nothing is behind
+    Given a query for changed criteria "<condition>"
+    When the CLI compares
+    Then the CLI writes no warning to standard error
+
+    Examples:
+      | condition                                                              |
+      | whose local default branch is at the remote-tracking branch's commit   |
+      | whose local default branch has commits the remote-tracking one lacks   |
+      | whose --since option names a revision                                  |
+
+  @AC-GHK-008.16
+  Scenario Outline: The full option carries each listed criterion's records
+    Given a change listing invoked with the full option
+    When the CLI lists a criterion classified "<classification>"
+    Then the listed criterion carries "<records>"
+    And a "record" is the criterion's record exactly as a query naming its identifier returns it, and a "base_record" is the same record taken from the base
+
+    Examples:
+      | classification | records                |
+      | added          | record                 |
+      | changed        | record and base_record |
+      | removed        | base_record            |
 ```
+
+*Rationale for AC-GHK-008.10, AC-GHK-008.14 and AC-GHK-008.15:* a local
+branch is only as current as the last time someone updated it, and a
+cloud session or a CI checkout typically never does, while its
+remote-tracking branch is refreshed by every fetch. A base taken from a
+stale local `main` silently attributes every change merged since to the
+branch under review, so the remote-tracking branch is preferred and the
+local one is used only where no remote-tracking candidate exists. The
+warning names the stale local branch because the caller who reads it may
+be relying on that branch elsewhere; it goes to standard error so the
+answer a caller parses is the same whether or not it fires. A local
+branch that is ahead of or diverged from its remote-tracking branch is
+not "behind", so it draws no warning.
+
+*Rationale for AC-GHK-008.11 and AC-GHK-008.16:* a reviewer reading a
+change listing needs to know what each listed criterion is about without
+one further query per identifier, so every entry carries its name. The
+full option carries the records themselves — both sides of a change, so
+the reviewer can compare them — and is valid only with a change listing,
+since a criterion query already returns the whole record.
 
 ### FEAT-GHK-009: Publication
 

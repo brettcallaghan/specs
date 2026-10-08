@@ -1,0 +1,5 @@
+description = "headings --emit qualified by a document no corpus member declares writes nothing to standard output, says no corpus member is that document, and exits 2"
+cites = ["AC-SPECSTR-003.13"]
+artifacts = ["checks.err"]
+args = ["headings", "no-such-doc#overview", "--emit"]
+exit_code = 2

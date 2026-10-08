@@ -1,0 +1,5 @@
+description = "the --emit refusal lists the matches of members no longer in effect only under --all"
+cites = ["AC-SPECSTR-003.14"]
+artifacts = ["checks.err"]
+args = ["headings", "#overview", "--emit", "--all"]
+exit_code = 2

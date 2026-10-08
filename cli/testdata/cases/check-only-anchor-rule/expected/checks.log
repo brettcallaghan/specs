@@ -1,6 +1,7 @@
-checks:
-  - rule: reference/ambiguous-anchor
-    outcome: failed
+summary:
+  errors: 1
+  warnings: 0
+  unverified: 0
 findings:
   - rule: reference/ambiguous-anchor
     severity: error
@@ -19,7 +20,7 @@ findings:
       target_path: docs/adrs/adr-400-target.md
       matches:
         - text: References
-          heading_path: adr-400-the-cited-document#references
+          anchor: adr-400-the-cited-document#references
           span:
             offset: 330
             length: 14
@@ -28,7 +29,7 @@ findings:
             end_line: 17
             end_column: 1
         - text: references
-          heading_path: adr-400-the-cited-document#references#references
+          anchor: adr-400-the-cited-document#references#references
           span:
             offset: 372
             length: 15
@@ -36,3 +37,6 @@ findings:
             start_column: 1
             end_line: 21
             end_column: 1
+checks:
+  - rule: reference/ambiguous-anchor
+    outcome: failed

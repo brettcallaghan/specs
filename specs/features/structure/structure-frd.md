@@ -7,7 +7,7 @@ description: Records each document's headings with their section spans
 slug: frd-spec-structure
 type: frd
 status: approved
-updated_at: 2026-10-08T00:00:00Z
+updated_at: 2026-10-08T18:00:00Z
 sources:
   - "frd-spec-index"
 ---
@@ -126,9 +126,9 @@ Feature: Structure Queries
   two agents told to review the requirements have not.
 
   @AC-SPECSTR-003.1
-  Scenario: A heading selection returns each match with its section span
-    When the CLI is asked for the spans of headings matching a given selection
-    Then the CLI returns each match as a file path, the heading text, its identifier, its heading path, its level, and the span of the content beneath it
+  Scenario: The full answer returns each match with its section span
+    When the CLI is asked, with the full option, for the spans of headings matching a given selection
+    Then the CLI returns each match as a file path, the heading text, its identifier, its "anchor", its "ref", its level, and the span of the content beneath it
 
   @AC-SPECSTR-003.2
   Scenario: A selection matches a heading on its identifier
@@ -158,7 +158,7 @@ Feature: Structure Queries
   @AC-SPECSTR-003.6
   Scenario: A selection matching no heading is an answer rather than a failure
     Given a selection matching no heading
-    When the CLI runs the query
+    When the CLI runs the query without the emit option
     Then the CLI reports that
     And the CLI exits zero
 
@@ -167,21 +167,21 @@ Feature: Structure Queries
     Given a selection matching more than one heading
     When the CLI is asked to emit the content those headings stand over
     Then the CLI writes nothing to standard output
-    And the CLI names every match with its heading path on standard error, so that the caller can narrow the selection to one heading path or request the matches without their content
+    And the CLI names every match by its ref on standard error, so that the caller can narrow the selection to one ref or request the matches without their content
     And the CLI exits with the invocation-error status
 
   @AC-SPECSTR-003.8
   Scenario: A selection naming a document no corpus member declares is an answer
     Given a selection qualified by a slug or path that no corpus member declares
-    When the CLI runs the query
+    When the CLI runs the query without the emit option
     Then the CLI returns an empty list of matches and a property stating that the document is not declared
     And the CLI exits zero
 
   @AC-SPECSTR-003.9
-  Scenario: A heading path is the identifiers of a heading and its ancestors
+  Scenario: A match's anchor is its heading path
     Given a heading nested beneath other headings
     When the CLI reports it
-    Then its heading path is the identifier of each enclosing heading from the outermost down, followed by its own, joined by "#"
+    Then its "anchor" is its heading path: the identifier of each enclosing heading from the outermost down, followed by its own, joined by "#"
 
   @AC-SPECSTR-003.10
   Scenario Outline: A selection may name a heading by a path of headings
@@ -201,6 +201,50 @@ Feature: Structure Queries
     Then the CLI matches exactly the headings whose heading path is those segments, where some heading's is
     And otherwise the CLI matches a heading named by the last segment whose enclosing headings include, in order from the outermost, a heading named by each earlier segment
     And the CLI matches each segment on its identifier as AC-SPECSTR-003.2 states
+
+  @AC-SPECSTR-003.12
+  Scenario: Every match carries a ref that pastes back unchanged
+    When the CLI reports a match
+    Then the match carries a "ref" of the form "<slug>#<anchor>", where the slug is the one its document declares and is the document's repository-relative path where it declares none
+    And that ref is accepted unchanged as a heading selection, as the argument of a reference query, and inside a wikilink
+
+  @AC-SPECSTR-003.13 @negative
+  Scenario Outline: Emitting content for a selection matching no heading is refused
+    Given a selection "<condition>"
+    When the CLI is asked to emit the content of the heading it names
+    Then the CLI writes nothing to standard output
+    And the CLI writes a message to standard error naming the selection and stating that "<reason>"
+    And the CLI exits with the invocation-error status
+
+    Examples:
+      | condition                                          | reason                                       |
+      | naming a declared document and a heading it lacks  | the selection matches no heading             |
+      | qualified by a document no corpus member declares  | no corpus member is the document it names    |
+
+  @AC-SPECSTR-003.14
+  Scenario: Documents no longer in effect are omitted unless asked for
+    Given a corpus member at a status the active profile registers as no longer in effect
+    When the CLI runs a query, or a refused emit names its matches, without the all option
+    Then the CLI omits that member's headings
+    And the CLI includes them when invoked with the all option
+
+  @AC-SPECSTR-003.15
+  Scenario: A document named explicitly is answered whatever its status
+    Given a selection whose document half names, by slug or path, a corpus member at a status no longer in effect
+    When the CLI runs the query without the all option
+    Then the CLI returns that member's matching headings
+
+  @AC-SPECSTR-003.16
+  Scenario: The default answer is the compact view
+    When the CLI is asked for the headings matching a selection without the full option
+    Then the CLI returns each match as its "anchor", its "ref", its "level" and its "start_line", the line its heading starts on, and nothing else
+    And the compact answer holds every match the full answer holds, in the same order
+
+  @AC-SPECSTR-003.17 @negative
+  Scenario: The full option is refused with the emit option
+    When the CLI is asked to emit the content of a heading with the full option
+    Then the CLI writes nothing to standard output
+    And the CLI exits with the invocation-error status
 ```
 
 *Note:* AC-SPECSTR-003.4 is what answers a roster question — the
@@ -211,26 +255,57 @@ the text is read back through it on demand. It is written raw, because
 the caller asked for the document's own words, and raw text has no place
 to say where one section ends and the next begins, which is why
 AC-SPECSTR-003.7 refuses a selection matching several headings rather
-than joining them; the query without emitting already lists every match,
-each with its heading path and span. That heading path selects its
-heading alone except where it is one segment another heading of the
-document shares — a top-level heading of a document with no H1 — or two
-siblings share text all the way up; such a heading's content is read
-through the span the query returns, and the refusal lists it apart from
-the selections that do name one heading alone. A heading path is the
-same form a nested wikilink anchor takes under
-[[cross-document-references]], so a path copied from a refusal works as
-a selection and as a citation. A single segment remains a valid
-selection. A full heading path takes precedence over a deeper heading
-it is also a subsequence of, which is what lets a pasted
-`document-core#references` name the top-level `References` alone though
-`document-core#components#references` satisfies it too
+than joining them; the full answer already lists every match, each with
+its ref and span.
+
+The same absence of an envelope is why AC-SPECSTR-003.13 refuses an
+emit that matches nothing. AC-SPECSTR-003.6 and AC-SPECSTR-003.8 make
+zero matches an answer because a structured answer can say so — an empty
+`matches` and, for a document half, `declared: false`. Emitted text can
+say neither: an empty standard output reads the same for a heading that
+is absent, a document that is undeclared and a section that is empty.
+The emit form's contract is exactly one heading, so zero is refused as
+several is, and the message says which of the two causes it was.
+
+A match's ref selects its heading alone except where its anchor is one
+segment another heading of the document shares — a top-level heading of
+a document with no H1 — or two siblings share text all the way up; such
+a heading's content is read through the span the full answer returns,
+and the refusal lists it apart from the refs that do name one heading
+alone. The ref leads with the document's declared slug rather than its
+anchor's first segment, which is the H1's identifier and not the slug,
+so it is the form a nested wikilink anchor takes under
+[[cross-document-references]]: a ref copied from an answer or a refusal
+works as a selection, as a reference query's argument and as a citation
+without editing (AC-SPECSTR-003.12). A member that declares no slug is
+reached only by its path, so its ref leads with the path. A single
+segment remains a valid selection. A full heading path takes precedence
+over a deeper heading it is also a subsequence of, which is what lets a
+pasted `document-core#references` name the top-level `References` alone
+though `document-core#components#references` satisfies it too
 (AC-SPECSTR-003.11); the precedence applies to a selection of more than
 one segment only, so a one-segment selection is matched on its
 identifier against every heading and names a top-level heading alone
-only where no other heading shares its identifier. The statuses in AC-SPECSTR-003.7 and AC-SPECSTR-003.8 are
-those [[cli-exit-status-standards]] assigns to an operand the command
-cannot act on and to a subject the corpus does not hold.
+only where no other heading shares its identifier.
+
+AC-SPECSTR-003.14 applies the rule the list query follows: a member at a
+status no longer in effect is withheld unless the caller asks for every
+status, so a question about the live corpus is not answered mostly from
+retired blueprints. AC-SPECSTR-003.15 is its limit — a caller who names
+a retired document asked for it, and withholding it would answer a
+question nobody put.
+
+AC-SPECSTR-003.16 makes the compact view the default for the same
+reason the reference query's is: the common question is "which headings,
+and where", and most of a full match is section-span offsets. It is a
+named view as [[cli-output-standards]] defines one — every match stays,
+every kept value is whole — and the full option returns every field.
+The emit form writes a section rather than an answer, so neither view
+applies to it and AC-SPECSTR-003.17 refuses the combination rather than
+ignoring one of the two options. The statuses in AC-SPECSTR-003.7,
+AC-SPECSTR-003.8, AC-SPECSTR-003.13 and AC-SPECSTR-003.17 are those
+[[cli-exit-status-standards]] assigns to an operand the command cannot
+act on and to a subject the corpus does not hold.
 
 ## References
 
@@ -244,6 +319,8 @@ cannot act on and to a subject the corpus does not hold.
 - [[adr-008]] — the element record blocks this feature extracts
 - [[cli-exit-status-standards]] — the exit statuses the structure query
   reports
+- [[cli-output-standards]] — the named view the structure query's
+  compact answer is
 - [[adr-021]] — Gherkin, the notation these features and acceptance
   criteria are written in
 - [[gherkin-guide]] — how to write them

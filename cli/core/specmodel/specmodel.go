@@ -2133,6 +2133,42 @@ func (v *FindingSchemaViolation) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// A comment trailing a frontmatter value on the same line.
+//
+// Unquoted, a `#` preceded by whitespace starts a YAML comment, so the text
+// after it is silently dropped from the value. Modelled apart so a consumer
+// offering to quote the value has the property name as a value.
+type FindingInlineComment struct {
+	// The name of the top-level property the comment trails.
+	Property string `json:"property"`
+}
+
+func (v *FindingInlineComment) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["property"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingInlineComment: required field \"property\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Property); err != nil {
+		return prefixField("property", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "property":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingInlineComment", Field: unknown}
+	}
+	return nil
+}
+
 // A property the document's type requires and the document does not
 // declare.
 //
@@ -3108,14 +3144,14 @@ type AnchorMatch struct {
 	// The heading's text as authored, without the `#` markers that open the
 	// line.
 	Text string `json:"text"`
-	// The heading's heading path: the identifier of each enclosing heading
+	// The heading's anchor: the identifier of each enclosing heading
 	// from the outermost down, followed by its own, joined by `#`. Written as
 	// a selection or an anchor, it names this heading alone unless two
 	// sibling headings share identical text all the way up, and then no path
 	// can — or unless it is a single segment another heading's identifier
 	// shares, since a one-segment query is an identifier comparison over
 	// every heading.
-	HeadingPath string `json:"heading_path"`
+	Anchor string `json:"anchor"`
 	// Where the heading line itself is written.
 	Span Span `json:"span"`
 }
@@ -3130,10 +3166,10 @@ func (v *AnchorMatch) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Text); err != nil {
 		return prefixField("text", err)
 	}
-	if m, ok := raw["heading_path"]; !ok || string(m) == "null" {
-		return fmt.Errorf("AnchorMatch: required field \"heading_path\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.HeadingPath); err != nil {
-		return prefixField("heading_path", err)
+	if m, ok := raw["anchor"]; !ok || string(m) == "null" {
+		return fmt.Errorf("AnchorMatch: required field \"anchor\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Anchor); err != nil {
+		return prefixField("anchor", err)
 	}
 	if m, ok := raw["span"]; !ok || string(m) == "null" {
 		return fmt.Errorf("AnchorMatch: required field \"span\" is missing or null")
@@ -3143,7 +3179,7 @@ func (v *AnchorMatch) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "text", "heading_path", "span":
+		case "text", "anchor", "span":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -3513,6 +3549,7 @@ type FindingDetail struct {
 
 func (FindingSchemaViolation) isFindingDetailVariant()        {}
 func (FindingMissingProperty) isFindingDetailVariant()        {}
+func (FindingInlineComment) isFindingDetailVariant()          {}
 func (FindingSlugPattern) isFindingDetailVariant()            {}
 func (FindingDuplicateSlug) isFindingDetailVariant()          {}
 func (FindingFrontmatterParse) isFindingDetailVariant()       {}
@@ -3545,6 +3582,10 @@ func NewFindingDetailSchemaViolation(v FindingSchemaViolation) FindingDetail {
 }
 
 func NewFindingDetailMissingProperty(v FindingMissingProperty) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailInlineComment(v FindingInlineComment) FindingDetail {
 	return FindingDetail{Value: v}
 }
 
@@ -3659,6 +3700,11 @@ func (u FindingDetail) AsSchemaViolation() (FindingSchemaViolation, bool) {
 
 func (u FindingDetail) AsMissingProperty() (FindingMissingProperty, bool) {
 	v, ok := u.Value.(FindingMissingProperty)
+	return v, ok
+}
+
+func (u FindingDetail) AsInlineComment() (FindingInlineComment, bool) {
+	v, ok := u.Value.(FindingInlineComment)
 	return v, ok
 }
 
@@ -3803,6 +3849,9 @@ func (u FindingDetail) MarshalJSON() ([]byte, error) {
 	case FindingMissingProperty:
 		tag = "missing-property"
 		payload, err = json.Marshal(v)
+	case FindingInlineComment:
+		tag = "inline-comment"
+		payload, err = json.Marshal(v)
 	case FindingSlugPattern:
 		tag = "slug-pattern"
 		payload, err = json.Marshal(v)
@@ -3928,6 +3977,13 @@ func (u *FindingDetail) UnmarshalJSON(data []byte) error {
 		return nil
 	case "missing-property":
 		var v FindingMissingProperty
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "inline-comment":
+		var v FindingInlineComment
 		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
@@ -7729,7 +7785,7 @@ func (v *Reference) UnmarshalJSON(data []byte) error {
 type SpecIndex struct {
 	// The version of this index's schema.
 	//
-	// Pinned to `2.0` for as long as the shape only grows. A change to the
+	// Pinned to `2.1` for as long as the shape only grows. A change to the
 	// shape of what is already here — as opposed to an addition alongside it
 	// — updates this value and the emitted index in the same change.
 	SchemaVersion string `json:"schema_version"`

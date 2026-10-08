@@ -20,5 +20,6 @@ Available Commands:
 Flags:
       --config string   path to specs.toml (default: the nearest specs.toml in the working directory or above it, up to the repository root)
   -h, --help            help for specs
+      --version         print the build's version, revision, time and modified state as YAML
 
 Use "specs [command] --help" for more information about a command.

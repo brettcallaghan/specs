@@ -365,7 +365,7 @@ without a change to this model.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| schema_version | String ~= `/^2\.0$/` | The version of this index's schema.<br><br>Pinned to `2.0` for as long as the shape only grows. A change to the shape of what is already here — as opposed to an addition alongside it — updates this value and the emitted index in the same change. |
+| schema_version | String ~= `/^2\.1$/` | The version of this index's schema.<br><br>Pinned to `2.1` for as long as the shape only grows. A change to the shape of what is already here — as opposed to an addition alongside it — updates this value and the emitted index in the same change. |
 | workspace | String | The workspace identifier from configuration, so that indexes emitted by several repositories can be merged into one graph without two documents that both declare `adr-001` colliding. |
 | entries | Array<[IndexEntry](#indexentry)> | Every corpus member, in the order the emitter fixes. |
 | exclusions | Array<[IndexExclusion](#indexexclusion)> | Every excluded candidate file, in the order the emitter fixes. |

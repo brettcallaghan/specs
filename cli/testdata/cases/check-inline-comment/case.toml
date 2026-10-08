@@ -1,0 +1,5 @@
+description = "a comment trailing a frontmatter value is one frontmatter/inline-comment warning located at its #, exiting 0 without --strict; a comment on a line of its own is not reported"
+cites = ["AC-SPEC-003.9", "AC-SPEC-003.10"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 0

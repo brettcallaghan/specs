@@ -1,0 +1,5 @@
+description = "slug-exists given an upper-case slug no corpus member declares answers the slug as given, with declared: false and path: null, and still exits zero (AC-SPEC-007.2)"
+cites = ["AC-SPEC-007.2"]
+artifacts = ["checks.log"]
+args = ["slug-exists", "NOPE-999"]
+exit_code = 0

@@ -1,6 +1,6 @@
 ---
 title: "ADR-012: Wikilink and Anchor Reference Conventions"
-description: References use [[slug]] wikilinks for documents, heading anchors for un-promoted components, and backticks for code elements — replacing @ and the # element convention
+description: "References use [[slug]] wikilinks for documents, heading anchors for un-promoted components, and backticks for code elements — replacing @ and the # element convention"
 slug: adr-012
 type: adr
 status: ready-for-review

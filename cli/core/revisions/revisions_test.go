@@ -179,12 +179,12 @@ func qualify(branch string) string {
 }
 
 // The default branch is the first that exists of origin/HEAD's target,
-// main, origin/main, master and origin/master, and the base is the
+// origin/main, origin/master, main and master, and the base is the
 // merge-base of HEAD and it.
 //
 // AC: AC-GHK-008.4, AC-GHK-008.10
-func TestDefaultBranchIsOriginHEADThenMainOriginMainMasterOriginMaster(t *testing.T) {
-	order := []string{"origin/trunk", "main", "origin/main", "master", "origin/master"}
+func TestDefaultBranchIsOriginHEADThenOriginMainOriginMasterMainMaster(t *testing.T) {
+	order := []string{"origin/trunk", "origin/main", "origin/master", "main", "master"}
 
 	// Each case holds the candidates from position i onward, so the one
 	// at position i must win over every later one.
@@ -315,7 +315,7 @@ func TestNoDefaultBranchIsAnEnvironmentErrorNamingEveryReferenceTried(t *testing
 
 	_, err := open_(t, dir).Base("")
 	wantClass(t, err, Environment, "no default branch",
-		"origin/HEAD, main, origin/main, master, origin/master", "--since")
+		"origin/HEAD, origin/main, origin/master, main, master", "--since")
 }
 
 func TestUnrelatedHistoriesAreAnEnvironmentError(t *testing.T) {
@@ -612,4 +612,117 @@ func TestOperationsLeaveTheRepositoryUntouched(t *testing.T) {
 	if after := repositoryState(t, dir); after != before {
 		t.Errorf("repository state changed:\nbefore:\n%s\nafter:\n%s", before, after)
 	}
+}
+
+// With origin/HEAD unset and a local main behind origin/main, the base is
+// taken against origin/main and the stale local branch is reported.
+//
+// AC: AC-GHK-008.10, AC-GHK-008.14
+func TestStaleLocalMainLosesToOriginMainAndIsReported(t *testing.T) {
+	dir := newRepo(t)
+	old := commit(t, dir, "old")
+	newer := commit(t, dir, "newer")
+	git(t, dir, "update-ref", "refs/remotes/origin/main", newer)
+	git(t, dir, "update-ref", "refs/heads/main", old)
+	git(t, dir, "checkout", "-q", "-b", "work", newer)
+
+	base, err := open_(t, dir).Base("")
+	if err != nil {
+		t.Fatalf("Base(\"\"): %v", err)
+	}
+	if base.Ref != "origin/main" || base.Commit != newer {
+		t.Errorf("Base = %+v, want origin/main at %s", base, newer)
+	}
+	want := &StaleLocal{Local: "main", LocalCommit: old, Remote: "origin/main", RemoteCommit: newer}
+	if base.Behind == nil || *base.Behind != *want {
+		t.Errorf("Behind = %+v, want %+v", base.Behind, want)
+	}
+}
+
+// Nothing is behind where the local branch equals, leads or diverges from
+// the remote-tracking one, or where a revision is named.
+//
+// AC: AC-GHK-008.15
+func TestNoStalenessWhereNothingIsBehind(t *testing.T) {
+	setup := func(t *testing.T) (dir, old, newer string) {
+		dir = newRepo(t)
+		old = commit(t, dir, "old")
+		newer = commit(t, dir, "newer")
+		git(t, dir, "update-ref", "refs/remotes/origin/main", newer)
+		git(t, dir, "checkout", "-q", "-b", "work", newer)
+		return dir, old, newer
+	}
+	check := func(t *testing.T, dir, revision string) {
+		t.Helper()
+		base, err := open_(t, dir).Base(revision)
+		if err != nil {
+			t.Fatalf("Base(%q): %v", revision, err)
+		}
+		if base.Behind != nil {
+			t.Errorf("Behind = %+v, want nil", base.Behind)
+		}
+	}
+	t.Run("local equals remote", func(t *testing.T) {
+		dir, _, newer := setup(t)
+		git(t, dir, "update-ref", "refs/heads/main", newer)
+		check(t, dir, "")
+	})
+	t.Run("local ahead of remote", func(t *testing.T) {
+		dir, _, newer := setup(t)
+		tree := git(t, dir, "rev-parse", newer+"^{tree}")
+		ahead := git(t, dir, "commit-tree", "-p", newer, "-m", "ahead", tree)
+		git(t, dir, "update-ref", "refs/heads/main", ahead)
+		check(t, dir, "")
+	})
+	t.Run("local diverged from remote", func(t *testing.T) {
+		dir, old, _ := setup(t)
+		tree := git(t, dir, "rev-parse", old+"^{tree}")
+		side := git(t, dir, "commit-tree", "-p", old, "-m", "side", tree)
+		git(t, dir, "update-ref", "refs/heads/main", side)
+		check(t, dir, "")
+	})
+	t.Run("no local branch", func(t *testing.T) {
+		dir, _, _ := setup(t)
+		check(t, dir, "")
+	})
+	t.Run("revision named", func(t *testing.T) {
+		dir, old, _ := setup(t)
+		git(t, dir, "update-ref", "refs/heads/main", old)
+		check(t, dir, "origin/main")
+	})
+}
+
+// AC: AC-SPECREF-002.11
+func TestFileAtReadsOneFileAsTheCommitHoldsIt(t *testing.T) {
+	dir := newRepo(t)
+	stage(t, dir, "100644", "specs/adrs/a.md", []byte("at HEAD\r\n"))
+	stage(t, dir, "120000", "specs/link.md", []byte("adrs/a.md"))
+	commit(t, dir, "first")
+	// The working tree differs from HEAD; FileAt reads HEAD.
+	if err := os.MkdirAll(filepath.Join(dir, "specs", "adrs"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "specs", "adrs", "a.md"), []byte("edited"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	repo := open_(t, dir)
+
+	got, found, err := repo.FileAt("HEAD", "specs/adrs/a.md")
+	if err != nil || !found || string(got) != "at HEAD\r\n" {
+		t.Errorf("FileAt(HEAD, a.md) = %q, %v, %v; want the committed bytes", got, found, err)
+	}
+	for _, absent := range []string{"specs/adrs/new.md", "specs/adrs", "specs/link.md"} {
+		if got, found, err := repo.FileAt("HEAD", absent); err != nil || found {
+			t.Errorf("FileAt(HEAD, %s) = %q, %v, %v; want not found", absent, got, found, err)
+		}
+	}
+	_, _, err = repo.FileAt("no-such-ref", "specs/adrs/a.md")
+	wantClass(t, err, Invocation, "no-such-ref", "does not resolve")
+}
+
+// AC: AC-SPECREF-002.13
+func TestFileAtOnAnUnbornHEADIsAnEnvironmentError(t *testing.T) {
+	dir := newRepo(t)
+	_, _, err := open_(t, dir).FileAt("HEAD", "a.md")
+	wantClass(t, err, Environment, "HEAD", "no commit")
 }
