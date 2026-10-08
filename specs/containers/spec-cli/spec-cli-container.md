@@ -487,11 +487,14 @@ selects the headings with exactly that path before any whose path merely
 contains it.
 A matched heading is returned with every heading nested inside its
 section, each carrying its own level (AC-SPECSTR-003.4). `--emit` writes
-the content each match stands over instead, read back through the
-recorded span and written as itself with no envelope (AC-SPECSTR-003.5) —
-a section already contained in one just written is skipped, because the
-matches carry nested headings and a parent's span already covers its
-children's text. A selection matching nothing renders the empty
+the content the one matching heading stands over instead, read back
+through the recorded span and written as itself with no envelope
+(AC-SPECSTR-003.5); its span already covers the headings nested in it,
+which are carried but not counted as matches. A raw payload has no place
+for a delimiter, so a selection matching more than one heading is refused
+under `--emit` with exit `2`, nothing on standard output, and each match
+named on standard error as `<path>#<heading_path>`, a selection that
+matches it alone (AC-SPECSTR-003.7). A selection matching nothing renders the empty
 collection and exits zero (AC-SPECSTR-003.6). Like the queries beside it,
 it opens the corpus warm and holds no domain logic: the heading tree and
 the identifier derivation are Markdown Structure's.

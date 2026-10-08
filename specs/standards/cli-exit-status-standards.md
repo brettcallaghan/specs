@@ -257,7 +257,10 @@ Stated here because the status is only as good as the way it is read.
 ## Current conformance
 
 Measured with a binary built from `main` at `31b3079`, run against this
-repository's corpus; the `headings` row at `12b2eda`. The last row was
+repository's corpus; the `headings` row at `12b2eda`. The
+`headings … --emit` row was re-measured on the change that refuses a
+selection matching more than one heading: exit `2`, nothing on standard
+output, both matches named on standard error. The last row was
 re-measured on the change that moved `criterion --changed` onto a git
 base, in a directory outside any repository: exit `3`, nothing on
 standard output. The missing-enum row was re-measured on the change that
@@ -278,7 +281,7 @@ exit `0` with the answer written.
 | `slug-exists zzz`, `feature --code ZZ`, `headings 'zzz#q'` | `0` | `0`, with the subject marked not declared |
 | `list --json` or `index` on a document missing a required enum | `0`, the artifact written | `0` and the artifact written |
 | a panic | `2` (Go's default) | `4` |
-| `headings 'module-document-core#references' --emit`, two matches | `0`, both sections joined | `2`, each match named on standard error |
+| `headings 'module-document-core#references' --emit`, two matches | `2`, each match named on standard error | `2`, each match named on standard error |
 | `criterion --changed` outside a git repository | `3` | `3` |
 
 ---

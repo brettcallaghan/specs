@@ -373,7 +373,7 @@ repository's corpus.
 | `feature`, `criterion` | a YAML mapping whose one key, `features` or `criteria`, holds a list of records whatever the arguments select, one identifier included; `--json` the same values in the same order | conforms |
 | `links <path>` | the rewritten document | conforms — a document payload, written as itself |
 | `index` | the artifact, or the bare path it wrote | the artifact is out of scope; the printed path is an answer |
-| `headings <selection>` | a YAML mapping whose one key is the sequence of matches, each carrying its heading path; `--json` the same values in the same order; `--emit` the matched sections as themselves, joined when several match | `--emit` refused for more than one match. Its rendering is the source of the `renderYAML` the other commands adopt |
+| `headings <selection>` | a YAML mapping whose one key is the sequence of matches, each carrying its heading path; `--json` the same values in the same order; `--emit` the one matched section as itself, and refused with exit `2` when several match | conforms. Its rendering is the source of the `renderYAML` the other commands adopt |
 | `c4 [--root <slug>]` | a YAML mapping of the C4 model; `--json` the same values in the same order | conforms — written against these standards, and renders through `renderYAML` unchanged |
 
 Migration is per command and belongs to whichever feature next touches

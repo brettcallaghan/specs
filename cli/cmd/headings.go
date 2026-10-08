@@ -45,7 +45,12 @@ func newHeadingsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			"selects the References heading beneath Components; every match carries " +
 			"its heading path, which pastes back as such a selection. A matched heading " +
 			"is returned with every heading nested inside its section. Given --emit, " +
-			"the content each match stands over is written as itself instead.",
+			"the content the one matching heading stands over is written as itself " +
+			"instead; --emit requires the selection to match exactly one heading, " +
+			"and a selection matching several is refused with each match named by a " +
+			"selection that matches it alone. A selection with no heading half matches " +
+			"every heading of the document, so a caller after a whole document reads " +
+			"the file.",
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			operand := ""
@@ -61,7 +66,7 @@ func newHeadingsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
 		"write the matches as JSON instead of YAML")
 	cmd.Flags().BoolVar(&emit, "emit", false,
-		"write the content each matched heading stands over, instead of the matches")
+		"write the content the one matching heading stands over, instead of the match")
 	return cmd
 }
 
@@ -164,10 +169,10 @@ func runHeadings(streams *ioStreams, configPath, operand string, emit, jsonOut b
 	}
 
 	sel := parseSelection(operand)
-	matches := selectHeadings(c.Index(), sel)
+	matches, direct := selectHeadings(c.Index(), sel)
 
 	if emit {
-		return emitSections(streams, opts.RepoRoot, matches)
+		return emitSection(streams, opts.RepoRoot, operand, matches, direct)
 	}
 	return renderHeadings(streams, headingsResult{Matches: matches}, jsonOut)
 }
@@ -178,8 +183,13 @@ func runHeadings(streams *ioStreams, configPath, operand string, emit, jsonOut b
 // Ordering is the index's throughout rather than the command's, so two
 // runs over an unchanged corpus print identical bytes for the same
 // reason the index itself is byte-identical (AC-SPEC-009.7).
-func selectHeadings(index specmodel.SpecIndex, sel selection) []headingMatch {
-	matches := []headingMatch{}
+//
+// direct runs parallel to the matches and marks the ones the selection
+// itself names, as opposed to those carried only because they are nested
+// inside a match (AC-SPECSTR-003.4). A selection with no heading half
+// names every heading of the documents it selects (AC-SPECSTR-003.3).
+func selectHeadings(index specmodel.SpecIndex, sel selection) (matches []headingMatch, direct []bool) {
+	matches = []headingMatch{}
 
 	for _, entry := range index.Entries {
 		if !sel.selects(entry) {
@@ -190,6 +200,7 @@ func selectHeadings(index specmodel.SpecIndex, sel selection) []headingMatch {
 		// heading reached both as a match and as one nested inside
 		// another match is reported once.
 		chosen := make([]bool, len(entry.Headings))
+		named := make([]bool, len(entry.Headings))
 		paths := references.HeadingPaths(entry.Headings)
 		// The heading half is a heading path query: one segment is
 		// matched on its identifier, and several select the heading
@@ -205,6 +216,7 @@ func selectHeadings(index specmodel.SpecIndex, sel selection) []headingMatch {
 				continue
 			}
 			chosen[i] = true
+			named[i] = true
 			// A matched heading carries the headings nested beneath it,
 			// each with its own level (AC-SPECSTR-003.4): every heading
 			// after it and deeper than it, up to the next heading at its
@@ -229,9 +241,10 @@ func selectHeadings(index specmodel.SpecIndex, sel selection) []headingMatch {
 				Level:       heading.Level,
 				Section:     heading.SectionSpan,
 			})
+			direct = append(direct, named[i])
 		}
 	}
-	return matches
+	return matches, direct
 }
 
 // selects reports whether entry is within the selection's document half.
@@ -265,47 +278,53 @@ func renderHeadings(streams *ioStreams, result headingsResult, asJSON bool) erro
 	return nil
 }
 
-// emitSections writes the content each matched heading stands over, read
-// back through the recorded span (AC-SPECSTR-003.5).
+// emitSection writes the content the one heading the selection names
+// stands over, read back through the recorded span (AC-SPECSTR-003.5).
 //
-// A document payload, written as itself: no envelope, no heading naming
-// each section and no separator between them, per
-// [[cli-output-standards]]. Each member is read once however many of its
-// sections matched, and its bytes are line-ending-normalized exactly as
-// the walk normalized them, because the spans were computed against the
-// normalized form and would otherwise be off by one byte per line on a
-// CRLF checkout.
+// A document payload, written as itself: no envelope, no heading and no
+// summary, per [[cli-output-standards]]. That leaves a payload no place
+// to mark where one section ends and the next begins, so --emit answers
+// exactly one heading. The headings nested inside it are carried as
+// matches but are not counted, since its span already covers their text.
 //
-// A section already contained in one just written is skipped. The
-// matches carry every heading nested inside a match (AC-SPECSTR-003.4),
-// and a parent's section span already covers its children's text, so
-// emitting each match's span in turn would write the nested text a
-// second time — and this query exists to spend a reader's attention
-// once on the text it selected. What is skipped is only ever a copy:
-// the bytes are in the enclosing section that was written.
-func emitSections(streams *ioStreams, repoRoot string, matches []headingMatch) error {
-	sources := map[string][]byte{}
-	var writtenPath string
-	var writtenEnd uint64
+// No heading named is an answer and writes nothing (AC-SPECSTR-003.6).
+// More than one is an invocation error that writes nothing to standard
+// output and names every heading the selection named by a selection that
+// names it alone, so the caller can paste one back (AC-SPECSTR-003.7).
+//
+// The member's bytes are line-ending-normalized exactly as the walk
+// normalized them, because the span was computed against the normalized
+// form and would otherwise be off by one byte per line on a CRLF
+// checkout.
+func emitSection(streams *ioStreams, repoRoot, operand string, matches []headingMatch, direct []bool) error {
+	var named []headingMatch
+	for i, match := range matches {
+		if direct[i] {
+			named = append(named, match)
+		}
+	}
 
-	for _, match := range matches {
-		if match.Path == writtenPath && match.Section.Offset < writtenEnd {
-			continue
+	switch len(named) {
+	case 0:
+		return nil
+	case 1:
+	default:
+		var b strings.Builder
+		fmt.Fprintf(&b, "%q matches %d headings; --emit needs exactly one. Select one of:", operand, len(named))
+		for _, match := range named {
+			fmt.Fprintf(&b, "\n    %s#%s", match.Path, match.HeadingPath)
 		}
+		b.WriteString("\nor drop --emit to list the matches")
+		return invocationError("%s", b.String())
+	}
 
-		src, ok := sources[match.Path]
-		if !ok {
-			data, err := os.ReadFile(filepath.Join(repoRoot, filepath.FromSlash(match.Path)))
-			if err != nil {
-				return fmt.Errorf("reading %s: %w", match.Path, err)
-			}
-			src = normalizeLineEndings(data)
-			sources[match.Path] = src
-		}
-		if _, err := streams.out.Write(span.Slice(src, match.Section)); err != nil {
-			return fmt.Errorf("writing the section of %q: %w", match.Text, err)
-		}
-		writtenPath, writtenEnd = match.Path, match.Section.Offset+match.Section.Length
+	match := named[0]
+	data, err := os.ReadFile(filepath.Join(repoRoot, filepath.FromSlash(match.Path)))
+	if err != nil {
+		return fmt.Errorf("reading %s: %w", match.Path, err)
+	}
+	if _, err := streams.out.Write(span.Slice(normalizeLineEndings(data), match.Section)); err != nil {
+		return fmt.Errorf("writing the section of %q: %w", match.Text, err)
 	}
 	return nil
 }

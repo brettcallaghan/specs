@@ -1,0 +1,5 @@
+description = "headings --emit with a selection matching more than one heading writes nothing to standard output, names every match by a selection that matches it alone, and exits 2"
+cites = ["AC-SPECSTR-003.7"]
+artifacts = ["checks.err"]
+args = ["headings", "#overview", "--emit"]
+exit_code = 2
