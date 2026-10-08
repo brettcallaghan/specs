@@ -339,6 +339,19 @@ func withheldStatuses(lifecycle LifecycleRules, allStatuses bool) map[string]boo
 	return withheld
 }
 
+// InEffect reports whether entry is at a status the active profile does
+// not register as no longer in effect — the question the listing answers
+// by withholding, offered to the queries that must filter the same way.
+// A member declaring no status, or whose frontmatter did not parse, is
+// in effect: nothing says otherwise.
+func (c *Corpus) InEffect(entry specmodel.IndexEntry) bool {
+	if entry.Frontmatter == nil {
+		return true
+	}
+	status := envelope.Of(entry.Frontmatter).Status
+	return status == "" || !withheldStatuses(c.profile.Lifecycle(), false)[string(status)]
+}
+
 // summarize projects one index entry onto the summary shape.
 //
 // The parse error is copied rather than aliased, so a caller holding a

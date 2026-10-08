@@ -1507,6 +1507,11 @@ unlike the type filter: it declares no status either, so it is at none of
 the withheld ones, and the unfiltered listing is where a caller looking
 for holes in the corpus finds it.
 
+`Corpus.InEffect(entry)` offers the same predicate to the other
+queries that withhold retired members, so that `headings` filters by the
+registered `RetiredStatuses` and not by a status spelling of its own
+(AC-SPECSTR-003.14).
+
 The two compose — a call carrying both returns only what satisfies both
 (AC-SPECLIST-003.4) — and a filter matching nothing yields an empty
 collection rather than a failure.

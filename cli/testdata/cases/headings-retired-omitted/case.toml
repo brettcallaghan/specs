@@ -1,0 +1,4 @@
+description = "headings omits the headings of a member at a status no longer in effect unless every status is asked for"
+cites = ["AC-SPECSTR-003.14"]
+artifacts = ["checks.log"]
+args = ["headings", "#overview"]

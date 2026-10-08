@@ -1,0 +1,15 @@
+declared: true
+matches:
+  - path: docs/adrs/adr-002-second.md
+    text: Overview
+    identifier: overview
+    anchor: adr-002-second#overview
+    ref: adr-002-second#adr-002-second#overview
+    level: 2
+    section:
+      offset: 247
+      length: 73
+      start_line: 14
+      start_column: 1
+      end_line: 16
+      end_column: 1

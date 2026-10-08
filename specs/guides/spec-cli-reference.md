@@ -411,6 +411,11 @@ either, both are refused (exit 2, nothing on standard output) with a
 message naming the selection and whether the document is undeclared or
 the heading absent.
 
+Like `specs list`, `headings` omits members at a status no longer in
+effect unless `--all` is given, from the answer and from the `--emit`
+refusal's list alike. A selection that names such a document by slug or
+path still answers with its headings.
+
 **`specs feature`** returns features, each with its criteria, from the
 Gherkin in the corpus. `feature <id>` returns that one, `--code <CODE>`
 every feature grouped under that code, and no argument every feature.

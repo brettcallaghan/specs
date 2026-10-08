@@ -1,0 +1,4 @@
+description = "headings answers a document named explicitly by slug whatever its status"
+cites = ["AC-SPECSTR-003.15"]
+artifacts = ["checks.log"]
+args = ["headings", "adr-002-second#overview"]

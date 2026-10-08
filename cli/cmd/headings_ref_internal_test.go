@@ -33,7 +33,7 @@ func TestEveryHeadingsMatchCarriesARefThatPastesBack(t *testing.T) {
 	}
 	index := built.Index()
 
-	matches, direct := selectHeadings(index, parseSelection(""))
+	matches, direct := selectHeadings(index, parseSelection(""), nil)
 	if len(matches) == 0 {
 		t.Fatal("the bare selection matched no heading of this repository's corpus")
 	}
@@ -48,14 +48,14 @@ func TestEveryHeadingsMatchCarriesARefThatPastesBack(t *testing.T) {
 		}
 		// Either the ref selects this heading alone, or the --emit
 		// refusal lists it as reachable only by span.
-		if selectsAlone(index, match) {
+		if selectsAlone(index, match, nil) {
 			if sample == nil && !strings.Contains(match.Ref, "/") {
 				m := match
 				sample = &m
 			}
 			continue
 		}
-		again, _ := selectHeadings(index, parseSelection(match.Ref))
+		again, _ := selectHeadings(index, parseSelection(match.Ref), nil)
 		found := false
 		for _, m := range again {
 			found = found || (m.Path == match.Path && m.Section == match.Section)

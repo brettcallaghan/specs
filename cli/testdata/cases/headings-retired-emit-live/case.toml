@@ -1,0 +1,5 @@
+description = "headings --emit omits the matches of a member no longer in effect, so the one live match is written as itself"
+cites = ["AC-SPECSTR-003.14"]
+artifacts = ["checks.log"]
+args = ["headings", "#overview", "--emit"]
+exit_code = 0

@@ -1,0 +1,4 @@
+description = "headings --all includes the headings of members no longer in effect"
+cites = ["AC-SPECSTR-003.14"]
+artifacts = ["checks.log"]
+args = ["headings", "#overview", "--all"]
