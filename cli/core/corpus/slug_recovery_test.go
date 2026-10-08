@@ -127,7 +127,9 @@ func TestNoSlugIsRecoveredWhereNoneIsLegible(t *testing.T) {
 // by its parse failure. A citation that reaches it — by slug, which its
 // file name begins with, or anchored — raises no finding against the
 // citing document, and no anchor finding stands in for the suppressed
-// one; a citation matching nothing is still unresolved.
+// one. A citation matching nothing is still unresolved, and so is one the
+// file name merely begins with when it is no numbered slug — [[adr]],
+// [[adr-012-reference]] — since it does not depend on the member's slug.
 //
 // AC: AC-SPEC-003.8, AC-SPECREF-002.7
 func TestACitationOfAnUnreadableMemberIsAttributedToItsParseFailure(t *testing.T) {
@@ -135,7 +137,7 @@ func TestACitationOfAnUnreadableMemberIsAttributedToItsParseFailure(t *testing.T
 	write(t, repo, "specs/adrs/adr-012-reference-conventions.md",
 		"---\ntitle: [unclosed\nslug: adr-012\ntype: adr\n\n# Reference conventions\n\n## Decision\n\nText.\n")
 	write(t, repo, "specs/frds/frd-citing.md", strings.TrimSuffix(citingBody("adr-012"), "\n")+
-		"\nAnchored: [[adr-012#Decision]]. Missing anchor: [[adr-012#Nowhere]]. Broken: [[adr-404]].\n")
+		"\nAnchored: [[adr-012#Decision]]. Missing anchor: [[adr-012#Nowhere]]. Broken: [[adr-404]], [[adr]], [[adr-012-reference]].\n")
 
 	built := buildChecked(t, repo, checkProfile(permissiveCheckSchema))
 	findings, err := built.Check()
@@ -143,13 +145,18 @@ func TestACitationOfAnUnreadableMemberIsAttributedToItsParseFailure(t *testing.T
 		t.Fatalf("Check: %v", err)
 	}
 
-	var parse, unresolved int
+	var parse int
+	unresolved := map[string]int{}
 	for _, f := range findings {
 		switch {
 		case f.Rule == finding.RuleFrontmatterParse && f.Path == "specs/adrs/adr-012-reference-conventions.md":
 			parse++
-		case f.Rule == finding.RuleUnresolvedReference && strings.Contains(f.Message, "adr-404"):
-			unresolved++
+		case f.Rule == finding.RuleUnresolvedReference && strings.Contains(f.Message, "[[adr-404]]"):
+			unresolved["adr-404"]++
+		case f.Rule == finding.RuleUnresolvedReference && strings.Contains(f.Message, "[[adr]]"):
+			unresolved["adr"]++
+		case f.Rule == finding.RuleUnresolvedReference && strings.Contains(f.Message, "[[adr-012-reference]]"):
+			unresolved["adr-012-reference"]++
 		case f.Path == "specs/frds/frd-citing.md":
 			t.Errorf("unexpected %s against the citing document: %s", f.Rule, f.Message)
 		}
@@ -157,7 +164,9 @@ func TestACitationOfAnUnreadableMemberIsAttributedToItsParseFailure(t *testing.T
 	if parse != 1 {
 		t.Errorf("%d frontmatter/parse findings on the unreadable member, want 1", parse)
 	}
-	if unresolved != 1 {
-		t.Errorf("%d reference/unresolved findings for [[adr-404]], want 1: a citation matching nothing is still broken", unresolved)
+	for _, slug := range []string{"adr-404", "adr", "adr-012-reference"} {
+		if unresolved[slug] != 1 {
+			t.Errorf("%d reference/unresolved findings for [[%s]], want 1: a citation of no member's slug is still broken", unresolved[slug], slug)
+		}
 	}
 }

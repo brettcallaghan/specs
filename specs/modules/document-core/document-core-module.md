@@ -1019,9 +1019,13 @@ Five further semantics are pinned by the resolution half:
   recorded on the index, so the match is reproducible by anything reading
   the artifact rather than resting on knowledge only the build held. A
   parse failure with no recovered slug is matched by a stem prefix as
-  well: a slug its file name begins with, followed by `-`, reaches it, so
-  `[[adr-012]]` finds `adr-012-reference-conventions.md` under the
-  `<slug>-<title>` naming of numbered types (AC-SPEC-003.8). An exact
+  well: a numbered slug — one ending in a `-` and a number — its file
+  name begins with, followed by `-`, reaches it, so `[[adr-012]]` finds
+  `adr-012-reference-conventions.md` under the `<slug>-<title>` naming of
+  numbered types (AC-SPEC-003.8). Any other prefix is no member's slug
+  and depends on no unreadable file: `[[adr]]` and
+  `[[adr-012-reference]]` match nothing there and report as unresolved.
+  The test is lexical, so resolution stays a function of the index. An exact
   stem outranks a prefix, and between two prefix matches the first in
   path order wins. An exclusion is matched on its exact stem only: it
   never claimed to be a member. The consequence is deliberate: a

@@ -292,10 +292,10 @@ alone is visible rather than averaged away.
 <!-- coverage:table:start -->
 | Test layer | Statements covered | Coverage |
 |:---|---:|---:|
-| Unit tests | 4,675 / 5,503 | 85.0% |
-| Snapshot cases | 4,194 / 5,503 | 76.2% |
-| End-to-end (built binary) | 2,247 / 5,503 | 40.8% |
-| **All layers combined** | **5,037 / 5,503** | **91.5%** |
+| Unit tests | 4,676 / 5,504 | 85.0% |
+| Snapshot cases | 4,195 / 5,504 | 76.2% |
+| End-to-end (built binary) | 2,247 / 5,504 | 40.8% |
+| **All layers combined** | **5,038 / 5,504** | **91.5%** |
 
 | Package | Statements | Covered | Coverage |
 |:---|---:|---:|---:|
@@ -311,14 +311,14 @@ alone is visible rather than averaged away.
 | `cli/core/markdown` | 152 | 146 | 96.1% |
 | `cli/core/mdlinks` | 70 | 70 | 100.0% |
 | `cli/core/numbering` | 30 | 26 | 86.7% |
-| `cli/core/references` | 194 | 189 | 97.4% |
+| `cli/core/references` | 195 | 190 | 97.4% |
 | `cli/core/revisions` | 212 | 175 | 82.5% |
 | `cli/core/schemaregistry` | 192 | 174 | 90.6% |
 | `cli/core/span` | 37 | 36 | 97.3% |
 | `cli/core/specindex` | 1 | 1 | 100.0% |
 | `cli/profile` | 64 | 60 | 93.8% |
 | `cli/specs` | 1 | 1 | 100.0% |
-| **Total** | **5,503** | **5,037** | **91.5%** |
+| **Total** | **5,504** | **5,038** | **91.5%** |
 
 Generated code is excluded from these figures: 3,387 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
 <!-- coverage:table:end -->

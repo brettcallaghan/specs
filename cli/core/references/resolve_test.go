@@ -267,22 +267,24 @@ func nonMemberPath(t *testing.T, resolution specmodel.ReferenceResolution) strin
 }
 
 // A slug reaches a parse failure no slug could be read from when it
-// equals the file's stem, or the stem begins with it followed by "-": the
-// <slug>-<title> naming of numbered types. A slug that is no such prefix
-// still matches nothing.
+// equals the file's stem, or when it is a numbered slug — one ending in a
+// "-" and a number — and the stem begins with it followed by "-": the
+// <slug>-<title> naming of numbered types. Any other prefix of the stem,
+// such as [[adr]] or [[adr-012-reference]], is no member's slug, so it
+// matches nothing and stays an ordinary unresolved reference.
 //
 // AC: AC-SPEC-003.8, AC-SPECREF-002.7
-func TestASlugReachesAnUnreadableMemberByItsStemOrAStemPrefix(t *testing.T) {
+func TestASlugReachesAnUnreadableMemberByItsStemOrANumberedSlugPrefix(t *testing.T) {
 	index := indexOf([]specmodel.IndexEntry{unreadable("specs/adrs/adr-012-reference-conventions.md")})
 
-	for _, written := range []string{"adr-012", "ADR-012", "adr-012-reference", "adr-012-reference-conventions", "ADR-012-Reference-Conventions"} {
+	for _, written := range []string{"adr-012", "ADR-012", "adr-012-reference-conventions", "ADR-012-Reference-Conventions"} {
 		if got := nonMemberPath(t, resolveOne(written, index)); got != "specs/adrs/adr-012-reference-conventions.md" {
 			t.Errorf("[[%s]] reached %q", written, got)
 		}
 	}
-	for _, nearMiss := range []string{"adr-01", "adr-012-ref", "reference-conventions"} {
+	for _, nearMiss := range []string{"adr", "ADR", "adr-012-reference", "adr-01", "adr-012-ref", "reference-conventions"} {
 		if _, ok := resolveOne(nearMiss, index).AsUnresolved(); !ok {
-			t.Errorf("[[%s]] is no <slug>- prefix of the stem and did not stay unresolved", nearMiss)
+			t.Errorf("[[%s]] is no numbered-slug prefix of the stem and did not stay unresolved", nearMiss)
 		}
 	}
 }

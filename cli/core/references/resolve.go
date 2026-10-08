@@ -2,6 +2,7 @@ package references
 
 import (
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -60,8 +61,8 @@ type targets struct {
 	members    map[string]string
 	nonMembers map[string]specmodel.ReferenceNonMember
 	// unreadable holds, in path order, the parse failures from which no
-	// slug could be recovered: the only non-members a slug also matches
-	// as a prefix of their stem (AC-SPEC-003.8).
+	// slug could be recovered: the only non-members a numbered slug also
+	// matches as a prefix of their stem (AC-SPEC-003.8).
 	unreadable []specmodel.ReferenceNonMember
 }
 
@@ -145,16 +146,26 @@ func (t targets) resolve(slug string) specmodel.ReferenceResolution {
 		return specmodel.NewReferenceResolutionNonMember(nonMember)
 	}
 	// A numbered document is conventionally named <slug>-<title>.md, so a
-	// slug whose member could not be read is matched as a prefix of its
-	// file name too. Only parse failures are: an excluded file never
-	// claimed to be a member, so nothing it is named for depends on it.
-	for _, nonMember := range t.unreadable {
-		if strings.HasPrefix(stem(nonMember.Path), key+"-") {
-			return specmodel.NewReferenceResolutionNonMember(nonMember)
+	// numbered slug whose member could not be read is matched as a prefix
+	// of its file name too. Only a numbered slug is: no other naming makes
+	// a file name begin with its slug, so [[adr]] or [[adr-012-reference]]
+	// is no member's slug and depends on no unreadable file. Only parse
+	// failures are: an excluded file never claimed to be a member, so
+	// nothing it is named for depends on it.
+	if numberedSlug.MatchString(key) {
+		for _, nonMember := range t.unreadable {
+			if strings.HasPrefix(stem(nonMember.Path), key+"-") {
+				return specmodel.NewReferenceResolutionNonMember(nonMember)
+			}
 		}
 	}
 	return specmodel.NewReferenceResolutionUnresolved(specmodel.ReferenceUnresolved{})
 }
+
+// numberedSlug matches a numbered slug form: hyphen-separated lowercase
+// segments whose last is all digits — `adr-012`, `rfc-0001`. It is
+// lexical, so resolution stays a function of the index alone.
+var numberedSlug = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*-[0-9]+$`)
 
 // lookupKey normalizes a slug for comparison: trimmed of surrounding
 // space and lowercased.
@@ -180,10 +191,12 @@ func lookupKey(slug string) string {
 // resting on knowledge only the build held.
 //
 // A parse failure no slug could be recovered from is also matched by a
-// slug its stem begins with, followed by `-`: `[[adr-012]]` reaches
+// numbered slug — one ending in a `-` and a number — its stem begins
+// with, followed by `-`: `[[adr-012]]` reaches
 // `adr-012-reference-conventions.md`, the `<slug>-<title>` naming of
-// numbered types (AC-SPEC-003.8). An exclusion is matched on its exact
-// stem only.
+// numbered types (AC-SPEC-003.8), while `[[adr]]` and
+// `[[adr-012-reference]]` reach nothing. An exclusion is matched on its
+// exact stem only.
 //
 // The consequence, recorded deliberately: a non-member whose intended
 // slug matches its file name neither way — `frd-spec-index` for
