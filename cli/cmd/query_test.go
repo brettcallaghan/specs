@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/brettcallaghan/agent-plugins/cli/cmd"
@@ -160,8 +161,9 @@ func TestFeatureQueryIsServedFromTheWarmIndexWithoutRewalking(t *testing.T) {
 	if exitCode != 0 {
 		t.Fatalf("exit code = %d, want 0 (the corpus was re-walked rather than served warm)\nstderr: %s", exitCode, stderr)
 	}
-	if want := "FEAT-PLANTED-999\tPlanted only in the index\n\tAC-PLANTED-999.1\t\n"; stdout != want {
-		t.Errorf("stdout = %q, want %q", stdout, want)
+	if !strings.HasPrefix(stdout, "features:\n") ||
+		!strings.Contains(stdout, "FEAT-PLANTED-999") || !strings.Contains(stdout, "AC-PLANTED-999.1") {
+		t.Errorf("stdout = %q, want the features answer carrying the planted feature and its criterion", stdout)
 	}
 }
 
@@ -188,7 +190,7 @@ func TestCriterionQueryIsServedFromTheWarmIndexWithoutRewalking(t *testing.T) {
 	if exitCode != 0 {
 		t.Fatalf("exit code = %d, want 0 (the corpus was re-walked rather than served warm)\nstderr: %s", exitCode, stderr)
 	}
-	if want := "AC-PLANTED-999.1\t\n"; stdout != want {
-		t.Errorf("stdout = %q, want %q", stdout, want)
+	if !strings.HasPrefix(stdout, "criteria:\n") || !strings.Contains(stdout, "AC-PLANTED-999.1") {
+		t.Errorf("stdout = %q, want the criteria answer carrying the planted criterion", stdout)
 	}
 }

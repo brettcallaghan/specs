@@ -1,4 +1,4 @@
-criterion <id> returns that criterion's record. criterion --of <feature-id> returns every criterion beneath one feature, and criterion --tag <qualifier> every criterion carrying one qualifier. --json writes the matching records as JSON to standard output. An identifier no criterion declares is reported as such and exits non-zero. criterion --changed compares the current corpus against the persisted index and lists every acceptance criterion whose content hash differs, classifying each as changed, added or removed.
+criterion <id> returns that criterion's record. criterion --of <feature-id> returns every criterion beneath one feature, and criterion --tag <qualifier> every criterion carrying one qualifier. The answer is a YAML mapping whose one key, criteria, holds a list of the matching records in every case, one identifier included; --json writes the same values as JSON. An identifier no criterion declares is reported as such and exits non-zero. criterion --changed compares the current corpus against the persisted index and lists every acceptance criterion whose content hash differs, classifying each as changed, added or removed.
 
 Usage:
   specs criterion [<id>] [flags]
@@ -6,7 +6,7 @@ Usage:
 Flags:
       --changed      list acceptance criteria whose content differs from the persisted index
   -h, --help         help for criterion
-      --json         write the matching criterion records as JSON to standard output
+      --json         write the answer as JSON instead of YAML
       --of string    list every criterion beneath this feature
       --tag string   list every criterion carrying this qualifier
 

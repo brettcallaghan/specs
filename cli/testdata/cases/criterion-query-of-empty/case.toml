@@ -1,4 +1,4 @@
-description = "criterion --of <feature-id> for a feature no corpus member declares is an empty selection, distinct from an unknown identifier, and exits zero"
+description = "criterion --of <feature-id> for a feature no corpus member declares is an empty selection, distinct from an unknown identifier, answered as criteria: [], and exits zero"
 cites = ["AC-GHK-007.3"]
 artifacts = ["checks.log"]
 args = ["criterion", "--of", "FEAT-CHK-999"]

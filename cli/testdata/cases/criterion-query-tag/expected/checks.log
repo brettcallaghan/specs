@@ -1,1 +1,18 @@
-AC-CHK-002.1	A placed order is refunded
+criteria:
+  - id: AC-CHK-002.1
+    name: A placed order is refunded
+    text: |-
+      Given a placed order
+      When the shopper asks for a refund
+      Then the order is refunded
+    negative: false
+    manual: true
+    notation: gherkin
+    content_hash: sha256:e31bb286ae549a29879da45ff5dc8efa3c9d2e0613bcbddf242b14f543e21a80
+    span:
+      offset: 132
+      length: 157
+      start_line: 8
+      start_column: 1
+      end_line: 12
+      end_column: 31

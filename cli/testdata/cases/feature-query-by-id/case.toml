@@ -1,4 +1,4 @@
-description = "feature <id> returns that feature's record including its criteria, for a feature written as a fenced block"
+description = "feature <id> answers with a YAML mapping whose one key, features, holds a one-element list: that feature's record including its criteria, for a feature written as a fenced block"
 cites = ["AC-GHK-007.1"]
 artifacts = ["checks.log"]
 args = ["feature", "FEAT-CHK-001"]

@@ -34,8 +34,10 @@ func newCriterionCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		Short: "Query an acceptance criterion, or list ones that changed locally",
 		Long: "criterion <id> returns that criterion's record. criterion --of " +
 			"<feature-id> returns every criterion beneath one feature, and criterion " +
-			"--tag <qualifier> every criterion carrying one qualifier. --json writes " +
-			"the matching records as JSON to standard output. An identifier no " +
+			"--tag <qualifier> every criterion carrying one qualifier. The answer is a " +
+			"YAML mapping whose one key, criteria, holds a list of the matching " +
+			"records in every case, one identifier included; --json writes the same " +
+			"values as JSON. An identifier no " +
 			"criterion declares is reported as such and exits non-zero. " +
 			"criterion --changed compares the current corpus against the persisted " +
 			"index and lists every acceptance criterion whose content hash differs, " +
@@ -67,7 +69,7 @@ func newCriterionCmd(streams *ioStreams, configPath *string) *cobra.Command {
 	cmd.Flags().StringVar(&tag, "tag", "",
 		"list every criterion carrying this qualifier")
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
-		"write the matching criterion records as JSON to standard output")
+		"write the answer as JSON instead of YAML")
 	return cmd
 }
 
@@ -162,7 +164,7 @@ func runCriterionQuery(streams *ioStreams, configPath string, args []string, of,
 			streams.exitCode = statusGateFailed
 			return nil
 		}
-		return renderCriterion(streams, criterion, jsonOut)
+		return renderCriteria(streams, []specmodel.Criterion{criterion}, jsonOut)
 	}
 
 	var criteria []specmodel.Criterion
@@ -174,49 +176,33 @@ func runCriterionQuery(streams *ioStreams, configPath string, args []string, of,
 	return renderCriteria(streams, criteria, jsonOut)
 }
 
-// renderCriterion writes one criterion to streams.out: the generated
-// [specmodel.Criterion] JSON in --json mode, and a single
-// `<id>\t<name>` line otherwise — the same shape [renderCriteria] writes
-// per entry, so a single lookup and a selection of one read alike.
-func renderCriterion(streams *ioStreams, criterion specmodel.Criterion, asJSON bool) error {
-	if asJSON {
-		data, err := json.Marshal(criterion)
-		if err != nil {
-			return fmt.Errorf("rendering the criterion as JSON: %w", err)
-		}
-		fmt.Fprintf(streams.out, "%s\n", data)
-		return nil
-	}
-	fmt.Fprintf(streams.out, "%s\t%s\n", criterion.Id, criterionName(criterion))
-	return nil
+// criteriaResult is the criterion query's answer: the matching records
+// and nothing else, under the one key `criteria`, whatever the arguments
+// selected — one identifier, --of or --tag — so a caller never branches
+// on what it passed ([[cli-output-standards]]'s "One shape per command").
+// Criteria is never nil, so an empty selection renders as `criteria: []`.
+type criteriaResult struct {
+	Criteria []specmodel.Criterion `json:"criteria"`
 }
 
-// renderCriteria writes a criterion selection to streams.out: the
-// generated [specmodel.Criterion] JSON array in --json mode
-// (AC-GHK-007.5), and one `<id>\t<name>` line per criterion otherwise. An
-// empty selection writes a fixed sentence in text mode and `[]` in JSON
-// mode — it is a valid answer, never the non-zero "not found" an unknown
-// identifier produces (AC-GHK-007.4).
+// renderCriteria writes the answer as YAML, or as JSON under --json, both
+// carrying the same values in the same order (AC-GHK-007.2, AC-GHK-007.5).
+// An empty selection is an answer, never the non-zero "not found" an
+// unknown identifier produces (AC-GHK-007.4).
 func renderCriteria(streams *ioStreams, criteria []specmodel.Criterion, asJSON bool) error {
 	if criteria == nil {
 		criteria = []specmodel.Criterion{}
 	}
+	result := criteriaResult{Criteria: criteria}
 	if asJSON {
-		data, err := json.Marshal(criteria)
+		data, err := json.Marshal(result)
 		if err != nil {
-			return fmt.Errorf("rendering the criterion selection as JSON: %w", err)
+			return fmt.Errorf("rendering the criteria as JSON: %w", err)
 		}
 		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil
 	}
-
-	if len(criteria) == 0 {
-		fmt.Fprintln(streams.out, "no matching criteria")
-		return nil
-	}
-	for _, criterion := range criteria {
-		fmt.Fprintf(streams.out, "%s\t%s\n", criterion.Id, criterionName(criterion))
-	}
+	fmt.Fprint(streams.out, renderYAML(result))
 	return nil
 }
 

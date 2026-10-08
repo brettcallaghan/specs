@@ -33,8 +33,10 @@ func newFeatureCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		Short: "Query a feature, or emit one as a standalone Gherkin file",
 		Long: "feature <id> returns that feature's record, including its criteria. " +
 			"feature --code <CODE> returns every feature grouped under that code, and " +
-			"feature with no argument every feature in the corpus. --json writes the " +
-			"matching records as JSON to standard output. An identifier no feature " +
+			"feature with no argument every feature in the corpus. The answer is a " +
+			"YAML mapping whose one key, features, holds a list of the matching " +
+			"records in every case, one identifier included; --json writes the same " +
+			"values as JSON. An identifier no feature " +
 			"declares is reported as such and exits non-zero. " +
 			"feature <id> --emit writes the named feature as a valid Gherkin .feature " +
 			"file, carrying its tags, description and criteria, to standard output " +
@@ -65,7 +67,7 @@ func newFeatureCmd(streams *ioStreams, configPath *string) *cobra.Command {
 	cmd.Flags().StringVar(&code, "code", "",
 		"list every feature grouped under this code")
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
-		"write the matching feature records as JSON to standard output")
+		"write the answer as JSON instead of YAML")
 	return cmd
 }
 
@@ -173,7 +175,7 @@ func runFeatureQuery(streams *ioStreams, configPath string, args []string, code 
 			streams.exitCode = statusGateFailed
 			return nil
 		}
-		return renderFeature(streams, feature, jsonOut)
+		return renderFeatures(streams, []specmodel.Feature{feature}, jsonOut)
 	}
 
 	var features []specmodel.Feature
@@ -185,65 +187,35 @@ func runFeatureQuery(streams *ioStreams, configPath string, args []string, code 
 	return renderFeatures(streams, features, jsonOut)
 }
 
-// renderFeature writes one feature, including its criteria, to
-// streams.out: the generated [specmodel.Feature] JSON in --json mode, and
-// a short human summary otherwise — the feature's identifier and name, one
-// tab-indented `<id>\t<name>` line per criterion beneath it, matching the
-// tab-separated shape `criterion --changed` already writes.
-func renderFeature(streams *ioStreams, feature specmodel.Feature, asJSON bool) error {
-	if asJSON {
-		data, err := json.Marshal(feature)
-		if err != nil {
-			return fmt.Errorf("rendering the feature as JSON: %w", err)
-		}
-		fmt.Fprintf(streams.out, "%s\n", data)
-		return nil
-	}
-
-	fmt.Fprintf(streams.out, "%s\t%s\n", feature.Id, feature.Name)
-	for _, criterion := range feature.Criteria {
-		fmt.Fprintf(streams.out, "\t%s\t%s\n", criterion.Id, criterionName(criterion))
-	}
-	return nil
+// featuresResult is the feature query's answer: the matching records and
+// nothing else, under the one key `features`, whatever the arguments
+// selected — one identifier, a code, or every feature — so a caller never
+// branches on what it passed ([[cli-output-standards]]'s "One shape per
+// command"). Features is never nil, so an empty selection renders as
+// `features: []`.
+type featuresResult struct {
+	Features []specmodel.Feature `json:"features"`
 }
 
-// renderFeatures writes a feature selection to streams.out: the generated
-// [specmodel.Feature] JSON array in --json mode (AC-GHK-007.5), and one
-// `<id>\t<name>` line per feature otherwise. An empty selection writes a
-// fixed sentence in text mode and `[]` in JSON mode — it is a valid answer,
-// never the non-zero "not found" an unknown identifier produces
-// (AC-GHK-007.4).
+// renderFeatures writes the answer as YAML, or as JSON under --json, both
+// carrying the same values in the same order (AC-GHK-007.1, AC-GHK-007.5).
+// An empty selection is an answer, never the non-zero "not found" an
+// unknown identifier produces (AC-GHK-007.4).
 func renderFeatures(streams *ioStreams, features []specmodel.Feature, asJSON bool) error {
 	if features == nil {
 		features = []specmodel.Feature{}
 	}
+	result := featuresResult{Features: features}
 	if asJSON {
-		data, err := json.Marshal(features)
+		data, err := json.Marshal(result)
 		if err != nil {
-			return fmt.Errorf("rendering the feature selection as JSON: %w", err)
+			return fmt.Errorf("rendering the features as JSON: %w", err)
 		}
 		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil
 	}
-
-	if len(features) == 0 {
-		fmt.Fprintln(streams.out, "no matching features")
-		return nil
-	}
-	for _, feature := range features {
-		fmt.Fprintf(streams.out, "%s\t%s\n", feature.Id, feature.Name)
-	}
+	fmt.Fprint(streams.out, renderYAML(result))
 	return nil
-}
-
-// criterionName returns c's Name, or the empty string where the notation
-// gave it none — the same nil-to-empty reading [toRenderCriterion] applies
-// for `--emit`.
-func criterionName(c specmodel.Criterion) string {
-	if c.Name == nil {
-		return ""
-	}
-	return *c.Name
 }
 
 // toRenderFeature converts an index record into what [gherkin.Render]

@@ -339,13 +339,15 @@ groups under that code, and `feature` with no argument and no `--code`
 every feature `corpus.Corpus.Features` holds (AC-GHK-003.3, AC-GHK-007.3).
 A feature identifier resolves the same way regardless of which admissible
 form or file it sits in, because the lookup reads the index's `Id` field
-and never its `Path` (AC-GHK-003.1). `--json` marshals the matching
-`specmodel.Feature` value — or, for a selection, a `specmodel.Feature`
-array — straight through, the same generated-JSON discipline `refs`
-applies to `specmodel.Reference` (AC-GHK-007.5). An identifier naming no
+and never its `Path` (AC-GHK-003.1). The answer has one shape whatever
+the arguments select: a mapping whose one key, `features`, holds a list
+of the matching generated `specmodel.Feature` records, one identifier's
+lookup included, rendered as YAML by `renderYAML` by default and as JSON
+under `--json` with the same values in the same order (AC-GHK-007.1,
+AC-GHK-007.5, [[cli-output-standards]]). An identifier naming no
 feature is reported distinctly on standard error and exits 1
 (AC-GHK-007.4); `--code` naming a group nothing carries is an
-empty selection instead, and exits zero — a selector is not an identifier,
+empty selection instead, `features: []`, and exits zero — a selector is not an identifier,
 so it cannot itself be "unknown". `--code` and `--json` cannot be
 combined with `--emit`, and an identifier and `--code` cannot both be
 given: the command's `Args` validator and `RunE` branch on `--emit` before
@@ -377,11 +379,15 @@ returns every criterion `corpus.Corpus.CriteriaOf` that feature holds, and
 matches against the active profile's registered qualifier vocabulary —
 the same `Negative`/`Manual`/`Level` properties and `FeatureTagRules.Qualifiers`
 registration `--emit`'s `criterionTags` reads in the write direction
-(AC-GHK-007.3). `--json` marshals the matching `specmodel.Criterion` value
-or array straight through (AC-GHK-007.5). An identifier naming no
-criterion is reported distinctly on standard error and exits 1 (AC-GHK-007.4); `--of`
+(AC-GHK-007.3). The answer has the same one shape: a mapping whose one
+key, `criteria`, holds a list of the matching generated
+`specmodel.Criterion` records, one identifier's lookup included, as YAML
+by default and as JSON under `--json` (AC-GHK-007.2, AC-GHK-007.5). An
+identifier naming no criterion is reported distinctly on standard error
+and exits 1 (AC-GHK-007.4); `--of`
 naming a feature nothing declares, or `--tag` naming a qualifier no
-criterion carries, is an empty selection instead, and exits zero for the
+criterion carries, is an empty selection instead, `criteria: []`, and
+exits zero for the
 same reason `--code` does on `feature`. `--changed` cannot be combined
 with an identifier, `--of`, `--tag` or `--json`; an identifier cannot be
 combined with `--of` or `--tag`; and `--of` and `--tag` cannot both be

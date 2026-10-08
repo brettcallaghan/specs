@@ -1,1 +1,19 @@
-AC-CHK-001.1	A basket with something in it can be paid for
+criteria:
+  - id: AC-CHK-001.1
+    name: A basket with something in it can be paid for
+    text: |-
+      Given a basket holding one item
+      When the shopper pays
+      Then the order is placed
+    negative: false
+    manual: false
+    level: unit
+    notation: gherkin
+    content_hash: sha256:6c0b89a15617d8f8bb006d3bf0b26d151593cfb34b99a2ce46c29566669c02c1
+    span:
+      offset: 423
+      length: 176
+      start_line: 23
+      start_column: 1
+      end_line: 27
+      end_column: 29
