@@ -152,9 +152,10 @@ func corpusOptions(cfg *Config, configPath string) (corpus.Options, error) {
 // read-only checkout, a race with a concurrent writer, a full disk: none
 // of them make the answer this command already computed any less
 // correct, and a query that failed because it could not update a cache
-// would be a worse tool than one that is merely slow. AC-SPEC-010.4's
-// atomic replace is [corpus.Write]'s, so a concurrent reader never sees
-// a partial file.
+// would be a worse tool than one that is merely slow, so a failed write
+// changes neither the exit status nor either stream (AC-SPEC-010.7).
+// AC-SPEC-010.4's atomic replace is [corpus.Write]'s, so a concurrent
+// reader never sees a partial file.
 func openCorpus(opts corpus.Options) (*corpus.Corpus, error) {
 	dest := corpus.IndexPath(opts, "")
 	c, warm, err := corpus.Open(opts, dest)

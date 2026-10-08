@@ -678,6 +678,10 @@ Feature: Index Output and Persistence
   Whether an adopting repository commits the file or ignores it is the
   adopter's choice; the CLI requires neither.
 
+  A query or check that had to build the index persists it at the default
+  location, best-effort, so the next invocation finds it warm. A write that
+  fails changes nothing the caller observes; the index only stays cold.
+
   @AC-SPEC-010.1
   Scenario: The index lands at one known path by default
     When the CLI is asked to build the index
@@ -710,6 +714,13 @@ Feature: Index Output and Persistence
     Given the index file is absent, or any corpus input has changed since it was written
     When a query runs
     Then the CLI rebuilds the index before answering rather than serving a stale result
+
+  @AC-SPEC-010.7
+  Scenario: A query that cannot persist the index answers exactly as if it could
+    Given the index file cannot be written
+    When a corpus query or check runs
+    Then the CLI answers as it would with the file writable
+    And the exit status, standard output and standard error are unchanged
 ```
 
 *Examples:* with `root = "docs/specs"` in the configuration, running
@@ -724,7 +735,9 @@ yields the query a truncated document (AC-SPEC-010.4).
 second time and returns within the AC-SPEC-009.1 budget
 (AC-SPEC-010.5). Editing one ADR and immediately querying returns an
 answer reflecting the edit, because the changed input invalidated the
-warm index (AC-SPEC-010.6).
+warm index (AC-SPEC-010.6). In a read-only checkout every query still
+answers and exits as it would in a writable one; it only stays cold
+(AC-SPEC-010.7).
 
 *Rationale:* The index artifact and the check report are different
 outputs: FEAT-SPEC-006.5 writes the *findings* of a check run to standard
@@ -739,7 +752,11 @@ default name means every skill body, CI config, and hook can refer to
 `specs.json` without configuration, while the output-path option keeps
 the CI-publish and pipe-to-stdout cases first-class. Whether an adopting
 repository commits the file or ignores it is the adopter's choice; the
-CLI requires neither.
+CLI requires neither. Persisting from a query is a cache side effect, so
+its failure must not reach the answer: [[cli-exit-status-standards]]
+holds that "A status that depends on whether the cache was warm is a
+defect", and a write that failed is only a cache that stayed cold
+(AC-SPEC-010.7).
 
 ### FEAT-SPEC-011: Command Surface
 

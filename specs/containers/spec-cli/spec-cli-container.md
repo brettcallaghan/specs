@@ -687,7 +687,9 @@ are stated against went unreached (`agent-plugins-9ur`). That write is
 best-effort and its failure is discarded: a read-only checkout or a race
 with a concurrent writer makes the answer no less correct, and a query
 that failed because it could not refresh a cache would be a worse tool
-than a slow one. AC-SPEC-010.4's atomic replace keeps a concurrent
+than a slow one. A failed write changes nothing observable — not the
+exit status, not standard output, not standard error; the index only
+stays cold (AC-SPEC-010.7). AC-SPEC-010.4's atomic replace keeps a concurrent
 reader from seeing a partial file.
 
 **Staleness is decided by a content hash of the inputs, never by a
