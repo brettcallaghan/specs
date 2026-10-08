@@ -31,8 +31,10 @@ func TestWriteErrorTextNamesADestinationBeneathAFile(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			err := &fs.PathError{Op: "open", Path: c.path, Err: fs.ErrNotExist}
-			if got := writeErrorText(err); got != c.want {
+			// The error's own path is the parent, as os.MkdirAll reports
+			// it, to show the test is made on the destination.
+			err := &fs.PathError{Op: "mkdir", Path: filepath.Dir(c.path), Err: fs.ErrNotExist}
+			if got := writeErrorText(c.path, err); got != c.want {
 				t.Errorf("writeErrorText = %q, want %q", got, c.want)
 			}
 		})

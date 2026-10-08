@@ -293,13 +293,13 @@ alone is visible rather than averaged away.
 | Test layer | Statements covered | Coverage |
 |:---|---:|---:|
 | Unit tests | 4,713 / 5,556 | 84.8% |
-| Snapshot cases | 4,238 / 5,556 | 76.3% |
+| Snapshot cases | 4,235 / 5,556 | 76.2% |
 | End-to-end (built binary) | 2,248 / 5,556 | 40.5% |
-| **All layers combined** | **5,089 / 5,556** | **91.6%** |
+| **All layers combined** | **5,088 / 5,556** | **91.6%** |
 
 | Package | Statements | Covered | Coverage |
 |:---|---:|---:|---:|
-| `cli/cmd` | 1,526 | 1,338 | 87.7% |
+| `cli/cmd` | 1,526 | 1,337 | 87.6% |
 | `cli/core/c4diagram` | 246 | 234 | 95.1% |
 | `cli/core/c4elements` | 284 | 277 | 97.5% |
 | `cli/core/c4model` | 313 | 297 | 94.9% |
@@ -318,7 +318,7 @@ alone is visible rather than averaged away.
 | `cli/core/specindex` | 1 | 1 | 100.0% |
 | `cli/profile` | 64 | 60 | 93.8% |
 | `cli/specs` | 1 | 1 | 100.0% |
-| **Total** | **5,556** | **5,089** | **91.6%** |
+| **Total** | **5,556** | **5,088** | **91.6%** |
 
 Generated code is excluded from these figures: 3,387 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
 <!-- coverage:table:end -->

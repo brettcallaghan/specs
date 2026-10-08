@@ -38,7 +38,7 @@ func readErrorText(err error) string {
 	}
 }
 
-// writeErrorText renders why a file could not be written, in wording that
+// writeErrorText renders why dest could not be written, in wording that
 // does not vary by operating system: the operation and path a
 // [*fs.PathError] carries are dropped, since the caller's message already
 // names the destination, and the cause is rendered as [readErrorText]
@@ -47,12 +47,15 @@ func readErrorText(err error) string {
 // A destination beneath a regular file is reported as "not a directory"
 // on every platform. Unix says so itself (ENOTDIR), while Windows reports
 // the same case as a missing path, which would read as "no such file".
-func writeErrorText(err error) string {
+// The test is made on dest rather than on the path the error carries,
+// because which path that is (dest, its directory, or a temporary file
+// beside it) depends on the step that failed.
+func writeErrorText(dest string, err error) string {
+	if beneathRegularFile(dest) {
+		return "not a directory"
+	}
 	var pathErr *fs.PathError
 	if errors.As(err, &pathErr) {
-		if beneathRegularFile(pathErr.Path) {
-			return "not a directory"
-		}
 		return readErrorText(pathErr.Err)
 	}
 	return readErrorText(err)

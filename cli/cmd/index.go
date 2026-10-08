@@ -76,7 +76,7 @@ func runIndex(streams *ioStreams, configPath, out string) error {
 		var pathErr *fs.PathError
 		if errors.As(err, &pathErr) {
 			return environmentError("%s cannot be written: %s",
-				filepath.ToSlash(dest), writeErrorText(pathErr))
+				filepath.ToSlash(dest), writeErrorText(dest, pathErr))
 		}
 		return fmt.Errorf("writing the index: %w", err)
 	}

@@ -121,11 +121,11 @@ func runFeatureEmit(streams *ioStreams, configPath, id, out string) error {
 
 	if dir := filepath.Dir(out); dir != "." {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return environmentError("%s cannot be written: %s", filepath.ToSlash(out), writeErrorText(err))
+			return environmentError("%s cannot be written: %s", filepath.ToSlash(out), writeErrorText(out, err))
 		}
 	}
 	if err := os.WriteFile(out, data, 0o644); err != nil {
-		return environmentError("%s cannot be written: %s", filepath.ToSlash(out), writeErrorText(err))
+		return environmentError("%s cannot be written: %s", filepath.ToSlash(out), writeErrorText(out, err))
 	}
 	// A file was written: name it, the same convention `index` follows
 	// for the same reason — a human running this interactively sees
