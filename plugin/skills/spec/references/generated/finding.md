@@ -5,6 +5,7 @@
 - [RuleId](#ruleid)
 - [Severity](#severity)
 - [FindingSchemaViolation](#findingschemaviolation)
+- [FindingInlineComment](#findinginlinecomment)
 - [FindingMissingProperty](#findingmissingproperty)
 - [FindingSlugPattern](#findingslugpattern)
 - [FindingDuplicateSlug](#findingduplicateslug)
@@ -95,6 +96,19 @@ the constraint says what it had to satisfy.
 | pointer | String | The JSON Pointer at which the violation occurred, relative to the document's frontmatter. |
 | constraint | String | The constraint the value failed, quoted as the schema states it. |
 | value | String | The offending value, as raw source text rather than as a YAML parser reinterpreted it, so a date written unquoted is reported as it was written. |
+
+
+## FindingInlineComment
+
+A comment trailing a frontmatter value on the same line.
+
+Unquoted, a `#` preceded by whitespace starts a YAML comment, so the text
+after it is silently dropped from the value. Modelled apart so a consumer
+offering to quote the value has the property name as a value.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| property | String | The name of the top-level property the comment trails. |
 
 
 ## FindingMissingProperty
@@ -583,6 +597,7 @@ identifier, the severity, the path, the span and the message.
 |-----|------|---------------|
 | "schema-violation" | SchemaViolation | A frontmatter value violating the schema for its document type. |
 | "missing-property" | MissingProperty | A required frontmatter property the document does not declare. |
+| "inline-comment" | InlineComment | A comment trailing a frontmatter value, cutting the value short. |
 | "slug-pattern" | SlugPattern | A slug not matching the pattern registered for its type. |
 | "duplicate-slug" | DuplicateSlug | A slug declared by two corpus members. |
 | "frontmatter-parse" | FrontmatterParse | A frontmatter block that could not be read as a document envelope. |

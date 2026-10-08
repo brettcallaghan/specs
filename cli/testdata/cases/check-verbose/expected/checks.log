@@ -41,6 +41,8 @@ checks:
     outcome: passed
   - rule: corpus/empty
     outcome: passed
+  - rule: frontmatter/inline-comment
+    outcome: passed
   - rule: frontmatter/missing-property
     outcome: failed
   - rule: frontmatter/parse

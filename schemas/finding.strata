@@ -64,6 +64,18 @@ struct FindingSchemaViolation {
 }
 
 """
+A comment trailing a frontmatter value on the same line.
+
+Unquoted, a `#` preceded by whitespace starts a YAML comment, so the text
+after it is silently dropped from the value. Modelled apart so a consumer
+offering to quote the value has the property name as a value.
+"""
+struct FindingInlineComment {
+  """The name of the top-level property the comment trails."""
+  property: String
+}
+
+"""
 A property the document's type requires and the document does not
 declare.
 
@@ -702,6 +714,9 @@ union FindingDetail {
 
   """A required frontmatter property the document does not declare."""
   @tag("missing-property") MissingProperty: FindingMissingProperty
+
+  """A comment trailing a frontmatter value, cutting the value short."""
+  @tag("inline-comment") InlineComment: FindingInlineComment
 
   """A slug not matching the pattern registered for its type."""
   @tag("slug-pattern") SlugPattern: FindingSlugPattern

@@ -638,3 +638,45 @@ func TestTopLevelScalarAtLocatesTheValueAsParseWould(t *testing.T) {
 			at, src[at.Offset:at.Offset+at.Length])
 	}
 }
+
+// A comment trailing a value — on the value's own line, or on the last
+// line of a plain scalar running over two — is reported at its "#" and
+// attributed to its property; a full-line comment, a "#" inside a quoted
+// value, a "#" with no space before it and one inside a block scalar are
+// not comments trailing a value.
+//
+// AC: AC-SPEC-003.9, AC-SPEC-003.10
+func TestInlineCommentsAreTheCommentsTrailingAValue(t *testing.T) {
+	src := "---\n" +
+		"# a full-line comment\n" +
+		"title: \"quoted # kept\"\n" +
+		"description: a # b\n" +
+		"url: http://x#y\n" +
+		"summary: one\n  two # three\n" +
+		"block: |\n  text # kept\n" +
+		"tags:\n  - x # y\n" +
+		"---\nbody\n"
+	doc, perr := frontmatter.Parse([]byte(src))
+	if perr != nil {
+		t.Fatalf("Parse: %v", perr)
+	}
+	type got struct {
+		property, text string
+		line, column   uint64
+	}
+	var comments []got
+	for _, c := range doc.InlineComments() {
+		comments = append(comments, got{c.Property, src[c.Span.Offset : c.Span.Offset+c.Span.Length], c.Span.StartLine, c.Span.StartColumn})
+	}
+	want := []got{
+		{"description", "# b", 4, 16},
+		{"summary", "# three", 7, 7},
+		{"tags", "# y", 11, 7},
+	}
+	if !reflect.DeepEqual(comments, want) {
+		t.Errorf("InlineComments = %+v, want %+v", comments, want)
+	}
+	if d, _ := doc.Property("description"); d.Value != "a" {
+		t.Errorf("description = %q, want the value cut short at the comment, \"a\"", d.Value)
+	}
+}

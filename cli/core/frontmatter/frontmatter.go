@@ -32,6 +32,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
+	"github.com/goccy/go-yaml/lexer"
 	"github.com/goccy/go-yaml/parser"
 	"github.com/goccy/go-yaml/token"
 
@@ -117,8 +118,29 @@ type Document struct {
 	// document declares them.
 	Properties []Property
 
-	values map[string]any
-	index  map[string]int
+	values   map[string]any
+	index    map[string]int
+	comments []InlineComment
+}
+
+// InlineComment is a YAML comment trailing a value on the same line of a
+// frontmatter block. Unquoted, a "#" preceded by whitespace starts a
+// comment, so the text after it is silently not part of the value.
+type InlineComment struct {
+	// Property is the top-level property whose source the comment sits
+	// in.
+	Property string
+
+	// Span runs from the comment's "#" to the end of its line, in
+	// whole-document coordinates.
+	Span specmodel.Span
+}
+
+// InlineComments returns every comment that trails a token on its own
+// line, in source order. A comment on a line holding nothing else is not
+// one: it cuts no value short (AC-SPEC-003.10).
+func (d *Document) InlineComments() []InlineComment {
+	return d.comments
 }
 
 // Locate reports the region of src's frontmatter block: Outer over both
@@ -204,7 +226,45 @@ func Parse(src []byte) (*Document, *specmodel.ParseError) {
 		doc.Properties = append(doc.Properties, property)
 		doc.values[property.Name] = property.Value
 	}
+	doc.comments = inlineComments(src, region, inner, doc.Properties)
 	return doc, nil
+}
+
+// inlineComments finds the comments in the block that follow another
+// token on the same line, attributing each to the property whose key most
+// closely precedes it. It reads the lexer's tokens rather than parsing
+// with comments retained, so nothing [Parse] reports about values or
+// spans depends on it.
+func inlineComments(src []byte, region span.Region, inner []byte, properties []Property) []InlineComment {
+	var found []InlineComment
+	lastLine := 0
+	for _, tok := range lexer.Tokenize(string(inner)) {
+		if tok.Type != token.CommentType {
+			// A plain or quoted scalar can run over several lines; the
+			// line it ends on is the one a trailing comment shares.
+			lastLine = tok.Position.Line + strings.Count(strings.TrimSpace(tok.Origin), "\n")
+			continue
+		}
+		if tok.Position.Line != lastLine {
+			continue // a comment on a line of its own
+		}
+		start := absolute(region, src, tok)
+		end := start
+		for end < len(src) && src[end] != '\n' {
+			end++
+		}
+		for end > start && src[end-1] == '\r' {
+			end--
+		}
+		owner := ""
+		for _, p := range properties {
+			if int(p.Key.Offset) <= start {
+				owner = p.Name
+			}
+		}
+		found = append(found, InlineComment{Property: owner, Span: span.Of(src, start, end-start)})
+	}
+	return found
 }
 
 // Property returns the named property.

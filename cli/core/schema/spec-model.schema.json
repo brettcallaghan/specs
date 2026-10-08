@@ -2195,6 +2195,23 @@
           "additionalProperties": false,
           "properties": {
             "kind": {
+              "const": "inline-comment",
+              "type": "string"
+            },
+            "property": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "property"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
               "const": "slug-pattern",
               "type": "string"
             },
@@ -2904,6 +2921,20 @@
         "counterpart",
         "source_path",
         "target_path"
+      ],
+      "type": "object"
+    },
+    "FindingInlineComment": {
+      "additionalProperties": false,
+      "description": "A comment trailing a frontmatter value on the same line.\n\nUnquoted, a `#` preceded by whitespace starts a YAML comment, so the text\nafter it is silently dropped from the value. Modelled apart so a consumer\noffering to quote the value has the property name as a value.",
+      "properties": {
+        "property": {
+          "description": "The name of the top-level property the comment trails.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "property"
       ],
       "type": "object"
     },

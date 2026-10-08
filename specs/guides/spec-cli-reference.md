@@ -649,6 +649,7 @@ coexist with the vocabulary; only a misspelt one loses a meaning. Pass
 | `frontmatter/parse` | error | A frontmatter block that could not be read as a document envelope — most often a `status` outside the vocabulary or an `updated_at` that is not an RFC 3339 date-time — so nothing else examined the document |
 | `frontmatter/schema` | error | A frontmatter value that violates its type's schema, naming the property, the value and the constraint — `/reviewer: "someone" does not satisfy additionalProperties` |
 | `frontmatter/missing-property` | error | A required frontmatter property the document does not declare |
+| `frontmatter/inline-comment` | warning | A YAML comment trailing a frontmatter value on the same line — `description: a # b` — located at the `#`: unquoted, the text after it is not part of the value. Quote the value to keep it |
 | `slug/pattern-mismatch` | error | A slug that does not match its type's pattern |
 | `slug/duplicate` | error | A slug declared by more than one document, naming the other |
 | `corpus/empty` | error | A run whose spec root holds no corpus member at all, so a clean report would mean nothing was examined |

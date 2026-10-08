@@ -63,6 +63,12 @@ const (
 	// RuleMissingProperty covers a required frontmatter property the
 	// document does not declare.
 	RuleMissingProperty specmodel.RuleId = "frontmatter/missing-property"
+	// RuleInlineComment covers a YAML comment trailing a frontmatter
+	// value on the same line, which silently cuts the value short at its
+	// "#". It reports at [SeverityWarning]: the block still parses and
+	// the shortened value may even be valid, so it is a probable mistake
+	// rather than a conformance failure (AC-SPEC-003.9).
+	RuleInlineComment specmodel.RuleId = "frontmatter/inline-comment"
 	// RuleSlugPattern covers a slug that does not match the pattern the
 	// active profile supplies for the document's type.
 	RuleSlugPattern specmodel.RuleId = "slug/pattern-mismatch"
@@ -248,6 +254,23 @@ func MissingProperty(path string, at specmodel.Span, pointer, property string) s
 			pointerPrefix(pointer), property),
 		Detail: specmodel.NewFindingDetailMissingProperty(specmodel.FindingMissingProperty{
 			Pointer:  pointer,
+			Property: property,
+		}),
+	}
+}
+
+// InlineComment reports a comment trailing the value of property on the
+// same line, located at the comment's "#" (AC-SPEC-003.9). The text after
+// the "#" is not part of the value, and quoting the value keeps it.
+func InlineComment(path string, at specmodel.Span, property string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleInlineComment,
+		Severity: SeverityWarning,
+		Path:     path,
+		Span:     at,
+		Message: fmt.Sprintf("the text after \"#\" on property %q is a YAML comment, not part of the value; quote the value to keep it",
+			property),
+		Detail: specmodel.NewFindingDetailInlineComment(specmodel.FindingInlineComment{
 			Property: property,
 		}),
 	}

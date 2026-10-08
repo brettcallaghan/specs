@@ -45,6 +45,7 @@ var checkRules = []specmodel.RuleId{
 	finding.RuleFrontmatterParse,
 	finding.RuleSchemaViolation,
 	finding.RuleMissingProperty,
+	finding.RuleInlineComment,
 	finding.RuleSlugPattern,
 	finding.RuleDuplicateSlug,
 	finding.RuleUnresolvedReference,

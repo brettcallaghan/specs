@@ -411,6 +411,17 @@ span of its value, the value's raw source text, and the parsed value.
 serving both, so a property's position and its value cannot disagree.
 `goccy/go-yaml` is the parser, per [[adr-015]].
 
+`Document.InlineComments` lists every YAML comment that follows another
+token on its own line — `description: a # b`, whose value an unquoted
+`#` has silently cut to `a` — each with the top-level property whose
+source it sits in and its span from the `#` to the end of the line. A
+comment on a line holding nothing else is not listed: it cuts no value
+short (AC-SPEC-003.9, AC-SPEC-003.10). The comments are read from
+`goccy/go-yaml`'s lexer tokens, the line a multi-line scalar ends on
+counting as its line, rather than by parsing with comments retained, so
+no value or span `Parse` reports depends on them. The Corpus reports
+each as a `frontmatter/inline-comment` warning.
+
 Beside `Parse` the package exposes `Locate`, which reports the block's
 `Region` and nothing else. `Parse` is written on it, so where a block
 begins and ends is decided in one place: a caller that needs only where
@@ -1613,7 +1624,8 @@ same shape a duplicate-slug finding has.
 
 `Check` and `CheckFor` run the Schema Registry's validation and the
 active profile's per-type slug-pattern check for every member with parsed
-frontmatter — `CheckFor` narrowed to one file the same way `FindingsFor`
+frontmatter, and report each comment trailing one of its values as
+`frontmatter/inline-comment` (AC-SPEC-003.9) — `CheckFor` narrowed to one file the same way `FindingsFor`
 is — folding the result into one `finding.Report` together with the
 corpus's own duplicate-slug findings, so a caller reads one ordered list
 rather than reconciling discovery-time and check-time findings as two
@@ -2160,6 +2172,14 @@ pinned by the implementation:
   and findings by path, then position, then rule and message, so the same
   run yields byte-identical output (AC-SPEC-009.7) and snapshot cases stay
   stable.
+
+**`frontmatter/inline-comment` is a warning.** `InlineComment` reports
+a comment trailing a frontmatter value at its `#`, naming the property
+in the message and in its `inline-comment` detail, and saying that the
+text after the `#` is not part of the value and to quote the value to
+keep it (AC-SPEC-003.9). It is a warning rather than an error because
+the block still parses and the shortened value may even be valid, so
+only `--strict` fails on it.
 
 The unverified mechanism is built and no check registers against it yet;
 the diagram validation AC-SPEC-006.3 illustrates is a structure-feature

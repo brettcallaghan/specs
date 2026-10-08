@@ -229,6 +229,13 @@ func (c *Corpus) check(only *string, formerSlugs []string) ([]specmodel.Finding,
 		if mismatch != nil {
 			report.Add(*mismatch)
 		}
+
+		// A comment trailing a value cuts the value short at its "#"
+		// without making the block unreadable, so nothing above sees it
+		// (AC-SPEC-003.9, AC-SPEC-003.10).
+		for _, comment := range doc.InlineComments() {
+			report.Add(finding.InlineComment(entry.Path, comment.Span, comment.Property))
+		}
 	}
 
 	// Every reference the graph recorded as unresolved or as reaching a

@@ -1,0 +1,5 @@
+description = "a frontmatter/inline-comment warning fails check --strict"
+cites = ["AC-SPEC-003.9", "AC-SPEC-006.7"]
+artifacts = ["checks.log"]
+args = ["check", "--strict", "--only", "frontmatter/inline-comment"]
+exit_code = 1
