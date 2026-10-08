@@ -454,7 +454,13 @@ this run's evidence:
 
 ## What was filed
 
-Nothing yet. The decision is pending.
+Brett chose **project only** (2026-10-08): F–I filed, A–E declined (the swarm
+outbox issues were not written or folded).
+
+- **F:** recurrence comment on `specs-84yu` and `specs-7jxt` with the measurement above.
+- **G:** `specs-9x4n`. Measured while filing: the additive no-bump rule is already stated in `document-core-module.md` (`schema_version` "pinned to `2.0`… The model is additive"), so the bead targets where grooming looks rather than the rule.
+- **H:** `specs-97ib` and `specs-o5kz` closed as duplicates of `specs-1sz` (`bd duplicate --of`), with a pointer comment on `specs-1sz`.
+- **I:** `specs-59ic.8` closed (grep for its false claims in the guide and its vendored copy returns nothing after `fb41632`); `specs-4ejq` filed for the two conformance tables' provenance.
 
 ## Counts
 
@@ -467,5 +473,5 @@ Nothing yet. The decision is pending.
 | routed — `environment` | 2 (neither admitted to the ledger, see Routing) |
 | unrouted | 0 |
 | candidates | 9: 3 folds into existing outbox issues (A, B, C), 2 new skill issues (D, E), 1 fold onto an existing project bead (F), 3 project actions (G new bead, H dedupe, I close plus one bead) |
-| filed | 0 (pending) |
-| declined | 0 (pending) |
+| filed | 4 (F, G, H, I) |
+| declined | 5 (A–E, swarm outbox) |
