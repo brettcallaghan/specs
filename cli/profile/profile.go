@@ -36,7 +36,7 @@ import (
 // ([[contract-specs-configuration]]) to activate this profile without
 // authoring one of its own, and the profile registry the CFG delta
 // builds keys its built-in entry by this constant.
-const Name = "spec-driven-dev"
+const Name = "specs"
 
 // defaultLineWidth is the line_width convention this profile supplies
 // when specs.toml omits [conventions].line_width. 80 is the limit
@@ -161,8 +161,8 @@ var documentTypes = map[string]corpus.DocumentTypeRules{
 	},
 }
 
-// specDrivenDev is this framework's Profile: the value New returns.
-type specDrivenDev struct{}
+// specsProfile is this framework's Profile: the value New returns.
+type specsProfile struct{}
 
 // registration is the whole per-type table this profile registers,
 // assembled once. It is built at package initialization rather than per
@@ -171,20 +171,20 @@ type specDrivenDev struct{}
 // time, so there is nothing a later call could learn.
 var registration = registeredTypes()
 
-// New returns this framework's spec-driven-dev profile: a value
+// New returns this framework's specs profile: a value
 // satisfying Document Core's Profile interface (cli/core/corpus),
 // carrying the embedded union schema, the per-type table of slug
 // pattern, numbered-ness and reference registration, the lifecycle, and
 // the line_width convention default.
 func New() corpus.Profile {
-	return specDrivenDev{}
+	return specsProfile{}
 }
 
 // Schema returns the union schema every document type this profile
 // defines is validated against: cli/core/schema/spec-model.schema.json,
 // embedded at build time via //go:embed in cli/core/schema. The binary
 // reads no schema file at runtime.
-func (specDrivenDev) Schema() []byte {
+func (specsProfile) Schema() []byte {
 	return schema.SpecModel
 }
 
@@ -193,13 +193,13 @@ func (specDrivenDev) Schema() []byte {
 // properties of that type that hold a document slug, the one typed
 // reference this framework declares, and its pairings — of which it
 // declares none.
-func (specDrivenDev) DocumentTypes() map[string]corpus.DocumentTypeRules {
+func (specsProfile) DocumentTypes() map[string]corpus.DocumentTypeRules {
 	return registration
 }
 
 // Conventions returns this profile's convention defaults: line_width,
 // resolved when specs.toml omits [conventions].line_width.
-func (specDrivenDev) Conventions() specmodel.ConventionsConfig {
+func (specsProfile) Conventions() specmodel.ConventionsConfig {
 	width := uint64(defaultLineWidth)
 	return specmodel.ConventionsConfig{LineWidth: &width}
 }
@@ -213,7 +213,7 @@ func (specDrivenDev) Conventions() specmodel.ConventionsConfig {
 // Every status other than `retired` is live because the warning about a
 // retired target exists to tell an author what to cite instead, and the
 // author most likely to need telling is editing a draft.
-func (specDrivenDev) Lifecycle() corpus.LifecycleRules {
+func (specsProfile) Lifecycle() corpus.LifecycleRules {
 	return lifecycle()
 }
 
@@ -222,7 +222,7 @@ func (specDrivenDev) Lifecycle() corpus.LifecycleRules {
 // derivation rule linking a criterion's code and number to its feature's,
 // and the qualifier tags this framework assigns meaning to. See
 // [featureTags].
-func (specDrivenDev) FeatureTags() corpus.FeatureTagRules {
+func (specsProfile) FeatureTags() corpus.FeatureTagRules {
 	return featureTags
 }
 
@@ -230,7 +230,7 @@ func (specDrivenDev) FeatureTags() corpus.FeatureTagRules {
 // `component` fence tag, validated against the generated C4ElementRecord
 // definition in the embedded union schema, so a roster block and a
 // blueprint's frontmatter share one definition of an element.
-func (specDrivenDev) RecordBlocks() []corpus.RecordBlockTag {
+func (specsProfile) RecordBlocks() []corpus.RecordBlockTag {
 	return []corpus.RecordBlockTag{
 		{Tag: componentRecordTag, Schema: "#/definitions/C4ElementRecord"},
 	}
@@ -250,7 +250,7 @@ const componentRecordTag = "component"
 // derived, because nothing in the schema says which property is an
 // element's name or which heading holds a roster. The drift test in
 // architecture_test.go holds every registered property to the schema.
-func (specDrivenDev) Architecture() corpus.ArchitectureRules {
+func (specsProfile) Architecture() corpus.ArchitectureRules {
 	roster := func(level corpus.ElementLevel) corpus.ElementTypeRules {
 		return corpus.ElementTypeRules{
 			Level:         level,

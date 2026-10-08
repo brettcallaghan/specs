@@ -179,7 +179,7 @@ Feature: Structure Configuration
 
   @AC-SPECSTR-004.2
   Scenario: The shipped profile registers component record blocks against the element record schema
-    Given the spec-driven-dev profile is active
+    Given the specs profile is active
     When the CLI checks a document holding a component record block
     Then the block is validated against the ElementRecord schema, so a block missing its slug is reported
 ```

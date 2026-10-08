@@ -270,7 +270,7 @@ already folds the active profile's registration, so a profile that
 registers a new reference property invalidates the warm index by
 construction.
 
-### spec-driven-dev registrations in [[module-spec-profile]] (modified) — PREG
+### specs registrations in [[module-spec-profile]] (modified) — PREG
 
 **Intent:** Supply this framework's own answer to everything XPT asks a
 profile for, so an adopting repository gets reference integrity without
@@ -638,7 +638,7 @@ under `cli/testdata/cases/`; `scripts/regenerate-cli-snapshots.sh`.
 Legend: MODEL = reference, finding and registration models in Strata;
 XPT = the widened `Profile` extension point in
 [[module-document-core]]; REX = References (extraction); RES =
-References (resolution and graph); PREG = spec-driven-dev profile
+References (resolution and graph); PREG = specs profile
 registrations in [[module-spec-profile]]; CHK = reference integrity
 checks; LIFE = lifecycle and relational checks; CMD = Command Surface in
 [[container-spec-cli]].

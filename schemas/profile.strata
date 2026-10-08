@@ -323,7 +323,7 @@ Reserved for a relationship a reader of one document must see without
 consulting the index. Because the index derives the reverse of every
 declared edge, a pairing used to enforce a mirror the index already
 computes can only ever fail on redundant hand-work — so the
-spec-driven-dev profile registers none, and an adopting profile that
+specs profile registers none, and an adopting profile that
 registers one is expected to argue the case. See the Document
 Relationship Standard.
 """

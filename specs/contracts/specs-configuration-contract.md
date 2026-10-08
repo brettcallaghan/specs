@@ -69,7 +69,7 @@ name = "agent-plugins"   # identifies this repository's documents when
 root = "docs"            # the spec root the CLI walks
 
 [profile]
-name = "spec-driven-dev" # which document vocabulary to activate
+name = "specs" # which document vocabulary to activate
 
 [conventions]
 line_width = 80          # measured in Unicode codepoints

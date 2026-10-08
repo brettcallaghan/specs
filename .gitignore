@@ -10,7 +10,7 @@
 
 # A scratchpad directory for local files that should not be committed to the repository
 local/
-# The spec-driven-dev skills are committed as symlinks under .claude/skills/
+# The specs skills are committed as symlinks under .claude/skills/
 # (each -> ../../plugin/skills/<name>), so a session in this repo always loads
 # the working-tree branch version and no global ~/.claude/skills copy can
 # shadow it. plugin/skills/ remains the single source; nothing here is ignored.

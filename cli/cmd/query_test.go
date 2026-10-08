@@ -28,7 +28,7 @@ name = "acme"
 root = "docs"
 
 [profile]
-name = "spec-driven-dev"
+name = "specs"
 `)
 	mustWriteFile(t, filepath.Join(dir, "docs", "features", "frd-warm.md"), `---
 title: "Warm"

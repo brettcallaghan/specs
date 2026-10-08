@@ -1,6 +1,6 @@
 ---
-title: "Module Blueprint: Spec-Driven Development Profile"
-entity_name: Spec-Driven Development Profile
+title: "Module Blueprint: Specs Profile"
+entity_name: Specs Profile
 description: The plugin that supplies this framework's document
   vocabulary — one union schema over every document type, plus each
   type's slug pattern and numbered-ness — to Document Core
@@ -17,7 +17,7 @@ test_paths:
 version: "0.3"
 ---
 
-# Spec-Driven Development Profile
+# Specs Profile
 
 ## Overview
 
@@ -106,7 +106,7 @@ interface. Everything else is internal.
     (`cli/core/specmodel`) rather than transcribed independently.
 
 **Built — single-schema profile.** `cli/profile.New` returns a value
-satisfying `corpus.Profile`, registered under the name `spec-driven-dev`.
+satisfying `corpus.Profile`, registered under the name `specs`.
 It supplies **one** embedded union schema
 (`cli/core/schema/spec-model.schema.json`, via Go's `//go:embed`, so the
 binary reads no schema file at runtime), a thin per-type table of slug
@@ -174,8 +174,8 @@ template change to come back here.
 
 ```mermaid
 C4Component
-    title Components — Spec-Driven Development Profile
-    Container_Boundary(profile, "Spec-Driven Development Profile") {
+    title Components — Specs Profile
+    Container_Boundary(profile, "Specs Profile") {
         Component(reg, "Profile Registration", "Go package", "The plugin entry point: the union schema, the per-type slug and numbered table, the reference/typed-reference/lifecycle registrations, the Gherkin tag vocabulary, and the convention defaults")
         Component(records, "Element Records", "Go package (planned)", "Fenced element record blocks and the agreement of an element's declarations")
     }

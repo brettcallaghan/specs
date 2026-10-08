@@ -136,7 +136,7 @@ deliberately, not overlooked:
 - **Paired relationship** — two reference-bearing properties the profile
   declares as counterparts, so that a reference in one document implies a
   matching reference back. An adopting profile that pairs `owner` with
-  `owned_by` gets both halves checked. The spec-driven-dev profile
+  `owned_by` gets both halves checked. The specs profile
   registers no pairing: per [[document-relationship-standards]] a pairing
   is reserved for a relationship a reader must see without the index, and
   every relationship this framework declares has its reverse derived.

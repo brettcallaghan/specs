@@ -20,14 +20,14 @@ effort: <low | medium | high | xhigh | max>
 runs_observed: <N>                    # runs standing behind the evidence
 severity: <blocker | snag | polish>   # highest severity among
                                       # proposals
-plugin_version: "<x.y.z>"             # spec-driven-dev plugin version
+plugin_version: "<x.y.z>"             # specs plugin version
                                       # in use during that session
 ---
 
 <!--
 Template: Improvement RFC
 Version: 1.3
-Source: spec-driven-dev framework (produced by the retro-spec skill)
+Source: specs framework (produced by the retro-spec skill)
 
 Sections (complete each, then delete its instruction block)
   - Summary
@@ -77,7 +77,7 @@ RFC variants
     (its specs, blueprints, standards). Resolved in the origin repo.
     Identified by a numbered slug (rfc-<nnnn>-...) and filed in the
     origin repo's rfcs/ directory. Authored from this template.
-  - skill-authors — proposals change the spec-driven-dev framework
+  - skill-authors — proposals change the specs framework
     (skills, templates, standards, guides). Resolved by the framework
     maintainers. Identified by an unnumbered slug and filed in the
     origin repo's rfcs/outbox/ directory, from which the human copies

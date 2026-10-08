@@ -3,7 +3,7 @@ name = "agent-plugins"
 root = "specs"
 
 [profile]
-name = "spec-driven-dev"
+name = "specs"
 
 [conventions]
 line_width = 80

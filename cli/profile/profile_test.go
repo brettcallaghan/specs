@@ -1,4 +1,4 @@
-// Tests for the spec-driven-dev profile.
+// Tests for the specs profile.
 //
 // realSlugs below is not a corpus walk — the CO delta that will discover
 // and check this repository's own corpus is a later item in this
@@ -34,14 +34,14 @@ func TestNewSatisfiesTheProfileInterface(t *testing.T) {
 	}
 }
 
-// The profile registers under the name spec-driven-dev so an adopting
+// The profile registers under the name specs so an adopting
 // repository activates it without authoring one. The registry that maps
 // this name to New lives with the CFG item; what is provable here is
 // that this package's own registration name is the one the blueprint
 // and the contract both name.
 func TestRegistersUnderTheDocumentedName(t *testing.T) {
-	if profile.Name != "spec-driven-dev" {
-		t.Errorf("Name = %q, want %q", profile.Name, "spec-driven-dev")
+	if profile.Name != "specs" {
+		t.Errorf("Name = %q, want %q", profile.Name, "specs")
 	}
 }
 

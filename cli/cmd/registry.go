@@ -30,7 +30,7 @@ import (
 // wired in — a registry of profiles, each carrying its own single
 // schema." A Registry holds this framework's built-in alongside any
 // other profile a caller registers; nothing about the shape assumes
-// spec-driven-dev is the only entry, or the last one.
+// specs is the only entry, or the last one.
 //
 // A Registry is not safe for concurrent registration and lookup; build
 // it once at startup and treat it as read-only afterward, the same
@@ -45,7 +45,7 @@ func NewRegistry() *Registry {
 }
 
 // BuiltinRegistry returns a Registry with this framework's own profile —
-// cli/profile's spec-driven-dev — already registered under its name.
+// cli/profile's specs — already registered under its name.
 //
 // This is the one place in the Command Surface that imports cli/profile:
 // Document Core's extension point means cli/core never does, and a

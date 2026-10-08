@@ -1527,7 +1527,7 @@
       "type": "object"
     },
     "DocumentType": {
-      "description": "The classification of a specification document.\n\nA document's type selects the schema, slug pattern and required sections\nthat govern it. This is the controlled vocabulary the spec-driven-dev\nprofile registers; a repository whose documents declare a type outside\nthis set is recorded as excluded with reason `unknown-type` rather than\nbeing checked against the wrong rules.",
+      "description": "The classification of a specification document.\n\nA document's type selects the schema, slug pattern and required sections\nthat govern it. This is the controlled vocabulary the specs\nprofile registers; a repository whose documents declare a type outside\nthis set is recorded as excluded with reason `unknown-type` rather than\nbeing checked against the wrong rules.",
       "enum": [
         "adr",
         "frd",
@@ -3687,7 +3687,7 @@
     },
     "PropertyPairing": {
       "additionalProperties": false,
-      "description": "One half of a relationship that must be declared from both ends.\n\nA document naming a counterpart in one property where that counterpart\ndeclares nothing in return is a half-built edge, and it is reported\nagainst both documents rather than only the one that happens to be\nchecked first.\n\nReserved for a relationship a reader of one document must see without\nconsulting the index. Because the index derives the reverse of every\ndeclared edge, a pairing used to enforce a mirror the index already\ncomputes can only ever fail on redundant hand-work — so the\nspec-driven-dev profile registers none, and an adopting profile that\nregisters one is expected to argue the case. See the Document\nRelationship Standard.",
+      "description": "One half of a relationship that must be declared from both ends.\n\nA document naming a counterpart in one property where that counterpart\ndeclares nothing in return is a half-built edge, and it is reported\nagainst both documents rather than only the one that happens to be\nchecked first.\n\nReserved for a relationship a reader of one document must see without\nconsulting the index. Because the index derives the reverse of every\ndeclared edge, a pairing used to enforce a mirror the index already\ncomputes can only ever fail on redundant hand-work — so the\nspecs profile registers none, and an adopting profile that\nregisters one is expected to argue the case. See the Document\nRelationship Standard.",
       "properties": {
         "counterpart": {
           "description": "The property the referenced document must declare in return.",

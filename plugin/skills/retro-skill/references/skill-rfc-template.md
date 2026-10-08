@@ -22,7 +22,7 @@ plugin_version: "<x.y.z>"              # or "n/a (standalone install)"
 <!--
 Template: Skill-Improvement RFC
 Version: 0.3
-Source: spec-driven-dev framework (produced by the retro-skill skill)
+Source: specs framework (produced by the retro-skill skill)
 Lineage: a skill-focused fork of retro-spec's rfc-template — drops
   audience (retro-skill RFCs are inherently skill-authoring), adds the
   label-level frontmatter (skill, skill_version, model, effort,
