@@ -470,8 +470,8 @@ Feature: Reference Queries
     Then the CLI returns the documents the named slug references instead of those referencing it
 
   @AC-SPECREF-003.3
-  Scenario: JSON output carries each reference's file path and span
-    When the refs subcommand is invoked with the JSON option and without the compact option
+  Scenario: The full answer carries each reference's file path and span
+    When the refs subcommand is invoked with the full option
     Then the CLI emits each returned reference with its file path and span
 
   @AC-SPECREF-003.4
@@ -486,15 +486,15 @@ Feature: Reference Queries
     And the CLI exits zero
 
   @AC-SPECREF-003.6
-  Scenario: A compact answer lists each referring document once
-    When the refs subcommand is invoked with the compact option
-    Then the CLI returns, in place of the full answer, one entry per referring document holding every reference that document makes in the answer
+  Scenario: The default answer lists each referring document once
+    When the refs subcommand is invoked without the full option
+    Then the CLI returns the compact answer: one entry per referring document holding every reference that document makes in the answer
     And each reference carries only the properties [[cli-output-standards]] defines for the compact view of a reference
 
   @AC-SPECREF-003.7
-  Scenario Outline: The compact option combines with every other form of the query
-    When the refs subcommand is invoked with the compact option and "<form>"
-    Then the CLI returns the compact answer for the references that form selects
+  Scenario Outline: Either answer combines with every other form of the query
+    When the refs subcommand is invoked with "<form>", with or without the full option
+    Then the CLI returns the compact or the full answer, respectively, for the references that form selects
 
     Examples:
       | form                               |
@@ -504,8 +504,8 @@ Feature: Reference Queries
 
   @AC-SPECREF-003.8 @negative
   Scenario: A compact answer omits no reference
-    Given a refs query
-    When the same query is invoked with the compact option
+    Given a refs query invoked with the full option
+    When the same query is invoked without it
     Then the compact answer holds every reference the full answer holds
 ```
 
@@ -515,16 +515,17 @@ an author retiring it knows the blast radius (AC-SPECREF-003.1).
 this FRD cites, so an agent about to edit it knows what it depends on
 without reading it (AC-SPECREF-003.2). An agent pipes a `--json` result
 into a rewrite, opening only the lines that carry the reference rather
-than each citing document (AC-SPECREF-003.3).
+than each citing document; it passes `--full` for the spans
+(AC-SPECREF-003.3).
 `specs refs frd-spec-reference-integrity` returning nothing is the answer
 that a document is unreferenced, not a failure — the same contract
 `slug-exists` sets in AC-SPEC-007.2 (AC-SPECREF-003.5).
-`specs refs frd-spec-index --compact` answers with one entry per citing
-document, each reference reduced to the line it starts on and its text
-(AC-SPECREF-003.6). `--compact --json`, `--compact --outbound` and
-`specs refs 'container-spec-cli#Command Surface' --compact` each answer
-in the same compact form (AC-SPECREF-003.7). A compact answer drops
-properties, never references (AC-SPECREF-003.8).
+`specs refs frd-spec-index` answers with one entry per citing document,
+each reference reduced to the line it starts on and its text
+(AC-SPECREF-003.6). `--json`, `--outbound` and
+`specs refs 'container-spec-cli#Command Surface'` each answer in the same
+compact form, and each adds `--full` for the full one (AC-SPECREF-003.7).
+A compact answer drops properties, never references (AC-SPECREF-003.8).
 
 *Rationale:* This extends the command surface FEAT-SPEC-011 fixed without
 renaming or repurposing any of its four subcommands, which is the growth
@@ -538,7 +539,8 @@ AC-SPECREF-003.6 exists because the common question is "which documents,
 and at what lines", and the full answer repeats on every reference what
 the query already established — the slug asked about, the path it
 resolved to — and spends most of its lines on span offsets. The compact
-form is a named view rather than a change of depth, which
+form is therefore the default, and `--full` is for the caller that
+rewrites by offset. It is a named view rather than a change of depth, which
 [[cli-output-standards]] forbids `--json` to make, and AC-SPECREF-003.8
 keeps it a view rather than a truncation.
 

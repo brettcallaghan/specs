@@ -206,11 +206,12 @@ the elision notice.
 
 ### A named view selects fields; it never truncates
 
-WHERE a command offers a named view — a flag selecting a documented
-subset of the fields its answer carries — the view SHALL render every
-field it selects in full, for every record the full answer holds, and
-the command's specification or these standards SHALL list the fields it
-keeps.
+WHERE a command offers a named view — a documented subset of the fields
+its answer carries, selected by a flag or, where the command's
+specification makes it the default, deselected by `--full` — the view
+SHALL render every field it selects in full, for every record the full
+answer holds, and the command's specification or these standards SHALL
+list the fields it keeps.
 
 A named view SHALL NOT be selected by `--json`, which changes only the
 syntax of whichever view is rendered.
@@ -221,12 +222,14 @@ offset. A view names that fraction once, so the caller asks for it by
 name and knows what it holds; it is not shortening, because every record
 remains and every value kept is whole.
 
-#### `refs --compact`
+#### `refs`: the compact view and `--full`
 
-The compact view groups references by citing document: one entry per
-document, keyed by `path`, holding that document's references.
+`refs` answers with the compact view by default and with the full
+answer under `--full`. The compact view groups references by citing
+document: one entry per document, keyed by `path`, holding that
+document's references.
 
-| field of the full answer | in `--compact` |
+| field of the full answer | in the compact view |
 |---|---|
 | `path` | kept, as the grouping key — one entry per document |
 | `span.start_line` | kept, rendered `line` |
