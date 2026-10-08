@@ -81,6 +81,10 @@ command = 'scripts/check-reference-links.py'
 id = "template-drift"
 command = 'scripts/check-template-drift.py'
 
+[[checks]]
+id = "cli-conformance-table"
+command = 'scripts/check-cli-conformance-table.py'
+
 # Green since 2026-08-22. It exits 1 on a WARNING as well as an error, which is
 # the point: a skill body over the cap is a real defect and this is what says
 # so. Kept separate from `skills` so a future warning fails one check rather

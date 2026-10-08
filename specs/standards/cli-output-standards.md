@@ -27,13 +27,9 @@ so a reader who has met YAML once can read it and a consumer already has
 a parser for it. There is no line grammar to reverse-engineer, no column
 convention, no punctuation carrying meaning.
 
-**Status: approved, and met by the commands specified since.** The rest
-of the surface predates these standards; [Current
-conformance](#current-conformance) records what each command prints
-today, measured, and what each has to change. A command specified after
-this document is written to conform from the start, and `headings` is
-the first. `refs` is the first of the commands that predate them to be
-migrated, by the feature that next touched it.
+[Current conformance](#current-conformance) is the per-command record of
+what each command prints, measured, and what it has to change. A command
+specified after this document SHALL conform from the start.
 
 ---
 
