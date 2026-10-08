@@ -229,9 +229,10 @@ type FeatureTagRules struct {
 	// Qualifiers are the tags that qualify a criterion, and what each of
 	// them means.
 	//
-	// A tag matching neither identifier pattern and named by no
-	// qualifier is carried on the record and reported by nothing: an
-	// unregistered tag is one the vocabulary says nothing about.
+	// A tag matching neither identifier pattern, carrying no
+	// owning-document prefix and named by no qualifier is carried on the
+	// record with no meaning, and reported by the check as a
+	// gherkin/tag-unregistered warning naming these qualifiers.
 	Qualifiers []QualifierTag
 }
 

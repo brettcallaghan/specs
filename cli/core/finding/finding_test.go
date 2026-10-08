@@ -413,6 +413,21 @@ func TestEveryFindingIsSelfContained(t *testing.T) {
 			},
 		},
 		{
+			name:     "tag unregistered",
+			finding:  finding.TagUnregistered("specs/adrs/adr-011.md", position, "negatve", []string{"negative", "manual"}),
+			rule:     finding.RuleTagUnregistered,
+			contains: []string{`"@negatve"`, "negative, manual"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsUnregisteredTag()
+				if !ok {
+					t.Fatalf("detail is not an unregistered tag: %#v", d.Value)
+				}
+				if v.Tag != "negatve" || strings.Join(v.Registered, ",") != "negative,manual" {
+					t.Errorf("detail = %#v, want the tag and the registered qualifiers", v)
+				}
+			},
+		},
+		{
 			name:     "gherkin parse",
 			finding:  finding.GherkinParse("specs/adrs/adr-011.md", position, "a step keyword"),
 			rule:     finding.RuleGherkinParse,

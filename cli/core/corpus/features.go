@@ -165,9 +165,9 @@ func (v vocabulary) owningSlug(tags []string) specmodel.Slug {
 }
 
 // qualify populates the criterion properties a profile's qualifier tags
-// carry. A tag the profile registers nothing for reaches no property,
-// which is what makes an unregistered tag one the vocabulary says nothing
-// about (AC-GHK-002.8).
+// carry. A tag the profile registers nothing for reaches no property; the
+// check reports it as gherkin/tag-unregistered (AC-GHK-002.8), so a
+// misspelt qualifier is not lost in silence.
 func (v vocabulary) qualify(record *specmodel.Criterion, tags []string) {
 	for _, tag := range tags {
 		qualifier, registered := v.qualifiers[tag]

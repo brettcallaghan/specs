@@ -2,6 +2,7 @@ package corpus
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
@@ -29,6 +30,7 @@ func (c *Corpus) gherkinIdentityFindings(vocab vocabulary, rules FeatureTagRules
 	findings = append(findings, duplicateIdentifierFindings(features)...)
 	findings = append(findings, codeMismatchFindings(vocab, rules, features)...)
 	findings = append(findings, ownershipFindings(c, vocab, features)...)
+	findings = append(findings, unregisteredTagFindings(vocab, rules, features)...)
 	return findings
 }
 
@@ -55,8 +57,8 @@ func untaggedSpans(feature *gherkin.Feature) map[span.Span]bool {
 // literalPrefix returns the longest run of literal characters an
 // identifier pattern opens with, after its leading `^` anchor — the
 // marker [malformedFindings] compares a candidate tag's own prefix
-// against to tell a near-miss identifier apart from an unrelated tag
-// (AC-GHK-002.8). It stops at the first regular-expression
+// against to tell a near-miss identifier apart from an unrelated tag,
+// which is gherkin/tag-unregistered's instead. It stops at the first regular-expression
 // metacharacter, so `^AC-(?P<code>...)` yields `"AC-"` without this
 // function reading any more of the pattern's structure than that — a
 // pattern with no literal run before its first capture, such as
@@ -106,8 +108,8 @@ func candidateTags(pattern *regexp.Regexp, prefix string, tags []string) []strin
 // A record that DID resolve an identifier is not visited by either rule
 // even if it also carries a near-miss tag: [multipleFindings] is what a
 // second matching tag means, and a tag that merely resembles the pattern
-// without matching it is judged by nothing once one tag has already
-// resolved the identity.
+// without matching it is left to [unregisteredTagFindings] once one tag
+// has already resolved the identity.
 func untaggedOrMalformedFindings(vocab vocabulary, rules FeatureTagRules, features []*gherkin.Feature) []specmodel.Finding {
 	featurePrefix := literalPrefix(rules.FeaturePattern)
 	criterionPrefix := literalPrefix(rules.CriterionPattern)
@@ -353,4 +355,72 @@ func ownershipFindings(c *Corpus, vocab vocabulary, features []*gherkin.Feature)
 		}
 	}
 	return findings
+}
+
+// unregisteredTagFindings reports gherkin/tag-unregistered, a warning, for
+// every Feature and criterion tag the vocabulary assigns no meaning
+// (AC-GHK-002.8): one matching neither identifier pattern in full, not
+// carrying the owning-document prefix, and naming no registered
+// qualifier. Which element a registered tag sits on is not judged.
+//
+// Two tags are left to other rules or reported once. A near-miss
+// identifier on an element that resolved no identifier is
+// gherkin/identifier-malformed's (see [untaggedOrMalformedFindings]); on
+// one that did, nothing else judges it, so it is reported here. A
+// criterion derived from an Examples block carries its scenario's tags
+// first, so those are judged on the scenario's first block only.
+func unregisteredTagFindings(vocab vocabulary, rules FeatureTagRules, features []*gherkin.Feature) []specmodel.Finding {
+	registered := make([]string, 0, len(rules.Qualifiers))
+	for _, qualifier := range rules.Qualifiers {
+		registered = append(registered, qualifier.Tag)
+	}
+	featurePrefix := literalPrefix(rules.FeaturePattern)
+	criterionPrefix := literalPrefix(rules.CriterionPattern)
+
+	var findings []specmodel.Finding
+	report := func(path string, at span.Span, tags []string, malformed []string) {
+		for _, tag := range tags {
+			if vocab.registers(tag) || slices.Contains(malformed, tag) {
+				continue
+			}
+			findings = append(findings, finding.TagUnregistered(path, at, tag, registered))
+		}
+	}
+
+	for _, feature := range features {
+		var malformed []string
+		if feature.Record.Id == "" {
+			malformed = candidateTags(vocab.feature, featurePrefix, feature.Tags)
+		}
+		report(feature.Record.Path, feature.Record.Span, feature.Tags, malformed)
+
+		for _, criterion := range feature.Criteria {
+			tags := criterion.Tags
+			if !criterion.FirstBlock {
+				tags = tags[criterion.Inherited:]
+			}
+			var malformed []string
+			if criterion.Record.Id == "" {
+				malformed = candidateTags(vocab.criterion, criterionPrefix, criterion.Tags)
+			}
+			report(feature.Record.Path, criterion.Record.Span, tags, malformed)
+		}
+	}
+	return findings
+}
+
+// registers reports whether the vocabulary assigns tag a meaning: an
+// identifier matching a registered pattern in full, an owning-document
+// tag, or a registered qualifier.
+func (v vocabulary) registers(tag string) bool {
+	for _, pattern := range []*regexp.Regexp{v.feature, v.criterion} {
+		if pattern != nil && pattern.FindString(tag) == tag {
+			return true
+		}
+	}
+	if v.owner != "" && strings.HasPrefix(tag, v.owner) {
+		return true
+	}
+	_, qualifier := v.qualifiers[tag]
+	return qualifier
 }

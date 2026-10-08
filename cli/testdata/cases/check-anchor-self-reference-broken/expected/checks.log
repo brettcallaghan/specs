@@ -53,6 +53,8 @@ checks:
     outcome: passed
   - rule: gherkin/scenario-prose
     outcome: passed
+  - rule: gherkin/tag-unregistered
+    outcome: passed
   - rule: reference/ambiguous-anchor
     outcome: passed
   - rule: reference/pairing-incomplete

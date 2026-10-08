@@ -20,6 +20,7 @@
 - [FindingGherkinParse](#findinggherkinparse)
 - [FindingIdentifierPattern](#findingidentifierpattern)
 - [FindingDuplicateIdentifier](#findingduplicateidentifier)
+- [FindingUnregisteredTag](#findingunregisteredtag)
 - [FindingPartiallyTaggedOutline](#findingpartiallytaggedoutline)
 - [FindingOwningDocument](#findingowningdocument)
 - [FindingUnresolvedAnchor](#findingunresolvedanchor)
@@ -345,6 +346,23 @@ file to open and left to search it.
 | other_span | [Span](index.md#span) | Where in that file the other occurrence is written. |
 
 
+## FindingUnregisteredTag
+
+A Gherkin tag the active profile's tag vocabulary assigns no meaning: it
+matches neither identifier pattern, names no owning document and is no
+registered qualifier.
+
+A warning rather than an error, so a project's own tags coexist with the
+vocabulary; a misspelt qualifier is the case it exists for, since the
+tag silently loses its meaning. The registered qualifiers are carried
+because they are the spellings an author most likely meant.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| tag | String | The tag as written, without its leading `@`. |
+| registered | Array<String> | Every qualifier tag the active profile registers, in registration order. |
+
+
 ## FindingPartiallyTaggedOutline
 
 A scenario outline whose examples blocks are inconsistently tagged: some
@@ -581,6 +599,7 @@ identifier, the severity, the path, the span and the message.
 | "duplicate-identifier" | DuplicateIdentifier | An identifier declared by two records in the corpus. |
 | "partially-tagged-outline" | PartiallyTaggedOutline | A scenario outline whose examples blocks are inconsistently tagged. |
 | "owning-document" | OwningDocument | A feature whose owning document is unstated, mismatched or unresolved. |
+| "unregistered-tag" | UnregisteredTag | A Gherkin tag the tag vocabulary assigns no meaning. |
 | "unresolved-anchor" | UnresolvedAnchor | An anchor matching no heading of its target document. |
 | "ambiguous-anchor" | AmbiguousAnchor | An anchor matching more than one heading of its target document. |
 | "c4-parse" | C4Parse | A C4 diagram statement the parser cannot read. |

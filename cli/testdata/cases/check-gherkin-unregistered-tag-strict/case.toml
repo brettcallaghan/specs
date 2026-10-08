@@ -1,0 +1,5 @@
+description = "under --strict the gherkin/tag-unregistered warnings fail the gate and check exits 1"
+cites = ["AC-GHK-002.8"]
+artifacts = ["checks.log"]
+args = ["check", "--strict"]
+exit_code = 1

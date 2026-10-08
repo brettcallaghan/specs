@@ -397,6 +397,24 @@ struct FindingDuplicateIdentifier {
 }
 
 """
+A Gherkin tag the active profile's tag vocabulary assigns no meaning: it
+matches neither identifier pattern, names no owning document and is no
+registered qualifier.
+
+A warning rather than an error, so a project's own tags coexist with the
+vocabulary; a misspelt qualifier is the case it exists for, since the
+tag silently loses its meaning. The registered qualifiers are carried
+because they are the spellings an author most likely meant.
+"""
+struct FindingUnregisteredTag {
+  """The tag as written, without its leading `@`."""
+  tag: String
+
+  """Every qualifier tag the active profile registers, in registration order."""
+  registered: [String]
+}
+
+"""
 A scenario outline whose examples blocks are inconsistently tagged: some
 carry an identifier and others do not.
 
@@ -732,6 +750,9 @@ union FindingDetail {
 
   """A feature whose owning document is unstated, mismatched or unresolved."""
   @tag("owning-document") OwningDocument: FindingOwningDocument
+
+  """A Gherkin tag the tag vocabulary assigns no meaning."""
+  @tag("unregistered-tag") UnregisteredTag: FindingUnregisteredTag
 
   """An anchor matching no heading of its target document."""
   @tag("unresolved-anchor") UnresolvedAnchor: FindingUnresolvedAnchor

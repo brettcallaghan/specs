@@ -159,13 +159,12 @@ func TestReportsAMalformedCriterionIdentifier(t *testing.T) {
 	}
 }
 
-// A tag matching no registered pattern and named by no qualifier is
-// ignored, not reported — including by gherkin/identifier-malformed,
-// which must not treat an unrelated project tag as a near-miss
-// identifier.
+// A tag matching no registered pattern and named by no qualifier is a
+// warning, gherkin/tag-unregistered — and is still not treated by
+// gherkin/identifier-malformed as a near-miss identifier.
 //
 // AC: AC-GHK-002.8
-func TestNoFindingForATagMatchingNoRegisteredPattern(t *testing.T) {
+func TestATagMatchingNoRegisteredPatternIsAWarning(t *testing.T) {
 	repo := t.TempDir()
 	write(t, repo, "specs/features/frd-checkout.md", document("frd", "frd-checkout", "Checkout"))
 	write(t, repo, "specs/features/checkout.feature",
@@ -180,6 +179,130 @@ func TestNoFindingForATagMatchingNoRegisteredPattern(t *testing.T) {
 	// distinctly from treating @wip itself as malformed.
 	if got := findingsWithRule(findings, finding.RuleCriterionUntagged, "specs/features/checkout.feature"); len(got) != 1 {
 		t.Errorf("got %d gherkin/criterion-untagged findings, want 1", len(got))
+	}
+	got := findingsWithRule(findings, finding.RuleTagUnregistered, "specs/features/checkout.feature")
+	if len(got) != 1 {
+		t.Fatalf("got %d gherkin/tag-unregistered findings, want 1: %+v", len(got), findings)
+	}
+	if got[0].Severity != finding.SeverityWarning || !strings.Contains(got[0].Message, `"@wip"`) {
+		t.Errorf("finding = %s %q, want a warning naming @wip", got[0].Severity, got[0].Message)
+	}
+}
+
+// A misspelt qualifier is reported, and gives its criterion no property.
+//
+// AC: AC-GHK-002.8
+func TestAMisspeltQualifierIsAWarningAndQualifiesNothing(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/features/frd-checkout.md", document("frd", "frd-checkout", "Checkout"))
+	write(t, repo, "specs/features/checkout.feature",
+		"@FEAT-CHK-001 @frd-checkout\nFeature: Checkout\n\n  @AC-CHK-001.1 @negatve\n  Scenario: pays\n    Given a basket\n")
+
+	built := identityCorpusAt(t, repo)
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+	got := findingsWithRule(findings, finding.RuleTagUnregistered, "specs/features/checkout.feature")
+	if len(got) != 1 || !strings.Contains(got[0].Message, `"@negatve"`) {
+		t.Fatalf("gherkin/tag-unregistered findings = %+v, want one naming @negatve", got)
+	}
+	if detail, ok := got[0].Detail.AsUnregisteredTag(); !ok || detail.Tag != "negatve" ||
+		strings.Join(detail.Registered, ",") != "negative,manual,level-unit" {
+		t.Errorf("detail = %+v, want tag negatve and the registered qualifiers", got[0].Detail)
+	}
+	criterion, found := built.Criterion("AC-CHK-001.1")
+	if !found || criterion.Negative {
+		t.Errorf("criterion = %+v (found %v), want it found and not negative", criterion, found)
+	}
+}
+
+// A tag on a Feature is judged like one on a Scenario.
+//
+// AC: AC-GHK-002.8
+func TestAnUnregisteredFeatureTagIsReported(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/features/frd-checkout.md", document("frd", "frd-checkout", "Checkout"))
+	write(t, repo, "specs/features/checkout.feature",
+		"@FEAT-CHK-001 @frd-checkout @experimental\nFeature: Checkout\n\n  @AC-CHK-001.1\n  Scenario: pays\n    Given a basket\n")
+
+	got := findingsWithRule(buildAndCheck(t, repo), finding.RuleTagUnregistered, "specs/features/checkout.feature")
+	if len(got) != 1 || !strings.Contains(got[0].Message, `"@experimental"`) {
+		t.Errorf("gherkin/tag-unregistered findings = %+v, want one naming @experimental", got)
+	}
+}
+
+// An outline divided into several Examples criteria gives each its
+// scenario's tags; an unregistered scenario tag is still one finding,
+// while a block's own unregistered tag is that block's.
+//
+// AC: AC-GHK-002.8
+func TestAnUnregisteredScenarioTagOnADividedOutlineIsReportedOnce(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/features/frd-checkout.md", document("frd", "frd-checkout", "Checkout"))
+	write(t, repo, "specs/features/checkout.feature", `@FEAT-CHK-001 @frd-checkout
+Feature: Checkout
+
+  @wip
+  Scenario Outline: pays <amount>
+    Given a basket of <amount>
+
+    @AC-CHK-001.1
+    Examples: small
+      | amount |
+      | 1      |
+
+    @AC-CHK-001.2 @flaky
+    Examples: large
+      | amount |
+      | 100    |
+`)
+
+	got := findingsWithRule(buildAndCheck(t, repo), finding.RuleTagUnregistered, "specs/features/checkout.feature")
+	var tags []string
+	for _, f := range got {
+		detail, _ := f.Detail.AsUnregisteredTag()
+		tags = append(tags, detail.Tag)
+	}
+	if strings.Join(tags, ",") != "wip,flaky" {
+		t.Errorf("unregistered tags reported = %v, want wip once and flaky once", tags)
+	}
+}
+
+// Identifiers, owner tags and registered qualifiers are the vocabulary;
+// none of them is reported.
+//
+// AC: AC-GHK-002.8
+func TestRegisteredTagsAreNotReportedAsUnregistered(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/features/frd-checkout.md", document("frd", "frd-checkout", "Checkout"))
+	write(t, repo, "specs/features/checkout.feature",
+		"@FEAT-CHK-001 @frd-checkout\nFeature: Checkout\n\n  @AC-CHK-001.1 @negative @manual @level-unit\n  Scenario: pays\n    Given a basket\n")
+
+	if got := findingsWithRule(buildAndCheck(t, repo), finding.RuleTagUnregistered, "specs/features/checkout.feature"); len(got) != 0 {
+		t.Errorf("got %d gherkin/tag-unregistered findings for registered tags, want 0: %+v", len(got), got)
+	}
+}
+
+// A near-miss identifier on an element that resolved none is
+// gherkin/identifier-malformed's alone; on an element that did resolve
+// one, nothing else judges it, so it is an unregistered tag.
+//
+// AC: AC-GHK-002.8
+func TestANearMissIdentifierIsReportedByOneRule(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/features/frd-checkout.md", document("frd", "frd-checkout", "Checkout"))
+	write(t, repo, "specs/features/checkout.feature",
+		"@FEAT-CHK-001 @frd-checkout\nFeature: Checkout\n\n  @AC-CHK-3.1\n  Scenario: unidentified\n    Given a basket\n\n  @AC-CHK-001.2 @AC-CHK-4.1\n  Scenario: identified\n    Given a basket\n")
+
+	findings := buildAndCheck(t, repo)
+	malformed := findingsWithRule(findings, finding.RuleIdentifierMalformed, "specs/features/checkout.feature")
+	if len(malformed) != 1 || !strings.Contains(malformed[0].Message, "AC-CHK-3.1") {
+		t.Errorf("gherkin/identifier-malformed = %+v, want one naming AC-CHK-3.1", malformed)
+	}
+	unregistered := findingsWithRule(findings, finding.RuleTagUnregistered, "specs/features/checkout.feature")
+	if len(unregistered) != 1 || !strings.Contains(unregistered[0].Message, `"@AC-CHK-4.1"`) {
+		t.Errorf("gherkin/tag-unregistered = %+v, want one naming @AC-CHK-4.1 only", unregistered)
 	}
 }
 

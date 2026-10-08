@@ -2555,6 +2555,30 @@
         {
           "additionalProperties": false,
           "properties": {
+            "kind": {
+              "const": "unregistered-tag",
+              "type": "string"
+            },
+            "registered": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "tag": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "tag",
+            "registered"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
             "anchor": {
               "type": "string"
             },
@@ -3079,6 +3103,28 @@
         "slug",
         "citing_path",
         "map_path"
+      ],
+      "type": "object"
+    },
+    "FindingUnregisteredTag": {
+      "additionalProperties": false,
+      "description": "A Gherkin tag the active profile's tag vocabulary assigns no meaning: it\nmatches neither identifier pattern, names no owning document and is no\nregistered qualifier.\n\nA warning rather than an error, so a project's own tags coexist with the\nvocabulary; a misspelt qualifier is the case it exists for, since the\ntag silently loses its meaning. The registered qualifiers are carried\nbecause they are the spellings an author most likely meant.",
+      "properties": {
+        "registered": {
+          "description": "Every qualifier tag the active profile registers, in registration order.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tag": {
+          "description": "The tag as written, without its leading `@`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tag",
+        "registered"
       ],
       "type": "object"
     },

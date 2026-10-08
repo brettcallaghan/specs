@@ -2860,6 +2860,52 @@ func (v *FindingDuplicateIdentifier) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// A Gherkin tag the active profile's tag vocabulary assigns no meaning: it
+// matches neither identifier pattern, names no owning document and is no
+// registered qualifier.
+//
+// A warning rather than an error, so a project's own tags coexist with the
+// vocabulary; a misspelt qualifier is the case it exists for, since the
+// tag silently loses its meaning. The registered qualifiers are carried
+// because they are the spellings an author most likely meant.
+type FindingUnregisteredTag struct {
+	// The tag as written, without its leading `@`.
+	Tag string `json:"tag"`
+	// Every qualifier tag the active profile registers, in registration order.
+	Registered []string `json:"registered"`
+}
+
+func (v *FindingUnregisteredTag) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["tag"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnregisteredTag: required field \"tag\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Tag); err != nil {
+		return prefixField("tag", err)
+	}
+	if m, ok := raw["registered"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnregisteredTag: required field \"registered\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Registered); err != nil {
+		return prefixField("registered", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "tag", "registered":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingUnregisteredTag", Field: unknown}
+	}
+	return nil
+}
+
 // A scenario outline whose examples blocks are inconsistently tagged: some
 // carry an identifier and others do not.
 //
@@ -3483,6 +3529,7 @@ func (FindingIdentifierPattern) isFindingDetailVariant()      {}
 func (FindingDuplicateIdentifier) isFindingDetailVariant()    {}
 func (FindingPartiallyTaggedOutline) isFindingDetailVariant() {}
 func (FindingOwningDocument) isFindingDetailVariant()         {}
+func (FindingUnregisteredTag) isFindingDetailVariant()        {}
 func (FindingUnresolvedAnchor) isFindingDetailVariant()       {}
 func (FindingAmbiguousAnchor) isFindingDetailVariant()        {}
 func (FindingC4Parse) isFindingDetailVariant()                {}
@@ -3562,6 +3609,10 @@ func NewFindingDetailPartiallyTaggedOutline(v FindingPartiallyTaggedOutline) Fin
 }
 
 func NewFindingDetailOwningDocument(v FindingOwningDocument) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailUnregisteredTag(v FindingUnregisteredTag) FindingDetail {
 	return FindingDetail{Value: v}
 }
 
@@ -3691,6 +3742,11 @@ func (u FindingDetail) AsOwningDocument() (FindingOwningDocument, bool) {
 	return v, ok
 }
 
+func (u FindingDetail) AsUnregisteredTag() (FindingUnregisteredTag, bool) {
+	v, ok := u.Value.(FindingUnregisteredTag)
+	return v, ok
+}
+
 func (u FindingDetail) AsUnresolvedAnchor() (FindingUnresolvedAnchor, bool) {
 	v, ok := u.Value.(FindingUnresolvedAnchor)
 	return v, ok
@@ -3794,6 +3850,9 @@ func (u FindingDetail) MarshalJSON() ([]byte, error) {
 		payload, err = json.Marshal(v)
 	case FindingOwningDocument:
 		tag = "owning-document"
+		payload, err = json.Marshal(v)
+	case FindingUnregisteredTag:
+		tag = "unregistered-tag"
 		payload, err = json.Marshal(v)
 	case FindingUnresolvedAnchor:
 		tag = "unresolved-anchor"
@@ -3981,6 +4040,13 @@ func (u *FindingDetail) UnmarshalJSON(data []byte) error {
 		return nil
 	case "owning-document":
 		var v FindingOwningDocument
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "unregistered-tag":
+		var v FindingUnregisteredTag
 		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}

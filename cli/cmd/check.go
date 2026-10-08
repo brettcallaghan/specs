@@ -33,7 +33,7 @@ import (
 // is what lets --only name each of the reference-integrity checks and
 // what lets --strict reach the reference/retired-target warning even on
 // a corpus that never triggers it.
-// The nine gherkin/* identity rules (VTAG) and four gherkin/* content
+// The ten gherkin/* identity rules (VTAG) and four gherkin/* content
 // rules (VCON) are declared for the same reason: without it, a corpus
 // with no Gherkin defect at all would leave them out of the accounting
 // entirely, rather than showing "passed".
@@ -60,6 +60,7 @@ var checkRules = []specmodel.RuleId{
 	finding.RuleOwnerMissing,
 	finding.RuleOwnerMismatch,
 	finding.RuleOwnerUnresolved,
+	finding.RuleTagUnregistered,
 	finding.RuleGherkinParse,
 	finding.RuleCriterionEmpty,
 	finding.RuleScenarioProse,

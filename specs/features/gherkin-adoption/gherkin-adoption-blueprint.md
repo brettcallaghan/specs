@@ -124,8 +124,9 @@ profile can express a tag vocabulary rather than so this one can.
 - The registration SHALL state how a criterion identifier derives from
   its feature's, so that the host can check the derivation without
   knowing either pattern's internal structure (AC-GHK-003.6).
-- A tag matching no registered pattern and named by no qualifier SHALL
-  be carried on the record and reported by nothing (AC-GHK-002.8).
+- A tag matching no registered pattern, carrying no owning-document
+  prefix and named by no qualifier SHALL be carried on the record with
+  no meaning (AC-GHK-002.8); the check reports it as a warning.
 - Document Core SHALL NOT contain the literal `AC`, `FEAT`, `frd`,
   `negative`, `manual`, or any registered level name. The existing
   boundary test — no non-test source in `cli/core/corpus` carries a
@@ -353,8 +354,10 @@ convention.
   record it; the defect reads as the unresolved-reference defect it is
   rather than producing a feature attributed to a document that does not
   exist.
-- The component SHALL report no finding for a tag matching no registered
-  pattern and named by no qualifier (AC-GHK-002.8).
+- The component SHALL report `gherkin/tag-unregistered`, at severity
+  warning, for a tag matching no registered pattern, carrying no
+  owning-document prefix and named by no qualifier, naming the tag and
+  the registered qualifiers (AC-GHK-002.8).
 
 **Anchors:** `cli/core/corpus` (`Check`, `CheckFor`);
 `cli/core/finding` constructors; the registered patterns from PREG.

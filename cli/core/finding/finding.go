@@ -150,6 +150,11 @@ const (
 	// RuleOwnerUnresolved covers an owning-document tag whose slug names
 	// no corpus member.
 	RuleOwnerUnresolved specmodel.RuleId = "gherkin/owner-unresolved"
+	// RuleTagUnregistered covers a Gherkin tag the active profile's tag
+	// vocabulary assigns no meaning. It is the one Gherkin rule that
+	// reports at [SeverityWarning]: a project's own tags coexist with the
+	// vocabulary, and only a misspelt one loses a meaning (AC-GHK-002.8).
+	RuleTagUnregistered specmodel.RuleId = "gherkin/tag-unregistered"
 
 	// RuleGherkinParse covers a Gherkin source that could not be parsed.
 	RuleGherkinParse specmodel.RuleId = "gherkin/parse"
@@ -744,6 +749,27 @@ func OwnerUnresolved(path string, at specmodel.Span, slug string) specmodel.Find
 		Message:  fmt.Sprintf("owning-document tag names %q, which matches no corpus member", slug),
 		Detail: specmodel.NewFindingDetailOwningDocument(specmodel.FindingOwningDocument{
 			Slug: &s,
+		}),
+	}
+}
+
+// TagUnregistered reports a Gherkin tag, given without its leading `@`,
+// that the tag vocabulary assigns no meaning, naming the tag as written
+// and the qualifiers that are registered (AC-GHK-002.8).
+func TagUnregistered(path string, at specmodel.Span, tag string, registered []string) specmodel.Finding {
+	list := "none"
+	if len(registered) > 0 {
+		list = strings.Join(registered, ", ")
+	}
+	return specmodel.Finding{
+		Rule:     RuleTagUnregistered,
+		Severity: SeverityWarning,
+		Path:     path,
+		Span:     at,
+		Message:  fmt.Sprintf("tag %q is not in the tag vocabulary; registered qualifiers: %s", "@"+tag, list),
+		Detail: specmodel.NewFindingDetailUnregisteredTag(specmodel.FindingUnregisteredTag{
+			Tag:        tag,
+			Registered: append([]string{}, registered...),
 		}),
 	}
 }

@@ -111,8 +111,9 @@ the plugin, and no framework vocabulary is compiled into the host.
     feature's, and the qualifier tags together with what each of them
     means — as the authority for reading a tag, and SHALL contain no tag
     spelling of its own (AC-GHK-002.1). A tag matching no registered
-    pattern and named by no qualifier is carried on the record and
-    reported by nothing (AC-GHK-002.8).
+    pattern, carrying no owning-document prefix and named by no
+    qualifier is carried on the record with no meaning and reported as
+    a warning (AC-GHK-002.8).
   - The module SHALL check a criterion identifier's derivation from its
     feature's by comparing only the capture groups the registration
     names as shared, so that neither pattern's internal structure is
@@ -1690,7 +1691,7 @@ empty (AC-SPEC-006.9).
 
 **They also report whether a feature or a criterion is addressed,
 addressed once, and whether its address agrees with where it sits** —
-VTAG's nine identity rules, all raised from `gherkinIdentityFindings`.
+VTAG's ten identity rules, all raised from `gherkinIdentityFindings`.
 `gherkin/feature-untagged` and `gherkin/criterion-untagged` fire for a
 `Feature` or a `Scenario` resolving no identifier at all (AC-GHK-002.2);
 `gherkin/identifier-malformed` fires instead of the untagged rule when
@@ -1723,9 +1724,20 @@ tag (if it carries one) agrees with the document it is written in
 (AC-GHK-002.11), and whether a standalone source's owner tag resolves to
 a corpus member at all (AC-GHK-002.10) — the last reading as an
 unresolved reference rather than an ordinary mismatch, because ownership
-that names nothing has not been recorded.
+that names nothing has not been recorded. `gherkin/tag-unregistered`,
+the one Gherkin rule at severity warning, fires for each Feature or
+criterion tag the vocabulary assigns no meaning — matching neither
+identifier pattern in full, carrying no owning-document prefix, naming
+no registered qualifier — naming the tag and the registered qualifiers,
+so a misspelt `@negatve` does not silently lose its meaning while a
+project's own `@wip` still passes a default run (AC-GHK-002.8). Which
+element a registered tag sits on is not judged. A near-miss identifier
+on an element that resolved none is left to `identifier-malformed`; a
+scenario tag inherited by every Examples block of a divided outline is
+judged once, on the first block, through the Gherkin component's
+`Criterion.Inherited` and `FirstBlock`.
 
-**Every one of the nine reads from a fresh Gherkin parse, on a warm
+**Every one of the ten reads from a fresh Gherkin parse, on a warm
 corpus and a cold one alike.** `specmodel.Feature` keeps only a
 construct's *resolved* identity — an empty `Id` where nothing matched —
 never the tag that failed to match or the second tag that matched
