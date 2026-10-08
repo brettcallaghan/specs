@@ -80,7 +80,7 @@ findings:
       start_column: 4
       end_line: 6
       end_column: 33
-    message: "/: required property \"description\" is not declared"
+    message: required property "description" is not declared
     detail:
       kind: missing-property
       pointer: ""

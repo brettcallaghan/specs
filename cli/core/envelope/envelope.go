@@ -147,10 +147,57 @@ func Decode(raw []byte) (specmodel.TypedFrontmatter, error) {
 	}
 	relaxed := reflect.New(v.relaxed)
 	if err := json.Unmarshal(raw, relaxed.Interface()); err != nil {
-		return specmodel.TypedFrontmatter{}, err
+		return specmodel.TypedFrontmatter{}, offendingProperty(raw, v.relaxed, err)
 	}
 	value := relaxed.Elem().Convert(v.generated).Interface().(specmodel.TypedFrontmatterVariant)
 	return specmodel.TypedFrontmatter{Value: value}, nil
+}
+
+// PropertyError is a decode failure attributed to the one top-level
+// property whose value its generated type refuses, so a caller can locate
+// the failure at that property and say what it allows.
+type PropertyError struct {
+	// Property is the property's name as the document writes it.
+	Property string
+	// Value is the property's value as written: a string's own text, or
+	// the JSON text of any other value.
+	Value string
+	// Err is the failure the property's type reported.
+	Err error
+}
+
+func (e *PropertyError) Error() string { return e.Err.Error() }
+func (e *PropertyError) Unwrap() error { return e.Err }
+
+// offendingProperty attributes err, a failure to decode raw into the
+// relaxed variant, to the first property in declaration order whose value
+// fails to decode on its own into that property's field. err is returned
+// unchanged where no single property accounts for it.
+func offendingProperty(raw []byte, relaxed reflect.Type, err error) error {
+	var properties map[string]json.RawMessage
+	if json.Unmarshal(raw, &properties) != nil {
+		return err
+	}
+	for i := 0; i < relaxed.NumField(); i++ {
+		field := relaxed.Field(i)
+		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+		if name == "" || name == "-" {
+			continue
+		}
+		value, present := properties[name]
+		if !present {
+			continue
+		}
+		if fieldErr := json.Unmarshal(value, reflect.New(field.Type).Interface()); fieldErr != nil {
+			written := string(value)
+			var text string
+			if json.Unmarshal(value, &text) == nil {
+				written = text
+			}
+			return &PropertyError{Property: name, Value: written, Err: fieldErr}
+		}
+	}
+	return err
 }
 
 // Encode encodes a document's typed frontmatter as the generated

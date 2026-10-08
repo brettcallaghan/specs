@@ -74,10 +74,10 @@ findings:
     severity: error
     path: docs/adrs/adr-001-unfilled-placeholder.md
     span:
-      offset: 3
-      length: 197
-      start_line: 1
-      start_column: 4
+      offset: 178
+      length: 22
+      start_line: 7
+      start_column: 13
       end_line: 7
       end_column: 35
     message: "frontmatter could not be read: the frontmatter block does not fit the document's type: parsing time \"<YYYY-MM-DDTHH:MM:SSZ>\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"<YYYY-MM-DDTHH:MM:SSZ>\" as \"2006\""

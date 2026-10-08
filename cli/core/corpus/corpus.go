@@ -19,6 +19,7 @@ import (
 	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
 	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
 	"github.com/brettcallaghan/agent-plugins/cli/core/references"
+	"github.com/brettcallaghan/agent-plugins/cli/core/schemaregistry"
 	"github.com/brettcallaghan/agent-plugins/cli/core/span"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specindex"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
@@ -383,6 +384,12 @@ type builder struct {
 	// recordTags is the info strings opts.Profile.RecordBlocks()
 	// registers, in registration order. Empty where none is.
 	recordTags []string
+	// schema is the profile's schema, compiled by [builder.allowedValues]
+	// the first time a document fails to decode; schemaCompiled records
+	// that the attempt was made, since a schema that is not JSON leaves
+	// schema nil.
+	schema         *schemaregistry.Registry
+	schemaCompiled bool
 
 	// hasher accumulates the content hash of everything the walk reads,
 	// so that the fingerprint the emitted index records is a by-product of
@@ -503,7 +510,7 @@ func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter
 		return
 	}
 
-	frontmatter, perr := decodeFrontmatter(doc)
+	frontmatter, perr := decodeFrontmatter(doc, b.allowedValues(declared))
 	if perr != nil {
 		// The block parsed as YAML and does not fit its document type —
 		// a status outside the vocabulary, a timestamp that is
@@ -884,7 +891,13 @@ func slugSpan(doc *frontmatter.Document) specmodel.Span {
 // A value of the wrong shape is a located failure rather than an error
 // the caller raises: it is recorded against its own document and the
 // walk continues.
-func decodeFrontmatter(doc *frontmatter.Document) (*specmodel.TypedFrontmatter, *specmodel.ParseError) {
+//
+// A failure the decoder attributes to one property is located at that
+// property. Where the property's schema is an enum, allowed answers the
+// values it admits and the failure says so in full — the value, and every
+// value it could have been (AC-SPEC-003.6, AC-SPEC-006.1). allowed is
+// called on that failure path only.
+func decodeFrontmatter(doc *frontmatter.Document, allowed func(property string) ([]string, bool)) (*specmodel.TypedFrontmatter, *specmodel.ParseError) {
 	raw, err := doc.JSON()
 	if err != nil {
 		return nil, &specmodel.ParseError{
@@ -895,6 +908,16 @@ func decodeFrontmatter(doc *frontmatter.Document) (*specmodel.TypedFrontmatter, 
 
 	typed, err := envelope.Decode(raw)
 	if err != nil {
+		var propertyErr *envelope.PropertyError
+		if errors.As(err, &propertyErr) {
+			if values, ok := allowed(propertyErr.Property); ok {
+				return nil, &specmodel.ParseError{
+					Message: fmt.Sprintf("%s: %q is not one of %s",
+						propertyErr.Property, propertyErr.Value, strings.Join(values, ", ")),
+					Span: envelopeErrorSpan(doc, err),
+				}
+			}
+		}
 		return nil, &specmodel.ParseError{
 			Message: fmt.Sprintf("the frontmatter block does not fit the document's type: %s", err),
 			Span:    envelopeErrorSpan(doc, err),
@@ -906,14 +929,42 @@ func decodeFrontmatter(doc *frontmatter.Document) (*specmodel.TypedFrontmatter, 
 // envelopeErrorSpan points a decode failure at the offending property
 // where the decoder names one, and at the whole block where it does not.
 func envelopeErrorSpan(doc *frontmatter.Document, err error) specmodel.Span {
+	name := ""
+	var propertyErr *envelope.PropertyError
 	var typeErr *json.UnmarshalTypeError
-	if errors.As(err, &typeErr) && typeErr.Field != "" {
-		name, _, _ := strings.Cut(typeErr.Field, ".")
-		if property, ok := doc.Property(name); ok {
-			return property.Position
-		}
+	switch {
+	case errors.As(err, &propertyErr):
+		name = propertyErr.Property
+	case errors.As(err, &typeErr) && typeErr.Field != "":
+		name, _, _ = strings.Cut(typeErr.Field, ".")
+	}
+	if property, ok := doc.Property(name); name != "" && ok {
+		return property.Position
 	}
 	return doc.Region.Inner
+}
+
+// allowedValues answers, for a document of docType, the values the
+// active profile's schema admits for property, where that schema is an
+// enum. The schema is compiled on the first call, which only a document
+// failing to decode makes, so a clean build never pays for it.
+func (b *builder) allowedValues(docType string) func(property string) ([]string, bool) {
+	return func(property string) ([]string, bool) {
+		if !b.schemaCompiled {
+			b.schemaCompiled = true
+			if b.profile != nil {
+				b.schema, _ = schemaregistry.New(b.profile.Schema())
+			}
+		}
+		if b.schema == nil {
+			return nil, false
+		}
+		values, ok, err := b.schema.Enum(docType, property)
+		if err != nil {
+			return nil, false
+		}
+		return values, ok
+	}
 }
 
 // Index returns the built index.

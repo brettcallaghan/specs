@@ -1146,3 +1146,24 @@ func TestUnresolvedReferenceMessageVariesByOriginAndNonMember(t *testing.T) {
 		t.Errorf("parse-failure message = %q, want it to cite the failure's line (%s)", parseFailed.Message, want)
 	}
 }
+
+// A message about the frontmatter object itself names the property with
+// no pointer prefix, since the root pointer says nothing to a reader; a
+// nested pointer keeps its prefix, and the detail keeps the pointer as it
+// is in either case.
+//
+// AC: AC-SPEC-006.1
+func TestARootPointerIsNotWrittenIntoTheMessage(t *testing.T) {
+	root := finding.MissingProperty("adrs/x.md", at(t), "", "description")
+	if want := `required property "description" is not declared`; root.Message != want {
+		t.Errorf("message = %q, want %q", root.Message, want)
+	}
+	if detail, ok := root.Detail.AsMissingProperty(); !ok || detail.Pointer != "" {
+		t.Errorf("detail = %+v, want pointer \"\"", root.Detail)
+	}
+
+	nested := finding.SchemaViolation("adrs/x.md", at(t), "/releated", "additionalProperties", "x")
+	if !strings.HasPrefix(nested.Message, "/releated: ") {
+		t.Errorf("message = %q, want it to begin with the pointer /releated", nested.Message)
+	}
+}

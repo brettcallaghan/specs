@@ -2,6 +2,7 @@ package envelope
 
 import (
 	"encoding/json"
+	"errors"
 	"reflect"
 	"strings"
 	"testing"
@@ -145,5 +146,22 @@ func TestEncodeOmitsAnUndeclaredRequiredEnum(t *testing.T) {
 func TestEncodeRefusesANilVariant(t *testing.T) {
 	if _, err := Encode(specmodel.TypedFrontmatter{}); err == nil {
 		t.Error("Encode of a nil variant succeeded, want an error")
+	}
+}
+
+// A property whose value its generated type refuses — a status outside
+// the vocabulary — is named by the decode error, with the value as
+// written, so the failure can be located at that property.
+//
+// AC: AC-SPEC-003.6, AC-SPEC-006.1
+func TestADecodeFailureNamesTheOffendingProperty(t *testing.T) {
+	raw := []byte(`{"type":"adr","title":"T","description":"D","slug":"adr-001","status":"actve","updated_at":"2026-08-01T00:00:00Z"}`)
+	_, err := Decode(raw)
+	var propertyErr *PropertyError
+	if !errors.As(err, &propertyErr) {
+		t.Fatalf("Decode error = %v (%T), want a *PropertyError", err, err)
+	}
+	if propertyErr.Property != "status" || propertyErr.Value != "actve" {
+		t.Errorf("PropertyError = {%q, %q}, want {status, actve}", propertyErr.Property, propertyErr.Value)
 	}
 }

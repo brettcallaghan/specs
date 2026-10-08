@@ -1,0 +1,5 @@
+description = "a slug failing both the shared schema's slug pattern and its type's pattern is one finding, slug/pattern-mismatch, naming the slug and the type's pattern; no finding names $ref"
+cites = ["AC-SPEC-003.5", "AC-SPEC-006.1"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 1

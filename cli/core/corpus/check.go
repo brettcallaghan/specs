@@ -3,6 +3,7 @@ package corpus
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
@@ -158,17 +159,27 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 		if err != nil {
 			return nil, fmt.Errorf("corpus: checking %s against the schema registry: %w", entry.Path, err)
 		}
-		report.Add(violations...)
 
+		var mismatch *specmodel.Finding
 		if rules, known := c.types[docType]; known && rules.SlugPattern != "" {
-			mismatch, err := schemaregistry.CheckSlugPattern(
+			mismatch, err = schemaregistry.CheckSlugPattern(
 				entry.Path, slugSpan(doc), string(envelope.Of(entry.Frontmatter).Slug), rules.SlugPattern)
 			if err != nil {
 				return nil, fmt.Errorf("corpus: checking the slug pattern for %s: %w", entry.Path, err)
 			}
-			if mismatch != nil {
-				report.Add(*mismatch)
-			}
+		}
+		if mismatch != nil {
+			// One slug mistake is one finding. The type's pattern is the
+			// stricter statement of what the slug must be (AC-SPEC-003.5),
+			// so the shared schema's pattern failure on the same slug is
+			// not reported beside it — under --only frontmatter/schema
+			// too, since the fault is slug/pattern-mismatch's. A slug that
+			// passes its type's pattern keeps any schema finding it earns.
+			violations = withoutSlugPatternViolation(violations)
+		}
+		report.Add(violations...)
+		if mismatch != nil {
+			report.Add(*mismatch)
 		}
 	}
 
@@ -538,4 +549,20 @@ func (c *Corpus) schemaRegistry() (*schemaregistry.Registry, error) {
 		}
 	})
 	return c.registryState.registry, c.registryState.err
+}
+
+// withoutSlugPatternViolation returns violations less any schema
+// violation of the slug's pattern: the finding a slug/pattern-mismatch on
+// the same slug already states more precisely.
+func withoutSlugPatternViolation(violations []specmodel.Finding) []specmodel.Finding {
+	kept := violations[:0:0]
+	for _, violation := range violations {
+		if detail, ok := violation.Detail.AsSchemaViolation(); ok &&
+			violation.Rule == finding.RuleSchemaViolation &&
+			detail.Pointer == "/slug" && strings.HasPrefix(detail.Constraint, "pattern") {
+			continue
+		}
+		kept = append(kept, violation)
+	}
+	return kept
 }

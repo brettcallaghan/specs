@@ -209,10 +209,6 @@ const (
 	RuleC4TagSeparator specmodel.RuleId = "c4/tag-separator"
 )
 
-// rootPointer is what an empty JSON Pointer is rendered as, so a message
-// about the frontmatter object itself does not begin with a bare colon.
-const rootPointer = "/"
-
 // SchemaViolation reports a frontmatter value that fails the schema for
 // its document type.
 //
@@ -225,8 +221,8 @@ func SchemaViolation(path string, at specmodel.Span, pointer, constraint, value 
 		Severity: SeverityError,
 		Path:     path,
 		Span:     at,
-		Message: fmt.Sprintf("%s: %q does not satisfy %s",
-			renderPointer(pointer), value, constraint),
+		Message: fmt.Sprintf("%s%q does not satisfy %s",
+			pointerPrefix(pointer), value, constraint),
 		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
 			Pointer:    pointer,
 			Constraint: constraint,
@@ -243,8 +239,8 @@ func MissingProperty(path string, at specmodel.Span, pointer, property string) s
 		Severity: SeverityError,
 		Path:     path,
 		Span:     at,
-		Message: fmt.Sprintf("%s: required property %q is not declared",
-			renderPointer(pointer), property),
+		Message: fmt.Sprintf("%srequired property %q is not declared",
+			pointerPrefix(pointer), property),
 		Detail: specmodel.NewFindingDetailMissingProperty(specmodel.FindingMissingProperty{
 			Pointer:  pointer,
 			Property: property,
@@ -1005,13 +1001,16 @@ func C4TagSeparator(path string, at specmodel.Span, tags string) specmodel.Findi
 	}
 }
 
-// renderPointer renders a JSON Pointer for a message, substituting the
-// root pointer for the empty string the JSON Pointer spec uses for it.
-func renderPointer(pointer string) string {
+// pointerPrefix is the prefix a message about the value at pointer
+// begins with: the pointer and a colon, or nothing for the root pointer
+// "", since a message about the object itself needs no location and a
+// bare "/" says nothing to a reader. The finding's detail keeps the
+// pointer as it is.
+func pointerPrefix(pointer string) string {
 	if pointer == "" {
-		return rootPointer
+		return ""
 	}
-	return pointer
+	return pointer + ": "
 }
 
 // Report accumulates one run's findings and accounts for every check the

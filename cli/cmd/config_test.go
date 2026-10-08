@@ -325,6 +325,15 @@ root = "docs"
 	if detail.Property != "profile" {
 		t.Errorf("property = %q, want %q", detail.Property, "profile")
 	}
+	// A defect of the configuration object itself carries no pointer
+	// prefix in its message — a bare "/" says nothing to a reader — while
+	// its detail keeps the root pointer "" (AC-SPEC-006.1).
+	if want := `required property "profile" is not declared`; findings[0].Message != want {
+		t.Errorf("message = %q, want %q", findings[0].Message, want)
+	}
+	if detail.Pointer != "" {
+		t.Errorf("pointer = %q, want the root pointer \"\"", detail.Pointer)
+	}
 }
 
 // A TOML syntax error is reported as a finding rather than surfacing as a

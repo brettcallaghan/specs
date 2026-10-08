@@ -1185,7 +1185,22 @@ Change Guidance below without a per-type schema pointer from the profile.
 `Declares` answers, over that same branch, whether a type declares a
 property — directly or through `$ref` and `allOf`, never through an
 alternative — which is how a profile's architecture registration is
-checked against its own schema.
+checked against its own schema. `Enum` answers, over the same branch, the
+values a property's schema allows, followed through `$ref`.
+
+A violation reached through `$ref` is reported by its **leaf
+constraint**, not by the `$ref` that led to it: the registry walks the
+validation error's causes down to the ones that have none, so a pattern
+failure names its expression (`pattern "^[a-z0-9]+(?:-[a-z0-9]+)*$"`)
+and an enum failure every allowed value (`one of draft, approved, …`),
+beside the offending value (AC-SPEC-006.1). Every failed `oneOf`/`anyOf`
+branch and every sibling violation is still reported. A slug that fails
+its type's pattern is reported **once**, as `slug/pattern-mismatch`: the
+Corpus check drops the shared schema's pattern violation on the same
+`/slug` beside it, under `--only frontmatter/schema` as well, and keeps
+one only where the type's pattern passes. A message about the
+frontmatter object itself — a missing required property — carries no
+pointer prefix; its detail keeps the root pointer `""`.
 
 **Built** — `cli/core/envelope`. The index carries each document's
 frontmatter as the union variant its `type` selects
@@ -1196,7 +1211,14 @@ type: the variants are discovered from the generated union, each tag the
 kebab-case of its variant's name. It decodes without the generated
 required-field enforcement, because a document missing a required
 property must still be indexed for `frontmatter/missing-property` to
-report it. `Encode` is the matching write: Corpus encodes every entry's
+report it. A value its property's generated type refuses — a `status`
+outside the vocabulary — fails the decode with a `PropertyError` naming
+that property and the value as written, so the `frontmatter/parse`
+failure is located at the property; where its schema is an enum, Corpus
+asks the Schema Registry for the allowed values, compiling the schema on
+that failure path only, and the message names them all:
+`status: "actve" is not one of draft, ready-for-review, approved,
+in-progress, active, retired` (AC-SPEC-003.6, AC-SPEC-006.1). `Encode` is the matching write: Corpus encodes every entry's
 frontmatter through it when it renders the index, and it writes the
 `type` discriminator and then the variant's properties exactly as the
 generated encoder does, except that a required enum the document leaves
