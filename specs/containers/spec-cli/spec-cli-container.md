@@ -265,7 +265,16 @@ the requested rules' findings. Exit status
 follows `finding.Report.HasErrors`: any error exits 1 unconditionally;
 warning or unverified findings alone exit 0 unless `--strict` is given
 (AC-SPEC-006.6, AC-SPEC-006.7), whatever view was rendered
-(AC-SPEC-006.13). `checkRules` declares every rule a run
+(AC-SPEC-006.13). Given a path, `check` reads that document as git HEAD
+holds it through [[module-document-core#Revisions]]
+(`Repository.FileAt`), takes the slug it declared there with
+`corpus.DeclaredSlug`, and passes it to `CheckFor` as the former slug, so
+the answer also carries the references elsewhere the document's change
+broke (AC-SPECREF-002.11). A document HEAD does not hold has no former
+slug. Where no work tree, no runnable `git` or no commit lets HEAD be
+read, it writes one `note:` line to standard error saying those
+references were not checked and answers with the document's own
+findings, the exit status following them (AC-SPECREF-002.13). `checkRules` declares every rule a run
 can raise, so `--only` can name each and a clean run reports each as
 passed. It holds all ten `c4/*` rules Document Core raises over the C4
 diagrams in architecture blueprints — `c4/parse`, `c4/undeclared-node`,

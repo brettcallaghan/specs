@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
+	"github.com/brettcallaghan/agent-plugins/cli/core/revisions"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
@@ -152,7 +154,17 @@ func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict, verb
 	if path == "" {
 		raw, err = c.Check()
 	} else {
-		raw, err = c.CheckFor(path)
+		var former []string
+		if member, ok := c.MemberPath(path); ok {
+			slug, note := formerSlug(opts.RepoRoot, member)
+			if note != "" {
+				fmt.Fprintf(streams.err, "note: %s; references elsewhere that this document's change broke are not checked\n", note)
+			}
+			if slug != "" {
+				former = append(former, slug)
+			}
+		}
+		raw, err = c.CheckFor(path, former...)
 	}
 	if err != nil {
 		// A path naming no corpus member is the caller's mistake, not a
@@ -282,6 +294,42 @@ func buildCheckReport(findings []specmodel.Finding, only []string) *finding.Repo
 		}
 	}
 	return report
+}
+
+// formerSlug reads the slug the corpus member at member — a path relative
+// to repoRoot, the corpus's own spelling — declared at git HEAD, the
+// version every citation of it was written against (AC-SPECREF-002.11).
+// It returns "" with no note for a document HEAD does not hold, which has
+// no former slug, and "" with a note saying why where HEAD cannot be read
+// at all: no git, no work tree, no commit yet (AC-SPECREF-002.13). A
+// missing base never fails the check, whose own findings are still sound.
+func formerSlug(repoRoot, member string) (string, string) {
+	file := filepath.Join(repoRoot, filepath.FromSlash(member))
+	repo, err := revisions.Open(filepath.Dir(file))
+	if err != nil {
+		return "", err.Error()
+	}
+	top, err := filepath.EvalSymlinks(repo.Root())
+	if err != nil {
+		return "", err.Error()
+	}
+	resolved, err := filepath.EvalSymlinks(file)
+	if err != nil {
+		return "", err.Error()
+	}
+	rel, err := filepath.Rel(top, resolved)
+	if err != nil || !filepath.IsLocal(rel) {
+		return "", fmt.Sprintf("%s is not inside the git work tree at %s", member, repo.Root())
+	}
+	src, found, err := repo.FileAt("HEAD", filepath.ToSlash(rel))
+	if err != nil {
+		return "", err.Error()
+	}
+	if !found {
+		return "", ""
+	}
+	slug, _ := corpus.DeclaredSlug(src)
+	return slug, ""
 }
 
 // requestedRules converts --only's raw values into a lookup set, or nil

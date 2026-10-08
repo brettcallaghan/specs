@@ -691,3 +691,38 @@ func TestNoStalenessWhereNothingIsBehind(t *testing.T) {
 		check(t, dir, "origin/main")
 	})
 }
+
+// AC: AC-SPECREF-002.11
+func TestFileAtReadsOneFileAsTheCommitHoldsIt(t *testing.T) {
+	dir := newRepo(t)
+	stage(t, dir, "100644", "specs/adrs/a.md", []byte("at HEAD\r\n"))
+	stage(t, dir, "120000", "specs/link.md", []byte("adrs/a.md"))
+	commit(t, dir, "first")
+	// The working tree differs from HEAD; FileAt reads HEAD.
+	if err := os.MkdirAll(filepath.Join(dir, "specs", "adrs"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "specs", "adrs", "a.md"), []byte("edited"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	repo := open_(t, dir)
+
+	got, found, err := repo.FileAt("HEAD", "specs/adrs/a.md")
+	if err != nil || !found || string(got) != "at HEAD\r\n" {
+		t.Errorf("FileAt(HEAD, a.md) = %q, %v, %v; want the committed bytes", got, found, err)
+	}
+	for _, absent := range []string{"specs/adrs/new.md", "specs/adrs", "specs/link.md"} {
+		if got, found, err := repo.FileAt("HEAD", absent); err != nil || found {
+			t.Errorf("FileAt(HEAD, %s) = %q, %v, %v; want not found", absent, got, found, err)
+		}
+	}
+	_, _, err = repo.FileAt("no-such-ref", "specs/adrs/a.md")
+	wantClass(t, err, Invocation, "no-such-ref", "does not resolve")
+}
+
+// AC: AC-SPECREF-002.13
+func TestFileAtOnAnUnbornHEADIsAnEnvironmentError(t *testing.T) {
+	dir := newRepo(t)
+	_, _, err := open_(t, dir).FileAt("HEAD", "a.md")
+	wantClass(t, err, Environment, "HEAD", "no commit")
+}

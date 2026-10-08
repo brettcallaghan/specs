@@ -1633,15 +1633,23 @@ already reports, so one unreadable member is one finding however often
 it is cited (AC-SPEC-003.8). No anchor finding stands in for it, since
 an anchor is checked only against a member. A reference
 finding is located in the *referring* document, at the referrer's own
-span, because that is the file a reader must open to fix it. `CheckFor`
-narrows every finding to the document named, with no exception: it
-reports no finding located in another document, including one held
-elsewhere that no longer resolves to the named document
-(AC-SPECREF-002.9). The rules still run over the whole corpus, so every
-reference finding located in the named document is reported exactly as a
-corpus check reports it (AC-SPECREF-002.11). What an edit breaks
-elsewhere is answered by `refs` before the edit, or by a corpus check
-after it.
+span, because that is the file a reader must open to fix it. The rules
+still run over the whole corpus, so every reference finding located in
+the document `CheckFor` names is reported exactly as a corpus check
+reports it (AC-SPECREF-002.11). Of the findings located in other
+documents, `CheckFor` reports exactly those the named document's change
+caused and nothing else (AC-SPECREF-002.9): every `reference/unresolved`
+finding of a reference citing a slug the caller passes as one the
+document declared at the comparison base and that the document no longer
+declares (compared without regard to letter case, as resolution
+compares), and every `reference/unresolved-anchor` finding of a
+reference resolving to the document. Each is the finding a corpus check
+reports for that reference, located in the citing document. Corpus reads
+no revision itself: the caller passes the former slugs, which the command
+surface reads from git HEAD through Revisions and `corpus.DeclaredSlug`,
+and with none passed — a new document, or no base to read — the first
+set is empty. A changed `type` or a retirement is not reported
+elsewhere, since the citing reference still resolves.
 
 **They also report the anchor half of a reference, under two rule
 identifiers of its own.** `reference/unresolved-anchor` fires at
@@ -1662,9 +1670,10 @@ the unresolved slug is already reported and two findings for one mistake
 train a reader to skim (AC-SPECANCH-002.8). Both rules run over every
 anchored reference in an ordinary corpus check rather than behind an
 option (AC-SPECANCH-002.9), and both are narrowed by a single-document
-check exactly as `reference/unresolved` is: a check of the document whose
-heading was renamed reports no anchor finding located in a referring
-document (AC-SPECANCH-003.2). Unlike the three relational rules below, these two
+check as above: a check of the document whose heading was renamed
+reports the `reference/unresolved-anchor` findings of references into it
+held elsewhere, and no other anchor finding located in another document
+(AC-SPECANCH-003.2, AC-SPECREF-002.11). Unlike the three relational rules below, these two
 read no document off disk: what an anchor reached was settled by the
 References component during resolution, and this derives the finding
 from that record rather than matching a heading a second time.
@@ -2310,6 +2319,11 @@ repository-relative path under a fresh temporary directory: no checkout
 filter, `.gitattributes` rule or `export-ignore` applies. A directory the
 commit does not hold gives an empty tree. The returned `Tree`'s `Close`
 removes the directory, and every error path removes it before returning.
+`Repository.FileAt` reads one repository-relative file's bytes at a
+revision (`git ls-tree` then `git cat-file blob`), reporting it absent
+where the commit holds no regular file there; an unborn HEAD is
+**environment**, any other revision that does not resolve
+**invocation**.
 
 The package runs only `rev-parse`, `merge-base`, `ls-tree` and
 `cat-file`, always as `git -C <top level>` with `GIT_TERMINAL_PROMPT=0`

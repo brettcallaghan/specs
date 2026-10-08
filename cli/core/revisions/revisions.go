@@ -1,10 +1,12 @@
-// Package revisions reads a directory as a git commit holds it.
+// Package revisions reads a directory, or one file, as a git commit holds
+// it.
 //
 // It resolves the base revision of a comparison — the merge-base of HEAD
 // and the repository's default branch, or of HEAD and a named revision —
 // and materializes a repository-relative directory's tracked files at a
 // commit into a fresh temporary directory, so a caller can build that
-// directory exactly as it builds the working tree.
+// directory exactly as it builds the working tree. It also reads a single
+// file's bytes at a revision ([Repository.FileAt]).
 //
 // The package knows git and directories, and nothing of documents,
 // criteria or the index. It runs the git executable as a subprocess and
@@ -329,6 +331,56 @@ func (r *Repository) Materialize(commit, dir string) (*Tree, error) {
 		return nil, err
 	}
 	return tree, nil
+}
+
+// FileAt returns the bytes of the regular file at file — a
+// repository-relative, slash-separated path — as the commit revision
+// names holds it, and false when the commit holds no regular file there:
+// a document that did not exist at that revision. A revision that does
+// not resolve to a commit is an [Error]: an unborn HEAD is
+// [Environment], any other [Invocation].
+func (r *Repository) FileAt(revision, file string) ([]byte, bool, error) {
+	if revision == "" || strings.HasPrefix(revision, "-") {
+		return nil, false, invocation("%q does not name a revision", revision)
+	}
+	name, err := repoRelative(file)
+	if err != nil {
+		return nil, false, err
+	}
+	if name == "" {
+		return nil, false, invocation("%s is not a repository-relative file", file)
+	}
+	commit, ok, err := r.commitOf(revision)
+	if err != nil {
+		return nil, false, err
+	}
+	if !ok {
+		if revision == "HEAD" {
+			return nil, false, environment("HEAD names no commit (the current branch has no commits yet), so there is no committed version of %s to compare against", name)
+		}
+		return nil, false, invocation("%s does not resolve to a commit in %s", revision, r.root)
+	}
+
+	out, err := r.run("ls-tree", "-z", "--full-tree", commit, "--", name)
+	if err != nil {
+		return nil, false, err
+	}
+	for _, record := range bytes.Split(out, []byte{0}) {
+		meta, listed, found := bytes.Cut(record, []byte{'\t'})
+		if !found || string(listed) != name {
+			continue
+		}
+		fields := strings.Fields(string(meta))
+		if len(fields) != 3 || fields[1] != "blob" || (fields[0] != "100644" && fields[0] != "100755") {
+			return nil, false, nil
+		}
+		content, err := r.run("cat-file", "blob", fields[2])
+		if err != nil {
+			return nil, false, err
+		}
+		return content, true, nil
+	}
+	return nil, false, nil
 }
 
 // repoRelative cleans dir to a slash-separated path inside the work tree,

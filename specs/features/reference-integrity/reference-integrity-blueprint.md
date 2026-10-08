@@ -356,18 +356,22 @@ because a build's exit status depends on it.
   report nothing against the referrer, the parse failure being the one
   finding (AC-SPECREF-002.7, as amended for AC-SPEC-003.8).
 - WHEN a single document is checked, the check SHALL report every
-  reference finding wherever it was written, each against the referring
-  document at the referrer's own span, in addition to the findings
-  against the document named (AC-SPECREF-002.9, AC-SPECREF-002.11).
-  These are the rules the single-document form does not narrow by path,
-  because the document that breaks a reference is never the document
-  that holds it — true of a slug rename, a retirement and a `type`
-  change alike. Membership is a property of where a rule's findings
-  land, not of its `reference/` prefix. It costs nothing beyond the
-  corpus-wide check that already runs: those findings are derived from
-  the reference collection held in memory either way, so the narrowing
-  was all that discarded them, and AC-SPEC-009.2's single-document
-  budget is untouched.
+  reference finding located in the document named, and of those located
+  elsewhere only the `reference/unresolved` findings of references
+  citing a slug the document declared at git HEAD and no longer
+  declares, and the `reference/unresolved-anchor` findings of references
+  resolving to it — each against the referring document at the
+  referrer's own span (AC-SPECREF-002.9, AC-SPECREF-002.11). The
+  document that breaks a reference is never the document that holds it,
+  so these are what the author's edit caused; an unrelated broken
+  reference elsewhere is not. It costs one `git` read of the document at
+  HEAD beyond the corpus-wide check that already runs: the findings are
+  derived from the reference collection held in memory either way, so
+  AC-SPEC-009.2's single-document budget is untouched.
+- WHEN a single document is checked outside a git work tree, or where
+  git cannot be run, the check SHALL note on standard error that the
+  references elsewhere were not checked and report the document's own
+  findings (AC-SPECREF-002.13).
 - WHEN a single document is checked and the path names no corpus member,
   the check SHALL report that rather than a report with no findings.
   Selecting nothing and rendering every rule as `passed` is
@@ -664,6 +668,7 @@ checks; LIFE = lifecycle and relational checks; CMD = Command Surface in
 | AC-SPECREF-002.9 | **CHK (proves)**, CMD | case + unit |
 | AC-SPECREF-002.10 | **LIFE (proves)**, PREG | unit |
 | AC-SPECREF-002.11 | **CHK (proves)**, LIFE, CMD | case + unit |
+| AC-SPECREF-002.13 | **CMD (proves)**, CHK | integration |
 | AC-SPECREF-003.1 | **CMD (proves)**, RES | integration |
 | AC-SPECREF-003.2 | **CMD (proves)**, RES | integration |
 | AC-SPECREF-003.3 | **CMD (proves)**, MODEL | integration |
@@ -679,10 +684,11 @@ the point. The snapshot cases `check-path-reference-elsewhere` and
 a referrer whose links are already broken is reported by a check of
 another document, while a non-reference finding elsewhere is still
 narrowed away. What a case cannot express is *causation*: that the edit
-to the document named is what broke them needs one build, an edit, and a
-second build, which is a sequence rather than an input corpus. That half
-stays a Go test (`TestCheckForReportsTheReferencesARenamedSlugBroke`,
-`TestCheckForReportsLifecycleFindingsAgainstTheReferringDocument`).
+to the document named is what broke them needs a git HEAD to compare
+with, an edit, and a second build, which is a sequence rather than an
+input corpus. That half stays a Go test
+(`TestCheckForReportsWhatARenamedSlugBrokeElsewhere`, and the end-to-end
+tests in `cli/specs/check_path_e2e_test.go`).
 
 † Two criteria are verified by Go tests rather than by a snapshot
 case, because the state each one is about cannot be staged from a

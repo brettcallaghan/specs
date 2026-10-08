@@ -16,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -781,27 +782,22 @@ func TestCheckForReportsNoFindingLocatedInAnotherDocument(t *testing.T) {
 	}
 }
 
-// AC-SPECREF-002.9's own scenario, end to end and through the real cache:
+// AC-SPECREF-002.11's own scenario, end to end and through the real cache:
 // an agent renames a document's slug, and the write-time check on that one
-// file reports nothing about the references the rename broke elsewhere —
-// a reference held by another document that no longer resolves to the
-// named one is that document's finding. A check of the referrer reports
-// it, at the referrer's own span, which is the file and the line a reader
-// has to open to fix it (AC-SPECREF-002.11).
+// file — given the slug it declared at the comparison base — reports the
+// reference the rename broke elsewhere, located in the referrer at its own
+// span, exactly as a check of the referrer reports it. Without a former
+// slug (a new document, or no base to read) it reports nothing elsewhere
+// (AC-SPECREF-002.9).
 //
 // The break is produced by editing a real file on disk, because that is
 // what the criterion describes and it is the only state production can
 // reach. The edit changes the corpus's input hash, so the check that
 // follows reads a freshly rebuilt graph in which the stale referrers are
-// recorded unresolved. An earlier implementation instead compared a warm
-// index's inbound edges against the document's slug read fresh from disk
-// and could only be exercised by planting a row in the persisted index:
-// Open's fingerprint is all-or-nothing over every candidate's content, so
-// one file's real bytes can never disagree with the rest of a warm index
-// (agent-plugins-fe1).
+// recorded unresolved.
 //
-// AC: AC-SPECREF-002.9
-func TestCheckForReportsNothingARenamedSlugBrokeElsewhere(t *testing.T) {
+// AC: AC-SPECREF-002.9, AC-SPECREF-002.11
+func TestCheckForReportsWhatARenamedSlugBrokeElsewhere(t *testing.T) {
 	repo := t.TempDir()
 	write(t, repo, "specs/adrs/adr-001.md", citing("adr", "adr-001", "First", "Refines [[adr-002]]."))
 	write(t, repo, "specs/adrs/adr-002.md", document("adr", "adr-002", "Second"))
@@ -842,7 +838,39 @@ func TestCheckForReportsNothingARenamedSlugBrokeElsewhere(t *testing.T) {
 	}
 	for _, f := range findings {
 		if f.Path != "specs/adrs/adr-002.md" {
-			t.Errorf("CheckFor(adr-002) reported a finding located in %s: %s %s", f.Path, f.Rule, f.Message)
+			t.Errorf("CheckFor(adr-002) with no former slug reported a finding located in %s: %s %s", f.Path, f.Rule, f.Message)
+		}
+	}
+
+	// Given the slug it declared at the base, in another letter case, the
+	// check reports the referrer's finding exactly as the referrer's own
+	// check does.
+	withFormer, err := opened.CheckFor("specs/adrs/adr-002.md", "ADR-002")
+	if err != nil {
+		t.Fatalf("CheckFor with a former slug: %v", err)
+	}
+	ownCheck, err := opened.CheckFor("specs/adrs/adr-001.md")
+	if err != nil {
+		t.Fatalf("CheckFor(adr-001): %v", err)
+	}
+	var elsewhere []specmodel.Finding
+	for _, f := range withFormer {
+		if f.Path != "specs/adrs/adr-002.md" {
+			elsewhere = append(elsewhere, f)
+		}
+	}
+	if want := findingsWithRule(ownCheck, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md"); !reflect.DeepEqual(elsewhere, want) || len(want) != 1 {
+		t.Errorf("CheckFor(adr-002, former adr-002) reported elsewhere %+v, want exactly %+v", elsewhere, want)
+	}
+
+	// A former slug the document still declares broke nothing.
+	unchanged, err := opened.CheckFor("specs/adrs/adr-002.md", "adr-003")
+	if err != nil {
+		t.Fatalf("CheckFor with its current slug as former: %v", err)
+	}
+	for _, f := range unchanged {
+		if f.Path != "specs/adrs/adr-002.md" {
+			t.Errorf("a former slug equal to the current one reported %s: %s", f.Path, f.Rule)
 		}
 	}
 

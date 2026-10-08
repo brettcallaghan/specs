@@ -319,10 +319,10 @@ Feature: Anchor Impact Queries
     Then the CLI lists every reference whose anchor resolves to that heading, each with its referring document and span
 
   @AC-SPECANCH-003.2 @negative
-  Scenario: A single-document check reports no anchor finding located in another document
+  Scenario: A single-document check reports no anchor finding located in another document beyond those its change broke
     When the CLI checks a single document
-    Then the CLI reports no anchor finding located in a document other than the one named
-    And that holds for an anchor reference held by another document into a heading of the document named that no longer resolves
+    Then the CLI reports no anchor finding located in a document other than the one named, except the unresolved-anchor findings AC-SPECREF-002.11 names
+    And that holds for an ambiguous anchor held by another document, and for any anchor held by another document into a different document
 
   @AC-SPECANCH-003.3
   Scenario: An anchor nothing references is an answer rather than a failure
@@ -375,10 +375,13 @@ references and states that the anchor is not declared — as
 
 *Rationale:* AC-SPECANCH-003.1 is what makes anchors safe to adopt at
 all. A heading rename is the edit a single-document check cannot see:
-the breakage lives entirely in files the author did not touch, and
-AC-SPECANCH-003.2 keeps it out of that check, as the parent feature does
-for slugs, so a write-time hook never fails on a file nobody edited. The
-query asked before the rename is where the blast radius surfaces.
+the breakage lives entirely in files the author did not touch. The
+write-time check on the renamed document reports exactly that breakage —
+references into it that no longer resolve — and AC-SPECANCH-003.2 keeps
+every other anchor finding elsewhere out of it, as the parent feature
+does for slugs, so a write-time hook never fails on breakage the author
+did not cause. The query asked before the rename is where the blast
+radius surfaces in advance.
 
 AC-SPECANCH-003.6 exists because, without it, a misspelt anchor and an
 uncited heading return the same empty answer, and an agent checking the

@@ -156,17 +156,25 @@ checks:
     outcome: passed
 ```
 
-**`specs check <path>` reports only the findings located in that
-file.** It resolves the document's references against the whole corpus
-and reports every finding that sits in it — an unresolved reference or
-anchor, a retired target, a type mismatch, a slug or identifier it
-shares with another document — at its own line. It reports nothing
-located in another document, including a reference held elsewhere that
-no longer resolves to the document you named. Before you rename a slug,
-retire a document or change its `type`, run `specs refs <slug>`: it
-names every document citing it, which is the blast radius of the
-change. After it, a whole-corpus `specs check` reports what is broken
-anywhere.
+**`specs check <path>` reports the findings located in that file, and
+the references elsewhere that your change to it broke.** It resolves
+the document's references against the whole corpus and reports every
+finding that sits in it — an unresolved reference or anchor, a retired
+target, a type mismatch, a slug or identifier it shares with another
+document — at its own line. It also reports, each at its line in the
+citing document, every reference elsewhere that cites a slug the
+document declared at git HEAD and no longer declares — an uncommitted
+rename — and every anchor elsewhere into the document that no longer
+names a heading of it. Nothing else located in another document is
+reported: an unrelated broken link elsewhere stays out. Outside a git
+work tree (or without git) there is no HEAD to compare with, so the
+check writes one `note:` line to standard error saying the references
+elsewhere were not checked and answers with the document's own findings.
+A changed `type` or a retirement is not reported elsewhere, because the
+citing reference still resolves. Before you rename a slug, retire a
+document or change its `type`, run `specs refs <slug>`: it names every
+document citing it, which is the blast radius of the change. After it, a
+whole-corpus `specs check` reports what is broken anywhere.
 
 **A path that names no corpus member is a refusal, not a pass.** Where
 the file exists but was excluded, the message names the reason

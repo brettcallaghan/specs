@@ -9,6 +9,7 @@
 package corpus_test
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -236,28 +237,39 @@ func TestEveryAnchoredReferenceIsCheckedUnderItsOwnRuleIdentifier(t *testing.T) 
 }
 
 // A single-document check on the document whose heading was renamed
-// reports no anchor finding located in the referring document: it covers
-// the named document only, and what the rename broke elsewhere is a
-// corpus check's to report.
+// reports the referring document's unresolved-anchor finding, located in
+// the referrer and identical to the one a corpus check reports, and
+// nothing about an unrelated dangling reference elsewhere.
 //
-// AC-SPECANCH-003.2 is cited at the integration level it is declared at,
-// by the snapshot case check-path-anchor-elsewhere. This is its
-// unit-level companion, which is why it carries no citation of its own.
-func TestCheckForReportsNoAnchorFindingLocatedElsewhere(t *testing.T) {
+// AC: AC-SPECREF-002.11, AC-SPECREF-002.9
+func TestCheckForReportsAnchorsElsewhereItsHeadingChangeBroke(t *testing.T) {
 	repo := t.TempDir()
 	// The heading the referrer names has been renamed to "Outcome".
 	write(t, repo, "specs/adrs/adr-002.md", sectioned("adr", "adr-002", "Second", "## Outcome"))
 	write(t, repo, "specs/adrs/adr-001.md", citing("adr", "adr-001", "First", "Refines [[adr-002#Decision]]."))
+	write(t, repo, "specs/adrs/adr-003.md", citing("adr", "adr-003", "Third", "Refines [[adr-404]]."))
 
 	built := buildChecked(t, repo, referenceCheckProfile("superseded_by"))
 	findings, err := built.CheckFor("specs/adrs/adr-002.md")
 	if err != nil {
 		t.Fatalf("CheckFor: %v", err)
 	}
+	all, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+	want := findingsWithRule(all, finding.RuleUnresolvedAnchor, "specs/adrs/adr-001.md")
+	if len(want) != 1 {
+		t.Fatalf("the corpus check reported %d anchor findings in adr-001, want 1: %+v", len(want), all)
+	}
+	var elsewhere []specmodel.Finding
 	for _, f := range findings {
 		if f.Path != "specs/adrs/adr-002.md" {
-			t.Errorf("a check of adr-002 reported a finding located in %s: %s %s", f.Path, f.Rule, f.Message)
+			elsewhere = append(elsewhere, f)
 		}
+	}
+	if !reflect.DeepEqual(elsewhere, want) {
+		t.Errorf("a check of adr-002 reported elsewhere %+v, want exactly the corpus check's %+v", elsewhere, want)
 	}
 }
 

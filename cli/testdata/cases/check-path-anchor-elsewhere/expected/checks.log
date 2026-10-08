@@ -1,5 +1,20 @@
 summary:
-  errors: 0
+  errors: 1
   warnings: 0
   unverified: 0
-findings: []
+findings:
+  - rule: reference/unresolved-anchor
+    severity: error
+    path: docs/adrs/adr-301-referrer.md
+    span:
+      offset: 279
+      length: 24
+      start_line: 12
+      start_column: 25
+      end_line: 12
+      end_column: 49
+    message: no heading named "Decision" in docs/adrs/adr-300-renamed.md
+    detail:
+      kind: unresolved-anchor
+      anchor: Decision
+      target_path: docs/adrs/adr-300-renamed.md
