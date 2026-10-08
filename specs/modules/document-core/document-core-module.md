@@ -416,6 +416,17 @@ the block ends — the Corpus walk, for a document whose frontmatter did
 not parse — asks this component rather than re-deriving the delimiters,
 and a second derivation cannot disagree with the first.
 
+`TopLevelScalar` reads one top-level property's value by line from a
+block `Parse` rejected, so one malformed value elsewhere in the block
+does not make a property written correctly on its own line unreadable
+(AC-SPEC-003.7). It reads a value only where the block is delimited
+(`Locate` finds it — an unterminated block has no extent to read from),
+the key begins its line unindented, and the value is a non-empty
+single-line scalar, plain or quoted, with an optional trailing comment;
+anything else is no value rather than a guess. It takes the property's
+name from its caller and knows no envelope vocabulary: the Corpus asks
+it for `slug`.
+
 Six semantics are pinned by the implementation:
 
 - **A sequence-valued property carries its elements individually.**
@@ -962,7 +973,9 @@ Five further semantics are pinned by the resolution half:
   the document is right there and what is wrong is its frontmatter.
 - **A non-member is matched on its file name without the extension,
   lowercased**, because it is the only handle such a file has — a parse
-  failure has no readable frontmatter to declare a slug, and a file
+  failure with no legible slug has no readable frontmatter to declare
+  one (a member whose slug was recovered is a member under that slug,
+  AC-SPEC-003.7, and keeps the file-name match besides), and a file
   excluded for carrying no frontmatter has none either. The name is
   recorded on the index, so the match is reproducible by anything reading
   the artifact rather than resting on knowledge only the build held. The
@@ -1166,7 +1179,9 @@ The vocabulary is:
 - **`IndexEntry`** — one corpus member: its repository-relative `path`,
   its parsed `frontmatter`, and a `parse_error` carrying a located
   failure for a member whose frontmatter could not be read
-  (AC-SPEC-002.4). Exactly one of the latter two is present. It also
+  (AC-SPEC-002.4). Exactly one of the latter two is present. A member
+  carrying a `parse_error` also carries a `recovered_slug` when its slug
+  is still legible (AC-SPEC-003.7), and every slug lookup honors it. It also
   carries the document's structure: its `headings` in document order
   (AC-SPECSTR-001.1), and the `record_blocks` attached to the document
   rather than to any heading — those written before the first heading,
@@ -1817,6 +1832,23 @@ Six semantics are pinned by the implementation:
   document still indexes (AC-SPEC-002.4). An exclusion is reserved for the
   two judgements the reader needs — no frontmatter, and a type the profile
   does not define.
+- **A member whose frontmatter failed keeps a legible slug.** Where the
+  YAML parsed and the typed decode failed — a status outside the
+  vocabulary — the slug is read from the parsed `slug` property; where
+  the YAML itself failed inside a delimited block, Frontmatter's
+  `TopLevelScalar` reads it by line. Either way a non-empty string is
+  recorded as the entry's `recovered_slug`, and every slug lookup reads an
+  entry's slug through `envelope.DeclaredSlug` — the envelope's slug,
+  else the recovered one — so the slug query, reference resolution and a
+  heading selection by slug find such a member as they would one that
+  parsed (AC-SPEC-003.7). One mistyped value therefore produces one
+  finding, the `frontmatter/parse` failure, rather than one
+  `reference/unresolved` per citation of the document. The checks that
+  read a target's typed frontmatter — retired target, type mismatch,
+  pairing — skip a target without one, so a reference reaching a
+  recovered member raises none of them; the slug-pattern and schema
+  checks, and duplicate detection, still run only on members that
+  parsed.
 - **A `.md` file with frontmatter declaring no `type` at all is
   `unknown-type` with no declared value reported.** It is not a document
   the active profile governs, and reporting an empty `type` would claim

@@ -3380,6 +3380,13 @@
             "$ref": "#/definitions/RecordBlock"
           },
           "type": "array"
+        },
+        "recovered_slug": {
+          "description": "The slug a member whose frontmatter failed to parse still states\nlegibly (AC-SPEC-003.7), recorded as declared by this member: references\nto it resolve, and the slug query answers it, as for a member that\nparsed.\n\nAbsent when `frontmatter` is present, whose envelope carries the slug,\nand when no slug is legible.",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [

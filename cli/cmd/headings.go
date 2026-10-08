@@ -223,11 +223,10 @@ func (s selection) selects(entry specmodel.IndexEntry) bool {
 		return normalizeOperand(entry.Path) == normalizeOperand(s.document)
 	}
 	// A slug, compared without regard to letter case, the same way the
-	// corpus's own slug lookup compares one.
-	if entry.Frontmatter == nil {
-		return false
-	}
-	return strings.EqualFold(string(envelope.Of(entry.Frontmatter).Slug), s.document)
+	// corpus's own slug lookup compares one — including a slug recovered
+	// from a member whose frontmatter did not parse (AC-SPEC-003.7).
+	slug := envelope.DeclaredSlug(entry)
+	return slug != "" && strings.EqualFold(slug, s.document)
 }
 
 // renderHeadings writes the answer as YAML, or as JSON under --json, both

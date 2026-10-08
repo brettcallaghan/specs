@@ -1,0 +1,5 @@
+description = "a member whose frontmatter fails to parse but whose slug is still legible keeps that slug: check reports the one frontmatter/parse failure, and every citation of the slug, in the body and in a frontmatter reference property, resolves"
+cites = ["AC-SPEC-003.7"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 1

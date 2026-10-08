@@ -152,3 +152,19 @@ func Decode(raw []byte) (specmodel.TypedFrontmatter, error) {
 	value := relaxed.Elem().Convert(v.generated).Interface().(specmodel.TypedFrontmatterVariant)
 	return specmodel.TypedFrontmatter{Value: value}, nil
 }
+
+// DeclaredSlug returns the slug an index entry declares: its envelope's
+// slug where its frontmatter parsed, the slug recovered from a block that
+// did not parse where one was legible (AC-SPEC-003.7), and the empty
+// string otherwise. Every slug lookup reads an entry's slug through this
+// one function, so a member whose frontmatter failed is found by its
+// slug wherever a member that parsed would be.
+func DeclaredSlug(entry specmodel.IndexEntry) string {
+	if entry.Frontmatter != nil {
+		return string(Of(entry.Frontmatter).Slug)
+	}
+	if entry.RecoveredSlug != nil {
+		return *entry.RecoveredSlug
+	}
+	return ""
+}

@@ -1,0 +1,41 @@
+checked 2 documents
+
+docs/adrs/adr-012-reference-conventions.md:
+  frontmatter/parse  error  1:4  frontmatter could not be read: the frontmatter block does not fit the document's type: Status: unknown value "actve"
+
+checks:
+  c4/ambiguous-node  passed
+  c4/bidirectional  passed
+  c4/contract-mismatch  passed
+  c4/contract-unresolved  passed
+  c4/drawing-conflict  passed
+  c4/duplicate-edge  passed
+  c4/interaction-conflict  passed
+  c4/parse  passed
+  c4/tag-separator  passed
+  c4/undeclared-node  passed
+  corpus/empty  passed
+  frontmatter/missing-property  passed
+  frontmatter/parse  failed
+  frontmatter/schema  passed
+  gherkin/criterion-code-mismatch  passed
+  gherkin/criterion-empty  passed
+  gherkin/criterion-untagged  passed
+  gherkin/examples-partially-tagged  passed
+  gherkin/feature-untagged  passed
+  gherkin/identifier-duplicate  passed
+  gherkin/identifier-malformed  passed
+  gherkin/identifier-multiple  passed
+  gherkin/owner-mismatch  passed
+  gherkin/owner-missing  passed
+  gherkin/owner-unresolved  passed
+  gherkin/parse  passed
+  gherkin/scenario-prose  passed
+  reference/ambiguous-anchor  passed
+  reference/pairing-incomplete  passed
+  reference/retired-target  passed
+  reference/type-mismatch  passed
+  reference/unresolved  passed
+  reference/unresolved-anchor  passed
+  slug/duplicate  passed
+  slug/pattern-mismatch  passed

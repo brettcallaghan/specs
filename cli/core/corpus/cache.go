@@ -402,10 +402,7 @@ func fromIndex(index specmodel.SpecIndex, opts Options) (*Corpus, error) {
 
 	for i, entry := range index.Entries {
 		c.byPath[entry.Path] = i
-		if entry.Frontmatter == nil {
-			continue
-		}
-		key := strings.ToLower(string(envelope.Of(entry.Frontmatter).Slug))
+		key := strings.ToLower(envelope.DeclaredSlug(entry))
 		if key == "" {
 			continue
 		}

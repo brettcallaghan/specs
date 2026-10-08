@@ -6674,6 +6674,14 @@ type IndexEntry struct {
 	// property does not make the index a failure; the index is still emitted
 	// and still contains every other document.
 	ParseError *ParseError `json:"parse_error,omitempty"`
+	// The slug a member whose frontmatter failed to parse still states
+	// legibly (AC-SPEC-003.7), recorded as declared by this member: references
+	// to it resolve, and the slug query answers it, as for a member that
+	// parsed.
+	//
+	// Absent when `frontmatter` is present, whose envelope carries the slug,
+	// and when no slug is legible.
+	RecoveredSlug *string `json:"recovered_slug,omitempty"`
 	// The document's headings, in document order.
 	//
 	// Recorded for every member, including one whose frontmatter could not be
@@ -6708,6 +6716,11 @@ func (v *IndexEntry) UnmarshalJSON(data []byte) error {
 			return prefixField("parse_error", err)
 		}
 	}
+	if m, ok := raw["recovered_slug"]; ok {
+		if err := json.Unmarshal(m, &v.RecoveredSlug); err != nil {
+			return prefixField("recovered_slug", err)
+		}
+	}
 	if m, ok := raw["headings"]; !ok || string(m) == "null" {
 		return fmt.Errorf("IndexEntry: required field \"headings\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Headings); err != nil {
@@ -6721,7 +6734,7 @@ func (v *IndexEntry) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "path", "frontmatter", "parse_error", "headings", "record_blocks":
+		case "path", "frontmatter", "parse_error", "recovered_slug", "headings", "record_blocks":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key

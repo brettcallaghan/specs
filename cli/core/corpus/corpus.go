@@ -453,12 +453,17 @@ func (b *builder) classify(reported string, src []byte) {
 		// a recorded failure, not an exclusion: the file claimed to be a
 		// specification and the claim could not be checked
 		// (AC-SPEC-002.4).
+		//
+		// One malformed line elsewhere in the block does not make a slug
+		// written correctly on its own line unreadable, so a legible one
+		// is still recorded as declared (AC-SPEC-003.7).
 		headings, records := headingsOf(src, nil, b.recordTags)
 		b.addEntry(specmodel.IndexEntry{
-			Path:         reported,
-			ParseError:   perr,
-			Headings:     headings,
-			RecordBlocks: records,
+			Path:          reported,
+			ParseError:    perr,
+			RecoveredSlug: legible(frontmatter.TopLevelScalar(src, slugProperty)),
+			Headings:      headings,
+			RecordBlocks:  records,
 		}, member{})
 
 	case doc == nil:
@@ -504,12 +509,15 @@ func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter
 		// a status outside the vocabulary, a timestamp that is
 		// not one. Recorded against this member so the rest of the corpus
 		// still indexes (AC-SPEC-002.4).
+		// The slug property parsed with the rest of the block, so a
+		// legible one is still recorded as declared (AC-SPEC-003.7).
 		headings, records := headingsOf(src, doc, b.recordTags)
 		b.addEntry(specmodel.IndexEntry{
-			Path:         reported,
-			ParseError:   perr,
-			Headings:     headings,
-			RecordBlocks: records,
+			Path:          reported,
+			ParseError:    perr,
+			RecoveredSlug: legible(stringProperty(doc, slugProperty)),
+			Headings:      headings,
+			RecordBlocks:  records,
 		}, member{})
 		return
 	}
@@ -650,10 +658,7 @@ func (b *builder) finish(opts Options) *Corpus {
 
 	for i, entry := range b.index.Entries {
 		b.byPath[entry.Path] = i
-		if entry.Frontmatter == nil {
-			continue
-		}
-		key := strings.ToLower(string(envelope.Of(entry.Frontmatter).Slug))
+		key := strings.ToLower(envelope.DeclaredSlug(entry))
 		if key == "" {
 			continue
 		}
@@ -1108,4 +1113,26 @@ func (c *Corpus) normalize(p string) string {
 		}
 	}
 	return path.Clean(filepath.ToSlash(p))
+}
+
+// stringProperty returns doc's named property where it is a string
+// scalar.
+func stringProperty(doc *frontmatter.Document, name string) (string, bool) {
+	property, ok := doc.Property(name)
+	if !ok {
+		return "", false
+	}
+	value, isString := property.Value.(string)
+	return value, isString
+}
+
+// legible returns a recovered slug for the index, or nil where none was
+// found or what was found is blank: a slug is legible only as a
+// non-empty string scalar (AC-SPEC-003.7).
+func legible(value string, found bool) *string {
+	value = strings.TrimSpace(value)
+	if !found || value == "" {
+		return nil
+	}
+	return &value
 }

@@ -76,18 +76,23 @@ func newTargets(index specmodel.SpecIndex) targets {
 	}
 
 	for _, entry := range index.Entries {
-		if entry.Frontmatter != nil {
-			if key := lookupKey(string(envelope.Of(entry.Frontmatter).Slug)); key != "" {
-				if held, seen := built.members[key]; !seen || entry.Path < held {
-					built.members[key] = entry.Path
-				}
+		// A member whose frontmatter failed to parse but whose slug is
+		// still legible declares that slug, and a reference to it resolves
+		// as it would to a member that parsed (AC-SPEC-003.7).
+		if key := lookupKey(envelope.DeclaredSlug(entry)); key != "" {
+			if held, seen := built.members[key]; !seen || entry.Path < held {
+				built.members[key] = entry.Path
 			}
+		}
+		if entry.Frontmatter != nil {
 			continue
 		}
 		// An entry with no parsed frontmatter is a file that claimed to be
-		// a specification and could not be read. It declares no slug — that
-		// is what failed — so the only thing a reference can match it on is
-		// its name; see [stem].
+		// a specification and could not be read. Unless a slug was
+		// recovered from it, it declares none — that is what failed — so
+		// the only thing a reference can match it on is its name; see
+		// [stem]. A recovered member keeps that match too, for a reference
+		// naming the file rather than the slug.
 		built.addNonMember(specmodel.ReferenceNonMember{
 			Path:       entry.Path,
 			ParseError: entry.ParseError,
