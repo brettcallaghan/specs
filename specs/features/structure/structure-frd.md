@@ -198,7 +198,8 @@ Feature: Structure Queries
   Scenario: Each segment of a heading path is nested within the one before it at any depth
     Given a selection whose heading half holds more than one segment separated by "#"
     When the CLI runs the query
-    Then the CLI matches a heading named by the last segment whose enclosing headings include, in order from the outermost, a heading named by each earlier segment
+    Then the CLI matches exactly the headings whose heading path is those segments, where some heading's is
+    And otherwise the CLI matches a heading named by the last segment whose enclosing headings include, in order from the outermost, a heading named by each earlier segment
     And the CLI matches each segment on its identifier as AC-SPECSTR-003.2 states
 ```
 
@@ -215,7 +216,14 @@ each with the heading path that selects it alone. A heading path is the
 same form a nested wikilink anchor takes under
 [[cross-document-references]], so a path copied from a refusal works as
 a selection and as a citation. A single segment remains a valid
-selection. The statuses in AC-SPECSTR-003.7 and AC-SPECSTR-003.8 are
+selection. A full heading path takes precedence over a deeper heading
+it is also a subsequence of, which is what lets a pasted
+`document-core#references` name the top-level `References` alone though
+`document-core#components#references` satisfies it too
+(AC-SPECSTR-003.11); the precedence applies to a selection of more than
+one segment only, so a one-segment selection is matched on its
+identifier against every heading and names a top-level heading alone
+only where no other heading shares its identifier. The statuses in AC-SPECSTR-003.7 and AC-SPECSTR-003.8 are
 those [[cli-exit-status-standards]] assigns to an operand the command
 cannot act on and to a subject the corpus does not hold.
 

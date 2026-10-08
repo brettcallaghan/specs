@@ -235,8 +235,9 @@ Feature: Anchor Resolution Checks
   Scenario: A nested anchor resolves through its enclosing headings
     Given a reference whose anchor holds more than one segment separated by "#"
     When the CLI checks the reference
-    Then the CLI resolves it to the heading named by the last segment whose enclosing headings include, in order, a heading named by each earlier segment
-    And the CLI reports an unresolved anchor where no heading satisfies every segment, and an ambiguous anchor where more than one does
+    Then the CLI resolves it to the heading whose heading path is those segments, where one heading's is
+    And otherwise the CLI resolves it to the heading named by the last segment whose enclosing headings include, in order, a heading named by each earlier segment
+    And the CLI reports an unresolved anchor where no heading satisfies every segment, and an ambiguous anchor where more than one heading has that heading path or, none having it, more than one satisfies every segment
 ```
 
 *Examples:* `reference/unresolved-anchor  error … "no heading named
@@ -265,6 +266,13 @@ produces the same finding as the same reference without the leading `!`
 exists produces one finding, the parent's unresolved-slug error, because
 two findings for one mistake trains a reader to skim
 (AC-SPECANCH-002.8).
+`` `[[module-document-core#document-core#References]]` `` resolves to the
+top-level `References` alone: `document-core#components#references` also
+satisfies every segment, but a heading whose full heading path is the
+anchor's segments takes precedence (AC-SPECANCH-002.10). The precedence
+needs more than one segment; the one-segment
+`` `[[module-document-core#References]]` `` stays ambiguous, as
+AC-SPECANCH-002.5 states.
 
 *Rationale:* AC-SPECANCH-002.2 adopts a normalization that already
 exists rather than inventing one. A heading identifier is what a
