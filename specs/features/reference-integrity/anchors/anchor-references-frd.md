@@ -6,7 +6,7 @@ description: Resolves the anchor half of a wikilink — the heading it
 slug: frd-spec-anchor-references
 type: frd
 status: approved
-updated_at: 2026-10-07T00:00:00Z
+updated_at: 2026-10-08T00:00:00Z
 sources:
   - "frd-spec-reference-integrity"
 ---
@@ -306,10 +306,11 @@ Feature: Anchor Impact Queries
     When the CLI is asked for the references to a document qualified by an anchor
     Then the CLI lists every reference whose anchor resolves to that heading, each with its referring document and span
 
-  @AC-SPECANCH-003.2
-  Scenario: A single-document check reports inbound anchor references that no longer resolve
+  @AC-SPECANCH-003.2 @negative
+  Scenario: A single-document check reports no anchor finding located in another document
     When the CLI checks a single document
-    Then the CLI reports inbound anchor references to that document that no longer resolve, each cited at the span in the referring document
+    Then the CLI reports no anchor finding located in a document other than the one named
+    And that holds for an anchor reference held by another document into a heading of the document named that no longer resolves
 
   @AC-SPECANCH-003.3
   Scenario: An anchor nothing references is an answer rather than a failure
@@ -328,7 +329,13 @@ Feature: Anchor Impact Queries
   Scenario: An outbound query takes no anchor
     Given a query for the references out of a document
     When the argument is qualified by an anchor
-    Then the CLI refuses the combination and exits non-zero
+    Then the CLI refuses the combination and exits with the invocation-error status
+
+  @AC-SPECANCH-003.6
+  Scenario: An anchor naming no heading is distinguishable from a heading nobody cites
+    When the CLI is asked for the references to a document qualified by an anchor
+    Then the CLI states in the answer whether the anchor names a heading of that document
+    And where it names none, the CLI answers with no references and exits zero
 ```
 
 *Examples:* `specs refs 'container-spec-cli#Element Registry'` lists the
@@ -336,8 +343,9 @@ documents that would break if that heading were renamed — the question
 [[adr-012]] created by making anchors the address of every un-promoted
 component (AC-SPECANCH-003.1). An agent renames a `### Element Registry`
 heading to `### Registry` and the write-time check on that one file
-reports the four documents whose anchors now point at nothing, at their
-own lines; this is AC-SPECREF-002.9 extended to the anchor half
+reports nothing about the four documents whose anchors now point at
+nothing; the query asked before the rename, or a corpus check after it,
+is what finds them — AC-SPECREF-002.9 applied to the anchor half
 (AC-SPECANCH-003.2). An empty answer is an answer, not a failure,
 consistent with AC-SPECREF-003.5 and AC-SPEC-007.2 (AC-SPECANCH-003.3).
 An ambiguous reference resolves to no heading, and the author renaming
@@ -346,13 +354,24 @@ so the query lists it rather than hiding it behind its own error
 (AC-SPECANCH-003.4). An anchor names a heading of the cited document, and
 the outbound direction asks what the given document cites, so
 `specs refs 'adr-012#Decision' --outbound` names no set and is refused
-(AC-SPECANCH-003.5).
+with status `2`, the invocation error of [[cli-exit-status-standards]]
+(AC-SPECANCH-003.5). `specs refs 'adr-012#Decison'` answers with no
+references and states that the anchor is not declared — as
+`anchor_declared: false`, for instance — where an uncited heading of
+`adr-012` answers with no references and states that it is; both exit
+`0`, because a subject the corpus does not hold is an answer
+(AC-SPECANCH-003.6).
 
-*Rationale:* AC-SPECANCH-003.2 is what makes anchors safe to adopt at
-all. Without it a heading rename is the edit the tooling cannot see: the
-author changes one document, every check against that document passes,
-and the breakage lives entirely in files they did not touch. The parent
-feature answers the same question for slugs the same way.
+*Rationale:* AC-SPECANCH-003.1 is what makes anchors safe to adopt at
+all. A heading rename is the edit a single-document check cannot see:
+the breakage lives entirely in files the author did not touch, and
+AC-SPECANCH-003.2 keeps it out of that check, as the parent feature does
+for slugs, so a write-time hook never fails on a file nobody edited. The
+query asked before the rename is where the blast radius surfaces.
+
+AC-SPECANCH-003.6 exists because, without it, a misspelt anchor and an
+uncited heading return the same empty answer, and an agent checking the
+blast radius of a rename reads a typo as "safe to rename".
 
 ## References
 

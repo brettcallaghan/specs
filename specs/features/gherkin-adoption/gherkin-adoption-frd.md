@@ -6,7 +6,7 @@ description: The CLI parses Gherkin from FRD blocks and standalone feature
 slug: frd-gherkin-adoption
 type: frd
 status: approved
-updated_at: 2026-10-07T00:00:00Z
+updated_at: 2026-10-08T00:00:00Z
 sources: []
 ---
 
@@ -29,7 +29,7 @@ tag.
 
 The payoff is addressability. An agent implementing a work order asks
 for one criterion instead of reading an FRD. A reviewer asks which
-criteria changed since the last index instead of reading a diff. An
+criteria a branch changes instead of reading a diff. An
 organization publishes the index to a central store and gets features
 and criteria as rows rather than paragraphs — the reason [[adr-021]]
 chose a parsed notation over prose.
@@ -191,9 +191,10 @@ Feature: Tag Vocabulary
   encouraged. The Gherkin parser accepts any non-whitespace tag and
   attaches no meaning to any of them; every rule below is the CLI's.
 
-  A project may use tags outside this vocabulary. The CLI ignores them
-  rather than reporting them, so that a project's own conventions and a
-  runner's tags can coexist with the framework's.
+  A project may use tags outside this vocabulary. The CLI reports each
+  as a warning rather than an error: a misspelt qualifier otherwise drops
+  its meaning silently, while a project's own conventions and a runner's
+  tags still coexist with the framework's without failing the run.
 
   @AC-GHK-002.1
   Scenario Outline: The framework tag vocabulary
@@ -285,10 +286,10 @@ Feature: Tag Vocabulary
     Then the CLI emits one criterion record whose example rows are those of every block
 
   @AC-GHK-002.8
-  Scenario: Tags outside the vocabulary are ignored, not reported
-    Given a Scenario carrying a tag the framework assigns no meaning
+  Scenario: A tag outside the vocabulary is reported as a warning
+    Given a Feature or a Scenario carrying a tag the framework assigns no meaning
     When the CLI validates it
-    Then the CLI reports no finding for that tag
+    Then the CLI reports a finding naming that tag with severity "warning"
 ```
 
 *Rationale for AC-GHK-002.7 and AC-GHK-002.9:* the dangerous case is an
@@ -449,7 +450,10 @@ Feature: Feature and Criterion Records
 
   Criteria nest inside their feature. A criterion belongs to exactly one,
   and its identifier carries that feature's code, so lookup by identifier
-  is an index over the tree rather than a reason to flatten it.
+  is an index over the tree rather than a reason to flatten it. A
+  criterion record still names where it lives — its document's path and
+  its feature's identifier — so a lookup of one criterion locates it
+  without a second query.
 
   Identity never comes from a parser node id. Those are positional
   counters that shift when anything above them is edited.
@@ -466,7 +470,8 @@ Feature: Feature and Criterion Records
   @AC-GHK-005.2
   Scenario: A criterion record carries its identity, its text and its provenance
     When the CLI extracts a criterion
-    Then the record carries its identifier, its name, its text, its qualifiers, its description and its span
+    Then the record carries its identifier, its name, its text, its tags, its qualifiers, its description and its span
+    And the record carries the path of its owning document and the identifier of the feature it belongs to
 
   @AC-GHK-005.3
   Scenario: A criterion's body is recorded as text, not decomposed
@@ -594,11 +599,13 @@ Feature: Validation and Diagnostics
     And the CLI resolves identifier uniqueness against the whole corpus
 ```
 
-Every Gherkin rule is an error. A Feature with no description and a
-criterion with no `@level-*` tag are not findings at all: the
-description is the author's to write or omit, and [[gherkin-guide]]
-makes the level tag optional, so a warning on either would fire on most
-of the corpus and teach readers to ignore the severity.
+Every Gherkin rule is an error but one: a tag outside the vocabulary is
+a warning (AC-GHK-002.8), because a project may use tags of its own. A
+Feature with no description and a criterion with no `@level-*` tag are
+not findings at all: the description is the author's to write or omit,
+and [[gherkin-guide]] makes the level tag optional, so a warning on
+either would fire on most of the corpus and teach readers to ignore the
+severity.
 
 ### FEAT-GHK-007: Queries by Tag
 
@@ -616,15 +623,22 @@ Feature: Queries by Tag
   answer from the index rather than by re-reading the corpus, so they
   inherit the latency budgets the index already carries.
 
+  Every one of them is a query in the sense of [[cli-exit-status-standards]]:
+  it exits zero whenever it answered, and an answer is a list of records
+  in one shape per command, whether one record matched, several or none.
+  Identifiers match regardless of case, as slugs do.
+
   @AC-GHK-007.1
   Scenario: A feature is fetched by its identifier
     When a query names a feature identifier
-    Then the CLI returns that feature's record, including its criteria
+    Then the CLI returns a list holding that feature's record, including its criteria
+    And the answer has the shape of every other feature query
 
   @AC-GHK-007.2
   Scenario: An acceptance criterion is fetched by its identifier
     When a query names an acceptance-criterion identifier
-    Then the CLI returns that criterion's record
+    Then the CLI returns a list holding that criterion's record
+    And the answer has the shape of every other criterion query
 
   @AC-GHK-007.3
   Scenario Outline: Features and criteria are listed by selection
@@ -639,10 +653,17 @@ Feature: Queries by Tag
       | criteria carrying a qualifier | every criterion tagged with it          |
 
   @AC-GHK-007.4
-  Scenario: A query for an unknown name reports absence rather than emptiness
-    When a query names an identifier no record declares
-    Then the CLI reports that nothing declares it
-    And the CLI exits non-zero
+  Scenario Outline: A query for an undeclared subject answers that it is not declared
+    When a query names a "<subject>" that the corpus does not declare
+    Then the CLI returns an empty list
+    And the answer carries a property stating that the subject is not declared
+    And the CLI exits 0
+
+    Examples:
+      | subject                         |
+      | acceptance-criterion identifier |
+      | feature identifier              |
+      | feature code                    |
 
   @AC-GHK-007.5
   Scenario: Query output is available as JSON
@@ -652,13 +673,44 @@ Feature: Queries by Tag
   @AC-GHK-007.6
   Scenario: Queries answer from the index
     Given an index whose inputs are unchanged since it was built
-    When a feature or criterion query runs
+    When a feature or criterion query other than a change listing runs
     Then the CLI answers from the persisted index without re-walking the corpus
+
+  @AC-GHK-007.7
+  Scenario Outline: Identifiers match regardless of case
+    Given the corpus declares "<declared>"
+    When a query names "<named>"
+    Then the CLI returns the record declared as "<declared>"
+
+    Examples:
+      | declared     | named        |
+      | FEAT-GHK-001 | feat-ghk-001 |
+      | AC-GHK-001.1 | ac-ghk-001.1 |
+      | GHK          | ghk          |
+
+  @AC-GHK-007.8 @negative
+  Scenario: A qualifier outside the vocabulary is an invocation error
+    When a query selects criteria by a qualifier the tag vocabulary does not register
+    Then the CLI writes the value and every registered qualifier to standard error
+    And the CLI exits 2
+
+  @AC-GHK-007.9
+  Scenario: A qualifier may be written with its leading at sign
+    When a query selects criteria by "@negative"
+    Then the CLI returns the same answer as a query selecting by "negative"
 ```
 
 *Rationale:* AC-GHK-007.6 binds these queries to the warm-index
 behaviour [[frd-spec-index]] already specifies, rather than
 restating a latency budget this feature does not own.
+
+*Rationale for AC-GHK-007.4 and AC-GHK-007.8:* an identifier or a code
+is a fact about the corpus, which an author may write tomorrow; a
+qualifier is drawn from a registered set no document can extend. So an
+undeclared identifier is an answer and an unregistered qualifier is a
+mistake in the question, as [[cli-exit-status-standards]] draws the line.
+The registered qualifiers are those AC-GHK-002.1 lists: `negative`,
+`manual` and `level-*`.
 
 ### FEAT-GHK-008: Local Change Detection
 
@@ -676,24 +728,34 @@ Feature: Local Change Detection
   so a criterion that moved is not reported and a criterion whose
   wording changed is.
 
+  The comparison is against a git revision, never the persisted index,
+  which any query may rebuild. The base is the merge-base of HEAD and a
+  named revision — the repository's default branch unless --since names
+  a branch, a tag or a commit — so the answer is what a pull request from
+  this branch would show, plus whatever is edited but not yet committed.
+
+  A change listing is a query in the sense of [[cli-exit-status-standards]]:
+  it exits 0 whatever it lists, unless the caller opts into failing on a
+  non-empty answer with --exit-code.
+
   This requirement is the lowest priority in this document and may be
   delivered after the others.
 
   @AC-GHK-008.1
   Scenario: Criteria whose content changed are listed
-    Given an index built from an earlier state of the corpus
-    When the CLI compares the current corpus against it
+    Given a base revision of the repository
+    When the CLI compares the current corpus against the corpus at that base
     Then the CLI lists every criterion whose content hash differs
 
   @AC-GHK-008.2 @negative
   Scenario: A criterion that only moved is not listed as changed
-    Given a criterion whose content is unchanged but whose position moved
-    When the CLI compares the current corpus against the earlier index
+    Given a criterion whose content is unchanged since the base but whose position moved
+    When the CLI compares the current corpus against the base
     Then the CLI does not list that criterion
 
   @AC-GHK-008.3
   Scenario Outline: Added and removed criteria are distinguished from changed ones
-    Given a criterion that is "<state>" relative to the earlier index
+    Given a criterion that is "<state>" relative to the base
     When the CLI compares
     Then the CLI reports it as "<classification>"
 
@@ -702,6 +764,62 @@ Feature: Local Change Detection
       | present in both, content differs | changed      |
       | present now, absent before     | added          |
       | absent now, present before     | removed        |
+
+  @AC-GHK-008.4
+  Scenario: The default base is the repository's default branch
+    Given a query for changed criteria that names no revision
+    When the CLI compares
+    Then the base is the merge-base of HEAD and the repository's default branch
+
+  @AC-GHK-008.5
+  Scenario Outline: A named revision replaces the default
+    Given a query for changed criteria whose --since option names a "<revision>"
+    When the CLI compares
+    Then the base is the merge-base of HEAD and that revision
+
+    Examples:
+      | revision |
+      | branch   |
+      | tag      |
+      | commit   |
+
+  @AC-GHK-008.6
+  Scenario: Uncommitted edits are compared
+    Given a criterion edited in the working tree and not committed
+    When the CLI compares the current corpus against the base
+    Then the CLI lists that criterion as changed
+
+  @AC-GHK-008.7 @negative
+  Scenario: Rebuilding the index does not change the answer
+    Given a criterion edited since the base
+    And the index rebuilt after that edit
+    When the CLI compares the current corpus against the base
+    Then the CLI still lists that criterion as changed
+
+  @AC-GHK-008.8
+  Scenario Outline: A change listing fails only when asked to
+    Given a comparison whose answer is "<answer>"
+    When the CLI lists changed criteria "<option>"
+    Then the CLI exits "<status>"
+
+    Examples:
+      | answer    | option              | status |
+      | empty     | without --exit-code | 0      |
+      | non-empty | without --exit-code | 0      |
+      | empty     | with --exit-code    | 0      |
+      | non-empty | with --exit-code    | 1      |
+
+  @AC-GHK-008.9 @negative
+  Scenario Outline: A comparison that cannot be made answers nothing
+    Given a query for changed criteria run "<condition>"
+    When the CLI attempts the comparison
+    Then the CLI writes nothing to standard output
+    And the CLI reports a "<class>" naming the condition and exits "<status>"
+
+    Examples:
+      | condition                            | class             | status |
+      | outside a git repository             | environment error | 3      |
+      | naming a revision git does not know  | invocation error  | 2      |
 ```
 
 ### FEAT-GHK-009: Publication
@@ -750,6 +868,9 @@ Feature: Publication
 - [[frd-spec-index]] — the index, the finding record, the warm
   index these queries answer from, and AC-SPEC-001.6, whose `.md`-only
   corpus membership FEAT-GHK-001 leaves standing
+- [[cli-exit-status-standards]] — the query and gate statuses these
+  queries and the change listing follow
+- [[cli-output-standards]] — the shape their answers take
 - [[frd-spec-reference-integrity]] — the reference extraction that
   FEAT-GHK-004 extends over Gherkin sources
 - `schemas/feature.strata` — the `Feature` and `Criterion` record shapes

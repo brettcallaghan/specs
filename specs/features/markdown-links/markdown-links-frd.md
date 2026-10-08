@@ -6,7 +6,7 @@ description: The Spec CLI rewrites corpus wikilinks into markdown links,
 slug: frd-spec-markdown-links
 type: frd
 status: approved
-updated_at: 2026-10-07T00:00:00Z
+updated_at: 2026-10-08T00:00:00Z
 sources: [adr-018, frd-spec-reference-integrity]
 ---
 
@@ -134,6 +134,7 @@ Feature: Rewrite wikilinks to markdown links
       | a code span            |
       | an indented code block |
       | a fenced code block    |
+      | a gherkin fenced block |
 
   @AC-SPECMD-001.5 @negative
   Scenario: Nothing but the rewritten wikilinks changes
@@ -182,6 +183,12 @@ fragment and no link-map entry that could name one — an empty slug names
 no corpus document to map (AC-SPECMD-001.8). A guide
 explaining citation syntax writes `` `[[document-slug]]` `` as an
 illustration, and the rewrite leaves it alone (AC-SPECMD-001.4).
+
+*Note:* a `gherkin` fence is a fenced code block for AC-SPECMD-001.4,
+although a wikilink inside it is still a reference to the index and the
+checks. The rewritten copy is for rendering, and a renderer shows a link
+inside a fenced block as literal text, so rewriting it there would only
+put markdown syntax into the requirement.
 
 ### FEAT-SPECMD-002: Report a citation the copy cannot reach
 
@@ -410,6 +417,11 @@ Feature: Command surface and link-map input
   Scenario: A document that cannot be read produces no rewritten document
     Given a document named for rewriting that cannot be read
     Then the CLI does not emit a rewritten document
+
+  @AC-SPECMD-005.13
+  Scenario: The link map's shape is stated where a caller meets it
+    Then the command's help states that a link map maps each slug to a record declaring its "path"
+    And a finding for a link map not of that shape names the expected shape
 ```
 
 *Example:* the map above is written for copies that land beside each

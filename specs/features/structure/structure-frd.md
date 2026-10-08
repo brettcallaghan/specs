@@ -7,7 +7,7 @@ description: Records each document's headings with their section spans
 slug: frd-spec-structure
 type: frd
 status: approved
-updated_at: 2026-09-26T00:00:00Z
+updated_at: 2026-10-08T00:00:00Z
 sources:
   - "frd-spec-index"
 ---
@@ -151,8 +151,9 @@ Feature: Structure Queries
 
   @AC-SPECSTR-003.5
   Scenario: The content beneath a match is returned on request
-    When the CLI is asked to emit the content the headings a selection matches stand over
-    Then the CLI returns the text of each match's section, read from its recorded span
+    Given a selection matching exactly one heading
+    When the CLI is asked to emit the content that heading stands over
+    Then the CLI writes the text of its section, read from its recorded span, as it stands in the document and with nothing added
 
   @AC-SPECSTR-003.6
   Scenario: A selection matching no heading is an answer rather than a failure
@@ -160,13 +161,35 @@ Feature: Structure Queries
     When the CLI runs the query
     Then the CLI reports that
     And the CLI exits zero
+
+  @AC-SPECSTR-003.7 @negative
+  Scenario: Emitting content for a selection matching several headings is refused
+    Given a selection matching more than one heading
+    When the CLI is asked to emit the content those headings stand over
+    Then the CLI writes nothing to standard output
+    And the CLI names every match on standard error, so that the caller can narrow the selection or request the matches without their content
+    And the CLI exits with the invocation-error status
+
+  @AC-SPECSTR-003.8
+  Scenario: A selection naming a document no corpus member declares is an answer
+    Given a selection qualified by a slug or path that no corpus member declares
+    When the CLI runs the query
+    Then the CLI returns an empty list of matches and a property stating that the document is not declared
+    And the CLI exits zero
 ```
 
 *Note:* AC-SPECSTR-003.4 is what answers a roster question — the
 components declared beneath a `Components` heading — without the caller
 knowing how many there are or what they are called. AC-SPECSTR-003.5 is
 what keeps the index free of section content: the span is recorded, and
-the text is read back through it on demand.
+the text is read back through it on demand. It is written raw, because
+the caller asked for the document's own words, and raw text has no place to
+say where one section ends and the next begins, which is why
+AC-SPECSTR-003.7 refuses a selection matching several headings rather
+than joining them; the query without emitting already lists every
+match. The statuses in AC-SPECSTR-003.7 and AC-SPECSTR-003.8 are those
+[[cli-exit-status-standards]] assigns to an operand the command cannot act
+on and to a subject the corpus does not hold.
 
 ## References
 
@@ -178,6 +201,8 @@ the text is read back through it on demand.
 - [[frd-spec-anchor-references]] — resolves an anchor against the
   headings this feature records
 - [[adr-008]] — the element record blocks this feature extracts
+- [[cli-exit-status-standards]] — the exit statuses the structure query
+  reports
 - [[adr-021]] — Gherkin, the notation these features and acceptance
   criteria are written in
 - [[gherkin-guide]] — how to write them
