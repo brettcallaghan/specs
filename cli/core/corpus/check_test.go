@@ -141,21 +141,20 @@ status: approved
 }
 
 // undecodableDocument renders a document whose frontmatter is valid YAML
-// but does not fit the document envelope: created_at carries a date-time
-// placeholder, which is not an RFC 3339 date-time.
+// but does not fit the document envelope: status carries an unfilled
+// placeholder, which is outside the status vocabulary.
 //
 // This is the real-world shape of the defect (agent-plugins-5xo), not a
 // contrived one: the spec skill instructs an author to copy a template
-// and then to run `specs check`, so every document is in exactly this
-// state between those two steps.
+// and then to run `specs check`, so a document with a placeholder still
+// in it is exactly what that second step sees.
 func undecodableDocument(docType, slug, title string) string {
 	return fmt.Sprintf(`---
 title: %q
 description: "A fixture document."
 slug: %s
 type: %s
-status: approved
-created_at: <YYYY-MM-DDTHH:MM:SSZ>
+status: <draft | approved>
 ---
 
 # %s
@@ -507,7 +506,7 @@ func TestCheckOutputIsDeterministic(t *testing.T) {
 // silent about.
 func TestCheckReportsAMemberWhoseFrontmatterCouldNotBeDecoded(t *testing.T) {
 	repo := t.TempDir()
-	write(t, repo, "specs/adrs/adr-001.md", undecodableDocument("adr", "adr-001", "Placeholder date"))
+	write(t, repo, "specs/adrs/adr-001.md", undecodableDocument("adr", "adr-001", "Placeholder status"))
 
 	built := buildChecked(t, repo, checkProfile(checkSchema))
 
@@ -554,16 +553,13 @@ func TestCheckReportsAMemberWhoseFrontmatterCouldNotBeDecoded(t *testing.T) {
 	}
 }
 
-// The placeholder that motivated the fix must not reach a reader
-// HTML-escaped. json.Marshal rewrites <, > and & as \u003c, \u003e
+// A placeholder must not reach a reader HTML-escaped. json.Marshal rewrites <, > and & as \u003c, \u003e
 // and \u0026 by default, and the decode failure quotes the source text
-// it saw, so the diagnostic for the single most common instance of this
-// defect read
-// `parsing time "\u003cYYYY-MM-DDTHH:MM:SSZ\u003e"` until
-// Document.JSON turned escaping off.
+// it saw, so a diagnostic quoting a template placeholder read
+// `\u003cdraft | approved\u003e` until Document.JSON turned escaping off.
 func TestAParseFindingQuotesThePlaceholderWithoutHTMLEscaping(t *testing.T) {
 	repo := t.TempDir()
-	write(t, repo, "specs/adrs/adr-001.md", undecodableDocument("adr", "adr-001", "Placeholder date"))
+	write(t, repo, "specs/adrs/adr-001.md", undecodableDocument("adr", "adr-001", "Placeholder status"))
 
 	built := buildChecked(t, repo, checkProfile(checkSchema))
 	findings, err := built.Check()
@@ -582,7 +578,7 @@ func TestAParseFindingQuotesThePlaceholderWithoutHTMLEscaping(t *testing.T) {
 	if strings.Contains(parse[0].Message, escapedLT) || strings.Contains(parse[0].Message, escapedGT) {
 		t.Errorf("message carries HTML escapes: %q", parse[0].Message)
 	}
-	if !strings.Contains(parse[0].Message, "<YYYY-MM-DDTHH:MM:SSZ>") {
+	if !strings.Contains(parse[0].Message, "<draft | approved>") {
 		t.Errorf("message does not quote the placeholder as the author wrote it: %q", parse[0].Message)
 	}
 }

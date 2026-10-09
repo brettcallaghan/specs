@@ -97,8 +97,7 @@ A `frontmatter/parse` finding (row 0 below) comes before all of them and
 is not one of the nine: it means the frontmatter could not be read as a
 document envelope, so no other check examined this document. Fix it and
 re-run before reading anything else in the report. The usual cause is a
-`status` outside the vocabulary or a `created_at` that is not an RFC
-3339 date-time.
+`status` or other enumerated value outside its vocabulary.
 
 | # | Check | Decided by |
 |---|-------|------------|

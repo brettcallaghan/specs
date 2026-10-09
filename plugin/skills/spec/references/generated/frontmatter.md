@@ -73,13 +73,16 @@ edges. Before adding one, check it against the Document Relationship
 Standard — a property that merely mirrors the document's own prose
 citations does not earn its maintenance cost.
 
+There is deliberately no creation or last-modified timestamp: git
+records when a file was added and changed, an index can derive both from
+it, and a hand-maintained copy goes stale.
+
 **Inherits from:** [Identified](#identified)
 
 | Property | Type | Documentation |
 |----------|------|---------------|
 | title | String | Human-readable document title. Free text.<br><br>Also the document's H1, and the two are kept in sync by hand. It carries no type label — `type` says what the document is — except that an ADR's title leads with its number, `ADR-011: …`, because the number is how an ADR is cited. |
 | status | [Status](vocabulary.md#status) | The document's lifecycle state. |
-| created_at | DateTime? | RFC 3339 timestamp of the document's creation. Optional.<br><br>Validated against the text as written in the file rather than against a parsed value, so a bare `2026-07-29` is reported as a defect instead of being silently widened to midnight UTC by the YAML parser.<br><br>There is deliberately no last-modified timestamp: git records when a file changed, and a hand-maintained copy goes stale. |
 | tags | Array<String>? | Free-form tags for filtering and search. |
 | superseded_by | [Citation](vocabulary.md#citation)? | The document that replaces this one.<br><br>Required in practice on any document at `status: retired` — a retired document with no resolvable successor is a dead end for anyone who follows a reference to it. |
 

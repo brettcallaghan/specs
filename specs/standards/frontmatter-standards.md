@@ -17,7 +17,7 @@ status: active
   including the full `status` vocabulary and the state-vs-transient rule
 - Relationship Properties — provenance, composition, and the typed edges a
   consumer keys on
-- Optional Properties — version, created_at, tags, superseded_by
+- Optional Properties — version, tags, superseded_by
 - Embedded Element Records — declaring child components by record
   block, blueprint, or both
 
@@ -184,13 +184,12 @@ system:
 ```yaml
 ---
 version: "0.1"                     # Semantic version
-created_at: <RFC 3339 datetime>    # Creation timestamp
 tags: []                           # Free-form tags for filtering/search
 superseded_by: "<slug>"            # For superseded documents
 ---
 ```
 
-A document's revision history is git's: no document type carries a
+A document's history is git's: no document type carries a creation or
 last-modified date, and `version` is reserved for a version that is a
 promise to consumers — a contract's interface version, a public
 module's package version. A document's own revision is not one.
@@ -202,7 +201,6 @@ replacement.
 | Property | Type | Purpose | Format |
 |----------|------|----------|--------|
 | `version` | string | Version promised to consumers (contracts, public modules) | Semantic versioning: `MAJOR.MINOR.PATCH` |
-| `created_at` | datetime | Creation timestamp | RFC 3339 format |
 | `tags` | array | Free-form tags | Array of strings |
 | `superseded_by` | string | Superseding document | Slug of replacement document |
 

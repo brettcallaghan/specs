@@ -71,11 +71,11 @@ func TestDecodeFrontmatterToleratesAMissingRequiredProperty(t *testing.T) {
 }
 
 // encodeCases are frontmatters covering every kind of property a variant
-// holds — required and optional enums, timestamps, pointers to slices,
+// holds — required and optional enums, pointers to slices,
 // citations, an integer — each fully declared.
 var encodeCases = map[string]string{
 	"adr": `{"type":"adr","title":"ADR-001: <Example> & co","description":"d","slug":"adr-001","status":"approved",` +
-		`"created_at":"2026-07-01T00:00:00Z","tags":["a","b"],"superseded_by":"adr-002"}`,
+		`"tags":["a","b"],"superseded_by":"adr-002"}`,
 	"module-blueprint": `{"type":"module-blueprint","title":"M","description":"d","slug":"module-m","status":"draft",` +
 		`"entity_name":"M","kind":"standard","visibility":"internal","version":"1.0"}`,
 	"contract": `{"type":"contract","title":"C","description":"d","slug":"contract-c","status":"approved",` +
@@ -118,7 +118,7 @@ func TestEncodeOmitsAnUndeclaredRequiredEnum(t *testing.T) {
 	}{
 		{"adr without status", strings.NewReplacer(`"status":"approved",`, "", "<Example> & co", "Example").Replace(encodeCases["adr"]), "status",
 			`{"type":"adr","description":"d","slug":"adr-001","title":"ADR-001: Example",` +
-				`"created_at":"2026-07-01T00:00:00Z","tags":["a","b"],"superseded_by":"adr-002"}`},
+				`"tags":["a","b"],"superseded_by":"adr-002"}`},
 		{"module blueprint without kind", strings.Replace(encodeCases["module-blueprint"], `"kind":"standard",`, "", 1), "kind",
 			`{"type":"module-blueprint","description":"d","slug":"module-m","title":"M","status":"draft",` +
 				`"entity_name":"M","visibility":"internal","version":"1.0"}`},

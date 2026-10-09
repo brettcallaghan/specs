@@ -54,15 +54,15 @@ func TestEveryFindingIsSelfContained(t *testing.T) {
 	}{
 		{
 			name:     "schema violation",
-			finding:  finding.SchemaViolation("specs/adrs/adr-011.md", position, "/created_at", "format: date-time", "2026-07-29"),
+			finding:  finding.SchemaViolation("specs/adrs/adr-011.md", position, "/released_at", "format: date-time", "2026-07-29"),
 			rule:     finding.RuleSchemaViolation,
-			contains: []string{"/created_at", "2026-07-29", "format: date-time"},
+			contains: []string{"/released_at", "2026-07-29", "format: date-time"},
 			detail: func(t *testing.T, d specmodel.FindingDetail) {
 				v, ok := d.AsSchemaViolation()
 				if !ok {
 					t.Fatalf("detail is not a schema violation: %#v", d.Value)
 				}
-				if v.Pointer != "/created_at" || v.Constraint != "format: date-time" || v.Value != "2026-07-29" {
+				if v.Pointer != "/released_at" || v.Constraint != "format: date-time" || v.Value != "2026-07-29" {
 					t.Errorf("detail = %#v, want the pointer, constraint and raw value", v)
 				}
 			},

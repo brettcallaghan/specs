@@ -74,6 +74,10 @@ only; the index derives the reverse from every other document's inbound
 edges. Before adding one, check it against the Document Relationship
 Standard — a property that merely mirrors the document's own prose
 citations does not earn its maintenance cost.
+
+There is deliberately no creation or last-modified timestamp: git
+records when a file was added and changed, an index can derive both from
+it, and a hand-maintained copy goes stale.
 """
 struct DocumentFrontmatter: Identified {
   """
@@ -90,18 +94,6 @@ struct DocumentFrontmatter: Identified {
   The document's lifecycle state.
   """
   status: Status
-
-  """
-  RFC 3339 timestamp of the document's creation. Optional.
-
-  Validated against the text as written in the file rather than against
-  a parsed value, so a bare `2026-07-29` is reported as a defect instead
-  of being silently widened to midnight UTC by the YAML parser.
-
-  There is deliberately no last-modified timestamp: git records when a
-  file changed, and a hand-maintained copy goes stale.
-  """
-  created_at: DateTime?
 
   """
   Free-form tags for filtering and search.

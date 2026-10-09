@@ -329,9 +329,9 @@ Feature: Metadata Conformance
 
 *Examples:* a document declaring `type: adr` but omitting `description`
 produces one finding naming the missing property (AC-SPEC-003.1).
-`created_at: 2026-07-29` fails an RFC 3339 date-time check, even though a
-YAML parser would coerce it to a valid timestamp before any check could
-see it (AC-SPEC-003.2). Two documents both declaring `slug: adr-012` each
+A property the schema types as a date-time, written `2026-07-29`, fails an
+RFC 3339 date-time check, even though a YAML parser would coerce it to a
+valid timestamp before any check could see it (AC-SPEC-003.2). Two documents both declaring `slug: adr-012` each
 produce a finding citing the other's file path (AC-SPEC-003.3).
 `frd-checkout` and `FRD-Checkout` are reported as duplicates, because a
 case-insensitive filesystem cannot hold both as distinct files

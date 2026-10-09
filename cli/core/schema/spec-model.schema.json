@@ -5,14 +5,6 @@
       "additionalProperties": false,
       "description": "An architecture decision record.\n\nCarries no relationship properties of its own: an ADR's connections to\nother decisions are argued in its prose, where the index reads them, and\nthe decision it supersedes is named through the envelope's\n`superseded_by`.",
       "properties": {
-        "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
-          "format": "date-time",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
@@ -1038,14 +1030,6 @@
             "null"
           ]
         },
-        "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
-          "format": "date-time",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
@@ -1143,14 +1127,6 @@
             "null"
           ]
         },
-        "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
-          "format": "date-time",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
@@ -1239,14 +1215,6 @@
       "additionalProperties": false,
       "description": "An interface specification governing an exchange across a boundary of\nindependent change.",
       "properties": {
-        "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
-          "format": "date-time",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
@@ -1470,16 +1438,8 @@
     },
     "DocumentFrontmatter": {
       "additionalProperties": false,
-      "description": "The metadata envelope every specification document carries.\n\nMembership in the corpus is determined by this envelope rather than by\nlocation: a markdown file whose frontmatter parses and declares a known\n`type` is a specification, wherever it sits in the tree. Each document\ntype extends this struct with its own relationship and classification\nproperties, so the envelope is validated identically everywhere and only\nthe extension differs.\n\nA relationship property here or on any extension is declared at one end\nonly; the index derives the reverse from every other document's inbound\nedges. Before adding one, check it against the Document Relationship\nStandard — a property that merely mirrors the document's own prose\ncitations does not earn its maintenance cost.",
+      "description": "The metadata envelope every specification document carries.\n\nMembership in the corpus is determined by this envelope rather than by\nlocation: a markdown file whose frontmatter parses and declares a known\n`type` is a specification, wherever it sits in the tree. Each document\ntype extends this struct with its own relationship and classification\nproperties, so the envelope is validated identically everywhere and only\nthe extension differs.\n\nA relationship property here or on any extension is declared at one end\nonly; the index derives the reverse from every other document's inbound\nedges. Before adding one, check it against the Document Relationship\nStandard — a property that merely mirrors the document's own prose\ncitations does not earn its maintenance cost.\n\nThere is deliberately no creation or last-modified timestamp: git\nrecords when a file was added and changed, an index can derive both from\nit, and a hand-maintained copy goes stale.",
       "properties": {
-        "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
-          "format": "date-time",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
@@ -1697,14 +1657,6 @@
       "additionalProperties": false,
       "description": "A transient change document describing how the system changes to deliver\none feature.\n\nUnlike the blueprints it modifies, a feature blueprint describes a\nchange rather than a state, so it reaches `in-progress` and then\n`retired` rather than `active`.\n\nThe documents the change creates and updates are described in the\nblueprint's own \"Documentation Changes\" prose and tracked to completion\nin its `plan`, which records done-ness natively. They are not mirrored\ninto frontmatter: a change set recorded in three places is three places\nthat must agree.",
       "properties": {
-        "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
-          "format": "date-time",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "delivery": {
           "$ref": "#/definitions/Delivery",
           "description": "The delivery unit grooming plans against. When `staged`, each stage\nboundary is enumerated in the blueprint's Sequencing Constraints."
@@ -3209,14 +3161,6 @@
       "additionalProperties": false,
       "description": "A feature requirements document: the user need, its scope boundaries and\nthe acceptance criteria that decide whether it has been met.",
       "properties": {
-        "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
-          "format": "date-time",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
@@ -3277,14 +3221,6 @@
       "additionalProperties": false,
       "description": "A how-to document explaining a technique that other document types\nassume knowledge of — EARS syntax, C4 mapping, cross-document reference\nconventions.\n\nA guide carries no relationships of its own: it explains a technique\nrather than participating in the architecture graph.",
       "properties": {
-        "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
-          "format": "date-time",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
@@ -3492,14 +3428,6 @@
           },
           "type": [
             "array",
-            "null"
-          ]
-        },
-        "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
-          "format": "date-time",
-          "type": [
-            "string",
             "null"
           ]
         },
@@ -4066,14 +3994,6 @@
       "additionalProperties": false,
       "description": "An improvement proposal raised against a skill by a run that exercised\nit.\n\nThe provenance properties below are the load-bearing part. A skill\nbehaves differently under different models, efforts and harnesses, so a\ndefect real under one may not reproduce under another, and triage cannot\nscope a fix without knowing which run saw it. They are recorded\nfaithfully by the retro that raises the RFC and judged by the triage\nthat receives it — the two roles are deliberately separate.",
       "properties": {
-        "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
-          "format": "date-time",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
@@ -4355,14 +4275,6 @@
       "additionalProperties": false,
       "description": "Cross-cutting standards, policies, guidelines or constraints that apply\nacross documents or components rather than to one of them.\n\nCarries no version of its own. A standard that ships to other\nrepositories is vendored into a skill, and the skill's version\nidentifies the text a reader followed.",
       "properties": {
-        "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
-          "format": "date-time",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
@@ -4435,14 +4347,6 @@
             "null"
           ]
         },
-        "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
-          "format": "date-time",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
@@ -4506,13 +4410,6 @@
         {
           "additionalProperties": false,
           "properties": {
-            "created_at": {
-              "format": "date-time",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
             "description": {
               "type": "string"
             },
@@ -4561,13 +4458,6 @@
         {
           "additionalProperties": false,
           "properties": {
-            "created_at": {
-              "format": "date-time",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
             "description": {
               "type": "string"
             },
@@ -4625,13 +4515,6 @@
         {
           "additionalProperties": false,
           "properties": {
-            "created_at": {
-              "format": "date-time",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
             "description": {
               "type": "string"
             },
@@ -4701,13 +4584,6 @@
         {
           "additionalProperties": false,
           "properties": {
-            "created_at": {
-              "format": "date-time",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
             "description": {
               "type": "string"
             },
@@ -4762,13 +4638,6 @@
               },
               "type": [
                 "array",
-                "null"
-              ]
-            },
-            "created_at": {
-              "format": "date-time",
-              "type": [
-                "string",
                 "null"
               ]
             },
@@ -4836,13 +4705,6 @@
               },
               "type": [
                 "array",
-                "null"
-              ]
-            },
-            "created_at": {
-              "format": "date-time",
-              "type": [
-                "string",
                 "null"
               ]
             },
@@ -4929,13 +4791,6 @@
               },
               "type": [
                 "array",
-                "null"
-              ]
-            },
-            "created_at": {
-              "format": "date-time",
-              "type": [
-                "string",
                 "null"
               ]
             },
@@ -5047,13 +4902,6 @@
                 "null"
               ]
             },
-            "created_at": {
-              "format": "date-time",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
             "description": {
               "type": "string"
             },
@@ -5134,13 +4982,6 @@
         {
           "additionalProperties": false,
           "properties": {
-            "created_at": {
-              "format": "date-time",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
             "delivery": {
               "$ref": "#/definitions/Delivery"
             },
@@ -5203,13 +5044,6 @@
         {
           "additionalProperties": false,
           "properties": {
-            "created_at": {
-              "format": "date-time",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
             "description": {
               "type": "string"
             },
@@ -5292,13 +5126,6 @@
         {
           "additionalProperties": false,
           "properties": {
-            "created_at": {
-              "format": "date-time",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
             "description": {
               "type": "string"
             },
