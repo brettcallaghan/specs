@@ -7,7 +7,7 @@ description: The plugin that supplies this framework's document
 slug: module-spec-profile
 type: module-blueprint
 status: approved
-updated_at: 2026-10-08T00:00:00Z
+updated_at: 2026-10-09T00:00:00Z
 kind: standard
 visibility: internal
 source_paths:
@@ -70,6 +70,15 @@ module's part of it is the registration alone.
   components.
 - **Source & tests:** `cli/profile`, with tests beside their subjects
   per Go convention.
+
+## Tech Stack
+
+- **Language:** Go, standard library only; composed into its host as a
+  package. [[adr-015]]
+- **Vocabulary:** Strata — the union frontmatter schema and the
+  document-type vocabulary are generated from `schemas/*.strata`, and
+  this module registers the generated schema rather than declaring
+  types of its own. [[adr-016]]
 
 ## Interface
 
@@ -375,6 +384,8 @@ under Interface come from.
   criterion identifier patterns and qualifier tag vocabulary for
   [[module-document-core]]'s checks to apply.
 - [[adr-015]] — Go, and the profile-as-package composition model.
+- [[adr-016]] — Strata is the single source for the frontmatter schema
+  and the document-type vocabulary this module registers.
 
 ## Open Questions
 

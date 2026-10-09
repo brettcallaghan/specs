@@ -23,12 +23,13 @@ version: "0.1"                       # required WHEN visibility: public
 
 <!--
 Template: Module Blueprint
-Version: 0.9
+Version: 0.10
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 
 Sections (complete each, then delete its instruction block)
   - Overview
+  - Tech Stack
   - Interface
   - Components
   - Pattern Guidance
@@ -158,6 +159,34 @@ edges to sibling components here (see the instruction block above).
   relationships to sibling components.
 - **Source & tests:** <source root(s) and test root(s); mirror in the
   source_paths / test_paths frontmatter>.
+
+## Tech Stack
+
+<!--
+The technologies this module is built from, one line each: language, frameworks, notable libraries it depends on, and how
+it is built and packaged.
+Name what a maintainer must know to read and change the code, not every
+transitive dependency — the dependency manifest (go.mod, package.json,
+pom.xml, …) is the source of truth for the full list.
+
+Each line item MAY cite the ADR that decided the choice, as a trailing
+[[adr-<nnn>]] link. Cite one WHEN such an ADR exists; an uncited line is
+valid and records a choice nobody has yet needed to defend. Do not
+author an ADR only to fill the slot. An ADR cited here SHALL also be
+listed under Key Decisions, which stays the complete index of decisions
+governing this module.
+
+Do not state dependency versions: they are volatile facts (see
+[[template-authoring-standards]] § Avoid Volatile Facts). WHEN a version
+is contractual (a minimum supported runtime, a pinned toolchain), state
+it as a requirement in EARS in Change Guidance instead.
+
+The frontmatter `technology` value is the short label diagrams draw; it
+SHALL agree with the primary entries here.
+-->
+
+- **<Category>:** <technology> — <what it is used for>. [[adr-<nnn>]]
+- **<Category>:** <technology> — <what it is used for>.
 
 ## Interface
 
