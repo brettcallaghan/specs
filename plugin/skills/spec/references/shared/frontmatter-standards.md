@@ -59,7 +59,7 @@ description: A brief summary of what this document contains
 slug: example-document
 type: example
 status: draft
-updated_at: 2026-10-09T00:00:00Z
+updated_at: 2026-07-16T14:30:00Z
 ---
 ```
 
@@ -77,7 +77,7 @@ description: <a brief summary of the document>
 slug: <used to reference the document from other documents>
 type: <document-type>
 status: <status-value>
-updated_at: 2026-10-09T00:00:00Z
+updated_at: <RFC 3339 date time in which the document was last updated>
 ---
 ```
 
