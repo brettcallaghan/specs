@@ -12,7 +12,7 @@ description: Spec-first development using this framework's specification
   system, container, component, or interface. Covers choosing the right
   document type and authoring it from the framework templates using Gherkin
   and EARS syntax and the C4 model.
-version: "1.12"
+version: "1.13"
 ---
 
 # Spec-First Development
@@ -225,7 +225,7 @@ specs.
    EARS sentence carries the requirement, and edge-case enumeration
    belongs in tests, not the spec.
 4. **Follow the template-authoring standards** for frontmatter (title,
-   description, slug, type, status, updated_at), kebab-case slugs with
+   description, slug, type, status), kebab-case slugs with
    type prefixes, 80-character lines, and `[[document-slug]]`
    cross-references. `[[slug]]` is reserved for documents in the
    project's spec set: everything under `references/` — the templates,
@@ -245,7 +245,7 @@ specs.
    metadata at once.
 5. **Treat specs as living documents.** Update them when requirements
    change, new information arrives, or errors are found — and update
-   `status` and `updated_at` when you do.
+   `status` when you do.
 
    **Before retiring or renaming a document, run `specs refs <slug>`.**
    It lists every document that cites this one, at the line of each

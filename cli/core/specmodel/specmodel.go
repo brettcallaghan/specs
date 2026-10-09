@@ -4561,13 +4561,14 @@ type DocumentFrontmatter struct {
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
-	// RFC 3339 timestamp of the last substantive modification.
+	// RFC 3339 timestamp of the document's creation. Optional.
 	//
 	// Validated against the text as written in the file rather than against
 	// a parsed value, so a bare `2026-07-29` is reported as a defect instead
 	// of being silently widened to midnight UTC by the YAML parser.
-	UpdatedAt time.Time `json:"updated_at"`
-	// RFC 3339 timestamp of the document's creation. Optional.
+	//
+	// There is deliberately no last-modified timestamp: git records when a
+	// file changed, and a hand-maintained copy goes stale.
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	// Free-form tags for filtering and search.
 	Tags *[]string `json:"tags,omitempty"`
@@ -4604,11 +4605,6 @@ func (v *DocumentFrontmatter) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
 		return prefixField("status", err)
 	}
-	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
-		return fmt.Errorf("DocumentFrontmatter: required field \"updated_at\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
-		return prefixField("updated_at", err)
-	}
 	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
@@ -4627,7 +4623,7 @@ func (v *DocumentFrontmatter) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by":
+		case "description", "slug", "title", "status", "created_at", "tags", "superseded_by":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -4719,13 +4715,14 @@ type Adr struct {
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
-	// RFC 3339 timestamp of the last substantive modification.
+	// RFC 3339 timestamp of the document's creation. Optional.
 	//
 	// Validated against the text as written in the file rather than against
 	// a parsed value, so a bare `2026-07-29` is reported as a defect instead
 	// of being silently widened to midnight UTC by the YAML parser.
-	UpdatedAt time.Time `json:"updated_at"`
-	// RFC 3339 timestamp of the document's creation. Optional.
+	//
+	// There is deliberately no last-modified timestamp: git records when a
+	// file changed, and a hand-maintained copy goes stale.
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	// Free-form tags for filtering and search.
 	Tags *[]string `json:"tags,omitempty"`
@@ -4762,11 +4759,6 @@ func (v *Adr) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
 		return prefixField("status", err)
 	}
-	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Adr: required field \"updated_at\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
-		return prefixField("updated_at", err)
-	}
 	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
@@ -4785,7 +4777,7 @@ func (v *Adr) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by":
+		case "description", "slug", "title", "status", "created_at", "tags", "superseded_by":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -4822,13 +4814,14 @@ type Frd struct {
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
-	// RFC 3339 timestamp of the last substantive modification.
+	// RFC 3339 timestamp of the document's creation. Optional.
 	//
 	// Validated against the text as written in the file rather than against
 	// a parsed value, so a bare `2026-07-29` is reported as a defect instead
 	// of being silently widened to midnight UTC by the YAML parser.
-	UpdatedAt time.Time `json:"updated_at"`
-	// RFC 3339 timestamp of the document's creation. Optional.
+	//
+	// There is deliberately no last-modified timestamp: git records when a
+	// file changed, and a hand-maintained copy goes stale.
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	// Free-form tags for filtering and search.
 	Tags *[]string `json:"tags,omitempty"`
@@ -4868,11 +4861,6 @@ func (v *Frd) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
 		return prefixField("status", err)
 	}
-	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Frd: required field \"updated_at\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
-		return prefixField("updated_at", err)
-	}
 	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
@@ -4896,7 +4884,7 @@ func (v *Frd) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "sources":
+		case "description", "slug", "title", "status", "created_at", "tags", "superseded_by", "sources":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -4933,13 +4921,14 @@ type Contract struct {
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
-	// RFC 3339 timestamp of the last substantive modification.
+	// RFC 3339 timestamp of the document's creation. Optional.
 	//
 	// Validated against the text as written in the file rather than against
 	// a parsed value, so a bare `2026-07-29` is reported as a defect instead
 	// of being silently widened to midnight UTC by the YAML parser.
-	UpdatedAt time.Time `json:"updated_at"`
-	// RFC 3339 timestamp of the document's creation. Optional.
+	//
+	// There is deliberately no last-modified timestamp: git records when a
+	// file changed, and a hand-maintained copy goes stale.
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	// Free-form tags for filtering and search.
 	Tags *[]string `json:"tags,omitempty"`
@@ -4998,11 +4987,6 @@ func (v *Contract) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
 		return prefixField("status", err)
 	}
-	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Contract: required field \"updated_at\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
-		return prefixField("updated_at", err)
-	}
 	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
@@ -5041,7 +5025,7 @@ func (v *Contract) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "provider", "visibility", "specs", "version":
+		case "description", "slug", "title", "status", "created_at", "tags", "superseded_by", "provider", "visibility", "specs", "version":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -5056,6 +5040,10 @@ func (v *Contract) UnmarshalJSON(data []byte) error {
 
 // Cross-cutting standards, policies, guidelines or constraints that apply
 // across documents or components rather than to one of them.
+//
+// Carries no version of its own. A standard that ships to other
+// repositories is vendored into a skill, and the skill's version
+// identifies the text a reader followed.
 type Standards struct {
 	// A one- to two-sentence summary of what this is and what it is
 	// responsible for.
@@ -5078,13 +5066,14 @@ type Standards struct {
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
-	// RFC 3339 timestamp of the last substantive modification.
+	// RFC 3339 timestamp of the document's creation. Optional.
 	//
 	// Validated against the text as written in the file rather than against
 	// a parsed value, so a bare `2026-07-29` is reported as a defect instead
 	// of being silently widened to midnight UTC by the YAML parser.
-	UpdatedAt time.Time `json:"updated_at"`
-	// RFC 3339 timestamp of the document's creation. Optional.
+	//
+	// There is deliberately no last-modified timestamp: git records when a
+	// file changed, and a hand-maintained copy goes stale.
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	// Free-form tags for filtering and search.
 	Tags *[]string `json:"tags,omitempty"`
@@ -5094,12 +5083,6 @@ type Standards struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Citation `json:"superseded_by,omitempty"`
-	// The document's semantic version, quoted so YAML reads it as a string.
-	//
-	// Unquoted `0.1` is a floating-point number to a YAML parser and fails
-	// validation here — which is the intended behaviour, because `0.10` and
-	// `0.1` are the same float and different versions.
-	Version string `json:"version"`
 }
 
 func (v *Standards) UnmarshalJSON(data []byte) error {
@@ -5127,11 +5110,6 @@ func (v *Standards) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
 		return prefixField("status", err)
 	}
-	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Standards: required field \"updated_at\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
-		return prefixField("updated_at", err)
-	}
 	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
@@ -5147,15 +5125,10 @@ func (v *Standards) UnmarshalJSON(data []byte) error {
 			return prefixField("superseded_by", err)
 		}
 	}
-	if m, ok := raw["version"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Standards: required field \"version\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Version); err != nil {
-		return prefixField("version", err)
-	}
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "version":
+		case "description", "slug", "title", "status", "created_at", "tags", "superseded_by":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -5204,13 +5177,14 @@ type SystemBlueprint struct {
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
-	// RFC 3339 timestamp of the last substantive modification.
+	// RFC 3339 timestamp of the document's creation. Optional.
 	//
 	// Validated against the text as written in the file rather than against
 	// a parsed value, so a bare `2026-07-29` is reported as a defect instead
 	// of being silently widened to midnight UTC by the YAML parser.
-	UpdatedAt time.Time `json:"updated_at"`
-	// RFC 3339 timestamp of the document's creation. Optional.
+	//
+	// There is deliberately no last-modified timestamp: git records when a
+	// file changed, and a hand-maintained copy goes stale.
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	// Free-form tags for filtering and search.
 	Tags *[]string `json:"tags,omitempty"`
@@ -5266,11 +5240,6 @@ func (v *SystemBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
 		return prefixField("status", err)
 	}
-	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
-		return fmt.Errorf("SystemBlueprint: required field \"updated_at\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
-		return prefixField("updated_at", err)
-	}
 	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
@@ -5304,7 +5273,7 @@ func (v *SystemBlueprint) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed":
+		case "description", "slug", "title", "status", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -5347,13 +5316,14 @@ type ContainerBlueprint struct {
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
-	// RFC 3339 timestamp of the last substantive modification.
+	// RFC 3339 timestamp of the document's creation. Optional.
 	//
 	// Validated against the text as written in the file rather than against
 	// a parsed value, so a bare `2026-07-29` is reported as a defect instead
 	// of being silently widened to midnight UTC by the YAML parser.
-	UpdatedAt time.Time `json:"updated_at"`
-	// RFC 3339 timestamp of the document's creation. Optional.
+	//
+	// There is deliberately no last-modified timestamp: git records when a
+	// file changed, and a hand-maintained copy goes stale.
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	// Free-form tags for filtering and search.
 	Tags *[]string `json:"tags,omitempty"`
@@ -5422,11 +5392,6 @@ func (v *ContainerBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
 		return prefixField("status", err)
 	}
-	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
-		return fmt.Errorf("ContainerBlueprint: required field \"updated_at\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
-		return prefixField("updated_at", err)
-	}
 	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
@@ -5470,7 +5435,7 @@ func (v *ContainerBlueprint) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "system", "modules":
+		case "description", "slug", "title", "status", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "system", "modules":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -5513,13 +5478,14 @@ type ModuleBlueprint struct {
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
-	// RFC 3339 timestamp of the last substantive modification.
+	// RFC 3339 timestamp of the document's creation. Optional.
 	//
 	// Validated against the text as written in the file rather than against
 	// a parsed value, so a bare `2026-07-29` is reported as a defect instead
 	// of being silently widened to midnight UTC by the YAML parser.
-	UpdatedAt time.Time `json:"updated_at"`
-	// RFC 3339 timestamp of the document's creation. Optional.
+	//
+	// There is deliberately no last-modified timestamp: git records when a
+	// file changed, and a hand-maintained copy goes stale.
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	// Free-form tags for filtering and search.
 	Tags *[]string `json:"tags,omitempty"`
@@ -5593,11 +5559,6 @@ func (v *ModuleBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
 		return prefixField("status", err)
 	}
-	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
-		return fmt.Errorf("ModuleBlueprint: required field \"updated_at\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
-		return prefixField("updated_at", err)
-	}
 	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
@@ -5661,7 +5622,7 @@ func (v *ModuleBlueprint) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "kind", "visibility", "modules", "source_paths", "test_paths", "version":
+		case "description", "slug", "title", "status", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "kind", "visibility", "modules", "source_paths", "test_paths", "version":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -5705,13 +5666,14 @@ type ComponentBlueprint struct {
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
-	// RFC 3339 timestamp of the last substantive modification.
+	// RFC 3339 timestamp of the document's creation. Optional.
 	//
 	// Validated against the text as written in the file rather than against
 	// a parsed value, so a bare `2026-07-29` is reported as a defect instead
 	// of being silently widened to midnight UTC by the YAML parser.
-	UpdatedAt time.Time `json:"updated_at"`
-	// RFC 3339 timestamp of the document's creation. Optional.
+	//
+	// There is deliberately no last-modified timestamp: git records when a
+	// file changed, and a hand-maintained copy goes stale.
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	// Free-form tags for filtering and search.
 	Tags *[]string `json:"tags,omitempty"`
@@ -5774,11 +5736,6 @@ func (v *ComponentBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
 		return prefixField("status", err)
 	}
-	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
-		return fmt.Errorf("ComponentBlueprint: required field \"updated_at\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
-		return prefixField("updated_at", err)
-	}
 	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
@@ -5827,7 +5784,7 @@ func (v *ComponentBlueprint) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "kind", "source_paths", "test_paths":
+		case "description", "slug", "title", "status", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "kind", "source_paths", "test_paths":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -5874,13 +5831,14 @@ type FeatureBlueprint struct {
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
-	// RFC 3339 timestamp of the last substantive modification.
+	// RFC 3339 timestamp of the document's creation. Optional.
 	//
 	// Validated against the text as written in the file rather than against
 	// a parsed value, so a bare `2026-07-29` is reported as a defect instead
 	// of being silently widened to midnight UTC by the YAML parser.
-	UpdatedAt time.Time `json:"updated_at"`
-	// RFC 3339 timestamp of the document's creation. Optional.
+	//
+	// There is deliberately no last-modified timestamp: git records when a
+	// file changed, and a hand-maintained copy goes stale.
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	// Free-form tags for filtering and search.
 	Tags *[]string `json:"tags,omitempty"`
@@ -5937,11 +5895,6 @@ func (v *FeatureBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
 		return prefixField("status", err)
 	}
-	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
-		return fmt.Errorf("FeatureBlueprint: required field \"updated_at\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
-		return prefixField("updated_at", err)
-	}
 	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
@@ -5975,7 +5928,7 @@ func (v *FeatureBlueprint) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "delivery", "plan", "frd":
+		case "description", "slug", "title", "status", "created_at", "tags", "superseded_by", "delivery", "plan", "frd":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -6019,13 +5972,14 @@ type Rfc struct {
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
-	// RFC 3339 timestamp of the last substantive modification.
+	// RFC 3339 timestamp of the document's creation. Optional.
 	//
 	// Validated against the text as written in the file rather than against
 	// a parsed value, so a bare `2026-07-29` is reported as a defect instead
 	// of being silently widened to midnight UTC by the YAML parser.
-	UpdatedAt time.Time `json:"updated_at"`
-	// RFC 3339 timestamp of the document's creation. Optional.
+	//
+	// There is deliberately no last-modified timestamp: git records when a
+	// file changed, and a hand-maintained copy goes stale.
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	// Free-form tags for filtering and search.
 	Tags *[]string `json:"tags,omitempty"`
@@ -6090,11 +6044,6 @@ func (v *Rfc) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
 		return prefixField("status", err)
 	}
-	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Rfc: required field \"updated_at\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
-		return prefixField("updated_at", err)
-	}
 	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
@@ -6153,7 +6102,7 @@ func (v *Rfc) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "origin", "skill", "skill_version", "model", "effort", "runs_observed", "severity", "plugin_version":
+		case "description", "slug", "title", "status", "created_at", "tags", "superseded_by", "origin", "skill", "skill_version", "model", "effort", "runs_observed", "severity", "plugin_version":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -6194,13 +6143,14 @@ type Guide struct {
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
-	// RFC 3339 timestamp of the last substantive modification.
+	// RFC 3339 timestamp of the document's creation. Optional.
 	//
 	// Validated against the text as written in the file rather than against
 	// a parsed value, so a bare `2026-07-29` is reported as a defect instead
 	// of being silently widened to midnight UTC by the YAML parser.
-	UpdatedAt time.Time `json:"updated_at"`
-	// RFC 3339 timestamp of the document's creation. Optional.
+	//
+	// There is deliberately no last-modified timestamp: git records when a
+	// file changed, and a hand-maintained copy goes stale.
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	// Free-form tags for filtering and search.
 	Tags *[]string `json:"tags,omitempty"`
@@ -6239,11 +6189,6 @@ func (v *Guide) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
 		return prefixField("status", err)
 	}
-	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Guide: required field \"updated_at\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
-		return prefixField("updated_at", err)
-	}
 	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
@@ -6267,7 +6212,7 @@ func (v *Guide) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "version":
+		case "description", "slug", "title", "status", "created_at", "tags", "superseded_by", "version":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key

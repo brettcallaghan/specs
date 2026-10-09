@@ -6,7 +6,6 @@ description: Builds the heading tree with section spans, attaches parsed
 slug: feature-spec-structure
 type: feature-blueprint
 status: retired
-updated_at: 2026-10-08T00:00:00Z
 delivery: staged
 frd: frd-spec-structure
 plan: specs-f6tl

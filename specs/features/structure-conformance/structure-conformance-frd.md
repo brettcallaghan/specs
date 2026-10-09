@@ -7,7 +7,6 @@ description: Checks documents against the structure recorded in the
 slug: frd-spec-structure-conformance
 type: frd
 status: draft
-updated_at: 2026-10-06T00:00:00Z
 sources:
   - "frd-spec-structure"
 ---

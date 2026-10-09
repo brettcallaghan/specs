@@ -9,27 +9,26 @@
         "description": "The document a frontmatter citation anchors into.",
         "slug": "adr-012-decision",
         "title": "ADR-012: Decision",
-        "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "status": "approved"
       },
       "headings": [
         {
           "text": "ADR-012: Decision",
           "level": 1,
           "span": {
-            "offset": 182,
+            "offset": 149,
             "length": 20,
-            "start_line": 10,
+            "start_line": 9,
             "start_column": 1,
-            "end_line": 11,
+            "end_line": 10,
             "end_column": 1
           },
           "section_span": {
-            "offset": 202,
+            "offset": 169,
             "length": 36,
-            "start_line": 11,
+            "start_line": 10,
             "start_column": 1,
-            "end_line": 15,
+            "end_line": 14,
             "end_column": 1
           },
           "record_blocks": []
@@ -38,19 +37,19 @@
           "text": "Decision",
           "level": 2,
           "span": {
-            "offset": 203,
+            "offset": 170,
             "length": 12,
-            "start_line": 12,
+            "start_line": 11,
             "start_column": 1,
-            "end_line": 13,
+            "end_line": 12,
             "end_column": 1
           },
           "section_span": {
-            "offset": 215,
+            "offset": 182,
             "length": 23,
-            "start_line": 13,
+            "start_line": 12,
             "start_column": 1,
-            "end_line": 15,
+            "end_line": 14,
             "end_column": 1
           },
           "record_blocks": []
@@ -66,7 +65,6 @@
         "slug": "frd-citing-anchor",
         "title": "FRD: Citing Anchor",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z",
         "sources": [
           "adr-012-decision#Decision"
         ]
@@ -76,19 +74,19 @@
           "text": "FRD: Citing Anchor",
           "level": 1,
           "span": {
-            "offset": 235,
+            "offset": 202,
             "length": 21,
-            "start_line": 12,
+            "start_line": 11,
             "start_column": 1,
-            "end_line": 13,
+            "end_line": 12,
             "end_column": 1
           },
           "section_span": {
-            "offset": 256,
+            "offset": 223,
             "length": 12,
-            "start_line": 13,
+            "start_line": 12,
             "start_column": 1,
-            "end_line": 15,
+            "end_line": 14,
             "end_column": 1
           },
           "record_blocks": []
@@ -109,11 +107,11 @@
         "property": "sources"
       },
       "span": {
-        "offset": 202,
+        "offset": 169,
         "length": 27,
-        "start_line": 9,
+        "start_line": 8,
         "start_column": 5,
-        "end_line": 9,
+        "end_line": 8,
         "end_column": 32
       },
       "resolution": {
@@ -126,11 +124,11 @@
           "text": "Decision",
           "anchor": "adr-012-decision#decision",
           "span": {
-            "offset": 203,
+            "offset": 170,
             "length": 12,
-            "start_line": 12,
+            "start_line": 11,
             "start_column": 1,
-            "end_line": 13,
+            "end_line": 12,
             "end_column": 1
           }
         }
@@ -138,5 +136,5 @@
     }
   ],
   "features": [],
-  "input_hash": "sha256:c256ce16f4cfab40013dbf8ac8c4c37c666590c00f864795d9df0dea10ed873b"
+  "input_hash": "sha256:4dad9ef699121a3df09fb4b5256a083129430265d767b75ebd3e4f065ab5e8eb"
 }

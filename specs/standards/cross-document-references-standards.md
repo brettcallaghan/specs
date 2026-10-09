@@ -6,8 +6,6 @@ description: How documents reference each other and the elements they
 slug: cross-document-references
 type: standards
 status: active
-updated_at: 2026-10-08T00:00:00Z
-version: "0.5"
 ---
 
 # Cross-Document Reference Standards

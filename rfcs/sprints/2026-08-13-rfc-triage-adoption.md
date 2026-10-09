@@ -5,7 +5,6 @@ description: Seven beads implementing the approved proposals from two
 slug: 2026-08-13-rfc-triage-adoption
 type: sprint-report
 status: active
-updated_at: 2026-08-13T00:00:00Z
 ---
 
 # Sprint report — 2026-08-13 RFC triage adoption

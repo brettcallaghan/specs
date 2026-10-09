@@ -5,7 +5,7 @@ references:
   - slug: adr-901-new-approach
     path: docs/adrs/adr-901-new-approach.md
     lines:
-      - line: 8
+      - line: 7
         text: adr-901-new-approach
         origin:
           kind: frontmatter-property

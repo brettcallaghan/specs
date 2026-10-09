@@ -11,7 +11,7 @@
 // and the value of that property from ever disagreeing.
 //
 // The raw text is the reason this package exists in the shape it does. A
-// YAML parser resolves `updated_at: 2026-07-29` to the string
+// YAML parser resolves `created_at: 2026-07-29` to the string
 // "2026-07-29" or to a timestamp depending on the library and the tag
 // resolution it applies, and a format check run against the resolved
 // value tests what the parser inferred rather than what the author
@@ -377,7 +377,7 @@ func (d *Document) Values() map[string]any {
 // six-character sequences \u003c, \u003e and \u0026, which is
 // semantically identical to any JSON reader but is not identical to a
 // human: a decode failure quotes the source text it saw, so a document
-// carrying the template placeholder `updated_at: <YYYY-MM-DDTHH:MM:SSZ>`
+// carrying a date-time placeholder `created_at: <YYYY-MM-DDTHH:MM:SSZ>`
 // produced the diagnostic
 // `parsing time "\u003cYYYY-MM-DDTHH:MM:SSZ\u003e"`. This value never
 // reaches an HTML document — it is decoded into a record and validated

@@ -7,7 +7,6 @@ description: Records each document's headings with their section spans
 slug: frd-spec-structure
 type: frd
 status: approved
-updated_at: 2026-10-08T18:00:00Z
 sources:
   - "frd-spec-index"
 ---

@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/gherkin-guide.md (version 1.2.0)
+     Source of truth: specs/standards/gherkin-guide.md (version unversioned)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,8 +11,6 @@ description: How to write features and acceptance criteria in Gherkin under
 slug: gherkin-guide
 type: standards
 status: active
-updated_at: 2026-08-15T00:00:00Z
-version: "1.2.0"
 ---
 
 # Gherkin Authoring Guide

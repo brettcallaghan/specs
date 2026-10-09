@@ -7,7 +7,6 @@ description: Features and acceptance criteria become tagged Gherkin, as
 slug: adr-021
 type: adr
 status: approved
-updated_at: 2026-08-14T00:00:00Z
 ---
 
 # ADR-021: Adopt Gherkin for Features and Acceptance Criteria

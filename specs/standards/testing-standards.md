@@ -6,8 +6,6 @@ description: Unit testing for components, harness-independent snapshot
 slug: testing-standards
 type: standards
 status: approved
-updated_at: 2026-08-15T00:00:00Z
-version: "0.1"
 ---
 
 # Testing Standards for the Spec CLI

@@ -9,7 +9,6 @@ description: <One-sentence summary of the container and its responsibility
 slug: container-<container-name>
 type: container-blueprint
 status: draft
-updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 system: system-<system-name>         # the system this container belongs to;
                                      # omit WHEN the container is standalone
                                      # (no documented system) — see below
@@ -21,7 +20,7 @@ modules: []                          # module slugs composed into this
 
 <!--
 Template: Container Blueprint
-Version: 1.9
+Version: 1.10
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 

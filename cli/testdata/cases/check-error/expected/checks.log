@@ -8,11 +8,11 @@ findings:
     path: docs/adrs/adr-001-missing-description.md
     span:
       offset: 3
-      length: 132
+      length: 99
       start_line: 1
       start_column: 4
-      end_line: 6
-      end_column: 33
+      end_line: 5
+      end_column: 17
     message: required property "description" is not declared
     detail:
       kind: missing-property

@@ -4,7 +4,6 @@ description: A document referencing a section of itself with the slug-less ancho
 slug: adr-402-self-citing
 type: adr
 status: approved
-updated_at: 2026-09-05T00:00:00Z
 ---
 
 # ADR-402: The Self-Citing Document

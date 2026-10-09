@@ -17,11 +17,11 @@ criteria:
     notation: gherkin
     content_hash: sha256:6c0b89a15617d8f8bb006d3bf0b26d151593cfb34b99a2ce46c29566669c02c1
     span:
-      offset: 423
+      offset: 390
       length: 176
-      start_line: 23
+      start_line: 22
       start_column: 1
-      end_line: 27
+      end_line: 26
       end_column: 29
   - id: AC-CHK-001.2
     path: docs/features/frd-checkout.md
@@ -41,9 +41,9 @@ criteria:
     notation: gherkin
     content_hash: sha256:8e942b2d2200afa08ac2db1b9aa3dd44aa5b80cb696a0ee8640ed44baa80985b
     span:
-      offset: 601
+      offset: 568
       length: 164
-      start_line: 29
+      start_line: 28
       start_column: 1
-      end_line: 33
+      end_line: 32
       end_column: 28

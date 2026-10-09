@@ -92,16 +92,14 @@ struct DocumentFrontmatter: Identified {
   status: Status
 
   """
-  RFC 3339 timestamp of the last substantive modification.
+  RFC 3339 timestamp of the document's creation. Optional.
 
   Validated against the text as written in the file rather than against
   a parsed value, so a bare `2026-07-29` is reported as a defect instead
   of being silently widened to midnight UTC by the YAML parser.
-  """
-  updated_at: DateTime
 
-  """
-  RFC 3339 timestamp of the document's creation. Optional.
+  There is deliberately no last-modified timestamp: git records when a
+  file changed, and a hand-maintained copy goes stale.
   """
   created_at: DateTime?
 
@@ -215,16 +213,12 @@ struct Contract: DocumentFrontmatter {
 """
 Cross-cutting standards, policies, guidelines or constraints that apply
 across documents or components rather than to one of them.
+
+Carries no version of its own. A standard that ships to other
+repositories is vendored into a skill, and the skill's version
+identifies the text a reader followed.
 """
 struct Standards: DocumentFrontmatter {
-  """
-  The document's semantic version, quoted so YAML reads it as a string.
-
-  Unquoted `0.1` is a floating-point number to a YAML parser and fails
-  validation here — which is the intended behaviour, because `0.10` and
-  `0.1` are the same float and different versions.
-  """
-  version: String
 }
 
 """

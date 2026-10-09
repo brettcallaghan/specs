@@ -4,7 +4,6 @@ description: Split the component blueprint into an atomic component type and a n
 slug: adr-004
 type: adr
 status: active
-updated_at: 2026-08-05T00:00:00Z
 ---
 
 # ADR-004: Introduce a Module Blueprint; Component as the Atomic Leaf

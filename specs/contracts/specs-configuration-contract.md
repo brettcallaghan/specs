@@ -5,7 +5,6 @@ description: The specs.toml format an adopting repository authors, and
 slug: contract-specs-configuration
 type: contract
 status: approved
-updated_at: 2026-10-08T00:00:00Z
 provider: container-spec-cli
 visibility: public
 specs:

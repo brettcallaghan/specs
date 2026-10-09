@@ -6,7 +6,6 @@ description: The CLI parses Gherkin from FRD blocks and standalone feature
 slug: frd-gherkin-adoption
 type: frd
 status: approved
-updated_at: 2026-10-08T18:00:00Z
 sources: []
 ---
 

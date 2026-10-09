@@ -22,7 +22,7 @@ func writeRefsFixture(t *testing.T, dir string) {
 
 	adr := func(slug, title, status, extra, body string) string {
 		return fmt.Sprintf("---\ntitle: %q\ndescription: A decision used by the refs view test.\nslug: %s\n"+
-			"type: adr\nstatus: %s\nupdated_at: 2026-08-01T00:00:00Z\n%s---\n\n# %s\n\n%s",
+			"type: adr\nstatus: %s\n%s---\n\n# %s\n\n%s",
 			title, slug, status, extra, title, body)
 	}
 
@@ -246,7 +246,7 @@ func TestTheOutboundCompactRefsAnswerFoldsCaseVariantsOfOneSlug(t *testing.T) {
 	writeRefsFixture(t, dir)
 	mustWriteFile(t, filepath.Join(dir, "docs", "adrs", "adr-902-case-variants.md"),
 		"---\ntitle: \"ADR-902: Case Variants\"\ndescription: A decision used by the refs view test.\n"+
-			"slug: adr-902-case-variants\ntype: adr\nstatus: approved\nupdated_at: 2026-08-01T00:00:00Z\n---\n\n"+
+			"slug: adr-902-case-variants\ntype: adr\nstatus: approved\n---\n\n"+
 			"# ADR-902: Case Variants\n\nBuilds on [[adr-901-new-approach]].\n\nAs does [[ADR-901-New-Approach]].\n")
 
 	code, compact, stderr := runInFixture(t, dir, []string{"refs", "adr-902-case-variants", "--outbound", "--json"})

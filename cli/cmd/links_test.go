@@ -36,7 +36,6 @@ description: A decision later retired in favor of ADR-901.
 slug: adr-900-old-approach
 type: adr
 status: retired
-updated_at: 2026-08-01T00:00:00Z
 superseded_by: adr-901-new-approach
 ---
 
@@ -48,7 +47,6 @@ description: The decision that replaces ADR-900.
 slug: adr-901-new-approach
 type: adr
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # ADR-901: New Approach
@@ -59,7 +57,6 @@ description: A live decision that still cites the retired one.
 slug: adr-800-current
 type: adr
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # ADR-800: Current Decision

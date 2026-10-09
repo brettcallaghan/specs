@@ -6,7 +6,6 @@ description: The specs plugin stays pure markdown and names the specs binary as
 slug: adr-017
 type: adr
 status: draft
-updated_at: 2026-08-05T00:00:00Z
 ---
 
 # ADR-017: The Spec CLI Is a Prerequisite of the specs Plugin, Not a Payload

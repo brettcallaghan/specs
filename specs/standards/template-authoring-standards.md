@@ -7,8 +7,6 @@ description: System invariants for authoring document templates —
 slug: template-authoring-standards
 type: standards
 status: active
-updated_at: 2026-10-09T00:00:00Z
-version: "0.14"
 ---
 
 # Template Authoring Standards
@@ -290,7 +288,6 @@ description: <Brief summary>
 slug: <document-slug>
 type: <document-type>
 status: draft
-updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 ---
 
 <!--
@@ -363,12 +360,13 @@ examples), the PATCH version MAY be incremented instead. Version
 numbers use `MAJOR.MINOR` with an optional `.PATCH`.
 
 The same rule applies to the skills (`version` in SKILL.md
-frontmatter) and to versioned standards documents (`version` in
 frontmatter): any normative change bumps the version in the same
-commit.
+commit. A standards document carries no version of its own; where it
+ships to other repositories it is vendored into a skill, and a change
+to the vendored copy bumps that skill's version.
 
 **Rationale:** Improvement RFCs (see the `rfc` template) cite the
-versions of the templates, skills, and standards a session followed.
+versions of the templates and skills a session followed.
 Triage uses those citations to answer "is this proposal already
 fixed?" mechanically; without version stamps that judgment requires
 diff archaeology. The version lives in the instruction block — not

@@ -10,7 +10,6 @@ description: Adopt a standard for declaring cross-document relationships
 slug: rfc-0012
 type: rfc
 status: retired
-updated_at: 2026-08-06T00:00:00Z
 origin: self
 skill: spec
 skill_version: "1.7"

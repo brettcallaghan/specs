@@ -6,7 +6,6 @@ description: Go meets every stated requirement, ties Rust on the measures
 slug: adr-015
 type: adr
 status: approved
-updated_at: 2026-07-31T00:00:00Z
 ---
 
 # ADR-015: Go as the Implementation Language for the Spec Corpus CLI

@@ -9,7 +9,6 @@ description: <One-sentence summary of the module and why it warrants
 slug: module-<module-name>
 type: module-blueprint
 status: draft
-updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 kind: <standard | pattern>           # see instructions below
 visibility: <public | internal>      # public = published to a registry;
                                      # internal = unpublished (in-repo)
@@ -24,7 +23,7 @@ version: "0.1"                       # required WHEN visibility: public
 
 <!--
 Template: Module Blueprint
-Version: 0.11
+Version: 0.12
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 

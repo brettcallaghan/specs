@@ -6,7 +6,7 @@
       "description": "An architecture decision record.\n\nCarries no relationship properties of its own: an ADR's connections to\nother decisions are argued in its prose, where the index reads them, and\nthe decision it supersedes is named through the envelope's\n`superseded_by`.",
       "properties": {
         "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
           "format": "date-time",
           "type": [
             "string",
@@ -49,19 +49,13 @@
         "title": {
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
-        },
-        "updated_at": {
-          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
-          "format": "date-time",
-          "type": "string"
         }
       },
       "required": [
         "description",
         "slug",
         "title",
-        "status",
-        "updated_at"
+        "status"
       ],
       "type": "object"
     },
@@ -1045,7 +1039,7 @@
           ]
         },
         "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
           "format": "date-time",
           "type": [
             "string",
@@ -1123,11 +1117,6 @@
         "title": {
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
-        },
-        "updated_at": {
-          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
-          "format": "date-time",
-          "type": "string"
         }
       },
       "required": [
@@ -1135,7 +1124,6 @@
         "slug",
         "title",
         "status",
-        "updated_at",
         "entity_name",
         "kind"
       ],
@@ -1156,7 +1144,7 @@
           ]
         },
         "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
           "format": "date-time",
           "type": [
             "string",
@@ -1231,11 +1219,6 @@
         "title": {
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
-        },
-        "updated_at": {
-          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
-          "format": "date-time",
-          "type": "string"
         }
       },
       "required": [
@@ -1243,7 +1226,6 @@
         "slug",
         "title",
         "status",
-        "updated_at",
         "entity_name"
       ],
       "type": "object"
@@ -1258,7 +1240,7 @@
       "description": "An interface specification governing an exchange across a boundary of\nindependent change.",
       "properties": {
         "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
           "format": "date-time",
           "type": [
             "string",
@@ -1316,11 +1298,6 @@
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
         },
-        "updated_at": {
-          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
-          "format": "date-time",
-          "type": "string"
-        },
         "version": {
           "description": "The contract's semantic version.\n\nRequired rather than optional: a contract without a version cannot\nstate a compatibility promise, which is the only reason to write one\ndown separately from the code that implements it.",
           "type": "string"
@@ -1335,7 +1312,6 @@
         "slug",
         "title",
         "status",
-        "updated_at",
         "provider",
         "visibility",
         "version"
@@ -1497,7 +1473,7 @@
       "description": "The metadata envelope every specification document carries.\n\nMembership in the corpus is determined by this envelope rather than by\nlocation: a markdown file whose frontmatter parses and declares a known\n`type` is a specification, wherever it sits in the tree. Each document\ntype extends this struct with its own relationship and classification\nproperties, so the envelope is validated identically everywhere and only\nthe extension differs.\n\nA relationship property here or on any extension is declared at one end\nonly; the index derives the reverse from every other document's inbound\nedges. Before adding one, check it against the Document Relationship\nStandard — a property that merely mirrors the document's own prose\ncitations does not earn its maintenance cost.",
       "properties": {
         "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
           "format": "date-time",
           "type": [
             "string",
@@ -1540,19 +1516,13 @@
         "title": {
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
-        },
-        "updated_at": {
-          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
-          "format": "date-time",
-          "type": "string"
         }
       },
       "required": [
         "description",
         "slug",
         "title",
-        "status",
-        "updated_at"
+        "status"
       ],
       "type": "object"
     },
@@ -1728,7 +1698,7 @@
       "description": "A transient change document describing how the system changes to deliver\none feature.\n\nUnlike the blueprints it modifies, a feature blueprint describes a\nchange rather than a state, so it reaches `in-progress` and then\n`retired` rather than `active`.\n\nThe documents the change creates and updates are described in the\nblueprint's own \"Documentation Changes\" prose and tracked to completion\nin its `plan`, which records done-ness natively. They are not mirrored\ninto frontmatter: a change set recorded in three places is three places\nthat must agree.",
       "properties": {
         "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
           "format": "date-time",
           "type": [
             "string",
@@ -1786,11 +1756,6 @@
         "title": {
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
-        },
-        "updated_at": {
-          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
-          "format": "date-time",
-          "type": "string"
         }
       },
       "required": [
@@ -1798,7 +1763,6 @@
         "slug",
         "title",
         "status",
-        "updated_at",
         "delivery",
         "frd"
       ],
@@ -3246,7 +3210,7 @@
       "description": "A feature requirements document: the user need, its scope boundaries and\nthe acceptance criteria that decide whether it has been met.",
       "properties": {
         "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
           "format": "date-time",
           "type": [
             "string",
@@ -3299,19 +3263,13 @@
         "title": {
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
-        },
-        "updated_at": {
-          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
-          "format": "date-time",
-          "type": "string"
         }
       },
       "required": [
         "description",
         "slug",
         "title",
-        "status",
-        "updated_at"
+        "status"
       ],
       "type": "object"
     },
@@ -3320,7 +3278,7 @@
       "description": "A how-to document explaining a technique that other document types\nassume knowledge of — EARS syntax, C4 mapping, cross-document reference\nconventions.\n\nA guide carries no relationships of its own: it explains a technique\nrather than participating in the architecture graph.",
       "properties": {
         "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
           "format": "date-time",
           "type": [
             "string",
@@ -3364,11 +3322,6 @@
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
         },
-        "updated_at": {
-          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
-          "format": "date-time",
-          "type": "string"
-        },
         "version": {
           "description": "The guide's semantic version, quoted so YAML reads it as a string.",
           "type": [
@@ -3381,8 +3334,7 @@
         "description",
         "slug",
         "title",
-        "status",
-        "updated_at"
+        "status"
       ],
       "type": "object"
     },
@@ -3544,7 +3496,7 @@
           ]
         },
         "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
           "format": "date-time",
           "type": [
             "string",
@@ -3633,11 +3585,6 @@
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
         },
-        "updated_at": {
-          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
-          "format": "date-time",
-          "type": "string"
-        },
         "version": {
           "description": "The module's semantic version.\n\nRequired in practice when `visibility` is `public`, since a published\npackage API owes its consumers a compatibility promise.",
           "type": [
@@ -3655,7 +3602,6 @@
         "slug",
         "title",
         "status",
-        "updated_at",
         "entity_name",
         "kind",
         "visibility"
@@ -4121,7 +4067,7 @@
       "description": "An improvement proposal raised against a skill by a run that exercised\nit.\n\nThe provenance properties below are the load-bearing part. A skill\nbehaves differently under different models, efforts and harnesses, so a\ndefect real under one may not reproduce under another, and triage cannot\nscope a fix without knowing which run saw it. They are recorded\nfaithfully by the retro that raises the RFC and judged by the triage\nthat receives it — the two roles are deliberately separate.",
       "properties": {
         "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
           "format": "date-time",
           "type": [
             "string",
@@ -4198,11 +4144,6 @@
         "title": {
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
-        },
-        "updated_at": {
-          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
-          "format": "date-time",
-          "type": "string"
         }
       },
       "required": [
@@ -4210,7 +4151,6 @@
         "slug",
         "title",
         "status",
-        "updated_at",
         "origin",
         "skill",
         "skill_version",
@@ -4413,10 +4353,10 @@
     },
     "Standards": {
       "additionalProperties": false,
-      "description": "Cross-cutting standards, policies, guidelines or constraints that apply\nacross documents or components rather than to one of them.",
+      "description": "Cross-cutting standards, policies, guidelines or constraints that apply\nacross documents or components rather than to one of them.\n\nCarries no version of its own. A standard that ships to other\nrepositories is vendored into a skill, and the skill's version\nidentifies the text a reader followed.",
       "properties": {
         "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
           "format": "date-time",
           "type": [
             "string",
@@ -4459,24 +4399,13 @@
         "title": {
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
-        },
-        "updated_at": {
-          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
-          "format": "date-time",
-          "type": "string"
-        },
-        "version": {
-          "description": "The document's semantic version, quoted so YAML reads it as a string.\n\nUnquoted `0.1` is a floating-point number to a YAML parser and fails\nvalidation here — which is the intended behaviour, because `0.10` and\n`0.1` are the same float and different versions.",
-          "type": "string"
         }
       },
       "required": [
         "description",
         "slug",
         "title",
-        "status",
-        "updated_at",
-        "version"
+        "status"
       ],
       "type": "object"
     },
@@ -4507,7 +4436,7 @@
           ]
         },
         "created_at": {
-          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "description": "RFC 3339 timestamp of the document's creation. Optional.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.\n\nThere is deliberately no last-modified timestamp: git records when a\nfile changed, and a hand-maintained copy goes stale.",
           "format": "date-time",
           "type": [
             "string",
@@ -4561,11 +4490,6 @@
         "title": {
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
-        },
-        "updated_at": {
-          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
-          "format": "date-time",
-          "type": "string"
         }
       },
       "required": [
@@ -4573,7 +4497,6 @@
         "slug",
         "title",
         "status",
-        "updated_at",
         "entity_name"
       ],
       "type": "object"
@@ -4624,10 +4547,6 @@
             "type": {
               "const": "adr",
               "type": "string"
-            },
-            "updated_at": {
-              "format": "date-time",
-              "type": "string"
             }
           },
           "required": [
@@ -4635,8 +4554,7 @@
             "description",
             "slug",
             "title",
-            "status",
-            "updated_at"
+            "status"
           ],
           "type": "object"
         },
@@ -4693,10 +4611,6 @@
             "type": {
               "const": "frd",
               "type": "string"
-            },
-            "updated_at": {
-              "format": "date-time",
-              "type": "string"
             }
           },
           "required": [
@@ -4704,8 +4618,7 @@
             "description",
             "slug",
             "title",
-            "status",
-            "updated_at"
+            "status"
           ],
           "type": "object"
         },
@@ -4766,10 +4679,6 @@
               "const": "contract",
               "type": "string"
             },
-            "updated_at": {
-              "format": "date-time",
-              "type": "string"
-            },
             "version": {
               "type": "string"
             },
@@ -4783,7 +4692,6 @@
             "slug",
             "title",
             "status",
-            "updated_at",
             "provider",
             "visibility",
             "version"
@@ -4834,13 +4742,6 @@
             "type": {
               "const": "standards",
               "type": "string"
-            },
-            "updated_at": {
-              "format": "date-time",
-              "type": "string"
-            },
-            "version": {
-              "type": "string"
             }
           },
           "required": [
@@ -4848,9 +4749,7 @@
             "description",
             "slug",
             "title",
-            "status",
-            "updated_at",
-            "version"
+            "status"
           ],
           "type": "object"
         },
@@ -4916,10 +4815,6 @@
             "type": {
               "const": "system-blueprint",
               "type": "string"
-            },
-            "updated_at": {
-              "format": "date-time",
-              "type": "string"
             }
           },
           "required": [
@@ -4928,7 +4823,6 @@
             "slug",
             "title",
             "status",
-            "updated_at",
             "entity_name"
           ],
           "type": "object"
@@ -5014,10 +4908,6 @@
             "type": {
               "const": "container-blueprint",
               "type": "string"
-            },
-            "updated_at": {
-              "format": "date-time",
-              "type": "string"
             }
           },
           "required": [
@@ -5026,7 +4916,6 @@
             "slug",
             "title",
             "status",
-            "updated_at",
             "entity_name"
           ],
           "type": "object"
@@ -5124,10 +5013,6 @@
               "const": "module-blueprint",
               "type": "string"
             },
-            "updated_at": {
-              "format": "date-time",
-              "type": "string"
-            },
             "version": {
               "type": [
                 "string",
@@ -5144,7 +5029,6 @@
             "slug",
             "title",
             "status",
-            "updated_at",
             "entity_name",
             "kind",
             "visibility"
@@ -5234,10 +5118,6 @@
             "type": {
               "const": "component-blueprint",
               "type": "string"
-            },
-            "updated_at": {
-              "format": "date-time",
-              "type": "string"
             }
           },
           "required": [
@@ -5246,7 +5126,6 @@
             "slug",
             "title",
             "status",
-            "updated_at",
             "entity_name",
             "kind"
           ],
@@ -5308,10 +5187,6 @@
             "type": {
               "const": "feature-blueprint",
               "type": "string"
-            },
-            "updated_at": {
-              "format": "date-time",
-              "type": "string"
             }
           },
           "required": [
@@ -5320,7 +5195,6 @@
             "slug",
             "title",
             "status",
-            "updated_at",
             "delivery",
             "frd"
           ],
@@ -5396,10 +5270,6 @@
             "type": {
               "const": "rfc",
               "type": "string"
-            },
-            "updated_at": {
-              "format": "date-time",
-              "type": "string"
             }
           },
           "required": [
@@ -5408,7 +5278,6 @@
             "slug",
             "title",
             "status",
-            "updated_at",
             "origin",
             "skill",
             "skill_version",
@@ -5465,10 +5334,6 @@
               "const": "guide",
               "type": "string"
             },
-            "updated_at": {
-              "format": "date-time",
-              "type": "string"
-            },
             "version": {
               "type": [
                 "string",
@@ -5481,8 +5346,7 @@
             "description",
             "slug",
             "title",
-            "status",
-            "updated_at"
+            "status"
           ],
           "type": "object"
         }

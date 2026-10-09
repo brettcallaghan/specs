@@ -5,7 +5,6 @@ description: <One-sentence summary of how the system changes to deliver
 slug: feature-<feature-name>
 type: feature-blueprint
 status: draft
-updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 delivery: single-pr                  # single-pr | staged. The delivery
                                      # unit grooming plans against. WHEN
                                      # staged, enumerate each stage
@@ -15,7 +14,7 @@ frd: frd-<feature-name>              # the FRD this blueprint realizes (1:1)
 
 <!--
 Template: Feature Blueprint
-Version: 1.5
+Version: 1.6
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]].
 
@@ -132,7 +131,7 @@ Slug format
   frd-checkout → feature-checkout
 
 This is a living document while in flight — update it when the design
-changes, and update `status` and `updated_at` when you do. Remove all
+changes, and update `status` when you do. Remove all
 HTML comment blocks after completing each section.
 -->
 

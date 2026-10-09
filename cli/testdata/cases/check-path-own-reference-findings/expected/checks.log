@@ -7,11 +7,11 @@ findings:
     severity: error
     path: docs/adrs/adr-201-referrer.md
     span:
-      offset: 306
+      offset: 273
       length: 14
-      start_line: 12
+      start_line: 11
       start_column: 23
-      end_line: 12
+      end_line: 11
       end_column: 37
     message: "[[adr-999-absent]] matches no document's slug"
     detail:
@@ -23,11 +23,11 @@ findings:
     severity: warning
     path: docs/adrs/adr-201-referrer.md
     span:
-      offset: 358
+      offset: 325
       length: 15
-      start_line: 13
+      start_line: 12
       start_column: 3
-      end_line: 13
+      end_line: 12
       end_column: 18
     message: "\"adr-202-retired\" is retired"
     detail:
@@ -37,11 +37,11 @@ findings:
     severity: error
     path: docs/adrs/adr-201-referrer.md
     span:
-      offset: 413
+      offset: 380
       length: 21
-      start_line: 14
+      start_line: 13
       start_column: 3
-      end_line: 14
+      end_line: 13
       end_column: 24
     message: "[[adr-200-previous-name]] matches no document's slug"
     detail:

@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/findings-capture-protocol.md (version 0.6)
+     Source of truth: specs/standards/findings-capture-protocol.md (version unversioned)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,8 +11,6 @@ description: How agents record retro evidence in-flight during
 slug: findings-capture-protocol
 type: standards
 status: active
-updated_at: 2026-08-25T00:00:00Z
-version: "0.6"
 ---
 
 # Findings Capture Protocol

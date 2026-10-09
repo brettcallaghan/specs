@@ -12,10 +12,10 @@ modules:
       - path: docs/modules/gamma.md
         span:
           offset: 0
-          length: 234
+          length: 201
           start_line: 1
           start_column: 1
-          end_line: 12
+          end_line: 11
           end_column: 4
     contracts_provided: []
     kind: standard
@@ -30,11 +30,11 @@ modules:
         declarations:
           - path: docs/modules/gamma.md
             span:
-              offset: 269
+              offset: 236
               length: 77
-              start_line: 20
+              start_line: 19
               start_column: 1
-              end_line: 25
+              end_line: 24
               end_column: 1
         contracts_provided: []
     modules: []

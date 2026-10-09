@@ -9,27 +9,26 @@
         "description": "A decision citing one document that exists and one that does not.",
         "slug": "adr-001-citing",
         "title": "ADR-001: Citing",
-        "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "status": "approved"
       },
       "headings": [
         {
           "text": "ADR-001: Citing",
           "level": 1,
           "span": {
-            "offset": 194,
+            "offset": 161,
             "length": 18,
-            "start_line": 10,
+            "start_line": 9,
             "start_column": 1,
-            "end_line": 11,
+            "end_line": 10,
             "end_column": 1
           },
           "section_span": {
-            "offset": 212,
+            "offset": 179,
             "length": 159,
-            "start_line": 11,
+            "start_line": 10,
             "start_column": 1,
-            "end_line": 16,
+            "end_line": 15,
             "end_column": 1
           },
           "record_blocks": []
@@ -44,27 +43,26 @@
         "description": "The document the other one resolves to.",
         "slug": "adr-002-cited",
         "title": "ADR-002: Cited",
-        "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "status": "approved"
       },
       "headings": [
         {
           "text": "ADR-002: Cited",
           "level": 1,
           "span": {
-            "offset": 166,
+            "offset": 133,
             "length": 17,
-            "start_line": 10,
+            "start_line": 9,
             "start_column": 1,
-            "end_line": 11,
+            "end_line": 10,
             "end_column": 1
           },
           "section_span": {
-            "offset": 183,
+            "offset": 150,
             "length": 0,
-            "start_line": 11,
+            "start_line": 10,
             "start_column": 1,
-            "end_line": 11,
+            "end_line": 10,
             "end_column": 1
           },
           "record_blocks": []
@@ -83,11 +81,11 @@
         "kind": "body"
       },
       "span": {
-        "offset": 228,
+        "offset": 195,
         "length": 13,
-        "start_line": 12,
+        "start_line": 11,
         "start_column": 16,
-        "end_line": 12,
+        "end_line": 11,
         "end_column": 29
       },
       "resolution": {
@@ -103,11 +101,11 @@
         "kind": "body"
       },
       "span": {
-        "offset": 261,
+        "offset": 228,
         "length": 14,
-        "start_line": 12,
+        "start_line": 11,
         "start_column": 49,
-        "end_line": 12,
+        "end_line": 11,
         "end_column": 63
       },
       "resolution": {
@@ -116,5 +114,5 @@
     }
   ],
   "features": [],
-  "input_hash": "sha256:6346cf57115d20a7cc8b119693d4e99876a26e68f5ec2da257e9c852d97a2298"
+  "input_hash": "sha256:65d36c6f45772f1c9102d1fcff4808b9102d18c07d232bcd005f751b69f1d1b3"
 }

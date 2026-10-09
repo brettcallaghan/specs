@@ -7,7 +7,6 @@ description: A subcommand that emits the corpus's C4 model — its systems,
 slug: frd-spec-c4
 type: frd
 status: approved
-updated_at: 2026-10-08T00:00:00Z
 sources: []
 ---
 

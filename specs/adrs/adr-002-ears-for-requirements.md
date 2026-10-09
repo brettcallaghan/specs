@@ -4,7 +4,6 @@ description: Adopt EARS (Easy Approach to Requirements Syntax) for writing clear
 slug: adr-002
 type: adr
 status: active
-updated_at: 2026-08-15T00:00:00Z
 ---
 
 # ADR-002: Use EARS Notation for Requirements

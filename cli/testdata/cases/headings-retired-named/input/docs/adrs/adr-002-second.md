@@ -5,7 +5,6 @@ slug: adr-002-second
 type: adr
 superseded_by: adr-001-first
 status: retired
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # ADR-002: Second

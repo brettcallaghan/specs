@@ -6,11 +6,11 @@ anchor_declared: true
 references:
   - path: docs/adrs/adr-402-self-citing.md
     references:
-      - line: 12
+      - line: 11
         text: "#Decision"
         resolution:
           state: unresolved
   - path: docs/adrs/adr-404-neighbour.md
     references:
-      - line: 12
+      - line: 11
         text: adr-402-self-citing#Decision

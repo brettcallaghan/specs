@@ -4,7 +4,6 @@ description: A document whose References heading appears twice, once in its comp
 slug: adr-500-roster
 type: adr
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # ADR-500: Roster

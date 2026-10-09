@@ -6,8 +6,6 @@ description: What every specs command writes to its output stream — YAML
 slug: cli-output-standards
 type: standards
 status: approved
-updated_at: 2026-10-08T18:00:00Z
-version: "0.3"
 ---
 
 # Spec CLI Output Standards

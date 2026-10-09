@@ -133,7 +133,6 @@ description: "A fixture document."
 slug: %s
 type: %s
 status: approved
-updated_at: "2026-08-05T00:00:00Z"
 %s: %s
 ---
 
@@ -142,9 +141,8 @@ updated_at: "2026-08-05T00:00:00Z"
 }
 
 // undecodableDocument renders a document whose frontmatter is valid YAML
-// but does not fit the document envelope: updated_at carries the
-// placeholder every template in plugin/skills/spec/references/ ships,
-// which is not an RFC 3339 date-time.
+// but does not fit the document envelope: created_at carries a date-time
+// placeholder, which is not an RFC 3339 date-time.
 //
 // This is the real-world shape of the defect (agent-plugins-5xo), not a
 // contrived one: the spec skill instructs an author to copy a template
@@ -157,7 +155,7 @@ description: "A fixture document."
 slug: %s
 type: %s
 status: approved
-updated_at: <YYYY-MM-DDTHH:MM:SSZ>
+created_at: <YYYY-MM-DDTHH:MM:SSZ>
 ---
 
 # %s
@@ -210,7 +208,6 @@ title: %q
 slug: %s
 type: %s
 status: approved
-updated_at: "2026-08-05T00:00:00Z"
 ---
 
 # %s
@@ -680,8 +677,8 @@ func TestCheckReportsAnUnresolvedFrontmatterReference(t *testing.T) {
 	repo := t.TempDir()
 	write(t, repo, "specs/adrs/adr-001.md", strings.Replace(
 		document("adr", "adr-001", "First"),
-		"updated_at: \"2026-08-05T00:00:00Z\"",
-		"updated_at: \"2026-08-05T00:00:00Z\"\nsuperseded_by: adr-999",
+		"status: approved\n",
+		"status: approved\nsuperseded_by: adr-999\n",
 		1))
 
 	built := buildChecked(t, repo, referenceCheckProfile("superseded_by"))
@@ -995,7 +992,6 @@ func statusDocument(docType, slug, title, status string, extra ...string) string
 		fmt.Sprintf("slug: %s", slug),
 		fmt.Sprintf("type: %s", docType),
 		fmt.Sprintf("status: %s", status),
-		`updated_at: "2026-08-05T00:00:00Z"`,
 	}
 	lines = append(lines, extra...)
 	lines = append(lines, "---", "", fmt.Sprintf("# %s", title), "")
@@ -1013,7 +1009,6 @@ description: "A fixture document."
 slug: %s
 type: %s
 status: %s
-updated_at: "2026-08-05T00:00:00Z"
 ---
 
 # %s

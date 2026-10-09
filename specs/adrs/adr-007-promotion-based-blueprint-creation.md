@@ -4,7 +4,6 @@ description: A unit starts as a record-block bullet in its container and graduat
 slug: adr-007
 type: adr
 status: active
-updated_at: 2026-08-05T00:00:00Z
 ---
 
 # ADR-007: Create Blueprints by Promotion at a Seam

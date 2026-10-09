@@ -7,7 +7,6 @@ description: Checks that keep the Mermaid C4 diagrams in architecture
 slug: frd-spec-c4-diagrams
 type: frd
 status: approved
-updated_at: 2026-10-06T17:45:00Z
 sources: []
 ---
 

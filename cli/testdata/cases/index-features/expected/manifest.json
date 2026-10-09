@@ -9,27 +9,26 @@
         "description": "A feature requirements document used by a snapshot case.",
         "slug": "frd-checkout",
         "title": "Checkout",
-        "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "status": "approved"
       },
       "headings": [
         {
           "text": "Checkout",
           "level": 1,
           "span": {
-            "offset": 176,
+            "offset": 143,
             "length": 11,
-            "start_line": 10,
+            "start_line": 9,
             "start_column": 1,
-            "end_line": 11,
+            "end_line": 10,
             "end_column": 1
           },
           "section_span": {
-            "offset": 187,
+            "offset": 154,
             "length": 583,
-            "start_line": 11,
+            "start_line": 10,
             "start_column": 1,
-            "end_line": 35,
+            "end_line": 34,
             "end_column": 1
           },
           "record_blocks": []
@@ -51,20 +50,20 @@
       "source": {
         "form": "fenced-block",
         "block_span": {
-          "offset": 305,
+          "offset": 272,
           "length": 465,
-          "start_line": 15,
+          "start_line": 14,
           "start_column": 1,
-          "end_line": 35,
+          "end_line": 34,
           "end_column": 1
         }
       },
       "span": {
-        "offset": 316,
+        "offset": 283,
         "length": 450,
-        "start_line": 16,
+        "start_line": 15,
         "start_column": 1,
-        "end_line": 34,
+        "end_line": 33,
         "end_column": 1
       },
       "criteria": [
@@ -84,11 +83,11 @@
           "notation": "gherkin",
           "content_hash": "sha256:6c0b89a15617d8f8bb006d3bf0b26d151593cfb34b99a2ce46c29566669c02c1",
           "span": {
-            "offset": 423,
+            "offset": 390,
             "length": 176,
-            "start_line": 23,
+            "start_line": 22,
             "start_column": 1,
-            "end_line": 27,
+            "end_line": 26,
             "end_column": 29
           }
         },
@@ -109,11 +108,11 @@
           "notation": "gherkin",
           "content_hash": "sha256:8e942b2d2200afa08ac2db1b9aa3dd44aa5b80cb696a0ee8640ed44baa80985b",
           "span": {
-            "offset": 601,
+            "offset": 568,
             "length": 164,
-            "start_line": 29,
+            "start_line": 28,
             "start_column": 1,
-            "end_line": 33,
+            "end_line": 32,
             "end_column": 28
           }
         }
@@ -164,5 +163,5 @@
       ]
     }
   ],
-  "input_hash": "sha256:afbed186ed0242cf7d60a85db9eb1c8e10860b58e7e9f1da38e83002e280b9e6"
+  "input_hash": "sha256:d35bd23dab4f785c230749eb9aef16c174463ae5286ad3610284565a4ea9623b"
 }

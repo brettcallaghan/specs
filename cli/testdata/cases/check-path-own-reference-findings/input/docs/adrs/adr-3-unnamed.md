@@ -4,7 +4,6 @@ description: A document with a non-reference defect, present to prove that a che
 slug: adr-3
 type: adr
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # ADR-3: An Unrelated Defective Document

@@ -4,7 +4,6 @@ description: A decision whose frontmatter fence is never closed, so no slug can 
 slug: adr-012
 type: adr
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 
 # ADR-012: Reference Conventions
 

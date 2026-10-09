@@ -6,8 +6,6 @@ description: Requirements for authoring agent skills in this repository —
 slug: skill-authoring-standards
 type: standards
 status: draft
-updated_at: 2026-08-24T00:00:00Z
-version: "0.4"
 ---
 
 # Skill Authoring Standards

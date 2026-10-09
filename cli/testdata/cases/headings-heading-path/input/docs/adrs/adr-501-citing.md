@@ -4,7 +4,6 @@ description: A document citing the roster by heading paths.
 slug: adr-501-citing
 type: adr
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # ADR-501: Citing

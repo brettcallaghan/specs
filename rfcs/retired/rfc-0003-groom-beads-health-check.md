@@ -7,7 +7,6 @@ description: The phase 6 health check reports hard graph problems on a
 slug: rfc-0003-groom-beads-health-check
 type: rfc
 status: retired
-updated_at: 2026-07-30T23:10:00Z
 origin: self
 skill: groom-beads
 skill_version: "1.0"

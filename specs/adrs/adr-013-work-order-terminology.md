@@ -4,7 +4,6 @@ description: The portable unit is a work order and its beads materialization is 
 slug: adr-013
 type: adr
 status: ready-for-review
-updated_at: 2026-07-30T00:00:00Z
 ---
 
 # ADR-013: Work Order as the Name for the Atomic Unit of Executable Work

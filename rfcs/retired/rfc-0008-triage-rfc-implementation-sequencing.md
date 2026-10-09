@@ -7,7 +7,6 @@ description: Triage's implement step is silent on colliding proposals and
 slug: rfc-0008
 type: rfc
 status: retired
-updated_at: 2026-07-31T00:00:00Z
 origin: self
 skill: triage-rfc
 skill_version: "1.0"

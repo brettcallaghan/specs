@@ -3,4 +3,4 @@ matches:
   - anchor: adr-500-roster#references
     ref: adr-500-roster#adr-500-roster#references
     level: 2
-    start_line: 26
+    start_line: 25

@@ -4,7 +4,6 @@ description: Use HTML comment blocks to embed guidance in specification template
 slug: adr-001
 type: adr
 status: active
-updated_at: 2026-08-05T00:00:00Z
 ---
 
 # ADR-001: Use HTML Comment Blocks for Template Instructions

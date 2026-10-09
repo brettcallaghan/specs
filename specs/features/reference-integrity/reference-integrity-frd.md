@@ -6,7 +6,6 @@ description: Parses cross-document references from a spec corpus, records
 slug: frd-spec-reference-integrity
 type: frd
 status: approved
-updated_at: 2026-10-08T18:00:00Z
 sources:
   - "frd-spec-index"
 ---

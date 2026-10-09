@@ -146,7 +146,7 @@ type scenario struct {
 // order.
 func frd(slug, feature string, scenarios ...scenario) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "---\ntitle: %q\ndescription: A fixture FRD.\nslug: %s\ntype: frd\nstatus: approved\nupdated_at: 2026-10-08T00:00:00Z\n---\n\n# %s\n\n```gherkin\n@%s\nFeature: %s\n\n  As a shopper\n  I want to pay\n  So that the goods are mine\n",
+	fmt.Fprintf(&b, "---\ntitle: %q\ndescription: A fixture FRD.\nslug: %s\ntype: frd\nstatus: approved\n---\n\n# %s\n\n```gherkin\n@%s\nFeature: %s\n\n  As a shopper\n  I want to pay\n  So that the goods are mine\n",
 		slug, slug, slug, feature, slug)
 	for _, sc := range scenarios {
 		fmt.Fprintf(&b, "\n  @%s\n  Scenario: Criterion %s\n    Given a basket\n    When the shopper pays\n    Then %s\n", sc.id, sc.id, sc.then)

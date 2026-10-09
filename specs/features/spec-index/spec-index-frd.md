@@ -7,7 +7,6 @@ description: A command-line tool that indexes a specification corpus into
 slug: frd-spec-index
 type: frd
 status: approved
-updated_at: 2026-10-08T18:00:00Z
 sources: []
 ---
 
@@ -65,8 +64,6 @@ deliberately, not overlooked:
   feature. This FRD does not walk a document's headings or body
   structure.
 - **Modifying documents.** This feature only reads and reports.
-  Deriving `updated_at` from git history and rewriting frontmatter is a
-  follow-on feature.
 - **Acceptance-criteria and feature-definition validation.** Out of
   scope for this feature. [[adr-021]] settles the notation and assigns
   the extraction to a follow-on feature; the technology decision this
@@ -332,7 +329,7 @@ Feature: Metadata Conformance
 
 *Examples:* a document declaring `type: adr` but omitting `description`
 produces one finding naming the missing property (AC-SPEC-003.1).
-`updated_at: 2026-07-29` fails an RFC 3339 date-time check, even though a
+`created_at: 2026-07-29` fails an RFC 3339 date-time check, even though a
 YAML parser would coerce it to a valid timestamp before any check could
 see it (AC-SPEC-003.2). Two documents both declaring `slug: adr-012` each
 produce a finding citing the other's file path (AC-SPEC-003.3).
@@ -341,8 +338,8 @@ case-insensitive filesystem cannot hold both as distinct files
 (AC-SPEC-003.4). `slug: adr-011-targeted-verification-gates` under a
 profile registering `^adr-[0-9]{3}$` for type `adr` produces a finding
 quoting both (AC-SPEC-003.5). A document copied from a template and not
-yet completed carries `updated_at: <YYYY-MM-DDTHH:MM:SSZ>`, which is not
-an RFC 3339 date-time; the check run reports it and exits non-zero,
+yet completed carries `visibility: <public | internal>`, which is not
+a visibility; the check run reports it and exits non-zero,
 rather than reporting four passed checks against a document nothing was
 able to read (AC-SPEC-003.6). `status: actve` on `adr-012` fails
 frontmatter parsing, yet `slug: adr-012` is still legible on its own

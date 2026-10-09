@@ -11,7 +11,6 @@ description: How to resolve the document-type choices the ordered questions
 slug: guide-document-type-boundaries
 type: guide
 status: active
-updated_at: 2026-08-12T00:00:00Z
 version: "0.1"
 ---
 

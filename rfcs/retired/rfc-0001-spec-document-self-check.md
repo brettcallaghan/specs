@@ -5,7 +5,6 @@ description: The authoring workflow gates feature blueprints only, so a
 slug: rfc-0001-spec-document-self-check
 type: rfc
 status: retired
-updated_at: 2026-07-30T21:20:00Z
 origin: self
 skill: spec
 skill_version: "1.3"

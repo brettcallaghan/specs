@@ -7,11 +7,11 @@ matches:
     ref: adr-001-first#adr-001-first
     level: 1
     section:
-      offset: 196
+      offset: 163
       length: 184
-      start_line: 11
+      start_line: 10
       start_column: 1
-      end_line: 27
+      end_line: 26
       end_column: 1
   - path: docs/adrs/adr-001-first.md
     text: Overview
@@ -20,11 +20,11 @@ matches:
     ref: adr-001-first#adr-001-first#overview
     level: 2
     section:
-      offset: 209
+      offset: 176
       length: 31
-      start_line: 13
+      start_line: 12
       start_column: 1
-      end_line: 16
+      end_line: 15
       end_column: 1
   - path: docs/adrs/adr-001-first.md
     text: Decision
@@ -33,11 +33,11 @@ matches:
     ref: adr-001-first#adr-001-first#decision
     level: 2
     section:
-      offset: 252
+      offset: 219
       length: 87
-      start_line: 17
+      start_line: 16
       start_column: 1
-      end_line: 24
+      end_line: 23
       end_column: 1
   - path: docs/adrs/adr-001-first.md
     text: Detail
@@ -46,11 +46,11 @@ matches:
     ref: adr-001-first#adr-001-first#decision#detail
     level: 3
     section:
-      offset: 287
+      offset: 254
       length: 52
-      start_line: 21
+      start_line: 20
       start_column: 1
-      end_line: 24
+      end_line: 23
       end_column: 1
   - path: docs/adrs/adr-001-first.md
     text: Key Decisions
@@ -59,9 +59,9 @@ matches:
     ref: adr-001-first#adr-001-first#key-decisions
     level: 2
     section:
-      offset: 356
+      offset: 323
       length: 24
-      start_line: 25
+      start_line: 24
       start_column: 1
-      end_line: 27
+      end_line: 26
       end_column: 1

@@ -6,7 +6,6 @@ description: How the Spec CLI grows a listing surface — a summary query in
 slug: feature-spec-list
 type: feature-blueprint
 status: retired
-updated_at: 2026-09-07T00:00:00Z
 delivery: single-pr
 frd: frd-spec-list
 plan: agent-plugins-kgir

@@ -7,7 +7,6 @@ description: The specs binary's command surface — what each command
 slug: spec-cli-reference
 type: guide
 status: active
-updated_at: 2026-10-08T00:00:00Z
 version: "0.3"
 ---
 
@@ -646,7 +645,7 @@ coexist with the vocabulary; only a misspelt one loses a meaning. Pass
 
 | Rule | Severity | Reports |
 |------|----------|---------|
-| `frontmatter/parse` | error | A frontmatter block that could not be read as a document envelope — most often a `status` outside the vocabulary or an `updated_at` that is not an RFC 3339 date-time — so nothing else examined the document |
+| `frontmatter/parse` | error | A frontmatter block that could not be read as a document envelope — most often a `status` or other enumerated value outside its vocabulary, or a `created_at` that is not an RFC 3339 date-time — so nothing else examined the document |
 | `frontmatter/schema` | error | A frontmatter value that violates its type's schema, naming the property, the value and the constraint — `/reviewer: "someone" does not satisfy additionalProperties` |
 | `frontmatter/missing-property` | error | A required frontmatter property the document does not declare |
 | `frontmatter/inline-comment` | warning | A YAML comment trailing a frontmatter value on the same line — `description: a # b` — located at the `#`: unquoted, the text after it is not part of the value. Quote the value to keep it |
@@ -656,7 +655,7 @@ coexist with the vocabulary; only a misspelt one loses a meaning. Pass
 
 Fix a `frontmatter/parse` first: it means nothing else could examine the
 document, so the other checks have not cleared it. The commonest cause
-by far is a template placeholder (`updated_at: <YYYY-MM-DDTHH:MM:SSZ>`)
+by far is a template placeholder (`visibility: <public | internal>`)
 left unfilled.
 
 ## Exit statuses

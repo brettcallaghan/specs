@@ -4,7 +4,6 @@ description: An FRD is a living document edited in place under a same-feature te
 slug: adr-020
 type: adr
 status: ready-for-review
-updated_at: 2026-08-13T18:25:00Z
 ---
 
 # ADR-020: FRDs Evolve in Place; Deltas Are Keyed on AC Identifiers

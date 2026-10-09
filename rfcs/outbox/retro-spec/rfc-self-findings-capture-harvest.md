@@ -7,7 +7,6 @@ description: bd list defaults to open issues and bd show --json omits
 slug: rfc-self-findings-capture-harvest
 type: rfc
 status: ready-for-review
-updated_at: 2026-08-11T00:00:00Z
 origin: agent-plugins
 skill: retro-spec
 skill_version: "1.3.0"

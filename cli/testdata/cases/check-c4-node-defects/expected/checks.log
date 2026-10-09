@@ -7,11 +7,11 @@ findings:
     severity: error
     path: docs/containers/spec-cli.md
     span:
-      offset: 553
+      offset: 520
       length: 65
-      start_line: 22
+      start_line: 21
       start_column: 5
-      end_line: 22
+      end_line: 21
       end_column: 70
     message: "node \"twin\" labelled \"Twin\" names 2 elements in scope: container-twin-one, container-twin-two"
     detail:
@@ -25,11 +25,11 @@ findings:
     severity: error
     path: docs/containers/spec-cli.md
     span:
-      offset: 623
+      offset: 590
       length: 59
-      start_line: 23
+      start_line: 22
       start_column: 5
-      end_line: 23
+      end_line: 22
       end_column: 64
     message: node "ghost" labelled "Ghost Service" names no element in scope
     detail:
@@ -41,11 +41,11 @@ findings:
     severity: error
     path: docs/containers/spec-cli.md
     span:
-      offset: 687
+      offset: 654
       length: 28
-      start_line: 24
+      start_line: 23
       start_column: 5
-      end_line: 24
+      end_line: 23
       end_column: 33
     message: "cannot read \"Frobnicate(x, \\\"Not a macro\\\")\": `Frobnicate` is not a macro this parser reads"
     detail:
@@ -56,11 +56,11 @@ findings:
     severity: unverified
     path: docs/containers/spec-cli.md
     span:
-      offset: 1010
+      offset: 977
       length: 50
-      start_line: 46
+      start_line: 45
       start_column: 1
-      end_line: 50
+      end_line: 49
       end_column: 1
     message: diagram type "C4Dynamic" is not a C4 diagram this check reads
     detail:

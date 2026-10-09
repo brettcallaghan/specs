@@ -7,7 +7,6 @@ description: How the Spec CLI assembles the corpus's C4 model — an element
 slug: feature-spec-c4
 type: feature-blueprint
 status: retired
-updated_at: 2026-10-07T12:00:00Z
 delivery: single-pr
 frd: frd-spec-c4
 plan: specs-c4model

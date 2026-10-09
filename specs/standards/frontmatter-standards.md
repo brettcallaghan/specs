@@ -6,8 +6,6 @@ description: Required, relationship, and optional frontmatter properties for
 slug: frontmatter-standards
 type: standards
 status: active
-updated_at: 2026-10-09T00:00:00Z
-version: "0.3.1"
 ---
 
 # Frontmatter Standards
@@ -15,7 +13,7 @@ version: "0.3.1"
 ## Contents
 
 - Format — YAML delimiters and placement
-- Required Properties — title, description, slug, type, status, updated_at,
+- Required Properties — title, description, slug, type, status,
   including the full `status` vocabulary and the state-vs-transient rule
 - Relationship Properties — provenance, composition, and the typed edges a
   consumer keys on
@@ -54,7 +52,6 @@ description: A brief summary of what this document contains
 slug: example-document
 type: example
 status: draft
-updated_at: 2026-07-16T14:30:00Z
 ---
 ```
 
@@ -72,7 +69,6 @@ description: <a brief summary of the document>
 slug: <used to reference the document from other documents>
 type: <document-type>
 status: <status-value>
-updated_at: <RFC 3339 date time in which the document was last updated>
 ---
 ```
 
@@ -85,7 +81,6 @@ updated_at: <RFC 3339 date time in which the document was last updated>
 | `slug` | string | Unique identifier for cross-references | Kebab-case (lowercase with hyphens) |
 | `type` | string | Document classification | Controlled vocabulary defined by document system |
 | `status` | string | Lifecycle state | One of: `draft`, `ready-for-review`, `approved`, `in-progress`, `active`, `retired` |
-| `updated_at` | datetime | Last modification timestamp | RFC 3339 format: `YYYY-MM-DDTHH:MM:SSZ` |
 
 The `description` property has two audiences, and the second one is why it
 is required. A reader who has already opened the document reads it as an
@@ -195,8 +190,10 @@ superseded_by: "<slug>"            # For superseded documents
 ---
 ```
 
-WHEN a document system uses semantic versioning, templates SHALL include a 
-`version` property.
+A document's revision history is git's: no document type carries a
+last-modified date, and `version` is reserved for a version that is a
+promise to consumers — a contract's interface version, a public
+module's package version. A document's own revision is not one.
 
 WHEN a document lifecycle includes supersession, templates SHALL include a 
 `superseded_by` property for use when a document is retired in favor of a 
@@ -204,7 +201,7 @@ replacement.
 
 | Property | Type | Purpose | Format |
 |----------|------|----------|--------|
-| `version` | string | Document version | Semantic versioning: `MAJOR.MINOR.PATCH` |
+| `version` | string | Version promised to consumers (contracts, public modules) | Semantic versioning: `MAJOR.MINOR.PATCH` |
 | `created_at` | datetime | Creation timestamp | RFC 3339 format |
 | `tags` | array | Free-form tags | Array of strings |
 | `superseded_by` | string | Superseding document | Slug of replacement document |
@@ -255,7 +252,7 @@ titled "Spec CLI" — but only `entity_name` is matched against diagram
 labels, so a title MAY be reworded without touching a diagram.
 
 The element record fields and the document-envelope fields (`title`,
-status, updated_at, and the type-specific frontmatter) SHOULD be defined
+status, and the type-specific frontmatter) SHOULD be defined
 as two schemas and merged with JSON Schema `allOf` for a standalone
 document's frontmatter: the embedded record block satisfies the
 element-record schema alone, and a promoted document's frontmatter

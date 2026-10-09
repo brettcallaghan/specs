@@ -2,4 +2,4 @@ matches:
   - anchor: adr-001-first#key-decisions
     ref: adr-001-first#adr-001-first#key-decisions
     level: 2
-    start_line: 24
+    start_line: 23

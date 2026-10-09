@@ -4,7 +4,6 @@ description: The document this case names on the command line, whose slug its ty
 slug: adr-1
 type: adr
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # ADR-1: The Checked Document

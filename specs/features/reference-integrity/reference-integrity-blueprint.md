@@ -7,7 +7,6 @@ description: Builds the References component of Document Core, adds the
 slug: feature-spec-reference-integrity
 type: feature-blueprint
 status: retired
-updated_at: 2026-08-09T00:00:00Z
 delivery: staged
 plan: agent-plugins-9kb
 frd: frd-spec-reference-integrity

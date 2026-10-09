@@ -7,11 +7,11 @@ findings:
     severity: error
     path: docs/adrs/adr-001-misspelled-key.md
     span:
-      offset: 218
+      offset: 185
       length: 9
-      start_line: 8
+      start_line: 7
       start_column: 11
-      end_line: 8
+      end_line: 7
       end_column: 20
     message: "/releated: \"[adr-002]\" does not satisfy additionalProperties"
     detail:

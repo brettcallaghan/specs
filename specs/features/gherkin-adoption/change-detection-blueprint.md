@@ -7,7 +7,6 @@ description: Replaces the persisted-index baseline of criterion --changed
 slug: feature-gherkin-change-detection
 type: feature-blueprint
 status: retired
-updated_at: 2026-10-08T12:00:00Z
 delivery: single-pr
 frd: frd-gherkin-adoption
 ---

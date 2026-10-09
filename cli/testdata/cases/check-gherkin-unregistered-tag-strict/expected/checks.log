@@ -7,11 +7,11 @@ findings:
     severity: warning
     path: docs/features/frd-checkout.md
     span:
-      offset: 601
+      offset: 568
       length: 156
-      start_line: 29
+      start_line: 28
       start_column: 1
-      end_line: 33
+      end_line: 32
       end_column: 28
     message: "tag \"@negatve\" is not in the tag vocabulary; registered qualifiers: negative, manual, level-unit, level-integration, level-e2e"
     detail:
@@ -27,11 +27,11 @@ findings:
     severity: warning
     path: docs/features/frd-checkout.md
     span:
-      offset: 601
+      offset: 568
       length: 156
-      start_line: 29
+      start_line: 28
       start_column: 1
-      end_line: 33
+      end_line: 32
       end_column: 28
     message: "tag \"@wip\" is not in the tag vocabulary; registered qualifiers: negative, manual, level-unit, level-integration, level-e2e"
     detail:

@@ -43,7 +43,7 @@ func indexProfile() corpus.Profile {
 
 // document renders a conforming document of the given type.
 //
-// updated_at is quoted so that what reaches the envelope is the text as
+// created_at is quoted so that what reaches the envelope is the text as
 // written rather than whatever a YAML parser inferred from an unquoted
 // timestamp — the same distinction AC-SPEC-003.2 turns on, held fixed
 // here so these tests are about discovery and nothing else.
@@ -54,7 +54,7 @@ description: "A fixture document."
 slug: %s
 type: %s
 status: approved
-updated_at: "2026-08-05T00:00:00Z"
+created_at: "2026-08-05T00:00:00Z"
 ---
 
 # %s
@@ -323,8 +323,8 @@ func TestIndexCarriesEachMembersFrontmatterAndRepositoryRelativePath(t *testing.
 	if string(envelope.Of(fm).Status) != "approved" {
 		t.Errorf("status = %q", envelope.Of(fm).Status)
 	}
-	if want := time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC); !envelope.Of(fm).UpdatedAt.Equal(want) {
-		t.Errorf("updated_at = %s, want %s", envelope.Of(fm).UpdatedAt, want)
+	if want := time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC); envelope.Of(fm).CreatedAt == nil || !envelope.Of(fm).CreatedAt.Equal(want) {
+		t.Errorf("created_at = %v, want %s", envelope.Of(fm).CreatedAt, want)
 	}
 }
 

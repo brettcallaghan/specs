@@ -4,7 +4,6 @@ description: Keep contracts separate from blueprints because they outlive and ma
 slug: adr-010
 type: adr
 status: active
-updated_at: 2026-08-05T00:00:00Z
 ---
 
 # ADR-010: Contracts Are Independent, Long-Lived Documents

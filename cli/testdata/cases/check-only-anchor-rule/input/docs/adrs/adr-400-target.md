@@ -4,7 +4,6 @@ description: A document declaring one heading twice and one heading nobody misse
 slug: adr-400-target
 type: adr
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # ADR-400: The Cited Document

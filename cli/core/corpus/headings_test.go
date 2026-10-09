@@ -50,7 +50,6 @@ description: "A fixture document."
 slug: adr-001
 type: adr
 status: approved
-updated_at: "2026-08-05T00:00:00Z"
 ---
 
 # Title
@@ -115,7 +114,6 @@ description: "The quoted string above never closes."
 slug: adr-002
 type: adr
 status: approved
-updated_at: "2026-08-05T00:00:00Z"
 ---
 
 # Broken but readable
@@ -148,7 +146,6 @@ description: "A fixture document."
 slug: adr-003
 type: adr
 status: approved
-updated_at: "2026-08-05T00:00:00Z"
 ---
 
 Just prose, and no heading anywhere.
@@ -181,7 +178,6 @@ description: "A fixture document."
 slug: `+name+`
 type: adr
 status: approved
-updated_at: "2026-08-05T00:00:00Z"
 ---
 
 # One

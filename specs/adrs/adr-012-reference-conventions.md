@@ -4,7 +4,6 @@ description: "References use [[slug]] wikilinks for documents, heading anchors f
 slug: adr-012
 type: adr
 status: ready-for-review
-updated_at: 2026-09-03T00:00:00Z
 ---
 
 # ADR-012: Wikilink and Anchor Reference Conventions

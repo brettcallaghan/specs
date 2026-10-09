@@ -11,11 +11,11 @@ references:
     origin:
       kind: body
     span:
-      offset: 242
+      offset: 209
       length: 29
-      start_line: 12
+      start_line: 11
       start_column: 25
-      end_line: 12
+      end_line: 11
       end_column: 54
     resolution:
       state: resolved
@@ -26,11 +26,11 @@ references:
         text: Decision
         anchor: adr-900-old-approach#decision
         span:
-          offset: 246
+          offset: 213
           length: 12
-          start_line: 13
+          start_line: 12
           start_column: 1
-          end_line: 14
+          end_line: 13
           end_column: 1
   - path: docs/adrs/adr-901-new-approach.md
     text: adr-900-old-approach#decision
@@ -39,11 +39,11 @@ references:
     origin:
       kind: body
     span:
-      offset: 215
+      offset: 182
       length: 29
-      start_line: 12
+      start_line: 11
       start_column: 15
-      end_line: 12
+      end_line: 11
       end_column: 44
     resolution:
       state: resolved
@@ -54,9 +54,9 @@ references:
         text: Decision
         anchor: adr-900-old-approach#decision
         span:
-          offset: 246
+          offset: 213
           length: 12
-          start_line: 13
+          start_line: 12
           start_column: 1
-          end_line: 14
+          end_line: 13
           end_column: 1

@@ -79,8 +79,7 @@ citations does not earn its maintenance cost.
 |----------|------|---------------|
 | title | String | Human-readable document title. Free text.<br><br>Also the document's H1, and the two are kept in sync by hand. It carries no type label — `type` says what the document is — except that an ADR's title leads with its number, `ADR-011: …`, because the number is how an ADR is cited. |
 | status | [Status](vocabulary.md#status) | The document's lifecycle state. |
-| updated_at | DateTime | RFC 3339 timestamp of the last substantive modification.<br><br>Validated against the text as written in the file rather than against a parsed value, so a bare `2026-07-29` is reported as a defect instead of being silently widened to midnight UTC by the YAML parser. |
-| created_at | DateTime? | RFC 3339 timestamp of the document's creation. Optional. |
+| created_at | DateTime? | RFC 3339 timestamp of the document's creation. Optional.<br><br>Validated against the text as written in the file rather than against a parsed value, so a bare `2026-07-29` is reported as a defect instead of being silently widened to midnight UTC by the YAML parser.<br><br>There is deliberately no last-modified timestamp: git records when a file changed, and a hand-maintained copy goes stale. |
 | tags | Array<String>? | Free-form tags for filtering and search. |
 | superseded_by | [Citation](vocabulary.md#citation)? | The document that replaces this one.<br><br>Required in practice on any document at `status: retired` — a retired document with no resolvable successor is a dead end for anyone who follows a reference to it. |
 
@@ -154,11 +153,13 @@ independent change.
 Cross-cutting standards, policies, guidelines or constraints that apply
 across documents or components rather than to one of them.
 
+Carries no version of its own. A standard that ships to other
+repositories is vendored into a skill, and the skill's version
+identifies the text a reader followed.
+
 **Inherits from:** [DocumentFrontmatter](#documentfrontmatter)
 
-| Property | Type | Documentation |
-|----------|------|---------------|
-| version | String | The document's semantic version, quoted so YAML reads it as a string.<br><br>Unquoted `0.1` is a floating-point number to a YAML parser and fails validation here — which is the intended behaviour, because `0.10` and `0.1` are the same float and different versions. |
+*No properties defined.*
 
 
 ## SystemBlueprint

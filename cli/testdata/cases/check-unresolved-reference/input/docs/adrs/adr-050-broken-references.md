@@ -4,7 +4,6 @@ description: A decision whose references exercise every kind of unresolved refer
 slug: adr-050-broken-references
 type: adr
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 superseded_by: adr-998-absent
 ---
 

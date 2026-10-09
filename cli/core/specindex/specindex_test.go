@@ -9,7 +9,6 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specindex"
@@ -145,7 +144,6 @@ func TestIndexCarriesEachMembersPathAndFrontmatter(t *testing.T) {
 			Description: "The framework-agnostic engine.",
 			Slug:        specmodel.Slug("module-document-core"),
 			Status:      specmodel.StatusApproved,
-			UpdatedAt:   time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC),
 			EntityName:  "Document Core",
 			Kind:        specmodel.BlueprintKindStandard,
 			Visibility:  specmodel.VisibilityInternal,

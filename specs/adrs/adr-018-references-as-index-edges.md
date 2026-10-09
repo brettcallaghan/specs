@@ -7,7 +7,6 @@ description: The index records every cross-document reference as a row in
 slug: adr-018
 type: adr
 status: approved
-updated_at: 2026-08-07T00:00:00Z
 ---
 
 # ADR-018: References Are an Edge Collection in the Index

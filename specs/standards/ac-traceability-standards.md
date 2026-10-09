@@ -5,8 +5,6 @@ description: How tests cite the acceptance criteria they verify, and how
 slug: ac-traceability-standards
 type: standards
 status: active
-updated_at: 2026-08-15T00:00:00Z
-version: "0.4.0"
 ---
 
 # AC Traceability Standards

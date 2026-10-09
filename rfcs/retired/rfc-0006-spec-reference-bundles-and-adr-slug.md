@@ -7,7 +7,6 @@ description: The ADR template's slug format contradicts the prefix
 slug: rfc-0006
 type: rfc
 status: retired
-updated_at: 2026-07-31T00:00:00Z
 origin: self
 skill: spec
 skill_version: "1.4"

@@ -8,7 +8,6 @@ description: How the Spec CLI learns to read the Mermaid C4 diagrams in
 slug: feature-spec-c4-diagrams
 type: feature-blueprint
 status: retired
-updated_at: 2026-10-07T05:00:00Z
 delivery: staged
 frd: frd-spec-c4-diagrams
 plan: specs-c4s2

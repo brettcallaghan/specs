@@ -8,7 +8,6 @@ description: bb-close-bead.sh exports a shared database into every bead
 slug: rfc-0016
 type: rfc
 status: retired
-updated_at: 2026-08-12T00:00:00Z
 origin: self
 skill: bead-bonanza
 skill_version: "1.3"

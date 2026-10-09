@@ -7,7 +7,6 @@ description: Adopt Strata to define document frontmatter and CLI
 slug: adr-016
 type: adr
 status: ready-for-review
-updated_at: 2026-10-07T00:00:00Z
 ---
 
 # ADR-016: Strata as the Single Source for Schemas and Generated Types

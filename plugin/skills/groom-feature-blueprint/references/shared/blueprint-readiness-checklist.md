@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/blueprint-readiness-checklist.md (version 0.7.0)
+     Source of truth: specs/standards/blueprint-readiness-checklist.md (version unversioned)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,8 +11,6 @@ description: The single definition of "ready to groom" for a feature
 slug: blueprint-readiness-checklist
 type: standards
 status: active
-updated_at: 2026-08-15T00:00:00Z
-version: "0.7.0"
 ---
 
 # Blueprint Readiness Checklist

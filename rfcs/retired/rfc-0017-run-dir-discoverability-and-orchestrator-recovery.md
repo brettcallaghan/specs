@@ -7,7 +7,6 @@ description: Persist the run directory and sprint plan where the recovery
 slug: rfc-0017
 type: rfc
 status: retired
-updated_at: 2026-08-12T00:00:00Z
 origin: self
 skill: bead-bonanza
 skill_version: "1.3"

@@ -7,7 +7,6 @@ description: The command-line binary that indexes a specification corpus
 slug: container-spec-cli
 type: container-blueprint
 status: approved
-updated_at: 2026-10-09T00:00:00Z
 contracts_consumed: []
 modules:
   - "module-document-core"

@@ -7,7 +7,6 @@ description: The Spec CLI reads a corpus at an earlier git revision by
 slug: adr-031
 type: adr
 status: approved
-updated_at: 2026-10-08T12:00:00Z
 ---
 
 # ADR-031: Base Revisions Are Read Through the git Executable

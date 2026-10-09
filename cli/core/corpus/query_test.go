@@ -73,7 +73,6 @@ description: "A fixture document."
 slug: %s
 type: %s
 status: %s
-updated_at: "2026-08-05T00:00:00Z"
 ---
 
 # %s

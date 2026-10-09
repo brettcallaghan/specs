@@ -9,7 +9,6 @@ description: <One-sentence summary of the component and why it warrants
 slug: component-<component-name>
 type: component-blueprint
 status: draft
-updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 kind: <standard | pattern>           # see instructions below
 contracts_consumed: []               # contract slugs this component depends on
 source_paths: []                     # repo-relative source roots
@@ -18,7 +17,7 @@ test_paths: []                       # repo-relative test roots
 
 <!--
 Template: Component Blueprint
-Version: 1.8
+Version: 1.9
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 

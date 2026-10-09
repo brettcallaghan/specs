@@ -5,7 +5,6 @@ description: A standards document whose title carries no colon, so the listing
 slug: naming-standards
 type: standards
 status: active
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # Naming standards

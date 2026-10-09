@@ -6,7 +6,6 @@ description: Resolves the anchor half of a wikilink — the heading it
 slug: frd-spec-anchor-references
 type: frd
 status: approved
-updated_at: 2026-10-08T18:00:00Z
 sources:
   - "frd-spec-reference-integrity"
 ---

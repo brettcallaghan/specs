@@ -78,7 +78,6 @@ func head(slug, documentType, name string, extra ...string) string {
 		"slug: " + slug,
 		"type: " + documentType,
 		"status: draft",
-		"updated_at: 2026-10-07T00:00:00Z",
 	}
 	if name != "" {
 		lines = append(lines, "entity_name: "+name)

@@ -4,7 +4,6 @@ description: The document this case names, itself free of defects, whose retirem
 slug: adr-200-checked
 type: adr
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # ADR-200: The Checked Document

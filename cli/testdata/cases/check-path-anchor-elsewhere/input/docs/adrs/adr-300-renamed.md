@@ -4,7 +4,6 @@ description: The document this case names, whose Decision heading has been renam
 slug: adr-300-renamed
 type: adr
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # ADR-300: The Renamed Heading

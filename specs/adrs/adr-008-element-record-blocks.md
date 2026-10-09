@@ -4,7 +4,6 @@ description: Un-promoted elements carry a fenced record block validated by the s
 slug: adr-008
 type: adr
 status: active
-updated_at: 2026-09-29T00:00:00Z
 ---
 
 # ADR-008: Machine-Readable Element Record Blocks with a Two-Schema Model

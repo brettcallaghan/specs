@@ -6,7 +6,6 @@ slug: rfc-<nnnn>-<short-description>  # numbered by the repo that
                                       # Numbering and location below
 type: rfc
 status: draft
-updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 origin: <project-name>                # the project whose session
                                       # produced the evidence
 skill: retro-spec                     # this template is retro-spec's;
@@ -26,7 +25,7 @@ plugin_version: "<x.y.z>"             # specs plugin version
 
 <!--
 Template: Improvement RFC
-Version: 1.3
+Version: 1.4
 Source: specs framework (produced by the retro-spec skill)
 
 Sections (complete each, then delete its instruction block)
@@ -157,9 +156,10 @@ from the Summary alone whether this RFC concerns them.
 <!--
 The facts triage needs to reproduce your context and to check whether
 a proposal is already fixed. Versions are load-bearing: cite the
-version of every skill, template, and standard the session actually
-followed (skill versions are in SKILL.md frontmatter; template and
-standard versions are in their instruction headers or frontmatter).
+version of every skill and template the session actually followed
+(skill versions are in SKILL.md frontmatter; template versions are in
+their instruction headers). A standard has no version of its own: cite
+the version of the skill that shipped it.
 -->
 
 | Field | Value |

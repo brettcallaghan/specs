@@ -9,7 +9,6 @@ description: Five evidence-backed fixes from a three-bead run — a
 slug: rfc-0004-bead-bonanza-dispatch-and-script-contracts
 type: rfc
 status: retired
-updated_at: 2026-07-30T00:00:00Z
 origin: self
 skill: bead-bonanza
 skill_version: "1.2"
