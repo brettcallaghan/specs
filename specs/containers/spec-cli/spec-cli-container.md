@@ -7,7 +7,7 @@ description: The command-line binary that indexes a specification corpus
 slug: container-spec-cli
 type: container-blueprint
 status: approved
-updated_at: 2026-10-08T18:00:00Z
+updated_at: 2026-10-09T00:00:00Z
 contracts_consumed: []
 modules:
   - "module-document-core"
@@ -40,10 +40,22 @@ API or an MCP server without extracting them from a CLI first.
   of its composed modules as a command-line interface, and own the
   process-level concerns those modules deliberately do not — argument
   parsing, configuration discovery, output format, and exit status.
-- **Technology:** Go, `cobra` for the command tree. See [[adr-015]] for
-  the language decision and its measured basis.
 - **Runtime:** a single statically linked binary, invoked per command.
   No daemon, no persistent process, no network listener.
+
+## Tech Stack
+
+The technologies the command surface itself adds. Those of the composed
+modules are listed in [[module-document-core]] and
+[[module-spec-profile]]; `cli/go.mod` is the full list.
+
+- **Language:** Go, built as one statically linked binary. [[adr-015]]
+- **Command tree:** `spf13/cobra` — commands, flags and help output.
+- **Configuration:** `BurntSushi/toml` reads `specs.toml`, which is
+  validated with `santhosh-tekuri/jsonschema` against the schema
+  generated from `schemas/config.strata`. [[adr-016]]
+- **Base revisions:** the `git` executable, required on `PATH` by
+  `criterion --changed` alone. [[adr-031]]
 
 ## Container Context
 
@@ -850,6 +862,9 @@ does not apply to a compiled binary.
 
 - [[adr-015]] — Go is the implementation language; the measured basis
   and the rejected alternatives are recorded there.
+- [[adr-016]] — Strata is the single source for generated schemas, which
+  is why `specs.toml` is validated against a schema generated from
+  `schemas/config.strata` rather than one written by hand.
 - [[adr-021]] — Gherkin is the notation for features and acceptance
   criteria. Command Surface queries the feature and criterion records
   Document Core extracts, emits a feature back out as a standalone

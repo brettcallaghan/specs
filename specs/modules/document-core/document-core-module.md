@@ -7,7 +7,7 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-10-08T18:00:00Z
+updated_at: 2026-10-09T00:00:00Z
 kind: standard
 visibility: internal
 source_paths:
@@ -55,6 +55,23 @@ document taxonomy reuse the engine.
   module's relationships to its sibling components.
 - **Source & tests:** `cli/core`, with tests beside their subjects per
   Go convention.
+
+## Tech Stack
+
+- **Language:** Go, imported by its host as a package. [[adr-015]]
+- **Frontmatter:** `goccy/go-yaml` — parses frontmatter and record
+  blocks. [[adr-015]]
+- **Schema validation:** `santhosh-tekuri/jsonschema` — validates
+  frontmatter against the schemas a profile registers. [[adr-015]]
+- **Markdown structure:** `yuin/goldmark` — headings, spans and the
+  code-region mask. [[adr-015]]
+- **Gherkin:** `cucumber/gherkin` and `cucumber/messages` — parse
+  acceptance criteria. [[adr-021]]
+- **Generated models:** Strata — the index, finding and C4 model types
+  are generated from `schemas/*.strata` rather than written as Go
+  structs. [[adr-016]]
+- **Base revisions:** the `git` executable, run by the Revisions
+  component rather than a linked git library. [[adr-031]]
 
 ## Interface
 

@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/c4-standards.md (version 0.4)
+     Source of truth: specs/standards/c4-standards.md (version 0.5)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,8 +11,8 @@ description: How to map concrete architectural elements to C4 levels, which
 slug: c4-standards
 type: standards
 status: draft
-updated_at: 2026-10-07T00:00:00Z
-version: "0.4"
+updated_at: 2026-10-09T00:00:00Z
+version: "0.5"
 ---
 
 # Mapping Architecture to C4
@@ -416,7 +416,7 @@ contract document (see visibility tiers below).
 | UI component package / design-system package | **Module** | Its module blueprint |
 | Design system's docs site / tokens API | Container(s) | Their container blueprint(s) |
 | Micro-frontend package | **Module**, composed by the shell container | Its module blueprint |
-| Module federation | Technology choice within containers | Prose in the affected container blueprints |
+| Module federation | Technology choice within containers | A Tech Stack line in the affected container blueprints |
 | IaC module (Terraform, CDK, Helm chart) | **Module** (deploy-time) | Its module blueprint |
 | Platform / control plane (IDP, operators) | System — owned by the platform team | Platform team's system blueprint; your obligations → standards docs |
 | Sidecar / mesh proxy | Deployment concern | Deployment diagrams + standards docs; **not** on container/component diagrams |
@@ -455,7 +455,8 @@ document) instead when **any** of:
   obligations belong in a cross-cutting requirements document that
   blueprints reference;
 - it is a technology choice inside a container (ORM, module federation,
-  web framework) rather than a runtime neighbor;
+  web framework) rather than a runtime neighbor — it belongs on a line
+  of that container's or module's Tech Stack section;
 - it sits below the document's abstraction level (a load balancer on a
   component diagram, a helper class anywhere).
 

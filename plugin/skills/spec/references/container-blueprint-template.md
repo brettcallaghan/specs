@@ -20,12 +20,13 @@ modules: []                          # module slugs composed into this
 
 <!--
 Template: Container Blueprint
-Version: 1.7
+Version: 1.8
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 
 Sections (complete each, then delete its instruction block)
   - Overview
+  - Tech Stack
   - Container Context
   - Components
   - Provided Contracts
@@ -96,13 +97,41 @@ active.
 
 <!--
 What this container is and does, in 1-2 paragraphs, plus the facts a
-newcomer needs: technology stack, runtime/hosting model.
+newcomer needs: its responsibility and runtime/hosting model. The
+technologies it is built from go in Tech Stack, below.
 Keep reasoning out — decisions go in Key Decisions.
 -->
 
 - **Responsibility:** <what this container does within the system>
-- **Technology:** <language, framework, notable runtime dependencies>
 - **Runtime:** <how and where it runs — platform, scaling model>
+
+## Tech Stack
+
+<!--
+The technologies this container is built from, one line each: language and runtime, frameworks, notable libraries, the data
+stores and messaging it uses, and how it is built and packaged.
+Name what a maintainer must know to read and change the code, not every
+transitive dependency — the dependency manifest (go.mod, package.json,
+pom.xml, …) is the source of truth for the full list.
+
+Each line item MAY cite the ADR that decided the choice, as a trailing
+[[adr-<nnn>]] link. Cite one WHEN such an ADR exists; an uncited line is
+valid and records a choice nobody has yet needed to defend. Do not
+author an ADR only to fill the slot. An ADR cited here SHALL also be
+listed under Key Decisions, which stays the complete index of decisions
+governing this container.
+
+Do not state dependency versions: they are volatile facts (see
+[[template-authoring-standards]] § Avoid Volatile Facts). WHEN a version
+is contractual (a minimum supported runtime, a pinned toolchain), state
+it as a requirement in EARS in Change Guidance instead.
+
+The frontmatter `technology` value is the short label diagrams draw; it
+SHALL agree with the primary entries here.
+-->
+
+- **<Category>:** <technology> — <what it is used for>. [[adr-<nnn>]]
+- **<Category>:** <technology> — <what it is used for>.
 
 ## Container Context
 
