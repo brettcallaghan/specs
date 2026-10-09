@@ -1,5 +1,5 @@
 ---
-title: "Feature Blueprint: Corpus Listing"
+title: "Corpus Listing"
 description: How the Spec CLI grows a listing surface — a summary query in
   Document Core, a thin list subcommand over it, and the authoring
   guidance that makes description a consumed interface

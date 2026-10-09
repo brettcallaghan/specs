@@ -190,9 +190,9 @@ type C4Element struct {
 	// The element's name: the canonical display name drawn on every diagram
 	// and matched against diagram labels. Free text.
 	//
-	// Distinct from a blueprint's `title`, which names the document — "Spec
-	// CLI" is the entity name of the container whose blueprint is titled
-	// "Container Blueprint: Spec CLI".
+	// Distinct from a blueprint's `title`, which names the document. The two
+	// often read the same, but only this one is matched against diagram
+	// labels, so a title may be reworded without touching a diagram.
 	EntityName string `json:"entity_name"`
 	// The language, framework, store or package type the element is built
 	// with — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.
@@ -298,9 +298,9 @@ type C4System struct {
 	// The element's name: the canonical display name drawn on every diagram
 	// and matched against diagram labels. Free text.
 	//
-	// Distinct from a blueprint's `title`, which names the document — "Spec
-	// CLI" is the entity name of the container whose blueprint is titled
-	// "Container Blueprint: Spec CLI".
+	// Distinct from a blueprint's `title`, which names the document. The two
+	// often read the same, but only this one is matched against diagram
+	// labels, so a title may be reworded without touching a diagram.
 	EntityName string `json:"entity_name"`
 	// The language, framework, store or package type the element is built
 	// with — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.
@@ -413,9 +413,9 @@ type C4Container struct {
 	// The element's name: the canonical display name drawn on every diagram
 	// and matched against diagram labels. Free text.
 	//
-	// Distinct from a blueprint's `title`, which names the document — "Spec
-	// CLI" is the entity name of the container whose blueprint is titled
-	// "Container Blueprint: Spec CLI".
+	// Distinct from a blueprint's `title`, which names the document. The two
+	// often read the same, but only this one is matched against diagram
+	// labels, so a title may be reworded without touching a diagram.
 	EntityName string `json:"entity_name"`
 	// The language, framework, store or package type the element is built
 	// with — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.
@@ -537,9 +537,9 @@ type C4Module struct {
 	// The element's name: the canonical display name drawn on every diagram
 	// and matched against diagram labels. Free text.
 	//
-	// Distinct from a blueprint's `title`, which names the document — "Spec
-	// CLI" is the entity name of the container whose blueprint is titled
-	// "Container Blueprint: Spec CLI".
+	// Distinct from a blueprint's `title`, which names the document. The two
+	// often read the same, but only this one is matched against diagram
+	// labels, so a title may be reworded without touching a diagram.
 	EntityName string `json:"entity_name"`
 	// The language, framework, store or package type the element is built
 	// with — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.
@@ -686,9 +686,9 @@ type C4Component struct {
 	// The element's name: the canonical display name drawn on every diagram
 	// and matched against diagram labels. Free text.
 	//
-	// Distinct from a blueprint's `title`, which names the document — "Spec
-	// CLI" is the entity name of the container whose blueprint is titled
-	// "Container Blueprint: Spec CLI".
+	// Distinct from a blueprint's `title`, which names the document. The two
+	// often read the same, but only this one is matched against diagram
+	// labels, so a title may be reworded without touching a diagram.
 	EntityName string `json:"entity_name"`
 	// The language, framework, store or package type the element is built
 	// with — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.
@@ -4473,9 +4473,9 @@ type C4ElementRecord struct {
 	// The element's name: the canonical display name drawn on every diagram
 	// and matched against diagram labels. Free text.
 	//
-	// Distinct from a blueprint's `title`, which names the document — "Spec
-	// CLI" is the entity name of the container whose blueprint is titled
-	// "Container Blueprint: Spec CLI".
+	// Distinct from a blueprint's `title`, which names the document. The two
+	// often read the same, but only this one is matched against diagram
+	// labels, so a title may be reworded without touching a diagram.
 	EntityName string `json:"entity_name"`
 	// The language, framework, store or package type the element is built
 	// with — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.
@@ -4554,7 +4554,10 @@ type DocumentFrontmatter struct {
 	Slug Slug `json:"slug"`
 	// Human-readable document title. Free text.
 	//
-	// Also the document's H1, and the two are kept in sync by hand.
+	// Also the document's H1, and the two are kept in sync by hand. It
+	// carries no type label — `type` says what the document is — except
+	// that an ADR's title leads with its number, `ADR-011: …`, because the
+	// number is how an ADR is cited.
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
@@ -4709,7 +4712,10 @@ type Adr struct {
 	Slug Slug `json:"slug"`
 	// Human-readable document title. Free text.
 	//
-	// Also the document's H1, and the two are kept in sync by hand.
+	// Also the document's H1, and the two are kept in sync by hand. It
+	// carries no type label — `type` says what the document is — except
+	// that an ADR's title leads with its number, `ADR-011: …`, because the
+	// number is how an ADR is cited.
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
@@ -4809,7 +4815,10 @@ type Frd struct {
 	Slug Slug `json:"slug"`
 	// Human-readable document title. Free text.
 	//
-	// Also the document's H1, and the two are kept in sync by hand.
+	// Also the document's H1, and the two are kept in sync by hand. It
+	// carries no type label — `type` says what the document is — except
+	// that an ADR's title leads with its number, `ADR-011: …`, because the
+	// number is how an ADR is cited.
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
@@ -4917,7 +4926,10 @@ type Contract struct {
 	Slug Slug `json:"slug"`
 	// Human-readable document title. Free text.
 	//
-	// Also the document's H1, and the two are kept in sync by hand.
+	// Also the document's H1, and the two are kept in sync by hand. It
+	// carries no type label — `type` says what the document is — except
+	// that an ADR's title leads with its number, `ADR-011: …`, because the
+	// number is how an ADR is cited.
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
@@ -5059,7 +5071,10 @@ type Standards struct {
 	Slug Slug `json:"slug"`
 	// Human-readable document title. Free text.
 	//
-	// Also the document's H1, and the two are kept in sync by hand.
+	// Also the document's H1, and the two are kept in sync by hand. It
+	// carries no type label — `type` says what the document is — except
+	// that an ADR's title leads with its number, `ADR-011: …`, because the
+	// number is how an ADR is cited.
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
@@ -5182,7 +5197,10 @@ type SystemBlueprint struct {
 	Slug Slug `json:"slug"`
 	// Human-readable document title. Free text.
 	//
-	// Also the document's H1, and the two are kept in sync by hand.
+	// Also the document's H1, and the two are kept in sync by hand. It
+	// carries no type label — `type` says what the document is — except
+	// that an ADR's title leads with its number, `ADR-011: …`, because the
+	// number is how an ADR is cited.
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
@@ -5205,9 +5223,9 @@ type SystemBlueprint struct {
 	// The element's name: the canonical display name drawn on every diagram
 	// and matched against diagram labels. Free text.
 	//
-	// Distinct from a blueprint's `title`, which names the document — "Spec
-	// CLI" is the entity name of the container whose blueprint is titled
-	// "Container Blueprint: Spec CLI".
+	// Distinct from a blueprint's `title`, which names the document. The two
+	// often read the same, but only this one is matched against diagram
+	// labels, so a title may be reworded without touching a diagram.
 	EntityName string `json:"entity_name"`
 	// The language, framework, store or package type the element is built
 	// with — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.
@@ -5322,7 +5340,10 @@ type ContainerBlueprint struct {
 	Slug Slug `json:"slug"`
 	// Human-readable document title. Free text.
 	//
-	// Also the document's H1, and the two are kept in sync by hand.
+	// Also the document's H1, and the two are kept in sync by hand. It
+	// carries no type label — `type` says what the document is — except
+	// that an ADR's title leads with its number, `ADR-011: …`, because the
+	// number is how an ADR is cited.
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
@@ -5345,9 +5366,9 @@ type ContainerBlueprint struct {
 	// The element's name: the canonical display name drawn on every diagram
 	// and matched against diagram labels. Free text.
 	//
-	// Distinct from a blueprint's `title`, which names the document — "Spec
-	// CLI" is the entity name of the container whose blueprint is titled
-	// "Container Blueprint: Spec CLI".
+	// Distinct from a blueprint's `title`, which names the document. The two
+	// often read the same, but only this one is matched against diagram
+	// labels, so a title may be reworded without touching a diagram.
 	EntityName string `json:"entity_name"`
 	// The language, framework, store or package type the element is built
 	// with — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.
@@ -5485,7 +5506,10 @@ type ModuleBlueprint struct {
 	Slug Slug `json:"slug"`
 	// Human-readable document title. Free text.
 	//
-	// Also the document's H1, and the two are kept in sync by hand.
+	// Also the document's H1, and the two are kept in sync by hand. It
+	// carries no type label — `type` says what the document is — except
+	// that an ADR's title leads with its number, `ADR-011: …`, because the
+	// number is how an ADR is cited.
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
@@ -5508,9 +5532,9 @@ type ModuleBlueprint struct {
 	// The element's name: the canonical display name drawn on every diagram
 	// and matched against diagram labels. Free text.
 	//
-	// Distinct from a blueprint's `title`, which names the document — "Spec
-	// CLI" is the entity name of the container whose blueprint is titled
-	// "Container Blueprint: Spec CLI".
+	// Distinct from a blueprint's `title`, which names the document. The two
+	// often read the same, but only this one is matched against diagram
+	// labels, so a title may be reworded without touching a diagram.
 	EntityName string `json:"entity_name"`
 	// The language, framework, store or package type the element is built
 	// with — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.
@@ -5674,7 +5698,10 @@ type ComponentBlueprint struct {
 	Slug Slug `json:"slug"`
 	// Human-readable document title. Free text.
 	//
-	// Also the document's H1, and the two are kept in sync by hand.
+	// Also the document's H1, and the two are kept in sync by hand. It
+	// carries no type label — `type` says what the document is — except
+	// that an ADR's title leads with its number, `ADR-011: …`, because the
+	// number is how an ADR is cited.
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
@@ -5697,9 +5724,9 @@ type ComponentBlueprint struct {
 	// The element's name: the canonical display name drawn on every diagram
 	// and matched against diagram labels. Free text.
 	//
-	// Distinct from a blueprint's `title`, which names the document — "Spec
-	// CLI" is the entity name of the container whose blueprint is titled
-	// "Container Blueprint: Spec CLI".
+	// Distinct from a blueprint's `title`, which names the document. The two
+	// often read the same, but only this one is matched against diagram
+	// labels, so a title may be reworded without touching a diagram.
 	EntityName string `json:"entity_name"`
 	// The language, framework, store or package type the element is built
 	// with — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.
@@ -5840,7 +5867,10 @@ type FeatureBlueprint struct {
 	Slug Slug `json:"slug"`
 	// Human-readable document title. Free text.
 	//
-	// Also the document's H1, and the two are kept in sync by hand.
+	// Also the document's H1, and the two are kept in sync by hand. It
+	// carries no type label — `type` says what the document is — except
+	// that an ADR's title leads with its number, `ADR-011: …`, because the
+	// number is how an ADR is cited.
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
@@ -5982,7 +6012,10 @@ type Rfc struct {
 	Slug Slug `json:"slug"`
 	// Human-readable document title. Free text.
 	//
-	// Also the document's H1, and the two are kept in sync by hand.
+	// Also the document's H1, and the two are kept in sync by hand. It
+	// carries no type label — `type` says what the document is — except
+	// that an ADR's title leads with its number, `ADR-011: …`, because the
+	// number is how an ADR is cited.
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
@@ -6154,7 +6187,10 @@ type Guide struct {
 	Slug Slug `json:"slug"`
 	// Human-readable document title. Free text.
 	//
-	// Also the document's H1, and the two are kept in sync by hand.
+	// Also the document's H1, and the two are kept in sync by hand. It
+	// carries no type label — `type` says what the document is — except
+	// that an ADR's title leads with its number, `ADR-011: …`, because the
+	// number is how an ADR is cited.
 	Title string `json:"title"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`

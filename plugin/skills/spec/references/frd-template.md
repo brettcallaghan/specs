@@ -1,5 +1,5 @@
 ---
-title: "FRD: <Feature Name>"
+title: "<Feature Name>"
 description: <One-sentence summary of the feature and the user need it serves>
 slug: frd-<feature-name>
 type: frd
@@ -10,7 +10,7 @@ sources: []                          # slugs of documents this FRD is based on
 
 <!--
 Template: Feature Requirements Document (FRD)
-Version: 1.3
+Version: 1.4
 Source: Adapted from the 8090 Requirements Writing Guide
   (https://www.8090.ai/docs/opinions/requirements-writing-guide), modified to
   use tagged Gherkin for features and acceptance criteria per [[adr-021]].
@@ -272,6 +272,19 @@ Good example:
       When the customer navigates away during processing
       Then the system completes the transaction and displays the confirmation on their next visit
 -->
+
+## Open Questions
+
+<!--
+Optional, draft only. Track unresolved questions while the document is
+a draft. WHEN a question is resolved, fold the answer into the relevant
+section (or, for an architecture decision, record it as an ADR) and
+delete it here. WHILE status is draft, the section MAY instead state the
+literal text "None." (no checkbox) — the absence of questions is
+information. Remove the whole section when the document leaves draft.
+-->
+
+- [ ] <open question> — <what is blocked on it, who decides>
 
 ## References
 

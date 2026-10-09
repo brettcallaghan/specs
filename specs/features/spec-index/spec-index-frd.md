@@ -1,5 +1,5 @@
 ---
-title: "FRD: Spec Corpus Index and Core Conformance Checks"
+title: "Spec Corpus Index and Core Conformance Checks"
 description: A command-line tool that indexes a specification corpus into
   machine-readable JSON and reports deterministic frontmatter and metadata
   conformance findings, so CI, agents, and architecture tooling read one

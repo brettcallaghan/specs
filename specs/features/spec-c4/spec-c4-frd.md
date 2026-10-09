@@ -1,5 +1,5 @@
 ---
-title: "FRD: C4 Model"
+title: "C4 Model"
 description: A subcommand that emits the corpus's C4 model — its systems,
   containers, modules and components as a tree, and the relationships
   between them as one edge list — assembled from the architecture

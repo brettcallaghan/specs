@@ -1,5 +1,5 @@
 ---
-title: "Feature Blueprint: C4 Model"
+title: "C4 Model"
 description: How the Spec CLI assembles the corpus's C4 model — an element
   tree and one edge list built in Document Core from the elements and
   drawings the diagram conformance feature resolves — and emits it from a

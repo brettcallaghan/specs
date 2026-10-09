@@ -7,8 +7,8 @@ description: System invariants for authoring document templates —
 slug: template-authoring-standards
 type: standards
 status: active
-updated_at: 2026-10-07T00:00:00Z
-version: "0.13"
+updated_at: 2026-10-09T00:00:00Z
+version: "0.14"
 ---
 
 # Template Authoring Standards
@@ -18,7 +18,7 @@ for any type of structured document.
 
 ## Contents
 
-- Document Structure — line length
+- Document Structure — line length, title and H1, section outline
 - Metadata (Frontmatter) → `frontmatter-standards.md`
 - Slug Conventions — format, identity rule, choosing the identifier, the
   prefix registry, the frontmatter index, construction
@@ -45,6 +45,53 @@ MAY exceed 80 characters IF line breaks would break functionality.
 
 **Rationale:** Ensures readability in terminals, code review tools, and 
 side-by-side diff views without horizontal scrolling.
+
+### Title and H1
+
+A document's H1 SHALL repeat its `title`. Neither SHALL carry a type
+label (`FRD:`, `Container Blueprint:`): `type` already says what the
+document is. The ADR is the one exception — its title and H1 lead with
+its number, `ADR-011: <Decision Title>`, because the number is how an
+ADR is cited.
+
+### Section Outline
+
+Templates that share a section SHALL give it the same name, the same
+position and the same instruction block, with only the type noun
+substituted ("this container", "this module"). The shared outline:
+
+| Section | Present in | Position |
+|---------|-----------|----------|
+| `## Overview` | every type except ADR (which opens with `## Context`) and standards (an introductory paragraph under the H1) | first |
+| *type-specific sections* | per template | after Overview |
+| `## Cross-Cutting Standards` | system, container, module, component blueprints | after the type-specific sections |
+| `## Change Guidance` | the same four | after Cross-Cutting Standards |
+| `## Key Decisions` | the four blueprints, contract, feature blueprint | after Change Guidance, or after the type-specific sections where there is none |
+| `## Open Questions` | the four blueprints, contract, feature blueprint, FRD | second to last |
+| `## References` | every type | last |
+
+Every `##` section SHALL carry a section-level instruction block. An
+`###` heading that is a worked example of its parent's list (a roster
+entry, an example requirement, an example delta) is covered by the
+parent's block.
+
+`## Open Questions` is **optional**: it exists while a document is a
+draft and is removed when the document leaves draft. While present, it
+MAY state the literal text "None." instead of a list. A tool that checks
+required sections SHALL NOT require it. Every other section in the
+outline above is required for the types it lists, except where a
+template marks a section conditional on a frontmatter value (Pattern
+Guidance for `kind: pattern`, Versioning and Compatibility for
+`visibility: public`).
+
+Body text SHALL NOT restate a frontmatter property's value unless the
+restatement helps a human reader — a link to the provider's blueprint
+does; repeating `visibility` or `source_paths` does not. Where both
+exist, frontmatter is authoritative.
+
+**Rationale:** A required-sections check reads one list per type from
+configuration; this outline is where that list comes from, so it is
+written down once rather than inferred from each template.
 
 ---
 
@@ -134,6 +181,7 @@ abbreviations.
 | Contract | `contract-` | `[[contract-payments-api]]` |
 | Feature Blueprint | `feature-` | `[[feature-guest-checkout]]` |
 | Work Order | `wo-` | `[[wo-1234]]` |
+| Guide | *(none — descriptive slug)* | `[[spec-cli-reference]]` |
 
 The **Standards** type is the deliberate exception: it carries no fixed
 prefix. Its documents are cross-cutting and are cited by a descriptive
@@ -141,6 +189,10 @@ name ending in an approved role noun — `-standards`, `-policy`,
 `-guidelines`, `-constraints` (e.g. `security-standards`,
 `data-retention-policy`). A forced `standards-` prefix would be both
 redundant and less descriptive.
+
+**Guides** carry no template and no prefix: a guide is free-form and
+follows only the rules every document follows (frontmatter, title and
+H1, line length, References last).
 
 ### Filenames
 
@@ -238,7 +290,7 @@ description: <Brief summary>
 slug: <document-slug>
 type: <document-type>
 status: draft
-updated_at: <RFC 3339 timestamp>
+updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 ---
 
 <!--

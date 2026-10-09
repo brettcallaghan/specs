@@ -1,8 +1,9 @@
 ---
-title: "Component Blueprint: <Component Name>"
-entity_name: <Component Name>                 # the element, as diagrams draw it
-technology: <language, framework or package type>   # OPTIONAL; shown on diagrams.
-                                     # omit WHEN not meaningful
+title: "<Component Name>"
+entity_name: <Component Name>        # the element, as diagrams draw it
+technology: <language, framework or package type>
+                                     # optional; the technology line drawn on
+                                     # diagrams — omit WHEN not meaningful
 description: <One-sentence summary of the component and why it warrants
   standalone documentation — its brief description, shown on diagrams>
 slug: component-<component-name>
@@ -17,7 +18,7 @@ test_paths: []                       # repo-relative test roots
 
 <!--
 Template: Component Blueprint
-Version: 1.7
+Version: 1.8
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 
@@ -116,9 +117,10 @@ active.
 What this component is, why it exists as a documented unit, and where it
 sits. Cover, in 1-2 paragraphs plus the facts below:
   - its role — what it does within the container that hosts it;
-  - its scope — what is in scope and, explicitly, what is out of scope;
-  - where its source and tests live — the source_paths and test_paths
-    frontmatter fields are the machine-readable copy.
+  - its scope — what is in scope and, explicitly, what is out of scope.
+
+Source and test roots go in the source_paths and test_paths frontmatter,
+not in the body.
 
 Relationships: point to the host [[container-<name>]]; do NOT restate the
 edges to sibling components here (see the instruction block above). Keep
@@ -130,8 +132,6 @@ internals light too — the code is the source of truth.
   does not do>.
 - **Composed into:** [[container-<name>]] — <how it is composed into the
   container>; see it for this component's relationships.
-- **Source & tests:** <source root(s) and test root(s); mirror in the
-  source_paths / test_paths frontmatter>.
 
 ## Interface
 
@@ -235,22 +235,37 @@ these gates.
 
 ## Key Decisions
 
+<!--
+One line per significant decision: restate the outcome and reference
+the ADR. The trade-off analysis lives in the ADR, not here.
+-->
+
 - [[adr-<nnn>]] — <one-line statement of the decision>.
 
 ## Open Questions
 
 <!--
-Draft-mode only. WHEN a question is resolved, record it as an ADR or fold
-it into the relevant section, then delete it here. WHILE status is draft,
-the section MAY instead state the literal text "None." (no checkbox) —
-the absence of questions is information. Remove the section entirely when
-status becomes active.
+Optional, draft only. Track unresolved questions while the document is
+a draft. WHEN a question is resolved, fold the answer into the relevant
+section (or, for an architecture decision, record it as an ADR) and
+delete it here. WHILE status is draft, the section MAY instead state the
+literal text "None." (no checkbox) — the absence of questions is
+information. Remove the whole section when the document leaves draft.
 -->
 
 - [ ] <open question> — <what is blocked on it, who decides>
 
 ## References
 
-- `shared/c4-standards.md` — C4 mapping rules and diagram conventions
+<!--
+Optional. What a reader needs next, one line each: [[slug]] for
+documents in this corpus, a URL for anything outside it. Remove the
+section when there is nothing to cite.
+
+C4 mapping rules and diagram conventions are in this skill's
+`shared/c4-standards.md`. Read it while authoring, but do not cite it
+here: it is not a document in your corpus.
+-->
+
 - [[container-<name>]] — the container this component is composed into
 - <Additional references>

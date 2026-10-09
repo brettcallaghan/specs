@@ -1,5 +1,5 @@
 ---
-title: "FRD: Gherkin Features and Acceptance Criteria"
+title: "Gherkin Features and Acceptance Criteria"
 description: The CLI parses Gherkin from FRD blocks and standalone feature
   files, validates it with diagnostics an agent can act on, extracts features
   and acceptance criteria into the index, and answers queries by tag

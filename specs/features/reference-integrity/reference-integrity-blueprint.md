@@ -1,5 +1,5 @@
 ---
-title: "Feature Blueprint: Spec Corpus Reference Integrity"
+title: "Spec Corpus Reference Integrity"
 description: Builds the References component of Document Core, adds the
   reference edge collection to the index, widens the profile extension
   point to carry reference-bearing properties and lifecycle facts, and

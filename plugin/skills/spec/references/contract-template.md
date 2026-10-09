@@ -1,5 +1,5 @@
 ---
-title: "Contract: <Interface Name>"
+title: "<Interface Name>"
 description: <One-sentence summary of the interface and the capability it
   vends>
 slug: contract-<interface-name>
@@ -14,7 +14,7 @@ version: "1.0"
 
 <!--
 Template: Contract
-Version: 1.4
+Version: 1.5
 Source: Architecture documentation framework. C4 mapping rules and
   contract visibility tiers are defined in `shared/c4-standards.md`.
 
@@ -103,7 +103,7 @@ topic, published view, ...) and link the provider's blueprint.
 -->
 
 <What this interface vends and for whom.> Provided by
-[[<provider-slug>]]. Visibility: <public | internal>.
+[[<provider-slug>]].
 
 ## Specification
 
@@ -180,22 +180,37 @@ to this policy.
 
 ## Key Decisions
 
+<!--
+One line per significant decision: restate the outcome and reference
+the ADR. The trade-off analysis lives in the ADR, not here.
+-->
+
 - [[adr-<nnn>]] — <one-line statement of the decision>.
 
 ## Open Questions
 
 <!--
-Draft-mode only. WHEN a question is resolved, record it as an ADR or fold
-it into the relevant section, then delete it here. WHILE status is draft,
-the section MAY instead state the literal text "None." (no checkbox) —
-the absence of questions is information. Remove the section entirely when
-status becomes active.
+Optional, draft only. Track unresolved questions while the document is
+a draft. WHEN a question is resolved, fold the answer into the relevant
+section (or, for an architecture decision, record it as an ADR) and
+delete it here. WHILE status is draft, the section MAY instead state the
+literal text "None." (no checkbox) — the absence of questions is
+information. Remove the whole section when the document leaves draft.
 -->
 
 - [ ] <open question> — <what is blocked on it, who decides>
 
 ## References
 
-- `shared/c4-standards.md` — C4 mapping rules and contract visibility tiers
+<!--
+Optional. What a reader needs next, one line each: [[slug]] for
+documents in this corpus, a URL for anything outside it. Remove the
+section when there is nothing to cite.
+
+C4 mapping rules and contract visibility tiers are in this skill's
+`shared/c4-standards.md`. Read it while authoring, but do not cite it
+here: it is not a document in your corpus.
+-->
+
 - [[<provider-slug>]] — provider's blueprint
 - <Additional references>

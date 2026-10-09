@@ -1,5 +1,5 @@
 ---
-title: "Feature Blueprint: Gherkin Features and Acceptance Criteria"
+title: "Gherkin Features and Acceptance Criteria"
 description: Builds a Gherkin component and the fenced-block half of
   Markdown Structure in Document Core, adds feature and criterion records to
   the index, widens the profile extension point to carry the tag vocabulary,

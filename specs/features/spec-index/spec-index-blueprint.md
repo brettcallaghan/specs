@@ -1,5 +1,5 @@
 ---
-title: "Feature Blueprint: Spec Corpus Index and Core Conformance Checks"
+title: "Spec Corpus Index and Core Conformance Checks"
 description: Builds the first working slice of the Spec CLI — the index
   model, the framework-agnostic engine packages, the specs
   profile, and the command surface — realizing the index, metadata

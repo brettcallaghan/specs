@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/frontmatter-standards.md (version 0.3)
+     Source of truth: specs/standards/frontmatter-standards.md (version 0.3.1)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,8 +11,8 @@ description: Required, relationship, and optional frontmatter properties for
 slug: frontmatter-standards
 type: standards
 status: active
-updated_at: 2026-09-29T00:00:00Z
-version: "0.3"
+updated_at: 2026-10-09T00:00:00Z
+version: "0.3.1"
 ---
 
 # Frontmatter Standards
@@ -59,7 +59,7 @@ description: A brief summary of what this document contains
 slug: example-document
 type: example
 status: draft
-updated_at: 2026-07-16T14:30:00Z
+updated_at: 2026-10-09T00:00:00Z
 ---
 ```
 
@@ -77,7 +77,7 @@ description: <a brief summary of the document>
 slug: <used to reference the document from other documents>
 type: <document-type>
 status: <status-value>
-updated_at: <RFC 3339 date time in which the document was last updated>
+updated_at: 2026-10-09T00:00:00Z
 ---
 ```
 
@@ -254,8 +254,10 @@ reported.
 
 Every architecture blueprint (system, container, module, component)
 SHALL declare `entity_name`: the element's name as diagrams draw it. It
-is distinct from `title`, which names the document — the container named
-"Spec CLI" is documented by "Container Blueprint: Spec CLI".
+is distinct from `title`, which names the document. The two often read
+the same — the container named "Spec CLI" is documented by a blueprint
+titled "Spec CLI" — but only `entity_name` is matched against diagram
+labels, so a title MAY be reworded without touching a diagram.
 
 The element record fields and the document-envelope fields (`title`,
 status, updated_at, and the type-specific frontmatter) SHOULD be defined

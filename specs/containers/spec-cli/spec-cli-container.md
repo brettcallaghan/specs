@@ -1,5 +1,5 @@
 ---
-title: "Container Blueprint: Spec CLI"
+title: "Spec CLI"
 entity_name: Spec CLI
 description: The command-line binary that indexes a specification corpus
   and reports conformance findings, wrapping the Document Core and

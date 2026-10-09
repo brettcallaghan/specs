@@ -1,5 +1,5 @@
 ---
-title: "Feature Blueprint: <Feature Name>"
+title: "<Feature Name>"
 description: <One-sentence summary of how the system changes to deliver
   this feature>
 slug: feature-<feature-name>
@@ -15,7 +15,7 @@ frd: frd-<feature-name>              # the FRD this blueprint realizes (1:1)
 
 <!--
 Template: Feature Blueprint
-Version: 1.4
+Version: 1.5
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]].
 
@@ -471,6 +471,14 @@ state "None." explicitly — the absence of questions is information.
 
 ## References
 
-- [[c4-standards]] — the system, container, module, and component definitions
-  that component references and delta blocks are written against
+<!--
+Optional. What a reader needs next, one line each: [[slug]] for
+documents in this corpus, a URL for anything outside it.
+
+The system, container, module and component definitions that delta
+blocks are written against are in this skill's `shared/c4-standards.md`.
+Read it while authoring, but do not cite it here: it is not a document
+in your corpus.
+-->
+
 - <Additional references>

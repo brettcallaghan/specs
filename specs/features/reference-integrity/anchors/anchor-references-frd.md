@@ -1,5 +1,5 @@
 ---
-title: "FRD: Spec Corpus Anchor References"
+title: "Spec Corpus Anchor References"
 description: Resolves the anchor half of a wikilink — the heading it
   names — so a link into a section of a document is checked as
   rigorously as a link to the document

@@ -1,5 +1,5 @@
 ---
-title: "FRD: Spec Corpus Structure Extraction"
+title: "Spec Corpus Structure Extraction"
 description: Records each document's headings with their section spans
   and its parsed record blocks in the shared index, and answers a
   heading query, so section-level tooling reads structure rather than

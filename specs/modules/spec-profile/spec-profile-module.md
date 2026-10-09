@@ -1,5 +1,5 @@
 ---
-title: "Module Blueprint: Specs Profile"
+title: "Specs Profile"
 entity_name: Specs Profile
 description: The plugin that supplies this framework's document
   vocabulary — one union schema over every document type, plus each

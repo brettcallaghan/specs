@@ -1,5 +1,5 @@
 ---
-title: "Feature Blueprint: Spec Corpus Structure Extraction"
+title: "Spec Corpus Structure Extraction"
 description: Builds the heading tree with section spans, attaches parsed
   record blocks to the headings that contain them, carries both in the
   index, and answers a heading query

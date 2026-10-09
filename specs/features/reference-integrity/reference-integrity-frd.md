@@ -1,5 +1,5 @@
 ---
-title: "FRD: Spec Corpus Reference Integrity"
+title: "Spec Corpus Reference Integrity"
 description: Parses cross-document references from a spec corpus, records
   them in the shared index, and reports links that resolve to nothing, so
   a reference that silently broke is caught before a reader follows it
