@@ -1,8 +1,9 @@
 ---
-title: "Module Blueprint: <Module Name>"
-entity_name: <Module Name>                 # the element, as diagrams draw it
-technology: <language, framework or package type>   # OPTIONAL; shown on diagrams.
-                                     # omit WHEN not meaningful
+title: "<Module Name>"
+entity_name: <Module Name>           # the element, as diagrams draw it
+technology: <language, framework or package type>
+                                     # optional; the technology line drawn on
+                                     # diagrams — omit WHEN not meaningful
 description: <One-sentence summary of the module and why it warrants
   standalone documentation — its brief description, shown on diagrams>
 slug: module-<module-name>
@@ -23,7 +24,7 @@ version: "0.1"                       # required WHEN visibility: public
 
 <!--
 Template: Module Blueprint
-Version: 0.10
+Version: 0.11
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 
@@ -143,9 +144,10 @@ vended. Cover, in 1-2 paragraphs plus the facts below:
   - its scope — what is in scope and, explicitly, what is out of scope;
   - how it is vended/composed — package registry (npm/PyPI/Maven),
     monorepo build target, plugin loaded at runtime, IaC module
-    registry, module-federation remote, generated code;
-  - where its source and tests live — the source_paths and test_paths
-    frontmatter fields are the machine-readable copy.
+    registry, module-federation remote, generated code.
+
+Source and test roots go in the source_paths and test_paths frontmatter,
+not in the body.
 
 Relationships: point to the host [[container-<name>]]; do NOT restate the
 edges to sibling components here (see the instruction block above).
@@ -157,8 +159,6 @@ edges to sibling components here (see the instruction block above).
 - **Composed into:** [[container-<name>]] (one per host container) — <how
   it is vended and composed>; see those blueprints for this module's
   relationships to sibling components.
-- **Source & tests:** <source root(s) and test root(s); mirror in the
-  source_paths / test_paths frontmatter>.
 
 ## Tech Stack
 
@@ -276,7 +276,8 @@ C4Component
 entity_name: <ComponentA>
 slug: component-<component-a>
 description: <one-line brief description>
-technology: <technology / kind>        # optional
+technology: <technology / kind>      # optional; the technology line drawn on
+                                     # diagrams — omit WHEN not meaningful
 ```
 
 (<kind>) — <brief description, as it appears on diagrams>. <Detailed
@@ -401,22 +402,37 @@ these gates.
 
 ## Key Decisions
 
+<!--
+One line per significant decision: restate the outcome and reference
+the ADR. The trade-off analysis lives in the ADR, not here.
+-->
+
 - [[adr-<nnn>]] — <one-line statement of the decision>.
 
 ## Open Questions
 
 <!--
-Draft-mode only. WHEN a question is resolved, record it as an ADR or fold
-it into the relevant section, then delete it here. WHILE status is draft,
-the section MAY instead state the literal text "None." (no checkbox) —
-the absence of questions is information. Remove the section entirely when
-status becomes active.
+Optional, draft only. Track unresolved questions while the document is
+a draft. WHEN a question is resolved, fold the answer into the relevant
+section (or, for an architecture decision, record it as an ADR) and
+delete it here. WHILE status is draft, the section MAY instead state the
+literal text "None." (no checkbox) — the absence of questions is
+information. Remove the whole section when the document leaves draft.
 -->
 
 - [ ] <open question> — <what is blocked on it, who decides>
 
 ## References
 
-- `shared/c4-standards.md` — C4 mapping rules and diagram conventions
+<!--
+Optional. What a reader needs next, one line each: [[slug]] for
+documents in this corpus, a URL for anything outside it. Remove the
+section when there is nothing to cite.
+
+C4 mapping rules and diagram conventions are in this skill's
+`shared/c4-standards.md`. Read it while authoring, but do not cite it
+here: it is not a document in your corpus.
+-->
+
 - [[container-<name>]] — the container(s) this module is composed into
 - <Additional references>

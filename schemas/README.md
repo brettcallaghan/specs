@@ -43,8 +43,8 @@ envelope defined as two schemas and merged with JSON Schema `allOf`, so
 that one schema validates a child element whether it is embedded in a
 parent's record block or promoted to a document of its own. An element's
 name and its document's title are separate properties because they are
-separate facts — "Spec CLI" is documented by "Container Blueprint: Spec
-CLI". Strata's `struct Child: Parent` emits precisely that `allOf` +
+separate facts, even where they read the same — only the name is
+matched against diagram labels. Strata's `struct Child: Parent` emits precisely that `allOf` +
 `$ref` shape, so the requirement is met by the language rather than by
 hand-assembly.
 

@@ -52,7 +52,7 @@ and envelope; the block may stay where it is.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| entity_name | String | The element's name: the canonical display name drawn on every diagram and matched against diagram labels. Free text.<br><br>Distinct from a blueprint's `title`, which names the document — "Spec CLI" is the entity name of the container whose blueprint is titled "Container Blueprint: Spec CLI". |
+| entity_name | String | The element's name: the canonical display name drawn on every diagram and matched against diagram labels. Free text.<br><br>Distinct from a blueprint's `title`, which names the document. The two often read the same, but only this one is matched against diagram labels, so a title may be reworded without touching a diagram. |
 | technology | String? | The language, framework, store or package type the element is built with — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.<br><br>The technology line drawn on diagrams. |
 
 
@@ -77,7 +77,7 @@ citations does not earn its maintenance cost.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| title | String | Human-readable document title. Free text.<br><br>Also the document's H1, and the two are kept in sync by hand. |
+| title | String | Human-readable document title. Free text.<br><br>Also the document's H1, and the two are kept in sync by hand. It carries no type label — `type` says what the document is — except that an ADR's title leads with its number, `ADR-011: …`, because the number is how an ADR is cited. |
 | status | [Status](vocabulary.md#status) | The document's lifecycle state. |
 | updated_at | DateTime | RFC 3339 timestamp of the last substantive modification.<br><br>Validated against the text as written in the file rather than against a parsed value, so a bare `2026-07-29` is reported as a defect instead of being silently widened to midnight UTC by the YAML parser. |
 | created_at | DateTime? | RFC 3339 timestamp of the document's creation. Optional. |

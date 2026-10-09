@@ -1,5 +1,5 @@
 ---
-title: "FRD: Corpus Listing"
+title: "Corpus Listing"
 description: A subcommand that summarizes every corpus member from its
   frontmatter, so an agent can decide which specifications to read without
   opening them or the index

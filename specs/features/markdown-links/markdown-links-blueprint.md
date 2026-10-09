@@ -1,5 +1,5 @@
 ---
-title: "Feature Blueprint: Spec Corpus Markdown Links"
+title: "Spec Corpus Markdown Links"
 description: Adds a Markdown Links component to Document Core that
   substitutes resolved paths for wikilinks, two reachability finding
   variants, and a links subcommand that reads an optional YAML link map

@@ -1,5 +1,5 @@
 ---
-title: "Feature Blueprint: Spec Corpus Anchor References"
+title: "Spec Corpus Anchor References"
 description: Resolves a reference's anchor against its target's headings
   — one heading-identifier derivation shared with the link rewriter, two
   checks, and an anchor-qualified refs query

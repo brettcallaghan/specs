@@ -1,5 +1,5 @@
 ---
-title: "FRD: C4 Diagram Conformance"
+title: "C4 Diagram Conformance"
 description: Checks that keep the Mermaid C4 diagrams in architecture
   blueprints parseable and consistent with the elements the corpus
   declares — every node resolving to one element, every arrow a single

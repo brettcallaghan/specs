@@ -1,5 +1,5 @@
 ---
-title: "Contract: Specs Configuration"
+title: "Specs Configuration"
 description: The specs.toml format an adopting repository authors, and
   the in-process registration surface a profile uses to extend it
 slug: contract-specs-configuration

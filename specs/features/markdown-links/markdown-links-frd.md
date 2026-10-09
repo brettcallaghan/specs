@@ -1,5 +1,5 @@
 ---
-title: "FRD: Spec Corpus Markdown Links"
+title: "Spec Corpus Markdown Links"
 description: The Spec CLI rewrites corpus wikilinks into markdown links,
   targeting them from a caller-supplied map or, given none, from the
   corpus's own layout, so a copy read without an index still resolves

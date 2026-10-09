@@ -1,5 +1,5 @@
 ---
-title: "Feature Blueprint: Criterion Change Detection Against Git"
+title: "Criterion Change Detection Against Git"
 description: Replaces the persisted-index baseline of criterion --changed
   with the corpus at a git revision, adding a Revisions component to
   Document Core and --since, --exit-code and a structured answer to the

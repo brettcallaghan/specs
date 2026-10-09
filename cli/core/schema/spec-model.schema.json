@@ -47,7 +47,7 @@
           ]
         },
         "title": {
-          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
         },
         "updated_at": {
@@ -274,7 +274,7 @@
           "type": "string"
         },
         "entity_name": {
-          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document. The two\noften read the same, but only this one is matched against diagram\nlabels, so a title may be reworded without touching a diagram.",
           "type": "string"
         },
         "kind": {
@@ -359,7 +359,7 @@
           "type": "string"
         },
         "entity_name": {
-          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document. The two\noften read the same, but only this one is matched against diagram\nlabels, so a title may be reworded without touching a diagram.",
           "type": "string"
         },
         "modules": {
@@ -512,7 +512,7 @@
           "type": "string"
         },
         "entity_name": {
-          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document. The two\noften read the same, but only this one is matched against diagram\nlabels, so a title may be reworded without touching a diagram.",
           "type": "string"
         },
         "slug": {
@@ -555,7 +555,7 @@
           "type": "string"
         },
         "entity_name": {
-          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document. The two\noften read the same, but only this one is matched against diagram\nlabels, so a title may be reworded without touching a diagram.",
           "type": "string"
         },
         "slug": {
@@ -755,7 +755,7 @@
           "type": "string"
         },
         "entity_name": {
-          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document. The two\noften read the same, but only this one is matched against diagram\nlabels, so a title may be reworded without touching a diagram.",
           "type": "string"
         },
         "kind": {
@@ -945,7 +945,7 @@
           "type": "string"
         },
         "entity_name": {
-          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document. The two\noften read the same, but only this one is matched against diagram\nlabels, so a title may be reworded without touching a diagram.",
           "type": "string"
         },
         "slug": {
@@ -1057,7 +1057,7 @@
           "type": "string"
         },
         "entity_name": {
-          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document. The two\noften read the same, but only this one is matched against diagram\nlabels, so a title may be reworded without touching a diagram.",
           "type": "string"
         },
         "kind": {
@@ -1121,7 +1121,7 @@
           ]
         },
         "title": {
-          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
         },
         "updated_at": {
@@ -1168,7 +1168,7 @@
           "type": "string"
         },
         "entity_name": {
-          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document. The two\noften read the same, but only this one is matched against diagram\nlabels, so a title may be reworded without touching a diagram.",
           "type": "string"
         },
         "modules": {
@@ -1229,7 +1229,7 @@
           ]
         },
         "title": {
-          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
         },
         "updated_at": {
@@ -1313,7 +1313,7 @@
           ]
         },
         "title": {
-          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
         },
         "updated_at": {
@@ -1538,7 +1538,7 @@
           ]
         },
         "title": {
-          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
         },
         "updated_at": {
@@ -1784,7 +1784,7 @@
           ]
         },
         "title": {
-          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
         },
         "updated_at": {
@@ -3297,7 +3297,7 @@
           ]
         },
         "title": {
-          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
         },
         "updated_at": {
@@ -3361,7 +3361,7 @@
           ]
         },
         "title": {
-          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
         },
         "updated_at": {
@@ -3556,7 +3556,7 @@
           "type": "string"
         },
         "entity_name": {
-          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document. The two\noften read the same, but only this one is matched against diagram\nlabels, so a title may be reworded without touching a diagram.",
           "type": "string"
         },
         "kind": {
@@ -3630,7 +3630,7 @@
           ]
         },
         "title": {
-          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
         },
         "updated_at": {
@@ -4196,7 +4196,7 @@
           ]
         },
         "title": {
-          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
         },
         "updated_at": {
@@ -4457,7 +4457,7 @@
           ]
         },
         "title": {
-          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
         },
         "updated_at": {
@@ -4519,7 +4519,7 @@
           "type": "string"
         },
         "entity_name": {
-          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document. The two\noften read the same, but only this one is matched against diagram\nlabels, so a title may be reworded without touching a diagram.",
           "type": "string"
         },
         "slug": {
@@ -4559,7 +4559,7 @@
           ]
         },
         "title": {
-          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
         },
         "updated_at": {

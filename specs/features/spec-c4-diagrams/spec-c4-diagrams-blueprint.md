@@ -1,5 +1,5 @@
 ---
-title: "Feature Blueprint: C4 Diagram Conformance"
+title: "C4 Diagram Conformance"
 description: How the Spec CLI learns to read the Mermaid C4 diagrams in
   architecture blueprints — a parser and an element resolver in Document
   Core, fed by an architecture vocabulary the profile registers — and

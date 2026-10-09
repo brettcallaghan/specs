@@ -1,5 +1,5 @@
 ---
-title: "FRD: Spec Corpus Structure and Hygiene Conformance"
+title: "Spec Corpus Structure and Hygiene Conformance"
 description: Checks documents against the structure recorded in the
   shared index — required sections, line width, and leftover authoring
   scaffolding — so an unfinished document cannot reach review looking

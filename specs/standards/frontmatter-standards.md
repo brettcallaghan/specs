@@ -6,8 +6,8 @@ description: Required, relationship, and optional frontmatter properties for
 slug: frontmatter-standards
 type: standards
 status: active
-updated_at: 2026-09-29T00:00:00Z
-version: "0.3"
+updated_at: 2026-10-09T00:00:00Z
+version: "0.3.1"
 ---
 
 # Frontmatter Standards
@@ -249,8 +249,10 @@ reported.
 
 Every architecture blueprint (system, container, module, component)
 SHALL declare `entity_name`: the element's name as diagrams draw it. It
-is distinct from `title`, which names the document — the container named
-"Spec CLI" is documented by "Container Blueprint: Spec CLI".
+is distinct from `title`, which names the document. The two often read
+the same — the container named "Spec CLI" is documented by a blueprint
+titled "Spec CLI" — but only `entity_name` is matched against diagram
+labels, so a title MAY be reworded without touching a diagram.
 
 The element record fields and the document-envelope fields (`title`,
 status, updated_at, and the type-specific frontmatter) SHOULD be defined

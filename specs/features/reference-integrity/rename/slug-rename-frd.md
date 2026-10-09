@@ -1,5 +1,5 @@
 ---
-title: "FRD: Spec Corpus Slug Rename"
+title: "Spec Corpus Slug Rename"
 description: Renames a document's slug and rewrites every reference to it
   across the corpus in one invocation, so a rename is a single command
   rather than a hand sweep that leaves broken links behind

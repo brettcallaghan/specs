@@ -1,5 +1,5 @@
 ---
-title: "Module Blueprint: Document Core"
+title: "Document Core"
 entity_name: Document Core
 description: The framework-agnostic engine that indexes markdown
   documents carrying frontmatter and cross-references, and reports

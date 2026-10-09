@@ -44,9 +44,9 @@ struct C4ElementRecord: Identified {
   The element's name: the canonical display name drawn on every diagram
   and matched against diagram labels. Free text.
 
-  Distinct from a blueprint's `title`, which names the document — "Spec
-  CLI" is the entity name of the container whose blueprint is titled
-  "Container Blueprint: Spec CLI".
+  Distinct from a blueprint's `title`, which names the document. The two
+  often read the same, but only this one is matched against diagram
+  labels, so a title may be reworded without touching a diagram.
   """
   entity_name: String
 
@@ -79,7 +79,10 @@ struct DocumentFrontmatter: Identified {
   """
   Human-readable document title. Free text.
 
-  Also the document's H1, and the two are kept in sync by hand.
+  Also the document's H1, and the two are kept in sync by hand. It
+  carries no type label — `type` says what the document is — except
+  that an ADR's title leads with its number, `ADR-011: …`, because the
+  number is how an ADR is cited.
   """
   title: String
 
