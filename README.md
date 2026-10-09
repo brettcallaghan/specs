@@ -293,7 +293,7 @@ alone is visible rather than averaged away.
 | Test layer | Statements covered | Coverage |
 |:---|---:|---:|
 | Unit tests | 4,959 / 5,847 | 84.8% |
-| Snapshot cases | 4,410 / 5,847 | 75.4% |
+| Snapshot cases | 4,455 / 5,847 | 76.2% |
 | End-to-end (built binary) | 2,578 / 5,847 | 44.1% |
 | **All layers combined** | **5,345 / 5,847** | **91.4%** |
 

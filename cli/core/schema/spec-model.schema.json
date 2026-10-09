@@ -4215,8 +4215,8 @@
           "type": "array"
         },
         "schema_version": {
-          "description": "The version of this index's schema.\n\nPinned to `2.1` for as long as the shape only grows. A change to the\nshape of what is already here — as opposed to an addition alongside it\n— updates this value and the emitted index in the same change.",
-          "pattern": "^2\\.1$",
+          "description": "The version of this index's schema.\n\nPinned to `2.2` for as long as the shape only grows. A change to the\nshape of what is already here — as opposed to an addition alongside it\n— updates this value and the emitted index in the same change.",
+          "pattern": "^2\\.2$",
           "type": "string"
         },
         "workspace": {

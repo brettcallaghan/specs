@@ -58,11 +58,11 @@ other occurrence of a duplicate.
 
 **Property names are snake_case, against Strata's camelCase
 convention.** Strata emits the property name verbatim as the wire key,
-and the frontmatter keys (`updated_at`, `source_paths`, `superseded_by`)
+and the frontmatter keys (`source_paths`, `superseded_by`, `entity_name`)
 are already in use across the corpus. Matching the existing files wins
 over matching the language's house style. The Go transpiler re-cases the
 Go identifier anyway, so the generated structs read as idiomatic Go with
-correct `json:"updated_at"` tags.
+correct `json:"source_paths"` tags.
 
 **`ContractEdges` is a mixin.** `contracts_consumed` means the same thing
 on all four blueprint types, so it is declared once and inherited, which
@@ -90,9 +90,9 @@ names are the kebab-case of their tags (`SystemBlueprint` is
 must keep the convention.
 
 **Requiredness follows the templates, not the prose.** `version` is
-required on `Contract` and `Standards` because their templates declare
-it, and optional on `ModuleBlueprint` because it is required only when
-`visibility` is `public` — a conditional Strata cannot express and the
+required on `Contract` because its template declares it, and optional
+on `ModuleBlueprint` because it is required only when `visibility` is
+`public` — a conditional Strata cannot express and the
 profile must enforce. Relationship arrays are all optional, because the
 standards say to omit them when empty while the templates ship them as
 `[]`; optional accepts both.
