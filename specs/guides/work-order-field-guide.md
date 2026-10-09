@@ -6,7 +6,6 @@ description: How to fill a work order's fields well — the three text
 slug: work-order-field-guide
 type: guide
 status: active
-version: "1.3"
 ---
 
 # Work Order Field Guide

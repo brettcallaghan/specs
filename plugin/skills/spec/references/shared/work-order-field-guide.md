@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/guides/work-order-field-guide.md (version 1.3)
+     Source of truth: specs/guides/work-order-field-guide.md (version unversioned)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,7 +11,6 @@ description: How to fill a work order's fields well — the three text
 slug: work-order-field-guide
 type: guide
 status: active
-version: "1.3"
 ---
 
 # Work Order Field Guide

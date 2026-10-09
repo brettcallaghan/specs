@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/guides/document-type-boundaries-guide.md (version 0.1)
+     Source of truth: specs/guides/document-type-boundaries-guide.md (version unversioned)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,7 +11,6 @@ description: How to resolve the document-type choices the ordered questions
 slug: guide-document-type-boundaries
 type: guide
 status: active
-version: "0.1"
 ---
 
 # Document Type Boundary Cases

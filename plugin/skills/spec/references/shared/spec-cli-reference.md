@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/guides/spec-cli-reference.md (version 0.3)
+     Source of truth: specs/guides/spec-cli-reference.md (version unversioned)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -12,7 +12,6 @@ description: The specs binary's command surface — what each command
 slug: spec-cli-reference
 type: guide
 status: active
-version: "0.3"
 ---
 
 # Spec CLI Reference

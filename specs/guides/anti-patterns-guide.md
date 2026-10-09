@@ -6,7 +6,6 @@ description: The failure modes of spec-first authoring and what each one
 slug: guide-spec-anti-patterns
 type: guide
 status: active
-version: "0.1"
 ---
 
 # Spec-First Anti-Patterns

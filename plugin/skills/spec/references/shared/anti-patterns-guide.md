@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/guides/anti-patterns-guide.md (version 0.1)
+     Source of truth: specs/guides/anti-patterns-guide.md (version unversioned)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,7 +11,6 @@ description: The failure modes of spec-first authoring and what each one
 slug: guide-spec-anti-patterns
 type: guide
 status: active
-version: "0.1"
 ---
 
 # Spec-First Anti-Patterns

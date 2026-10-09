@@ -361,9 +361,9 @@ numbers use `MAJOR.MINOR` with an optional `.PATCH`.
 
 The same rule applies to the skills (`version` in SKILL.md
 frontmatter): any normative change bumps the version in the same
-commit. A standards document carries no version of its own; where it
-ships to other repositories it is vendored into a skill, and a change
-to the vendored copy bumps that skill's version.
+commit. A standards document or guide carries no version of its own;
+where it ships to other repositories it is vendored into a skill, and a
+change to the vendored copy bumps that skill's version.
 
 **Rationale:** Improvement RFCs (see the `rfc` template) cite the
 versions of the templates and skills a session followed.

@@ -307,13 +307,14 @@ assume knowledge of — EARS syntax, C4 mapping, cross-document reference
 conventions.
 
 A guide carries no relationships of its own: it explains a technique
-rather than participating in the architecture graph.
+rather than participating in the architecture graph. Like a standard,
+it carries no version of its own: a guide that ships to other
+repositories is vendored into a skill, and the skill's version
+identifies the text.
 
 **Inherits from:** [DocumentFrontmatter](#documentfrontmatter)
 
-| Property | Type | Documentation |
-|----------|------|---------------|
-| version | String? | The guide's semantic version, quoted so YAML reads it as a string. |
+*No properties defined.*
 
 
 ## TypedFrontmatter

@@ -6,7 +6,6 @@ description: How to use EARS (Easy Approach to Requirements Syntax) to author
 slug: guide-ears
 type: guide
 status: draft
-version: "0.3"
 ---
 
 # Writing Requirements with EARS

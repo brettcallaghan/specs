@@ -3219,7 +3219,7 @@
     },
     "Guide": {
       "additionalProperties": false,
-      "description": "A how-to document explaining a technique that other document types\nassume knowledge of — EARS syntax, C4 mapping, cross-document reference\nconventions.\n\nA guide carries no relationships of its own: it explains a technique\nrather than participating in the architecture graph.",
+      "description": "A how-to document explaining a technique that other document types\nassume knowledge of — EARS syntax, C4 mapping, cross-document reference\nconventions.\n\nA guide carries no relationships of its own: it explains a technique\nrather than participating in the architecture graph. Like a standard,\nit carries no version of its own: a guide that ships to other\nrepositories is vendored into a skill, and the skill's version\nidentifies the text.",
       "properties": {
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
@@ -3257,13 +3257,6 @@
         "title": {
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
           "type": "string"
-        },
-        "version": {
-          "description": "The guide's semantic version, quoted so YAML reads it as a string.",
-          "type": [
-            "string",
-            "null"
-          ]
         }
       },
       "required": [
@@ -5160,12 +5153,6 @@
             "type": {
               "const": "guide",
               "type": "string"
-            },
-            "version": {
-              "type": [
-                "string",
-                "null"
-              ]
             }
           },
           "required": [

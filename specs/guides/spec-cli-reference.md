@@ -7,7 +7,6 @@ description: The specs binary's command surface — what each command
 slug: spec-cli-reference
 type: guide
 status: active
-version: "0.3"
 ---
 
 # Spec CLI Reference

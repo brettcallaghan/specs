@@ -5969,7 +5969,10 @@ func (v *Rfc) UnmarshalJSON(data []byte) error {
 // conventions.
 //
 // A guide carries no relationships of its own: it explains a technique
-// rather than participating in the architecture graph.
+// rather than participating in the architecture graph. Like a standard,
+// it carries no version of its own: a guide that ships to other
+// repositories is vendored into a skill, and the skill's version
+// identifies the text.
 type Guide struct {
 	// A one- to two-sentence summary of what this is and what it is
 	// responsible for.
@@ -6000,8 +6003,6 @@ type Guide struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Citation `json:"superseded_by,omitempty"`
-	// The guide's semantic version, quoted so YAML reads it as a string.
-	Version *string `json:"version,omitempty"`
 }
 
 func (v *Guide) UnmarshalJSON(data []byte) error {
@@ -6039,15 +6040,10 @@ func (v *Guide) UnmarshalJSON(data []byte) error {
 			return prefixField("superseded_by", err)
 		}
 	}
-	if m, ok := raw["version"]; ok {
-		if err := json.Unmarshal(m, &v.Version); err != nil {
-			return prefixField("version", err)
-		}
-	}
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "status", "tags", "superseded_by", "version":
+		case "description", "slug", "title", "status", "tags", "superseded_by":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
