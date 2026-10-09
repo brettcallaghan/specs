@@ -5,8 +5,6 @@ description: The readiness gate a work order must pass before it can be
 slug: work-order-definition-of-ready
 type: standards
 status: active
-updated_at: 2026-08-25T00:00:00Z
-version: "1.5"
 ---
 
 # Work Order Definition of Ready

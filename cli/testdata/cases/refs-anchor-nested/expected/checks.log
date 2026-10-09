@@ -6,8 +6,8 @@ anchor_declared: true
 references:
   - path: docs/adrs/adr-501-citing.md
     references:
-      - line: 12
+      - line: 11
         text: adr-500-roster#Components#References
-      - line: 20
+      - line: 19
         text: adr-500-roster#References
         ambiguous_anchor: true

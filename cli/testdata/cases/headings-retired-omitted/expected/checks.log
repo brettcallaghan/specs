@@ -2,4 +2,4 @@ matches:
   - anchor: adr-001-first#overview
     ref: adr-001-first#adr-001-first#overview
     level: 2
-    start_line: 12
+    start_line: 11

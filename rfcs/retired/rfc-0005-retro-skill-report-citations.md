@@ -5,7 +5,6 @@ description: The bar governs findings inside an RFC but not the prose that
 slug: rfc-0005-retro-skill-report-citations
 type: rfc
 status: retired
-updated_at: 2026-07-30T23:30:00Z
 origin: self
 skill: retro-skill
 skill_version: "0.1"

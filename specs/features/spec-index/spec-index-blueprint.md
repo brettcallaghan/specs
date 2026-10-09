@@ -7,7 +7,6 @@ description: Builds the first working slice of the Spec CLI — the index
 slug: feature-spec-index
 type: feature-blueprint
 status: retired
-updated_at: 2026-08-06T00:00:00Z
 delivery: staged
 plan: agent-plugins-bge
 frd: frd-spec-index

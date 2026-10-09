@@ -4,7 +4,6 @@ description: A document with no H1 whose top-level References shares its identif
 slug: adr-600-unselectable
 type: adr
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 ## References

@@ -7,7 +7,7 @@ description: Translate an approved feature blueprint and its FRD into an
   guessing. Use when a feature blueprint is ready for implementation
   planning, or when asked to groom, decompose, or plan a specified
   feature.
-version: "1.4"
+version: "1.5"
 ---
 
 # Groom Feature Blueprint
@@ -93,7 +93,7 @@ Instead:
 1. Write each gap as an entry in the blueprint's Open Questions section
    (create the section if absent): what is missing, what it blocks, who
    decides.
-2. Set the blueprint's status back to `draft` and update `updated_at`.
+2. Set the blueprint's status back to `draft`.
 3. Report the gaps to the user — this returns the feature to the
    human-agent specification loop.
 

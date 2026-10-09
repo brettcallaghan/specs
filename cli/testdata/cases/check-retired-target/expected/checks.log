@@ -7,11 +7,11 @@ findings:
     severity: warning
     path: docs/adrs/adr-800-current.md
     span:
-      offset: 242
+      offset: 209
       length: 20
-      start_line: 12
+      start_line: 11
       start_column: 25
-      end_line: 12
+      end_line: 11
       end_column: 45
     message: "\"adr-900-old-approach\" is retired, superseded by \"adr-901-new-approach\""
     detail:

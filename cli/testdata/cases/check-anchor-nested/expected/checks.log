@@ -7,11 +7,11 @@ findings:
     severity: error
     path: docs/adrs/adr-501-citing.md
     span:
-      offset: 289
+      offset: 256
       length: 30
-      start_line: 14
+      start_line: 13
       start_column: 33
-      end_line: 14
+      end_line: 13
       end_column: 63
     message: no heading named "Components#Nope" in docs/adrs/adr-500-roster.md
     detail:
@@ -22,13 +22,13 @@ findings:
     severity: error
     path: docs/adrs/adr-501-citing.md
     span:
-      offset: 531
+      offset: 498
       length: 32
-      start_line: 20
+      start_line: 19
       start_column: 46
-      end_line: 20
+      end_line: 19
       end_column: 78
-    message: "\"References#Detail\" matches 2 headings in docs/adrs/adr-500-roster.md: adr-500-roster#components#references#detail (line 18), adr-500-roster#appendix#references#detail (line 36)"
+    message: "\"References#Detail\" matches 2 headings in docs/adrs/adr-500-roster.md: adr-500-roster#components#references#detail (line 17), adr-500-roster#appendix#references#detail (line 35)"
     detail:
       kind: ambiguous-anchor
       anchor: References#Detail
@@ -37,18 +37,18 @@ findings:
         - text: Detail
           anchor: adr-500-roster#components#references#detail
           span:
-            offset: 278
+            offset: 245
             length: 12
-            start_line: 18
+            start_line: 17
             start_column: 1
-            end_line: 19
+            end_line: 18
             end_column: 1
         - text: Detail
           anchor: adr-500-roster#appendix#references#detail
           span:
-            offset: 470
+            offset: 437
             length: 12
-            start_line: 36
+            start_line: 35
             start_column: 1
-            end_line: 37
+            end_line: 36
             end_column: 1

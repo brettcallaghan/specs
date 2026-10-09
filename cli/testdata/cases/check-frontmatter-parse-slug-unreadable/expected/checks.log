@@ -21,11 +21,11 @@ findings:
     severity: error
     path: docs/frds/frd-citing.md
     span:
-      offset: 486
+      offset: 453
       length: 6
-      start_line: 16
+      start_line: 15
       start_column: 69
-      end_line: 16
+      end_line: 15
       end_column: 75
     message: "[[adr-01]] matches no document's slug"
     detail:

@@ -7,7 +7,6 @@ description: The C4 diagram parser, element resolution and model assembly
 slug: adr-030
 type: adr
 status: approved
-updated_at: 2026-10-06T17:45:00Z
 ---
 
 # ADR-030: C4 Vocabulary Reaches Document Core Through the Profile

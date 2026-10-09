@@ -4,13 +4,12 @@ description: <One-sentence summary of the feature and the user need it serves>
 slug: frd-<feature-name>
 type: frd
 status: draft
-updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 sources: []                          # slugs of documents this FRD is based on
 ---
 
 <!--
 Template: Feature Requirements Document (FRD)
-Version: 1.4
+Version: 1.5
 Source: Adapted from the 8090 Requirements Writing Guide
   (https://www.8090.ai/docs/opinions/requirements-writing-guide), modified to
   use tagged Gherkin for features and acceptance criteria per [[adr-021]].

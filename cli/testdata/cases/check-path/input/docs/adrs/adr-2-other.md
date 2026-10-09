@@ -4,7 +4,6 @@ description: A second defective document the case does not name, present to prov
 slug: adr-2
 type: adr
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # ADR-2: Another Document

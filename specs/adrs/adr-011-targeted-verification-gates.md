@@ -4,7 +4,6 @@ description: Each blueprint names the minimal set of tests that must run when it
 slug: adr-011
 type: adr
 status: active
-updated_at: 2026-08-05T00:00:00Z
 ---
 
 # ADR-011: Blueprints Declare Targeted Verification Gates

@@ -4,7 +4,6 @@ description: A document citing a heading of the self-citing one by slug and anch
 slug: adr-404-neighbour
 type: adr
 status: approved
-updated_at: 2026-09-05T00:00:00Z
 ---
 
 # ADR-404: The Neighbour

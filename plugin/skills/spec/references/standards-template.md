@@ -4,13 +4,11 @@ description: <Brief summary of the requirements scope>
 slug: <descriptive-slug ending in -standards/-policy/-guidelines/-constraints>
 type: standards
 status: draft
-updated_at: <YYYY-MM-DDTHH:MM:SSZ>
-version: "0.1"
 ---
 
 <!--
 Template: Standards Document
-Version: 1.3
+Version: 1.4
 
 Sections (complete each, then delete its instruction block)
   - <Major Category>

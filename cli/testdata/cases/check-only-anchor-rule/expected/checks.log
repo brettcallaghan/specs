@@ -7,13 +7,13 @@ findings:
     severity: error
     path: docs/adrs/adr-401-referrer.md
     span:
-      offset: 372
+      offset: 339
       length: 25
-      start_line: 13
+      start_line: 12
       start_column: 43
-      end_line: 13
+      end_line: 12
       end_column: 68
-    message: "\"References\" matches 2 headings in docs/adrs/adr-400-target.md: adr-400-the-cited-document#references (line 16), adr-400-the-cited-document#references#references (line 20)"
+    message: "\"References\" matches 2 headings in docs/adrs/adr-400-target.md: adr-400-the-cited-document#references (line 15), adr-400-the-cited-document#references#references (line 19)"
     detail:
       kind: ambiguous-anchor
       anchor: References
@@ -22,20 +22,20 @@ findings:
         - text: References
           anchor: adr-400-the-cited-document#references
           span:
-            offset: 330
+            offset: 297
             length: 14
-            start_line: 16
+            start_line: 15
             start_column: 1
-            end_line: 17
+            end_line: 16
             end_column: 1
         - text: references
           anchor: adr-400-the-cited-document#references#references
           span:
-            offset: 372
+            offset: 339
             length: 15
-            start_line: 20
+            start_line: 19
             start_column: 1
-            end_line: 21
+            end_line: 20
             end_column: 1
 checks:
   - rule: reference/ambiguous-anchor

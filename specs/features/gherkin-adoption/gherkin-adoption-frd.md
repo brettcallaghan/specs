@@ -6,7 +6,6 @@ description: The CLI parses Gherkin from FRD blocks and standalone feature
 slug: frd-gherkin-adoption
 type: frd
 status: approved
-updated_at: 2026-10-08T18:00:00Z
 sources: []
 ---
 
@@ -56,7 +55,7 @@ chose a parsed notation over prose.
 - **Metadata on a standalone `.feature` file.** A feature file carries
   none: it is a feature source, and its metadata is its owning
   document's. Whether it should ever be a document in its own right,
-  with a status and an `updated_at`, is a later question — nothing here
+  with a status of its own, is a later question — nothing here
   depends on the answer.
 - **Rendering or diagram generation** from feature records.
 - **Test-to-criterion coverage reconciliation.** Enumerating criteria is

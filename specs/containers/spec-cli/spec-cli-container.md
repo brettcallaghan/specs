@@ -7,7 +7,6 @@ description: The command-line binary that indexes a specification corpus
 slug: container-spec-cli
 type: container-blueprint
 status: approved
-updated_at: 2026-10-09T00:00:00Z
 contracts_consumed: []
 modules:
   - "module-document-core"
@@ -895,7 +894,7 @@ does not apply to a compiled binary.
       machine-readable specification, and it is the only consumer-facing
       statement of the shape.
 
-      What is pinned meanwhile: `schema_version` is `2.1`, and the shape
+      What is pinned meanwhile: `schema_version` is `2.2`, and the shape
       is **additive** under it. Later features attach headings, extracted
       record blocks and references to the same entry without changing the
       version; changing what is already there — a property's meaning, its

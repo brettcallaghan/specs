@@ -1,10 +1,9 @@
 ---
 title: "ADR-001: Redis for the session cache"
-description: An author copied the template and has not yet filled in the date
+description: An author copied a template and left a placeholder where the status belongs
 slug: adr-001
 type: adr
-status: draft
-updated_at: <YYYY-MM-DDTHH:MM:SSZ>
+status: <draft | approved>
 ---
 
 # ADR-001: Redis for the session cache

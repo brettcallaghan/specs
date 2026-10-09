@@ -4,7 +4,6 @@ description: A requirements document citing the broken decision from a frontmatt
 slug: frd-citing
 type: frd
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 sources:
   - adr-012
 ---

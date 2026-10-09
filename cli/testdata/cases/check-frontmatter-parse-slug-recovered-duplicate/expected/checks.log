@@ -22,16 +22,16 @@ findings:
     severity: error
     path: docs/adrs/a-broken.md
     span:
-      offset: 179
-      length: 10
-      start_line: 7
-      start_column: 1
-      end_line: 7
-      end_column: 11
-    message: "frontmatter could not be read: ',' or ']' must be specified"
+      offset: 169
+      length: 1
+      start_line: 6
+      start_column: 9
+      end_line: 6
+      end_column: 10
+    message: "frontmatter could not be read: sequence end token ']' not found"
     detail:
       kind: frontmatter-parse
-      message: "',' or ']' must be specified"
+      message: sequence end token ']' not found
   - rule: slug/duplicate
     severity: error
     path: docs/adrs/b-good.md

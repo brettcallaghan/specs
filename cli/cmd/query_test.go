@@ -37,7 +37,6 @@ description: A feature requirements document used by a warm-index test.
 slug: frd-warm
 type: frd
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # Warm

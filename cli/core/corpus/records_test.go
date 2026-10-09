@@ -21,7 +21,6 @@ description: "A fixture document."
 slug: adr-001
 type: adr
 status: approved
-updated_at: "2026-08-05T00:00:00Z"
 ---
 
 ` + "```widget\nname: preface\n```" + `

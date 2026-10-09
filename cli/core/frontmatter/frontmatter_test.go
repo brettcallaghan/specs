@@ -26,7 +26,7 @@ import (
 const valid = "---\n" +
 	"title: \"A Blueprint: Deeper\"\n" +
 	"slug: adr-011\n" +
-	"updated_at: 2026-07-29\n" +
+	"released_at: 2026-07-29\n" +
 	"tags:\n" +
 	"  - one\n" +
 	"  - two\n" +
@@ -48,7 +48,7 @@ func TestValidFrontmatterYieldsEveryProperty(t *testing.T) {
 	for _, property := range doc.Properties {
 		names = append(names, property.Name)
 	}
-	want := []string{"title", "slug", "updated_at", "tags", "nested"}
+	want := []string{"title", "slug", "released_at", "tags", "nested"}
 	if !reflect.DeepEqual(names, want) {
 		t.Errorf("properties = %v, want %v in declaration order", names, want)
 	}
@@ -100,11 +100,11 @@ func TestRawTextIsRetainedForAValueYAMLWouldCoerce(t *testing.T) {
 	}
 
 	cases := map[string]string{
-		"title":      `"A Blueprint: Deeper"`,
-		"slug":       "adr-011",
-		"updated_at": "2026-07-29",
-		"tags":       "- one\n  - two",
-		"nested":     "key: value",
+		"title":       `"A Blueprint: Deeper"`,
+		"slug":        "adr-011",
+		"released_at": "2026-07-29",
+		"tags":        "- one\n  - two",
+		"nested":      "key: value",
 	}
 	for name, want := range cases {
 		property, ok := doc.Property(name)
@@ -145,10 +145,10 @@ func TestPropertySpansAddressTheValueWithinItsLine(t *testing.T) {
 		}
 	}
 
-	updated, _ := doc.Property("updated_at")
-	if updated.Position.StartLine != 4 || updated.Position.StartColumn != 13 {
-		t.Errorf("updated_at value at %d:%d, want 4:13",
-			updated.Position.StartLine, updated.Position.StartColumn)
+	released, _ := doc.Property("released_at")
+	if released.Position.StartLine != 4 || released.Position.StartColumn != 14 {
+		t.Errorf("released_at value at %d:%d, want 4:14",
+			released.Position.StartLine, released.Position.StartColumn)
 	}
 }
 
@@ -165,28 +165,28 @@ func TestPropertySpansAddressTheValueWithinItsLine(t *testing.T) {
 // running the profile self-application gate against this repository's
 // own specification corpus (several of whose titles and descriptions
 // use em dashes) surfaced it as spurious `format` violations on
-// `updated_at`, because the corrupted raw text — a few trailing
+// `released_at`, because the corrupted raw text — a few trailing
 // characters of the property's own key, glued onto a truncated value —
 // is not a valid RFC 3339 timestamp.
 func TestAMultiByteCharacterEarlierInTheBlockDoesNotShiftALaterProperty(t *testing.T) {
 	source := []byte("---\n" +
 		"title: \"Boundary — Unified — Separated\"\n" +
-		"updated_at: 2026-07-29T00:00:00Z\n" +
+		"released_at: 2026-07-29T00:00:00Z\n" +
 		"---\n")
 	doc, perr := frontmatter.Parse(source)
 	if perr != nil {
 		t.Fatalf("parse: %v", perr.Message)
 	}
 
-	updated, ok := doc.Property("updated_at")
+	released, ok := doc.Property("released_at")
 	if !ok {
-		t.Fatal("no updated_at property")
+		t.Fatal("no released_at property")
 	}
-	if updated.Raw != "2026-07-29T00:00:00Z" {
-		t.Errorf("updated_at Raw = %q, want %q", updated.Raw, "2026-07-29T00:00:00Z")
+	if released.Raw != "2026-07-29T00:00:00Z" {
+		t.Errorf("released_at Raw = %q, want %q", released.Raw, "2026-07-29T00:00:00Z")
 	}
-	if got := string(span.Slice(source, updated.Position)); got != updated.Raw {
-		t.Errorf("updated_at span covers %q, want it to match Raw %q", got, updated.Raw)
+	if got := string(span.Slice(source, released.Position)); got != released.Raw {
+		t.Errorf("released_at span covers %q, want it to match Raw %q", got, released.Raw)
 	}
 
 	title, ok := doc.Property("title")

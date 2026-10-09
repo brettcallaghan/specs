@@ -9,13 +9,12 @@ description: <One-sentence summary of the system and the capabilities it
 slug: system-<system-name>
 type: system-blueprint
 status: draft
-updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 contracts_consumed: []               # contract slugs this system consumes
 ---
 
 <!--
 Template: System Blueprint
-Version: 1.7
+Version: 1.8
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 

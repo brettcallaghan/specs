@@ -7,8 +7,6 @@ description: What every specs command's exit status means — success and
 slug: cli-exit-status-standards
 type: standards
 status: draft
-updated_at: 2026-10-08T12:00:00Z
-version: "0.1"
 ---
 
 # Spec CLI Exit Status Standards

@@ -7,7 +7,6 @@ description: Step 3 checks a quote against the tree but never checks the
 slug: rfc-0009
 type: rfc
 status: retired
-updated_at: 2026-08-01T00:00:00Z
 origin: self
 skill: triage-rfc
 skill_version: "1.2"

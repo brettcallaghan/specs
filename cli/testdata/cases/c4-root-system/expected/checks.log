@@ -9,10 +9,10 @@ software_systems:
       - path: docs/systems/one.md
         span:
           offset: 0
-          length: 177
+          length: 144
           start_line: 1
           start_column: 1
-          end_line: 9
+          end_line: 8
           end_column: 4
     contracts_provided: []
     containers:
@@ -23,10 +23,10 @@ software_systems:
           - path: docs/containers/alpha.md
             span:
               offset: 0
-              length: 239
+              length: 206
               start_line: 1
               start_column: 1
-              end_line: 12
+              end_line: 11
               end_column: 4
         contracts_provided: []
         components:
@@ -36,11 +36,11 @@ software_systems:
             declarations:
               - path: docs/containers/alpha.md
                 span:
-                  offset: 516
+                  offset: 483
                   length: 80
-                  start_line: 31
+                  start_line: 30
                   start_column: 1
-                  end_line: 36
+                  end_line: 35
                   end_column: 1
             contracts_provided: []
           - description: Writes
@@ -49,11 +49,11 @@ software_systems:
             declarations:
               - path: docs/containers/alpha.md
                 span:
-                  offset: 609
+                  offset: 576
                   length: 80
-                  start_line: 39
+                  start_line: 38
                   start_column: 1
-                  end_line: 44
+                  end_line: 43
                   end_column: 1
             contracts_provided: []
         modules:
@@ -68,10 +68,10 @@ modules:
       - path: docs/modules/gamma.md
         span:
           offset: 0
-          length: 234
+          length: 201
           start_line: 1
           start_column: 1
-          end_line: 12
+          end_line: 11
           end_column: 4
     contracts_provided: []
     kind: standard
@@ -86,11 +86,11 @@ modules:
         declarations:
           - path: docs/modules/gamma.md
             span:
-              offset: 269
+              offset: 236
               length: 77
-              start_line: 20
+              start_line: 19
               start_column: 1
-              end_line: 25
+              end_line: 24
               end_column: 1
         contracts_provided: []
     modules: []
@@ -98,11 +98,11 @@ relationships: []
 excluded_relationships:
   - path: docs/containers/alpha.md
     span:
-      offset: 458
+      offset: 425
       length: 25
-      start_line: 24
+      start_line: 23
       start_column: 5
-      end_line: 24
+      end_line: 23
       end_column: 30
     reason: bidirectional
     text: BiRel(a, b, "Talks with")

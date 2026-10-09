@@ -4,7 +4,6 @@ description: A document whose anchor named a heading of ADR-300 that no longer e
 slug: adr-301-referrer
 type: adr
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # ADR-301: The Referring Document

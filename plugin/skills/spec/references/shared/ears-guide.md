@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/guides/ears-guide.md (version 0.3)
+     Source of truth: specs/guides/ears-guide.md (version unversioned)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,8 +11,6 @@ description: How to use EARS (Easy Approach to Requirements Syntax) to author
 slug: guide-ears
 type: guide
 status: draft
-updated_at: 2026-08-15T00:00:00Z
-version: "0.3"
 ---
 
 # Writing Requirements with EARS

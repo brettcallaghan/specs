@@ -32,7 +32,7 @@ func TestCheckSurvivesAnUnreadableArchitectureBlueprint(t *testing.T) {
 	repo := t.TempDir()
 	site := func(slug, body string) string {
 		return "---\ntitle: " + slug + "\nslug: " + slug + "\ntype: container-blueprint\nstatus: draft\ndescription: d\n" +
-			"updated_at: \"2026-10-07T00:00:00Z\"\nentity_name: " + slug + "\n---\n\n# " + slug + "\n\n" + body
+			"entity_name: " + slug + "\n---\n\n# " + slug + "\n\n" + body
 	}
 	write(t, repo, "specs/alpha.md", site("alpha",
 		"```mermaid\nC4Container\nContainer(g, \"Ghost\", \"Go\")\nContainer(e, \"\", \"Go\")\n```\n"))

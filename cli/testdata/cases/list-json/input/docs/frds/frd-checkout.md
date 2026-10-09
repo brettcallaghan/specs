@@ -8,7 +8,6 @@ description: |
 slug: frd-checkout
 type: frd
 status: active
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # Feature Requirements: Checkout

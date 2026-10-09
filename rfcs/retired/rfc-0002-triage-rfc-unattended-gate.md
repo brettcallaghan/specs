@@ -7,7 +7,6 @@ description: The human gate has no rule for a session no human can
 slug: rfc-0002-triage-rfc-unattended-gate
 type: rfc
 status: retired
-updated_at: 2026-07-30T22:10:00Z
 origin: self
 skill: triage-rfc
 skill_version: "1.0"

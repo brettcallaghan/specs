@@ -4,7 +4,6 @@ description: A document whose slug-less anchor names no heading of its own, so i
 slug: adr-403-self-misciting
 type: adr
 status: approved
-updated_at: 2026-09-05T00:00:00Z
 ---
 
 # ADR-403: The Self-Misciting Document

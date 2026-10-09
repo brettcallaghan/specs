@@ -6,8 +6,6 @@ description: The single definition of "ready to groom" for a feature
 slug: blueprint-readiness-checklist
 type: standards
 status: active
-updated_at: 2026-08-15T00:00:00Z
-version: "0.7.0"
 ---
 
 # Blueprint Readiness Checklist

@@ -6,7 +6,6 @@ description: The Spec CLI rewrites corpus wikilinks into markdown links,
 slug: frd-spec-markdown-links
 type: frd
 status: approved
-updated_at: 2026-10-08T00:00:00Z
 sources: [adr-018, frd-spec-reference-integrity]
 ---
 

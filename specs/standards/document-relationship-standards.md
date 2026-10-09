@@ -8,8 +8,6 @@ description: How formal relationships between specification documents are
 slug: document-relationship-standards
 type: standards
 status: active
-updated_at: 2026-10-07T00:00:00Z
-version: "0.3"
 ---
 
 # Document Relationship Standards

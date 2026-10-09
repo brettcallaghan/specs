@@ -44,7 +44,6 @@ description: A fixture document used by the listing determinism test.
 slug: `+member.slug+`
 type: `+member.docType+`
 status: active
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # `+member.title+`

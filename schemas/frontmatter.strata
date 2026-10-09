@@ -74,6 +74,10 @@ only; the index derives the reverse from every other document's inbound
 edges. Before adding one, check it against the Document Relationship
 Standard — a property that merely mirrors the document's own prose
 citations does not earn its maintenance cost.
+
+There is deliberately no creation or last-modified timestamp: git
+records when a file was added and changed, an index can derive both from
+it, and a hand-maintained copy goes stale.
 """
 struct DocumentFrontmatter: Identified {
   """
@@ -90,20 +94,6 @@ struct DocumentFrontmatter: Identified {
   The document's lifecycle state.
   """
   status: Status
-
-  """
-  RFC 3339 timestamp of the last substantive modification.
-
-  Validated against the text as written in the file rather than against
-  a parsed value, so a bare `2026-07-29` is reported as a defect instead
-  of being silently widened to midnight UTC by the YAML parser.
-  """
-  updated_at: DateTime
-
-  """
-  RFC 3339 timestamp of the document's creation. Optional.
-  """
-  created_at: DateTime?
 
   """
   Free-form tags for filtering and search.
@@ -215,16 +205,12 @@ struct Contract: DocumentFrontmatter {
 """
 Cross-cutting standards, policies, guidelines or constraints that apply
 across documents or components rather than to one of them.
+
+Carries no version of its own. A standard that ships to other
+repositories is vendored into a skill, and the skill's version
+identifies the text a reader followed.
 """
 struct Standards: DocumentFrontmatter {
-  """
-  The document's semantic version, quoted so YAML reads it as a string.
-
-  Unquoted `0.1` is a floating-point number to a YAML parser and fails
-  validation here — which is the intended behaviour, because `0.10` and
-  `0.1` are the same float and different versions.
-  """
-  version: String
 }
 
 """
@@ -456,11 +442,12 @@ assume knowledge of — EARS syntax, C4 mapping, cross-document reference
 conventions.
 
 A guide carries no relationships of its own: it explains a technique
-rather than participating in the architecture graph.
+rather than participating in the architecture graph. Like a standard,
+it carries no version of its own: a guide that ships to other
+repositories is vendored into a skill, and the skill's version
+identifies the text.
 """
 struct Guide: DocumentFrontmatter {
-  """The guide's semantic version, quoted so YAML reads it as a string."""
-  version: String?
 }
 
 """

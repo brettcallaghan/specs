@@ -4,7 +4,6 @@ description: The spec root mirrors the C4 containment hierarchy only where the c
 slug: adr-028
 type: adr
 status: active
-updated_at: 2026-09-03T00:00:00Z
 ---
 
 # ADR-028: Default Directory Structure for the Spec Corpus

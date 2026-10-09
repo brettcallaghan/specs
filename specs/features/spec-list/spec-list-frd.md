@@ -6,7 +6,6 @@ description: A subcommand that summarizes every corpus member from its
 slug: frd-spec-list
 type: frd
 status: approved
-updated_at: 2026-09-07T00:00:00Z
 sources: []
 ---
 

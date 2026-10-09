@@ -5,7 +5,6 @@ description: <One-sentence summary of the interface and the capability it
 slug: contract-<interface-name>
 type: contract
 status: draft
-updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 provider: <slug of the system, container, module or component providing it>
 visibility: <public | internal>
 specs: []                            # paths/URLs of machine-readable artifacts
@@ -14,7 +13,7 @@ version: "1.0"
 
 <!--
 Template: Contract
-Version: 1.5
+Version: 1.6
 Source: Architecture documentation framework. C4 mapping rules and
   contract visibility tiers are defined in `shared/c4-standards.md`.
 

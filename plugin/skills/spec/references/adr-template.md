@@ -4,12 +4,11 @@ description: <One-sentence summary of the decision>
 slug: adr-<nnn>
 type: adr
 status: draft
-updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 ---
 
 <!--
 Template: Architecture Decision Record (ADR)
-Version: 1.3
+Version: 1.4
 Source: Adapted from Michael Nygard's ADR format
 
 Sections (complete each, then delete its instruction block)

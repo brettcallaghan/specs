@@ -1,5 +1,5 @@
 {
-  "schema_version": "2.1",
+  "schema_version": "2.2",
   "workspace": "acme",
   "entries": [
     {
@@ -9,27 +9,26 @@
         "description": "A minimal conforming document of this type.",
         "slug": "adr-001-choice",
         "title": "ADR-001: Choice",
-        "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "status": "approved"
       },
       "headings": [
         {
           "text": "Doc",
           "level": 1,
           "span": {
-            "offset": 174,
+            "offset": 141,
             "length": 6,
-            "start_line": 10,
+            "start_line": 9,
             "start_column": 1,
-            "end_line": 11,
+            "end_line": 10,
             "end_column": 1
           },
           "section_span": {
-            "offset": 180,
+            "offset": 147,
             "length": 0,
-            "start_line": 11,
+            "start_line": 10,
             "start_column": 1,
-            "end_line": 11,
+            "end_line": 10,
             "end_column": 1
           },
           "record_blocks": []
@@ -44,28 +43,26 @@
         "description": "A minimal conforming document of this type.",
         "slug": "coding-standards",
         "title": "Coding Standards",
-        "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z",
-        "version": "1.0.0"
+        "status": "approved"
       },
       "headings": [
         {
           "text": "Doc",
           "level": 1,
           "span": {
-            "offset": 200,
+            "offset": 150,
             "length": 6,
-            "start_line": 11,
+            "start_line": 9,
             "start_column": 1,
-            "end_line": 12,
+            "end_line": 10,
             "end_column": 1
           },
           "section_span": {
-            "offset": 206,
+            "offset": 156,
             "length": 0,
-            "start_line": 12,
+            "start_line": 10,
             "start_column": 1,
-            "end_line": 12,
+            "end_line": 10,
             "end_column": 1
           },
           "record_blocks": []
@@ -81,7 +78,6 @@
         "slug": "component-widget-store",
         "title": "Widget Store",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z",
         "entity_name": "Widget Store",
         "kind": "standard"
       },
@@ -90,19 +86,19 @@
           "text": "Doc",
           "level": 1,
           "span": {
-            "offset": 236,
+            "offset": 203,
             "length": 6,
-            "start_line": 12,
+            "start_line": 11,
             "start_column": 1,
-            "end_line": 13,
+            "end_line": 12,
             "end_column": 1
           },
           "section_span": {
-            "offset": 242,
+            "offset": 209,
             "length": 0,
-            "start_line": 13,
+            "start_line": 12,
             "start_column": 1,
-            "end_line": 13,
+            "end_line": 12,
             "end_column": 1
           },
           "record_blocks": []
@@ -118,7 +114,6 @@
         "slug": "container-widget-service",
         "title": "Widget Service",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z",
         "entity_name": "Widget Service"
       },
       "headings": [
@@ -126,19 +121,19 @@
           "text": "Doc",
           "level": 1,
           "span": {
-            "offset": 227,
+            "offset": 194,
             "length": 6,
-            "start_line": 11,
+            "start_line": 10,
             "start_column": 1,
-            "end_line": 12,
+            "end_line": 11,
             "end_column": 1
           },
           "section_span": {
-            "offset": 233,
+            "offset": 200,
             "length": 0,
-            "start_line": 12,
+            "start_line": 11,
             "start_column": 1,
-            "end_line": 12,
+            "end_line": 11,
             "end_column": 1
           },
           "record_blocks": []
@@ -154,7 +149,6 @@
         "slug": "contract-widget-api",
         "title": "Widget API",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z",
         "provider": "container-widget-service",
         "visibility": "public",
         "version": "1.0.0"
@@ -164,19 +158,19 @@
           "text": "Doc",
           "level": 1,
           "span": {
-            "offset": 250,
+            "offset": 217,
             "length": 6,
-            "start_line": 13,
+            "start_line": 12,
             "start_column": 1,
-            "end_line": 14,
+            "end_line": 13,
             "end_column": 1
           },
           "section_span": {
-            "offset": 256,
+            "offset": 223,
             "length": 0,
-            "start_line": 14,
+            "start_line": 13,
             "start_column": 1,
-            "end_line": 14,
+            "end_line": 13,
             "end_column": 1
           },
           "record_blocks": []
@@ -191,27 +185,26 @@
         "description": "A minimal conforming document of this type.",
         "slug": "contributing-guide",
         "title": "Contributing",
-        "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "status": "approved"
       },
       "headings": [
         {
           "text": "Doc",
           "level": 1,
           "span": {
-            "offset": 177,
+            "offset": 144,
             "length": 6,
-            "start_line": 10,
+            "start_line": 9,
             "start_column": 1,
-            "end_line": 11,
+            "end_line": 10,
             "end_column": 1
           },
           "section_span": {
-            "offset": 183,
+            "offset": 150,
             "length": 0,
-            "start_line": 11,
+            "start_line": 10,
             "start_column": 1,
-            "end_line": 11,
+            "end_line": 10,
             "end_column": 1
           },
           "record_blocks": []
@@ -227,7 +220,6 @@
         "slug": "feature-widgets",
         "title": "Widgets",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z",
         "delivery": "single-pr",
         "frd": "frd-widgets"
       },
@@ -236,19 +228,19 @@
           "text": "Doc",
           "level": 1,
           "span": {
-            "offset": 218,
+            "offset": 185,
             "length": 6,
-            "start_line": 12,
+            "start_line": 11,
             "start_column": 1,
-            "end_line": 13,
+            "end_line": 12,
             "end_column": 1
           },
           "section_span": {
-            "offset": 224,
+            "offset": 191,
             "length": 0,
-            "start_line": 13,
+            "start_line": 12,
             "start_column": 1,
-            "end_line": 13,
+            "end_line": 12,
             "end_column": 1
           },
           "record_blocks": []
@@ -263,27 +255,26 @@
         "description": "A minimal conforming document of this type.",
         "slug": "frd-widgets",
         "title": "FRD: Widgets",
-        "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "status": "approved"
       },
       "headings": [
         {
           "text": "Doc",
           "level": 1,
           "span": {
-            "offset": 168,
+            "offset": 135,
             "length": 6,
-            "start_line": 10,
+            "start_line": 9,
             "start_column": 1,
-            "end_line": 11,
+            "end_line": 10,
             "end_column": 1
           },
           "section_span": {
-            "offset": 174,
+            "offset": 141,
             "length": 0,
-            "start_line": 11,
+            "start_line": 10,
             "start_column": 1,
-            "end_line": 11,
+            "end_line": 10,
             "end_column": 1
           },
           "record_blocks": []
@@ -299,7 +290,6 @@
         "slug": "module-widget-core",
         "title": "Widget Core",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z",
         "entity_name": "Widget Core",
         "kind": "standard",
         "visibility": "internal"
@@ -309,19 +299,19 @@
           "text": "Doc",
           "level": 1,
           "span": {
-            "offset": 248,
+            "offset": 215,
             "length": 6,
-            "start_line": 13,
+            "start_line": 12,
             "start_column": 1,
-            "end_line": 14,
+            "end_line": 13,
             "end_column": 1
           },
           "section_span": {
-            "offset": 254,
+            "offset": 221,
             "length": 0,
-            "start_line": 14,
+            "start_line": 13,
             "start_column": 1,
-            "end_line": 14,
+            "end_line": 13,
             "end_column": 1
           },
           "record_blocks": []
@@ -337,7 +327,6 @@
         "slug": "rfc-0001-widgets",
         "title": "RFC-0001: Widgets",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z",
         "origin": "retro-skill",
         "skill": "spec",
         "skill_version": "1.0.0",
@@ -352,19 +341,19 @@
           "text": "Doc",
           "level": 1,
           "span": {
-            "offset": 325,
+            "offset": 292,
             "length": 6,
-            "start_line": 18,
+            "start_line": 17,
             "start_column": 1,
-            "end_line": 19,
+            "end_line": 18,
             "end_column": 1
           },
           "section_span": {
-            "offset": 331,
+            "offset": 298,
             "length": 0,
-            "start_line": 19,
+            "start_line": 18,
             "start_column": 1,
-            "end_line": 19,
+            "end_line": 18,
             "end_column": 1
           },
           "record_blocks": []
@@ -380,7 +369,6 @@
         "slug": "system-acme",
         "title": "Acme System",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z",
         "entity_name": "Acme System"
       },
       "headings": [
@@ -388,19 +376,19 @@
           "text": "Doc",
           "level": 1,
           "span": {
-            "offset": 205,
+            "offset": 172,
             "length": 6,
-            "start_line": 11,
+            "start_line": 10,
             "start_column": 1,
-            "end_line": 12,
+            "end_line": 11,
             "end_column": 1
           },
           "section_span": {
-            "offset": 211,
+            "offset": 178,
             "length": 0,
-            "start_line": 12,
+            "start_line": 11,
             "start_column": 1,
-            "end_line": 12,
+            "end_line": 11,
             "end_column": 1
           },
           "record_blocks": []
@@ -455,5 +443,5 @@
     }
   ],
   "features": [],
-  "input_hash": "sha256:7cc791e8e4abe884ba57d226eeeae99a531a533f65c9189e3700764f08899a2e"
+  "input_hash": "sha256:2da4faacf282776febfcdeda3dd810ad1874685541515e71c89c4cdec233d998"
 }

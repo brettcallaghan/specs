@@ -7,7 +7,6 @@ description: Builds a Gherkin component and the fenced-block half of
 slug: feature-gherkin-adoption
 type: feature-blueprint
 status: retired
-updated_at: 2026-08-15T00:00:00Z
 delivery: staged
 plan: agent-plugins-wvd
 frd: frd-gherkin-adoption

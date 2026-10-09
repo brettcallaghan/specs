@@ -6,7 +6,6 @@ description: Resolves a reference's anchor against its target's headings
 slug: feature-spec-anchor-references
 type: feature-blueprint
 status: retired
-updated_at: 2026-09-05T00:00:00Z
 delivery: staged
 frd: frd-spec-anchor-references
 plan: agent-plugins-rc14

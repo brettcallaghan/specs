@@ -1,5 +1,5 @@
 {
-  "schema_version": "2.1",
+  "schema_version": "2.2",
   "workspace": "acme",
   "entries": [
     {
@@ -9,27 +9,26 @@
         "description": "An example decision used by a snapshot case.",
         "slug": "adr-001-example",
         "title": "ADR-001: Example",
-        "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "status": "approved"
       },
       "headings": [
         {
           "text": "ADR-001: Example",
           "level": 1,
           "span": {
-            "offset": 175,
+            "offset": 142,
             "length": 19,
-            "start_line": 10,
+            "start_line": 9,
             "start_column": 1,
-            "end_line": 11,
+            "end_line": 10,
             "end_column": 1
           },
           "section_span": {
-            "offset": 194,
+            "offset": 161,
             "length": 0,
-            "start_line": 11,
+            "start_line": 10,
             "start_column": 1,
-            "end_line": 11,
+            "end_line": 10,
             "end_column": 1
           },
           "record_blocks": []
@@ -41,5 +40,5 @@
   "exclusions": [],
   "references": [],
   "features": [],
-  "input_hash": "sha256:d3d0dd584e246ab6bdf5005e2a7de6231ef0c482de57f82e9cea86280f5c96b6"
+  "input_hash": "sha256:3a687721a02b6ad0a9c14480dbb21823ad06c6c068dd4b0bad492c3b5e9cc9c1"
 }

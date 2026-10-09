@@ -6,8 +6,6 @@ description: How agents record retro evidence in-flight during
 slug: findings-capture-protocol
 type: standards
 status: active
-updated_at: 2026-08-25T00:00:00Z
-version: "0.6"
 ---
 
 # Findings Capture Protocol

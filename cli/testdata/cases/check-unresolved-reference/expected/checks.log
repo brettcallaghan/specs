@@ -7,11 +7,11 @@ findings:
     severity: error
     path: docs/adrs/adr-050-broken-references.md
     span:
-      offset: 252
+      offset: 219
       length: 14
-      start_line: 8
+      start_line: 7
       start_column: 16
-      end_line: 8
+      end_line: 7
       end_column: 30
     message: "superseded_by: \"adr-998-absent\" matches no document's slug"
     detail:
@@ -24,11 +24,11 @@ findings:
     severity: error
     path: docs/adrs/adr-050-broken-references.md
     span:
-      offset: 324
+      offset: 291
       length: 14
-      start_line: 13
+      start_line: 12
       start_column: 23
-      end_line: 13
+      end_line: 12
       end_column: 37
     message: "[[adr-999-absent]] matches no document's slug"
     detail:
@@ -40,11 +40,11 @@ findings:
     severity: error
     path: docs/adrs/adr-050-broken-references.md
     span:
-      offset: 353
+      offset: 320
       length: 11
-      start_line: 13
+      start_line: 12
       start_column: 52
-      end_line: 13
+      end_line: 12
       end_column: 63
     message: "[[loose-notes]] target exists but is not a corpus member: excluded: no-frontmatter"
     detail:

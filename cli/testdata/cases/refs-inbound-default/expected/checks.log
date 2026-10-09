@@ -4,5 +4,5 @@ declared: true
 references:
   - path: docs/adrs/adr-800-current.md
     references:
-      - line: 12
+      - line: 11
         text: adr-900-old-approach

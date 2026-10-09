@@ -17,7 +17,7 @@ import (
 
 // adr renders a conforming ADR declaring slug, with body after its title.
 func adr(slug, body string) string {
-	return fmt.Sprintf("---\ntitle: \"%s\"\ndescription: A fixture ADR.\nslug: %s\ntype: adr\nstatus: approved\nupdated_at: 2026-10-08T00:00:00Z\n---\n\n# %s\n\n%s\n",
+	return fmt.Sprintf("---\ntitle: \"%s\"\ndescription: A fixture ADR.\nslug: %s\ntype: adr\nstatus: approved\n---\n\n# %s\n\n%s\n",
 		slug, slug, slug, body)
 }
 

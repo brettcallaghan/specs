@@ -5,7 +5,6 @@ slug: rfc-<origin>-<short-description>  # numbered by the framework
                                         # repo at triage
 type: rfc
 status: draft
-updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 # The fields below are the routing/weighting signals: they map 1:1 onto
 # the triage issue's labels. retro-skill RECORDS them; triage DECIDES.
 origin: self | <project>               # self = this repo critiqued its
@@ -21,7 +20,7 @@ plugin_version: "<x.y.z>"              # or "n/a (standalone install)"
 
 <!--
 Template: Skill-Improvement RFC
-Version: 0.3
+Version: 0.4
 Source: specs framework (produced by the retro-skill skill)
 Lineage: a skill-focused fork of retro-spec's rfc-template — drops
   audience (retro-skill RFCs are inherently skill-authoring), adds the

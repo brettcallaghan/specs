@@ -7,7 +7,6 @@ description: The plugin that supplies this framework's document
 slug: module-spec-profile
 type: module-blueprint
 status: approved
-updated_at: 2026-10-09T00:00:00Z
 kind: standard
 visibility: internal
 source_paths:

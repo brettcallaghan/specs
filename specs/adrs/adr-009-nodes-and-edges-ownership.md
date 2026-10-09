@@ -4,7 +4,6 @@ description: File every relationship at one altitude; parents own the edges amon
 slug: adr-009
 type: adr
 status: active
-updated_at: 2026-08-06T00:00:00Z
 ---
 
 # ADR-009: Nodes-vs-Edges Ownership — Parents Own Child Edges

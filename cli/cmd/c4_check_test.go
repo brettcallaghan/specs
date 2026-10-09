@@ -134,11 +134,11 @@ func TestUndeclaredAndAmbiguousNodesAreErrors(t *testing.T) {
 			ambiguous = &report.Findings[i]
 		}
 	}
-	if undeclared == nil || undeclared.Severity != "error" || undeclared.Span.StartLine != 23 {
-		t.Errorf("undeclared-node finding = %+v, want an error at line 23", undeclared)
+	if undeclared == nil || undeclared.Severity != "error" || undeclared.Span.StartLine != 22 {
+		t.Errorf("undeclared-node finding = %+v, want an error at line 22", undeclared)
 	}
-	if ambiguous == nil || ambiguous.Severity != "error" || ambiguous.Span.StartLine != 22 {
-		t.Fatalf("ambiguous-node finding = %+v, want an error at line 22", ambiguous)
+	if ambiguous == nil || ambiguous.Severity != "error" || ambiguous.Span.StartLine != 21 {
+		t.Fatalf("ambiguous-node finding = %+v, want an error at line 21", ambiguous)
 	}
 	node, ok := ambiguous.Detail.AsC4Node()
 	if !ok || strings.Join(node.Matches, ",") != "container-twin-one,container-twin-two" {
@@ -226,7 +226,7 @@ func at(t *testing.T, f specmodel.Finding, path string, line uint64, severity st
 // AC: AC-C4-DIAG-003.1
 func TestABidirectionalArrowIsAnError(t *testing.T) {
 	report := c4RunCase(t, relationshipCase, 1)
-	at(t, relationshipFinding(t, report, "c4/bidirectional"), "docs/containers/alpha.md", 24, "error")
+	at(t, relationshipFinding(t, report, "c4/bidirectional"), "docs/containers/alpha.md", 23, "error")
 }
 
 // The second a -> b statement — written Rel_Back(b, a) — is the
@@ -236,7 +236,7 @@ func TestABidirectionalArrowIsAnError(t *testing.T) {
 func TestAnEdgeDrawnTwiceInOneDiagramIsAnError(t *testing.T) {
 	report := c4RunCase(t, relationshipCase, 1)
 	f := relationshipFinding(t, report, "c4/duplicate-edge")
-	at(t, f, "docs/containers/alpha.md", 26, "error")
+	at(t, f, "docs/containers/alpha.md", 25, "error")
 	if detail, _ := f.Detail.AsC4RelationshipDefect(); detail.Source != "a" || detail.Target != "b" {
 		t.Errorf("detail = %+v, want a -> b", detail)
 	}
@@ -251,10 +251,10 @@ func TestDrawingsThatDisagreeAreAWarningOnTheSecond(t *testing.T) {
 		}
 		report := c4RunCase(t, relationshipCase, code, args...)
 		f := relationshipFinding(t, report, "c4/drawing-conflict")
-		at(t, f, "docs/containers/beta.md", 20, "warning")
+		at(t, f, "docs/containers/beta.md", 19, "warning")
 		detail, _ := f.Detail.AsC4DrawingConflict()
-		if detail.OtherPath != "docs/containers/alpha.md" || detail.OtherSpan.StartLine != 25 {
-			t.Errorf("args %v: detail = %+v, want alpha.md:25 named", args, detail)
+		if detail.OtherPath != "docs/containers/alpha.md" || detail.OtherSpan.StartLine != 24 {
+			t.Errorf("args %v: detail = %+v, want alpha.md:24 named", args, detail)
 		}
 	}
 }
@@ -262,14 +262,14 @@ func TestDrawingsThatDisagreeAreAWarningOnTheSecond(t *testing.T) {
 // AC: AC-C4-DIAG-004.2
 func TestContradictoryInteractionTagsAreAnError(t *testing.T) {
 	report := c4RunCase(t, relationshipCase, 1)
-	at(t, relationshipFinding(t, report, "c4/interaction-conflict"), "docs/containers/alpha.md", 28, "error")
+	at(t, relationshipFinding(t, report, "c4/interaction-conflict"), "docs/containers/alpha.md", 27, "error")
 }
 
 // AC: AC-C4-DIAG-004.3
 func TestAContractTagNamingNoContractIsAnError(t *testing.T) {
 	report := c4RunCase(t, relationshipCase, 1)
 	f := relationshipFinding(t, report, "c4/contract-unresolved")
-	at(t, f, "docs/containers/alpha.md", 29, "error")
+	at(t, f, "docs/containers/alpha.md", 28, "error")
 	if detail, _ := f.Detail.AsC4Contract(); detail.Slug != "contract-missing" {
 		t.Errorf("detail = %+v", detail)
 	}
@@ -283,7 +283,7 @@ func TestAContractTagNamingNoContractIsAnError(t *testing.T) {
 func TestAContractTagTheEndpointsDoNotDeclareIsAWarning(t *testing.T) {
 	report := c4RunCase(t, relationshipCase, 1)
 	f := relationshipFinding(t, report, "c4/contract-mismatch")
-	at(t, f, "docs/containers/alpha.md", 30, "warning")
+	at(t, f, "docs/containers/alpha.md", 29, "warning")
 	if detail, _ := f.Detail.AsC4Contract(); detail.Slug != "contract-good" || detail.Source != "b" || detail.Target != "g" {
 		t.Errorf("detail = %+v", detail)
 	}
@@ -293,7 +293,7 @@ func TestAContractTagTheEndpointsDoNotDeclareIsAWarning(t *testing.T) {
 func TestTagsJoinedWithACommaAreAWarning(t *testing.T) {
 	report := c4RunCase(t, relationshipCase, 1)
 	f := relationshipFinding(t, report, "c4/tag-separator")
-	at(t, f, "docs/containers/alpha.md", 31, "warning")
+	at(t, f, "docs/containers/alpha.md", 30, "warning")
 	if detail, _ := f.Detail.AsC4TagSeparator(); detail.Tags != "async,audited" {
 		t.Errorf("detail = %+v", detail)
 	}

@@ -6,7 +6,6 @@ description: Adds a Markdown Links component to Document Core that
 slug: feature-spec-markdown-links
 type: feature-blueprint
 status: retired
-updated_at: 2026-08-14T07:30:00Z
 delivery: single-pr
 plan: agent-plugins-ia5
 frd: frd-spec-markdown-links

@@ -8,7 +8,6 @@ description: Three beads closed with no retro anchor because their briefs
 slug: rfc-0018
 type: rfc
 status: retired
-updated_at: 2026-08-12T00:00:00Z
 origin: self
 skill: bead-bonanza
 skill_version: "1.3"

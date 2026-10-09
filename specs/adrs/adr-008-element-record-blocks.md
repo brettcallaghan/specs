@@ -4,7 +4,6 @@ description: Un-promoted elements carry a fenced record block validated by the s
 slug: adr-008
 type: adr
 status: active
-updated_at: 2026-09-29T00:00:00Z
 ---
 
 # ADR-008: Machine-Readable Element Record Blocks with a Two-Schema Model
@@ -35,7 +34,7 @@ frontmatter, which adds the document's own `title`, and links the blueprint
 from the roster; the block may stay. Where an element has a blueprint its
 values are authoritative, and declarations that disagree with them are a
 finding. The element-record fields and the document-envelope fields
-(`title`, status, `updated_at`, and type-specific frontmatter) are defined as
+(`title`, status, and type-specific frontmatter) are defined as
 two schemas merged with JSON Schema `allOf`, so one schema validates every
 declaration of an element. The element's name is `entity_name`, not `title`:
 `title` names a document, and a promoted element's blueprint carries both.

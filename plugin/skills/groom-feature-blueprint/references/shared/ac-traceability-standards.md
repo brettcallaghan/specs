@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/ac-traceability-standards.md (version 0.4.0)
+     Source of truth: specs/standards/ac-traceability-standards.md (version unversioned)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -10,8 +10,6 @@ description: How tests cite the acceptance criteria they verify, and how
 slug: ac-traceability-standards
 type: standards
 status: active
-updated_at: 2026-08-15T00:00:00Z
-version: "0.4.0"
 ---
 
 # AC Traceability Standards

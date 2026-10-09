@@ -6,8 +6,6 @@ description: How to write features and acceptance criteria in Gherkin under
 slug: gherkin-guide
 type: standards
 status: active
-updated_at: 2026-08-15T00:00:00Z
-version: "1.2.0"
 ---
 
 # Gherkin Authoring Guide

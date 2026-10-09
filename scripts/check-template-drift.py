@@ -2,8 +2,8 @@
 """Check every skill template's property set against its type's schema.
 
 A template's values are placeholders, so it cannot be validated as an
-instance — `updated_at: <YYYY-MM-DDTHH:MM:SSZ>` is deliberately not a
-timestamp. Its structure can be: every document authored from a template
+instance — `visibility: <public | internal>` is deliberately not a
+visibility. Its structure can be: every document authored from a template
 inherits the template's property set, so that set must match the
 definition the template's declared `type` selects.
 

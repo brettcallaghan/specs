@@ -20,14 +20,14 @@ import "github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 // SchemaVersion is the value every emitted index declares in its
 // schema_version property.
 //
-// It is pinned to "2.1" for as long as the index's shape only grows:
+// It is pinned to "2.2" for as long as the index's shape only grows:
 // later features add properties to the index and to its entries under
 // this same version. Changing the shape of what is already there —
 // rather than adding alongside it — updates this constant, the Strata
 // source that constrains the property, and the emitted index in one
 // change, per the Change Guidance in
 // specs/modules/document-core/document-core-module.md.
-const SchemaVersion = "2.1"
+const SchemaVersion = "2.2"
 
 // New returns an empty index for the given workspace, with the schema
 // version already declared.

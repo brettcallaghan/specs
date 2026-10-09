@@ -8,11 +8,11 @@ findings:
     path: docs/adrs/adr-001-example.md
     span:
       offset: 3
-      length: 149
+      length: 116
       start_line: 1
       start_column: 4
-      end_line: 6
-      end_column: 33
+      end_line: 5
+      end_column: 10
     message: required property "status" is not declared
     detail:
       kind: missing-property

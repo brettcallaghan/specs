@@ -9,11 +9,11 @@ references:
       kind: frontmatter-property
       property: superseded_by
     span:
-      offset: 195
+      offset: 162
       length: 20
-      start_line: 8
+      start_line: 7
       start_column: 16
-      end_line: 8
+      end_line: 7
       end_column: 36
     resolution:
       state: resolved

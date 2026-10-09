@@ -7,7 +7,6 @@ description: The C4 model's neighbor edges are extracted from the Mermaid C4
 slug: adr-029
 type: adr
 status: approved
-updated_at: 2026-10-06T17:45:00Z
 ---
 
 # ADR-029: C4 Relationships Are Read From Blueprint Diagrams

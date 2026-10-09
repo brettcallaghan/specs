@@ -4,7 +4,6 @@ description: A document holding one reference that resolves to nothing and one t
 slug: adr-201-referrer
 type: adr
 status: approved
-updated_at: 2026-08-01T00:00:00Z
 ---
 
 # ADR-201: The Referring Document

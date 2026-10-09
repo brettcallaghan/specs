@@ -7,11 +7,11 @@ findings:
     severity: error
     path: docs/adrs/adr-403-self-misciting.md
     span:
-      offset: 305
+      offset: 272
       length: 9
-      start_line: 12
+      start_line: 11
       start_column: 23
-      end_line: 12
+      end_line: 11
       end_column: 32
     message: "[[#Ratonale]] matches no document's slug"
     detail:
@@ -23,11 +23,11 @@ findings:
     severity: error
     path: docs/adrs/adr-403-self-misciting.md
     span:
-      offset: 305
+      offset: 272
       length: 9
-      start_line: 12
+      start_line: 11
       start_column: 23
-      end_line: 12
+      end_line: 11
       end_column: 32
     message: no heading named "Ratonale" in docs/adrs/adr-403-self-misciting.md
     detail:

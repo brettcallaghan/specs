@@ -32,7 +32,6 @@ description: "A fixture document."
 slug: %s
 type: %s
 status: approved
-updated_at: "2026-08-05T00:00:00Z"
 ---
 
 # %s
@@ -290,8 +289,8 @@ func TestARegisteredFrontmatterPropertyContributesAResolvedReference(t *testing.
 	repo := t.TempDir()
 	write(t, repo, "specs/adrs/adr-001.md", strings.Replace(
 		document("adr", "adr-001", "First"),
-		"updated_at: \"2026-08-05T00:00:00Z\"",
-		"updated_at: \"2026-08-05T00:00:00Z\"\nsuperseded_by: adr-002",
+		"status: approved\n",
+		"status: approved\nsuperseded_by: adr-002\n",
 		1))
 	write(t, repo, "specs/adrs/adr-002.md", document("adr", "adr-002", "Second"))
 

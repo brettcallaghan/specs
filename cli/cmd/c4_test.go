@@ -28,7 +28,7 @@ name = "specs"
 	} {
 		mustWriteFile(t, filepath.Join(dir, filepath.FromSlash(doc.path)), "---\ntitle: \""+doc.slug+"\"\n"+
 			"description: A fixture for the c4 determinism test.\nslug: "+doc.slug+"\ntype: "+doc.kind+
-			"\nstatus: approved\nupdated_at: 2026-10-07T00:00:00Z\nentity_name: "+doc.slug+"\n"+doc.extra+"---\n\n# "+doc.slug+"\n")
+			"\nstatus: approved\nentity_name: "+doc.slug+"\n"+doc.extra+"---\n\n# "+doc.slug+"\n")
 	}
 
 	for _, args := range [][]string{{"c4"}, {"c4", "--json"}} {

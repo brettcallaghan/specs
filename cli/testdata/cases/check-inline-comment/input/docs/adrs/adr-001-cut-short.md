@@ -5,7 +5,6 @@ description: a # b
 slug: adr-001
 type: adr
 status: approved
-updated_at: 2026-10-08T00:00:00Z
 ---
 
 # ADR-001: A Description Cut Short

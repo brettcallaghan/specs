@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/document-readiness-checklist.md (version 0.5)
+     Source of truth: specs/standards/document-readiness-checklist.md (version unversioned)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,8 +11,6 @@ description: The type-independent self-check every spec document passes
 slug: document-readiness-checklist
 type: standards
 status: active
-updated_at: 2026-08-15T00:00:00Z
-version: "0.5"
 ---
 
 # Document Readiness Checklist
@@ -99,8 +97,7 @@ A `frontmatter/parse` finding (row 0 below) comes before all of them and
 is not one of the nine: it means the frontmatter could not be read as a
 document envelope, so no other check examined this document. Fix it and
 re-run before reading anything else in the report. The usual cause is a
-template placeholder left unfilled — `updated_at:
-<YYYY-MM-DDTHH:MM:SSZ>` is not a date.
+`status` or other enumerated value outside its vocabulary.
 
 | # | Check | Decided by |
 |---|-------|------------|
@@ -138,7 +135,7 @@ reviewer. `spec-cli.md` covers installation.
 ## Frontmatter checks
 
 1. The frontmatter parses as YAML and declares every required property:
-   title, description, slug, type, status and updated_at. The property
+   title, description, slug, type and status. The property
    definitions are owned by [[template-authoring-standards]].
 2. The slug follows the registry rule for this document's type — the
    Slug Conventions of [[template-authoring-standards]], including the

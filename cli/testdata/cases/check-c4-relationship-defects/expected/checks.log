@@ -7,11 +7,11 @@ findings:
     severity: error
     path: docs/containers/alpha.md
     span:
-      offset: 554
+      offset: 521
       length: 25
-      start_line: 24
+      start_line: 23
       start_column: 5
-      end_line: 24
+      end_line: 23
       end_column: 30
     message: BiRel(a, g) states no direction; draw the dependency as Rel
     detail:
@@ -22,11 +22,11 @@ findings:
     severity: error
     path: docs/containers/alpha.md
     span:
-      offset: 665
+      offset: 632
       length: 29
-      start_line: 26
+      start_line: 25
       start_column: 5
-      end_line: 26
+      end_line: 25
       end_column: 34
     message: a -> b is drawn more than once in this diagram
     detail:
@@ -37,11 +37,11 @@ findings:
     severity: error
     path: docs/containers/alpha.md
     span:
-      offset: 724
+      offset: 691
       length: 43
-      start_line: 28
+      start_line: 27
       start_column: 5
-      end_line: 28
+      end_line: 27
       end_column: 48
     message: g -> a is tagged both sync and async
     detail:
@@ -52,11 +52,11 @@ findings:
     severity: error
     path: docs/containers/alpha.md
     span:
-      offset: 772
+      offset: 739
       length: 53
-      start_line: 29
+      start_line: 28
       start_column: 5
-      end_line: 29
+      end_line: 28
       end_column: 58
     message: contract:contract-missing names no contract
     detail:
@@ -68,11 +68,11 @@ findings:
     severity: warning
     path: docs/containers/alpha.md
     span:
-      offset: 830
+      offset: 797
       length: 50
-      start_line: 30
+      start_line: 29
       start_column: 5
-      end_line: 30
+      end_line: 29
       end_column: 55
     message: "contract:contract-good on b -> g: container-beta does not list it among the contracts it consumes, and its provider is not container-gamma"
     detail:
@@ -84,11 +84,11 @@ findings:
     severity: warning
     path: docs/containers/alpha.md
     span:
-      offset: 885
+      offset: 852
       length: 42
-      start_line: 31
+      start_line: 30
       start_column: 5
-      end_line: 31
+      end_line: 30
       end_column: 47
     message: tags "async,audited" contain a comma; join tags with +
     detail:
@@ -98,22 +98,22 @@ findings:
     severity: warning
     path: docs/containers/beta.md
     span:
-      offset: 398
+      offset: 365
       length: 76
-      start_line: 20
+      start_line: 19
       start_column: 5
-      end_line: 20
+      end_line: 19
       end_column: 81
-    message: a -> b differs in technology from its drawing at docs/containers/alpha.md:25
+    message: a -> b differs in technology from its drawing at docs/containers/alpha.md:24
     detail:
       kind: c4-drawing-conflict
       source: a
       target: b
       other_path: docs/containers/alpha.md
       other_span:
-        offset: 584
+        offset: 551
         length: 76
-        start_line: 25
+        start_line: 24
         start_column: 5
-        end_line: 25
+        end_line: 24
         end_column: 81

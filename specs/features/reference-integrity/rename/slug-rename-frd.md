@@ -6,7 +6,6 @@ description: Renames a document's slug and rewrites every reference to it
 slug: frd-spec-slug-rename
 type: frd
 status: draft
-updated_at: 2026-08-15T00:00:00Z
 sources:
   - "frd-spec-reference-integrity"
 ---

@@ -8,7 +8,6 @@ description: The container, module and contract templates instruct
 slug: rfc-0007
 type: rfc
 status: retired
-updated_at: 2026-07-31T00:00:00Z
 origin: self
 skill: spec
 skill_version: "1.5"

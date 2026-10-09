@@ -4,7 +4,6 @@ description: Record a module's publication tier and its pattern-ness as separate
 slug: adr-006
 type: adr
 status: active
-updated_at: 2026-08-05T00:00:00Z
 ---
 
 # ADR-006: Model Visibility and Kind as Orthogonal Frontmatter Signals

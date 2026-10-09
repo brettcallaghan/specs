@@ -372,7 +372,6 @@ func TestAWarmIndexIsServedWithoutRewalkingTheCorpus(t *testing.T) {
 			Description: "Planted in the persisted index and nowhere else.",
 			Slug:        specmodel.Slug("adr-999"),
 			Status:      specmodel.StatusApproved,
-			UpdatedAt:   time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC),
 		})),
 		Headings:     []specmodel.Heading{},
 		RecordBlocks: []specmodel.RecordBlock{},
@@ -1042,7 +1041,6 @@ title: "ADR-001: Example"
 description: "An example decision that omits its status."
 slug: adr-001
 type: adr
-updated_at: "2026-08-01T00:00:00Z"
 ---
 
 # ADR-001: Example
@@ -1073,7 +1071,7 @@ func TestAnIndexOverAMemberMissingARequiredEnumReadsBackAndIsServedWarm(t *testi
 	if adr.Status != "" {
 		t.Errorf("status = %q, want empty", adr.Status)
 	}
-	if adr.Slug != "adr-001" || adr.Title != "ADR-001: Example" || adr.Description == "" || adr.UpdatedAt.IsZero() {
+	if adr.Slug != "adr-001" || adr.Title != "ADR-001: Example" || adr.Description == "" {
 		t.Errorf("frontmatter = %+v, want every property the document declares", adr)
 	}
 
