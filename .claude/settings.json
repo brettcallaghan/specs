@@ -34,5 +34,22 @@
         ]
       }
     ]
+  },
+  "extraKnownMarketplaces": {
+    "brettcallaghan": {
+      "source": {
+        "source": "github",
+        "repo": "brettcallaghan/agent-plugins"
+      }
+    },
+    "brettcallaghan-release": {
+      "source": {
+        "source": "github",
+        "repo": "brettcallaghan/release"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "release@brettcallaghan-release": true
   }
 }
