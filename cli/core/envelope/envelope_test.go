@@ -72,7 +72,7 @@ func TestDecodeFrontmatterToleratesAMissingRequiredProperty(t *testing.T) {
 
 // encodeCases are frontmatters covering every kind of property a variant
 // holds — required and optional enums, pointers to slices,
-// citations, an integer — each fully declared.
+// citations — each fully declared.
 var encodeCases = map[string]string{
 	"adr": `{"type":"adr","title":"ADR-001: <Example> & co","description":"d","slug":"adr-001","status":"approved",` +
 		`"tags":["a","b"],"superseded_by":"adr-002"}`,
@@ -80,8 +80,6 @@ var encodeCases = map[string]string{
 		`"entity_name":"M","kind":"standard","visibility":"internal","version":"1.0"}`,
 	"contract": `{"type":"contract","title":"C","description":"d","slug":"contract-c","status":"approved",` +
 		`"owner":"container-x","visibility":"public","version":"1.0"}`,
-	"rfc": `{"type":"rfc","title":"R","description":"d","slug":"rfc-r","status":"draft",` +
-		`"author":"a","created":"2026-08-01","repository":"r","related_spec":"s","rfc_type":"t","rfc_number":7,"severity":"snag","target":"x"}`,
 }
 
 // For a frontmatter with no empty enum, Encode's bytes are the generated

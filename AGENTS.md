@@ -171,7 +171,7 @@ copies, and most of them are never read again by anybody positioned to notice.
 |---|---|---|---|
 | **a durable trigger prompt** (a Routine, a recovery check-in) | past the session, the container and the run | a fresh agent with no memory of the retraction, as a hard constraint | **nobody.** `list_triggers` shows that a trigger exists; nothing reads its prompt text against reality. Only whoever armed it. |
 | a dispatch prompt | dies with its agent — but goes to several agents at once | its recipient, once | nobody; it is not in the repo and no check sees it. The dispatcher, before sending. |
-| an `outbox/` issue | until triaged, possibly across runs and repositories | the triaging agent, who reads it as already human-approved | partially. `triage-issue` re-checks that the quoted evidence still *exists* in the source it cites; nothing re-runs a tool claim the issue asserts, so a false one passes triage intact and lands in the run record |
+| an issue handed to another project (a GitHub issue, a Markdown file) | until triaged, possibly across runs and repositories | the triaging agent, who reads it as already human-approved | partially. `triage-issue` re-checks that the quoted evidence still *exists* in the source it cites; nothing re-runs a tool claim the issue asserts, so a false one passes triage intact and lands in a bead |
 | a bead description or acceptance criterion | until the bead closes; longer through `discovered-from` edges | the implementing agent, cold, without the conversation that retracted it | grooming, once; after that nobody |
 | an epic comment, a run record, a sprint report | permanent | the report and the retro | the report's author |
 | a plan document under `docs/plans/` | until the change lands | whoever resumes the plan | nobody — transient by policy, so no check covers it |
@@ -194,7 +194,7 @@ not an edit.
 2. **Grep the claim's distinctive phrasing across the tree BEFORE you fix the
    source.** Afterwards the string is gone, and the one place you were certain
    of it is the place you just destroyed. Include untracked files —
-   `outbox/`, `docs/plans/`.
+   `docs/plans/`, and any issue file still waiting to be handed over.
 3. **Sweep in order of reach**: durable triggers first, because they can fire
    while you work; then beads and epic comments; then documents; then
    generated copies, via the sync script.
@@ -274,8 +274,7 @@ scope for this run's beads" tells a future reader nothing they can act on.
   repository's `Stop` hook (`.claude/hooks/dolt-push.sh`) is the documented
   pusher, and in a swarm run tracker durability is the coordinator's.
   Measured twice, independently, in run `agent-plugins-w85b` — findings
-  `kgir.1#5` and `kgir.4#5`, quoted in full in
-  `docs/retros/2026-09-07-w85b-corpus-listing-spec-list.md`: during one pull
+  `kgir.1#5` and `kgir.4#5`: during one pull
   `ps -eo pid,etimes,time,stat,args` showed `bd dolt pull` resident with three
   sibling `bd` calls stacked behind it at **zero CPU** for 337s/211s/209s;
   `/proc/<pid>/wchan` read `futex_do_wait` with no open sockets, so it looks

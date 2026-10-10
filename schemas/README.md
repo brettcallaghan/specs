@@ -25,7 +25,7 @@ specs check --strict                   # check this repo's own documents
 
 | File | Contents |
 |---|---|
-| `vocabulary.strata` | The controlled vocabularies: `Slug`, `DocumentType`, `Status`, `Visibility`, `BlueprintKind`, `Delivery`, `RfcSeverity` |
+| `vocabulary.strata` | The controlled vocabularies: `Slug`, `DocumentType`, `Status`, `Visibility`, `BlueprintKind`, `Delivery` |
 | `frontmatter.strata` | `ElementRecord`, the `DocumentFrontmatter` envelope, the `ContractEdges` mixin, and one struct per document type |
 | `config.strata` | `SpecsConfig` — the public `specs.toml` surface |
 | `profile.strata` | The internal profile registration surface |
@@ -103,8 +103,8 @@ are tracked in beads rather than as corpus documents. They already have
 a schema at `plugin/skills/groom-beads/references/bead.schema.json`;
 duplicating it here would create two authorities for one vocabulary.
 
-**`rfc` and `guide` are included** because 13 real documents declare
-them, even though neither has a template. Without them those documents
+**`guide` is included** because the documents under `specs/guides/`
+declare it, even though it has no template. Without it those documents
 are excluded from every check as `unknown-type`.
 
 **Undeclared keys are rejected.** The manifest sets

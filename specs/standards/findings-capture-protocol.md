@@ -123,7 +123,7 @@ has no rule for X" are the same sentence about different artifacts.
 > - **In this project's own repository** → the project's audience. It
 >   becomes an issue in this project's tracker.
 > - **In the repository that vends the skill** → the skill's audience.
->   It leaves through that project's outbox and is never filed here.
+>   It is reported to whoever vends the skill and is never filed here.
 
 `tooling` is the skill audience; the six work-order kinds are the
 project's. **A project SHALL NOT accumulate issues about skills it

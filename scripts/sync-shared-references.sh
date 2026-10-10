@@ -8,7 +8,7 @@
 #   Cross-skill `../spec/references/...` paths break that: copy one skill
 #   somewhere and its references dangle, and the paths are undiscoverable
 #   from the reading skill's own tree. But duplicating the *authored* copies
-#   is worse — that is how the two RFC templates drifted apart.
+#   is worse: two hand-kept copies of one template drift apart.
 #
 #   So: exactly one authored copy, N generated copies, and a check that
 #   fails the build when they diverge. Each generated file carries a header
@@ -71,7 +71,6 @@ groom-feature-blueprint	spec/references/work-order-template.md
 groom-feature-blueprint	specs/standards/findings-capture-protocol.md
 retro-skill	specs/standards/findings-capture-protocol.md
 retro-skill	spec/references/issue-template.md
-retro-spec	specs/standards/template-authoring-standards.md
 retro-spec	specs/standards/findings-capture-protocol.md
 retro-spec	spec/references/issue-template.md
 spec	specs/standards/ac-traceability-standards.md

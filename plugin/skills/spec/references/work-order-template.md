@@ -37,7 +37,7 @@ c4_docs: []                          # C4 doc files that may need updating
 
 <!--
 Template: Work Order
-Version: 1.5
+Version: 1.6
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]]. Readiness criteria are defined in
   [[work-order-definition-of-ready]] and [[work-order-field-guide]].
@@ -72,9 +72,9 @@ This document is GENERATED, not hand-authored
   grooming skills own production.
 
 Non-corpus: no `type` frontmatter property
-  Every other template in this framework declares `type` from the
-  DocumentType vocabulary (adr, frd, contract, standards, the blueprint
-  kinds, rfc, guide), which is how the schema and
+  Every other template in this framework but the issue template declares
+  `type` from the DocumentType vocabulary (adr, frd, contract, standards,
+  the blueprint kinds, guide), which is how the schema and
   `scripts/check-template-drift.py` govern it. A work order deliberately
   has no `type`: it materializes into a tracker issue (a bead) and stops
   existing as a document, so corpus membership — persisting, being cited

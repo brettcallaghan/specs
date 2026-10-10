@@ -165,30 +165,25 @@ frontier = "fable"
 # run_root = ""
 
 [retros]
-# Where a run's record goes. `sprint-retro` writes ONE document per run — the
-# results, every finding verbatim, and what the run could not verify — and
-# records its path on the run epic so a later session finds it from the epic id.
+# Where a run's record goes. `swarm-retro` writes ONE document per run — the
+# results, every finding verbatim, and what the run could not verify.
 #
-# `log.md` in the same directory carries one row per run.
-dir = "docs/retros"
+# This project keeps no retro records in source control: a retro reports in
+# the session, and what is worth doing becomes a bead. `.retros/` is
+# gitignored, so the record survives the run's session for reading and is
+# never committed.
+dir = ".retros"
 
-# Where issues against the SKILLS a run used are written. DELIBERATELY UNSET
-# here, and the reason is now narrower than it was: this repository vends the
-# `specs` skills — `spec`, `groom-beads`, `groom-feature-blueprint`, `retro-spec`,
-# `retro-skill` — so an issue about one of those is ordinary work in this
-# tracker and belongs in it as a bead.
+# Where issues against the SKILLS a run used are written. DELIBERATELY UNSET:
+# this repository vends the `specs` skills — `spec`, `groom-beads`,
+# `groom-feature-blueprint`, `retro-spec`, `retro-skill` — so an issue about one
+# of those is ordinary work in this tracker and belongs in it as a bead.
 #
-# It no longer vends `bead-bonanza` or the sprint subprocesses; those are the
-# `swarm` plugin's (brettcallaghan/swarm). A finding against one of THOSE
-# cannot be acted on here. `sprint-retro` reads this key as a binary switch, so
-# that split is a rule it must be told rather than one it can derive: file such
-# a finding into `outbox/swarm/` for delivery there, and leave this key unset so
-# everything else stays a bead.
-#
-# A project that consumes BOTH plugins and vends neither sets this —
-# `outbox` is the convention, keyed `outbox/<plugin>/<skill>/` — so proposals it cannot act on accumulate
-# somewhere other than its backlog.
-# skill_issues_dir = "outbox"
+# An issue against a `swarm` skill (brettcallaghan/swarm) cannot be acted on
+# here. Hand it over as a Markdown file written under `.retros/` — never into
+# the tracked tree and never as a bead here — for the user to carry to the
+# swarm project.
+# skill_issues_dir = ".retros/issues"
 
 [review]
 # The code reviewer a sprint runs at its review step. We do not ship one —

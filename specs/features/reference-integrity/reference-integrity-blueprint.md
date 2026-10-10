@@ -283,7 +283,7 @@ of its own.
 
 - The profile SHALL register as reference-bearing every frontmatter
   property in `schemas/frontmatter.strata` that holds a document slug:
-  `superseded_by` on every type; `sources` on FRDs and RFCs; `frd` on
+  `superseded_by` on every type; `sources` on FRDs; `frd` on
   feature blueprints; `system` on container blueprints; `contained_by`
   on modules and components; `contracts_provided` and
   `contracts_consumed` on the four blueprint types that inherit

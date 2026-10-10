@@ -85,7 +85,6 @@ func documentTypeVocabulary() []string {
 		string(specmodel.DocumentTypeModuleBlueprint),
 		string(specmodel.DocumentTypeComponentBlueprint),
 		string(specmodel.DocumentTypeFeatureBlueprint),
-		string(specmodel.DocumentTypeRfc),
 		string(specmodel.DocumentTypeGuide),
 	}
 }
@@ -120,10 +119,7 @@ func TestDocumentTypesCoversEveryVocabularyValue(t *testing.T) {
 	}
 }
 
-// Only adr is numbered. RFC deliberately is not, even though some real
-// RFC slugs carry a sequence number, because the RFCs the retro skills author
-// also use a non-numeric self- form — see the documentTypes comment in
-// profile.go.
+// Only adr is numbered.
 func TestOnlyAdrIsNumbered(t *testing.T) {
 	types := profile.New().DocumentTypes()
 
@@ -159,9 +155,6 @@ var realSlugs = []struct {
 	{"module-blueprint", "module-spec-profile", "specs/modules/spec-profile/spec-profile-module.md"},
 	{"module-blueprint", "module-document-core", "specs/modules/document-core/document-core-module.md"},
 	{"feature-blueprint", "feature-spec-index", "specs/features/spec-index/spec-index-blueprint.md"},
-	{"rfc", "rfc-0007", "rfcs/retired/rfc-0007-spec-architecture-templates.md"},
-	{"rfc", "rfc-0001-spec-document-self-check", "rfcs/retired/rfc-0001-spec-document-self-check.md"},
-	{"rfc", "rfc-self-strata-compile-gate", "the unnumbered self- form the retro skills author"},
 	{"guide", "guide-ears", "specs/guides/ears-guide.md"},
 	{"guide", "work-order-field-guide", "specs/guides/work-order-field-guide.md"},
 }

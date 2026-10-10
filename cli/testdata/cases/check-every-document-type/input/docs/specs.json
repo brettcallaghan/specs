@@ -320,48 +320,6 @@
       "record_blocks": []
     },
     {
-      "path": "docs/rfc-0001-widgets.md",
-      "frontmatter": {
-        "type": "rfc",
-        "description": "A minimal conforming document of this type.",
-        "slug": "rfc-0001-widgets",
-        "title": "RFC-0001: Widgets",
-        "status": "approved",
-        "origin": "retro-skill",
-        "skill": "spec",
-        "skill_version": "1.0.0",
-        "model": "example-model",
-        "effort": "medium",
-        "runs_observed": 1,
-        "severity": "snag",
-        "plugin_version": "1.0.0"
-      },
-      "headings": [
-        {
-          "text": "Doc",
-          "level": 1,
-          "span": {
-            "offset": 292,
-            "length": 6,
-            "start_line": 17,
-            "start_column": 1,
-            "end_line": 18,
-            "end_column": 1
-          },
-          "section_span": {
-            "offset": 298,
-            "length": 0,
-            "start_line": 18,
-            "start_column": 1,
-            "end_line": 18,
-            "end_column": 1
-          },
-          "record_blocks": []
-        }
-      ],
-      "record_blocks": []
-    },
-    {
       "path": "docs/system-acme.md",
       "frontmatter": {
         "type": "system-blueprint",
@@ -443,5 +401,5 @@
     }
   ],
   "features": [],
-  "input_hash": "sha256:2da4faacf282776febfcdeda3dd810ad1874685541515e71c89c4cdec233d998"
+  "input_hash": "sha256:e6b8c3d22e25a837c9c888be3e534af8a3c1eadf079b3e519a38b721f5840bf3"
 }

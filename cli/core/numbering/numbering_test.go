@@ -177,7 +177,7 @@ func TestFormatPadsToTheRegisteredWidth(t *testing.T) {
 		{"adr", 3, 31, "adr-031"},
 		{"adr", 3, 999, "adr-999"},
 		{"adr", 3, 1000, "adr-1000"},
-		{"rfc", 4, 7, "rfc-0007"},
+		{"ticket", 4, 7, "ticket-0007"},
 		{"note", 0, 7, "note-7"},
 	}
 	for _, tc := range cases {
