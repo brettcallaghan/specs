@@ -5,11 +5,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/c4diagram"
-	"github.com/brettcallaghan/agent-plugins/cli/core/c4elements"
-	"github.com/brettcallaghan/agent-plugins/cli/core/c4model"
-	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/c4diagram"
+	"github.com/brettcallaghan/specs/cli/core/c4elements"
+	"github.com/brettcallaghan/specs/cli/core/c4model"
+	"github.com/brettcallaghan/specs/cli/core/finding"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // C4Elements returns the corpus's architectural elements, each drawing

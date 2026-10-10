@@ -27,7 +27,7 @@
 #   and an environment setup script is the durable fix.
 #
 # To run it by hand:
-#   CLAUDE_PROJECT_DIR=/path/to/agent-plugins bash .claude/hooks/session-start.sh
+#   CLAUDE_PROJECT_DIR=/path/to/specs bash .claude/hooks/session-start.sh
 set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"

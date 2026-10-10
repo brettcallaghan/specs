@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/cmd"
+	"github.com/brettcallaghan/specs/cli/cmd"
 )
 
 // observed is everything a caller sees of one invocation.

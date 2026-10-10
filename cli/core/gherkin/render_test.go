@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/gherkin"
+	"github.com/brettcallaghan/specs/cli/core/gherkin"
 )
 
 // toRenderFeature converts a parsed [gherkin.Feature] into the

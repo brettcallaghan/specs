@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/schemaregistry"
+	"github.com/brettcallaghan/specs/cli/core/schemaregistry"
 )
 
 // RegistrationDefect is one fault found in an active profile's

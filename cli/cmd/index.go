@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
+	"github.com/brettcallaghan/specs/cli/core/corpus"
 )
 
 // newIndexCmd builds the `index` subcommand: build the corpus index and

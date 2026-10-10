@@ -3,9 +3,9 @@ package corpus
 import (
 	"strings"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
-	"github.com/brettcallaghan/agent-plugins/cli/core/gherkin"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/finding"
+	"github.com/brettcallaghan/specs/cli/core/gherkin"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // gherkinContentFindings reports every VCON content and diagnostic

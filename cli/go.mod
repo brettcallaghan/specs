@@ -1,4 +1,4 @@
-module github.com/brettcallaghan/agent-plugins/cli
+module github.com/brettcallaghan/specs/cli
 
 go 1.24
 

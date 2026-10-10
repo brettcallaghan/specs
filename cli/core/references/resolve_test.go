@@ -10,9 +10,9 @@ package references_test
 import (
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/references"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specindex"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/references"
+	"github.com/brettcallaghan/specs/cli/core/specindex"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // member returns an index entry for a corpus member declaring one slug.

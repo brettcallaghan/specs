@@ -20,14 +20,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/corpus"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // modulePath is this Go module's import path. Anything under
 // modulePath + "/profile" is a profile package, and Document Core may not
 // import one.
-const modulePath = "github.com/brettcallaghan/agent-plugins/cli"
+const modulePath = "github.com/brettcallaghan/specs/cli"
 
 // stubProfile stands in for the real profile, which lands with the PROF
 // item. It exists to prove the interface is satisfiable from outside the

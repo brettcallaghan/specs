@@ -39,7 +39,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="$REPO_ROOT/build/coverage"
-MODULE="github.com/brettcallaghan/agent-plugins/cli"
+MODULE="github.com/brettcallaghan/specs/cli"
 
 # Instrument every package in the module, not merely the one under test:
 # a snapshot case run from cli/cmd spends nearly all of its statements in

@@ -10,7 +10,7 @@ import (
 	"github.com/yuin/goldmark/text"
 	mdutil "github.com/yuin/goldmark/util"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/span"
 )
 
 // Heading is one heading of a document body, with the extent of the

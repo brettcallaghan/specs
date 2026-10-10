@@ -14,10 +14,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
-	"github.com/brettcallaghan/agent-plugins/cli/core/references"
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/frontmatter"
+	"github.com/brettcallaghan/specs/cli/core/references"
+	"github.com/brettcallaghan/specs/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // extract parses src's frontmatter and extracts its references, which is
@@ -674,7 +674,7 @@ var _ span.Span = specmodel.Reference{}.Span
 // entry would lose them, so this package reads the parsed block instead — enforced here rather
 // than left to review (agent-plugins-gz3).
 func TestExtractionReadsNoIndexEntry(t *testing.T) {
-	const forbidden = "github.com/brettcallaghan/agent-plugins/cli/core/specindex"
+	const forbidden = "github.com/brettcallaghan/specs/cli/core/specindex"
 
 	entries, err := os.ReadDir(".")
 	if err != nil {

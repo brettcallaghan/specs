@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // c4CheckFixture copies a snapshot case's input corpus into a fresh

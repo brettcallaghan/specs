@@ -3,7 +3,7 @@ package schemaregistry_test
 import (
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/schemaregistry"
+	"github.com/brettcallaghan/specs/cli/core/schemaregistry"
 )
 
 // Declares reads the branch Validate would select, and follows $ref and

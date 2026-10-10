@@ -11,7 +11,7 @@ name: release
 #
 # Distribution has two channels, and the archives are only the second:
 #
-#  1. `go install github.com/brettcallaghan/agent-plugins/cli/specs@<tag>`
+#  1. `go install github.com/brettcallaghan/specs/cli/specs@<tag>`
 #     — the Go module proxy is a package registry that supports on-premises
 #     mirroring (AC-SPEC-009.6). It needs nothing from here beyond the tag.
 #  2. The archives built below, for a machine with no Go toolchain.
@@ -185,7 +185,7 @@ jobs:
             "" \
             "**From the Go module proxy** (needs a Go toolchain, and works against an on-premises proxy):" \
             "" \
-            "    go install github.com/brettcallaghan/agent-plugins/cli/specs@$TAG" \
+            "    go install github.com/brettcallaghan/specs/cli/specs@$TAG" \
             "" \
             "**Or download a binary.** Each archive holds one statically linked executable and nothing else: unpack it and put \`specs\` on your PATH. Nothing further is fetched or executed at install time. Verify against \`SHA256SUMS\` first." \
             >> dist/notes.md

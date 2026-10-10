@@ -6,8 +6,8 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // LinkMap resolves a corpus document's slug to the path a link to it is

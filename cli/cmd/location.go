@@ -4,8 +4,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // tomlHeader matches a top-level table header line: `[name]`.

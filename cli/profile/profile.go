@@ -26,9 +26,9 @@
 package profile
 
 import (
-	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
-	"github.com/brettcallaghan/agent-plugins/cli/core/schema"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/corpus"
+	"github.com/brettcallaghan/specs/cli/core/schema"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // Name is the name this profile registers under. An adopting repository

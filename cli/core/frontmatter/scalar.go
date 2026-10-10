@@ -5,8 +5,8 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // TopLevelScalar reads the value of the top-level property name from

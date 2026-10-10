@@ -3,8 +3,8 @@ package corpus
 import (
 	"fmt"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
-	"github.com/brettcallaghan/agent-plugins/cli/core/gherkin"
+	"github.com/brettcallaghan/specs/cli/core/frontmatter"
+	"github.com/brettcallaghan/specs/cli/core/gherkin"
 )
 
 // recomputeGherkin re-parses every Gherkin source the corpus holds —

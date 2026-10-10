@@ -3,8 +3,8 @@ package references
 import (
 	"fmt"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/markdown"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // resolveAnchors records what the anchor half of every reference in refs

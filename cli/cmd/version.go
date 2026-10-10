@@ -9,7 +9,7 @@ import (
 
 // version is the release version stamped into a release build with
 //
-//	-ldflags "-X github.com/brettcallaghan/agent-plugins/cli/cmd.version=<v>"
+//	-ldflags "-X github.com/brettcallaghan/specs/cli/cmd.version=<v>"
 //
 // It is empty in every other build, which then reports the module
 // version the toolchain recorded ("(devel)" for a local build).

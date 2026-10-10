@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
+	"github.com/brettcallaghan/specs/cli/core/corpus"
 )
 
 // architectureSchema is a discriminated union over the invented types:

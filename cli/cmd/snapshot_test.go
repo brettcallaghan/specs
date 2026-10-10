@@ -21,7 +21,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	"github.com/brettcallaghan/agent-plugins/cli/cmd"
+	"github.com/brettcallaghan/specs/cli/cmd"
 )
 
 // casesDir is where every snapshot case lives, relative to this package.

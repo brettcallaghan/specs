@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
+	"github.com/brettcallaghan/specs/cli/core/envelope"
 	"github.com/spf13/cobra"
 )
 

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
+	"github.com/brettcallaghan/specs/cli/core/corpus"
 )
 
 // AC: AC-SPECSTR-003.9, AC-SPECANCH-003.6

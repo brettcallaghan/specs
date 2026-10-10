@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/envelope"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // The index is encoded through a view of [specmodel.SpecIndex] whose

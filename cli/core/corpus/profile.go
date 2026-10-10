@@ -11,8 +11,8 @@
 package corpus
 
 import (
-	"github.com/brettcallaghan/agent-plugins/cli/core/c4elements"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/c4elements"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // Profile supplies the document vocabulary one corpus operation is

@@ -78,7 +78,7 @@ to change your mind.
 `brettcallaghan` marketplace:
 
 ```
-/plugin marketplace add brettcallaghan/agent-plugins
+/plugin marketplace add brettcallaghan/specs
 /plugin install specs@brettcallaghan
 ```
 
@@ -93,7 +93,7 @@ scripts/install-spec-skill.sh
 of documents):
 
 ```bash
-go install github.com/brettcallaghan/agent-plugins/cli/specs@latest
+go install github.com/brettcallaghan/specs/cli/specs@latest
 ```
 
 Pre-built binaries for Linux, macOS and Windows (amd64 and arm64) are
