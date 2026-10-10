@@ -1,0 +1,21 @@
+target = "main"
+# The Go module lives in cli/, and the module proxy resolves a subdirectory
+# module's versions only from tags carrying that prefix: `go install
+# .../cli/specs@cli/vX.Y.Z` does not work with a bare vX.Y.Z tag.
+tag_prefix = "cli/v"
+release_paths = ["plugin/.claude-plugin/plugin.json"]
+
+[changelog]
+breaking_heading = "💥 Breaking changes"
+groups = [
+  { kind = "FEATURE", heading = "🚀 Features" },
+  { kind = "FIX", heading = "🪲 Bugs" },
+  { kind = "PERFORMANCE", heading = "Performance" },
+  { kind = "REVERT", heading = "Reverts" },
+]
+
+[commands]
+# The binary's version is stamped at build time (cli/cmd.version); the specs
+# plugin manifest carries the same version.
+propagate = "scripts/propagate-version.sh"
+validate = "scripts/format-check && cd cli && go vet ./... && go test ./..."

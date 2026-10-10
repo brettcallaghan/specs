@@ -1,82 +1,135 @@
 name: release
 
-# Publishes the per-platform `specs` binaries for one tag.
+# Publishes a GitHub release of the `specs` CLI when a stage pull request
+# merges.
 #
-# Distribution has two channels, and this workflow is only the second of
-# them:
+# `release cut` stops at the stage pull request (a `cut/<version>` branch
+# carrying CHANGELOG.md and the plugin manifest's version); tagging and
+# publication are this workflow's. Everything runs in one workflow: a tag
+# pushed with GITHUB_TOKEN triggers no other workflow, so an
+# `on: push: tags` workflow would never fire.
+#
+# Distribution has two channels, and the archives are only the second:
 #
 #  1. `go install github.com/brettcallaghan/agent-plugins/cli/specs@<tag>`
-#     — the Go module proxy is a package
-#     registry that supports on-premises mirroring (GOPROXY, Athens,
-#     Artifactory and the rest), which is what AC-SPEC-009.6 asks for. It
-#     needs nothing from this workflow beyond the tag, because the proxy
-#     serves source from the tag itself.
-#  2. The archives built below, for a machine with no Go toolchain at
-#     all. Downloading one retrieves an already-built artifact and runs
-#     no install-time code — no build script, no post-install hook, no
-#     second fetch (AC-SPEC-009.5).
+#     — the Go module proxy is a package registry that supports on-premises
+#     mirroring (AC-SPEC-009.6). It needs nothing from here beyond the tag.
+#  2. The archives built below, for a machine with no Go toolchain.
+#     Downloading one retrieves an already-built artifact and runs no
+#     install-time code (AC-SPEC-009.5).
 #
-# The tag is `cli/vX.Y.Z`, not `vX.Y.Z`: the Go module lives in the
-# `cli/` subdirectory of this repository, and the module proxy resolves a
-# subdirectory module's versions only from tags carrying that prefix.
-# Channel 1 does not work without it.
+# The tag is `cli/vX.Y.Z`, not `vX.Y.Z`: the Go module lives in `cli/`, and
+# the module proxy resolves a subdirectory module's versions only from tags
+# carrying that prefix. Channel 1 does not work without it.
 #
-# Every binary is cross-compiled here, on one Linux runner, from one
-# checkout — no per-OS runner, which is the property AC-SPEC-009.7 names
-# and .github/workflows/cli.yml's cross-compile job gates on every pull
-# request.
+# Re-running a failed run finishes a partial release: the tag step accepts a
+# tag already on the merge commit, assets upload with --clobber, and the
+# release stays a draft until every asset is attached.
 
 on:
-  push:
-    tags: ["cli/v*"]
-  # Kept so a failed publish can be retried against the same tag without
-  # deleting and re-pushing it.
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "Existing cli/vX.Y.Z tag to build and publish"
-        required: true
+  pull_request:
+    types: [closed]
+    branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: release-${{ github.event.inputs.tag || github.ref }}
+  # One run per stage branch; never cancel a publication midway.
+  group: release-${{ github.event.pull_request.head.ref }}
   cancel-in-progress: false
 
 env:
+  # Matches the `go` directive in cli/go.mod. Bump them together.
   GO_VERSION: "1.24"
+  STAGE_PREFIX: cut/
+  TAG_PREFIX: cli/v
+  # An awk prelude setting v to the version a `## ` heading names (`## 1.2.0`,
+  # `## [1.2.0] - date`, `## v1.2.0`), or "" when it names none.
+  SECTION_VERSION: >-
+    /^## / {
+    v = $2; sub(/^\[/, "", v); sub(/\]$/, "", v); sub(/^v/, "", v);
+    if (v !~ /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-+].*)?$/) v = ""
+    }
 
 jobs:
-  release:
-    name: build and publish
+  publish:
+    name: tag, build and publish
     runs-on: ubuntu-latest
+    # A stage branch from a fork never reaches a publication credential. The
+    # prefix is a signal, not an authorization: the verify step checks the
+    # merged commit itself.
+    if: >-
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'cut/') &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
+    env:
+      HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          # Full history and tags: the verify and publish steps read tags.
+          fetch-depth: 0
+
+      - name: Verify the release commit
+        run: |
+          set -euo pipefail
+          version="${HEAD_REF#"$STAGE_PREFIX"}"
+          tag="$TAG_PREFIX$version"
+          failed=0
+          fail() { echo "::error::$1"; failed=1; }
+
+          # Plain MAJOR.MINOR.PATCH; prereleases are not published here.
+          if ! printf '%s' "$version" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+            fail "stage branch $HEAD_REF does not name a version"
+          fi
+
+          # The newest version section of CHANGELOG.md is the one cut wrote.
+          # A level-2 heading that names no version (`## Unreleased`) is
+          # preamble.
+          top=""
+          if [ -f CHANGELOG.md ]; then
+            top="$(awk "$SECTION_VERSION"' v != "" { print v; exit }' CHANGELOG.md)"
+          fi
+          if [ "$top" != "$version" ]; then
+            fail "CHANGELOG.md's newest section is '${top:-none}', not $version"
+          fi
+
+          # The plugin manifest ships the same version as the stage; a release
+          # is never tagged while it carries another.
+          plugin_version="$(jq -r .version plugin/.claude-plugin/plugin.json)"
+          if [ "$plugin_version" != "$version" ]; then
+            fail "plugin/.claude-plugin/plugin.json's version is '$plugin_version', not $version"
+          fi
+
+          # A tag already on this commit is a re-run; anywhere else, a collision.
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            at="$(git rev-parse "$tag^{commit}")"
+            if [ "$at" != "$MERGE_SHA" ]; then
+              fail "tag $tag already exists at $at, not at the merge commit $MERGE_SHA"
+            fi
+          fi
+
+          [ "$failed" -eq 0 ] || exit 1
+          {
+            echo "VERSION=$version"
+            echo "TAG=$tag"
+          } >> "$GITHUB_ENV"
 
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: cli/go.sum
 
-      - name: Resolve the version
-        id: version
-        run: |
-          set -euo pipefail
-          raw="${{ github.event.inputs.tag || github.ref_name }}"
-          case "$raw" in
-            cli/v*) ;;
-            *) echo "expected a cli/vX.Y.Z tag, got '$raw'"; exit 1 ;;
-          esac
-          echo "tag=$raw" >> "$GITHUB_OUTPUT"
-          echo "version=${raw#cli/}" >> "$GITHUB_OUTPUT"
-
-      # The gates run again here rather than being trusted from the
-      # commit's own cli.yml run: a tag can be pushed at a commit whose
-      # workflow never completed, and a released binary that was never
-      # tested is worse than a slower release.
+      # The gates run again here rather than being trusted from the stage
+      # pull request's own run: a released binary that was never tested is
+      # worse than a slower release. They run before the tag, so a failure
+      # here leaves nothing to clean up.
       - name: Gates
         working-directory: cli
         run: |
@@ -85,84 +138,116 @@ jobs:
           go vet ./...
           go test ./...
 
-      - name: Cross-compile every platform
-        working-directory: cli
-        env:
-          # CGO_ENABLED=0 is what makes each artifact a single static
-          # file that runs on a machine with no language runtime and no
-          # libc of its own (AC-SPEC-009.4).
-          #
-          # -trimpath strips the builder's absolute paths, so the same
-          # source produces the same bytes from any checkout directory.
-          CGO_ENABLED: "0"
+      - name: Tag the merge commit
         run: |
           set -euo pipefail
-          version='${{ steps.version.outputs.version }}'
-          out="$GITHUB_WORKSPACE/dist"
-          mkdir -p "$out"
-
-          for target in \
-            linux/amd64 linux/arm64 \
-            darwin/amd64 darwin/arm64 \
-            windows/amd64 windows/arm64
-          do
-            goos="${target%/*}"
-            goarch="${target#*/}"
-
-            stage="$(mktemp -d)"
-            binary="specs"
-            if [ "$goos" = "windows" ]; then binary="specs.exe"; fi
-
-            echo "==> $goos/$goarch"
-            GOOS="$goos" GOARCH="$goarch" \
-              go build -trimpath -ldflags="-s -w -X github.com/brettcallaghan/agent-plugins/cli/cmd.version=${version}" -o "$stage/$binary" ./specs
-
-            name="specs_${version}_${goos}_${goarch}"
-            if [ "$goos" = "windows" ]; then
-              ( cd "$stage" && zip -q "$out/$name.zip" "$binary" )
-            else
-              # --sort=name and the pinned mtime/owner keep the archive
-              # itself reproducible, not just the binary inside it.
-              tar --sort=name --owner=0 --group=0 --numeric-owner \
-                  --mtime='UTC 2020-01-01' \
-                  -czf "$out/$name.tar.gz" -C "$stage" "$binary"
-            fi
-            rm -rf "$stage"
-          done
-
-      - name: Checksums
-        working-directory: dist
-        run: |
-          set -euo pipefail
-          sha256sum -- * > SHA256SUMS
-          cat SHA256SUMS
-
-      - name: Publish the GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          tag='${{ steps.version.outputs.tag }}'
-          version='${{ steps.version.outputs.version }}'
-
-          # printf rather than a heredoc: a heredoc inside a YAML block
-          # scalar carries the block's own indentation into every line of
-          # the release notes.
-          notes=$(printf '%s\n' \
-            "Spec CLI $version." \
-            "" \
-            "**Install from the Go module proxy** (needs a Go toolchain, and works against an on-premises proxy):" \
-            "" \
-            "    go install github.com/brettcallaghan/agent-plugins/cli/specs@$tag" \
-            "" \
-            "**Or download a binary.** Each archive holds one statically linked executable and nothing else: unpack it and put \`specs\` on your PATH. Nothing further is fetched or executed at install time. Verify against \`SHA256SUMS\` first.")
-
-          # --clobber so a re-run against the same tag replaces the assets
-          # instead of failing on the ones already uploaded.
-          if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" dist/* --clobber
-          else
-            gh release create "$tag" dist/* \
-              --title "Spec CLI $version" \
-              --notes "$notes"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "$TAG already tags $MERGE_SHA"
+            exit 0
           fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $VERSION" "$MERGE_SHA"
+          git push origin "refs/tags/$TAG"
+
+      - name: Build every target
+        run: scripts/build-release.sh "v$VERSION" dist
+
+      - name: The linux/amd64 binary reports the release version
+        run: |
+          set -euo pipefail
+          dir="$(mktemp -d)"
+          tar -xzf "dist/specs_v${VERSION}_linux_amd64.tar.gz" -C "$dir"
+          got="$("$dir/specs" --version)"
+          echo "$got"
+          case "$got" in
+            *"v$VERSION"*) ;;
+            *) echo "::error::specs --version printed '$got', expected v$VERSION"; exit 1 ;;
+          esac
+
+      - name: Write the release notes
+        run: |
+          set -euo pipefail
+          # The body of CHANGELOG.md's section for this version, without its
+          # heading: everything up to the next `## ` heading, with no leading
+          # or trailing blank lines.
+          awk -v want="$VERSION" "$SECTION_VERSION"'
+            /^## / { if (found) exit; if (v == want) { found = 1; next } }
+            !found { next }
+            /^[[:space:]]*$/ { if (started) blank++; next }
+            { while (blank > 0) { print ""; blank-- }; started = 1; print }
+          ' CHANGELOG.md > dist/notes.md
+          # printf rather than a heredoc: a heredoc inside a YAML block
+          # scalar carries the block's indentation into every line.
+          printf '%s\n' \
+            "" \
+            "## Install" \
+            "" \
+            "**From the Go module proxy** (needs a Go toolchain, and works against an on-premises proxy):" \
+            "" \
+            "    go install github.com/brettcallaghan/agent-plugins/cli/specs@$TAG" \
+            "" \
+            "**Or download a binary.** Each archive holds one statically linked executable and nothing else: unpack it and put \`specs\` on your PATH. Nothing further is fetched or executed at install time. Verify against \`SHA256SUMS\` first." \
+            >> dist/notes.md
+          cat dist/notes.md
+
+      - name: Publish the release
+        run: |
+          set -euo pipefail
+          expected="$(cd dist && ls -1 specs_* SHA256SUMS | sort)"
+
+          if gh release view "$TAG" --json isDraft --jq .isDraft > draft.txt 2>/dev/null; then
+            if [ "$(cat draft.txt)" = false ]; then
+              # Published already: never rewrite its assets.
+              remote="$(gh release view "$TAG" --json assets --jq '.assets[].name' | sort)"
+              if [ "$remote" != "$expected" ]; then
+                echo "::error::$TAG is published but its assets differ from the expected set"
+                diff <(echo "$expected") <(echo "$remote") || true
+                exit 1
+              fi
+              echo "$TAG is already published with every asset"
+              exit 0
+            fi
+          else
+            gh release create "$TAG" --draft --verify-tag \
+              --title "specs v$VERSION" --notes-file dist/notes.md
+          fi
+
+          gh release upload "$TAG" --clobber \
+            dist/*.tar.gz dist/*.zip dist/SHA256SUMS
+
+          # Latest only when this is the highest stable version tagged, so a
+          # maintenance release or a late re-run never moves it backwards.
+          tags="$(git tag -l "$TAG_PREFIX*" --sort=-v:refname)"
+          highest="$(printf '%s\n' "$tags" | grep -E "^${TAG_PREFIX}[0-9]+\.[0-9]+\.[0-9]+\$" || true)"
+          highest="${highest%%$'\n'*}"
+          latest=false
+          [ "$highest" = "$TAG" ] && latest=true
+          gh release edit "$TAG" --draft=false --latest="$latest"
+
+      # Which artifacts reached the release and which did not, whatever step
+      # failed.
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo "### Release ${TAG:-unresolved}"
+            echo
+            if ! gh release view "${TAG:-none}" --json isDraft,url,assets > release.json 2>/dev/null; then
+              echo "No release created."
+              exit 0
+            fi
+            jq -r '"draft: \(.isDraft)  \(.url)"' release.json
+            echo
+            remote="$(jq -r '.assets[].name' release.json | sort)"
+            expected="$( (cd dist 2>/dev/null && ls -1 specs_* SHA256SUMS 2>/dev/null) | sort)"
+            echo "| Asset | State |"
+            echo "|---|---|"
+            for name in $(printf '%s\n%s\n' "$expected" "$remote" | sort -u); do
+              if printf '%s\n' "$remote" | grep -qxF "$name"; then
+                echo "| $name | uploaded |"
+              else
+                echo "| $name | missing |"
+              fi
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

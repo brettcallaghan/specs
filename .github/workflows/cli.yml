@@ -176,24 +176,11 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: cli/go.sum
 
+      # The release workflow's own build script, so a target or archive
+      # step that stops working fails here rather than at release time.
       - name: Build every target
-        env:
-          # No cgo: this is what makes the artifact a single static file
-          # with no libc to find at run time (AC-SPEC-009.4).
-          CGO_ENABLED: "0"
-        run: |
-          set -euo pipefail
-          for target in \
-            linux/amd64 linux/arm64 \
-            darwin/amd64 darwin/arm64 \
-            windows/amd64 windows/arm64
-          do
-            goos="${target%/*}"
-            goarch="${target#*/}"
-            echo "==> $goos/$goarch"
-            GOOS="$goos" GOARCH="$goarch" \
-              go build -trimpath -ldflags="-s -w" -o /dev/null ./specs
-          done
+        working-directory: .
+        run: scripts/build-release.sh v0.0.0-ci "$RUNNER_TEMP/dist"
 
   # AC-SPEC-009.4's worked example, run rather than asserted: the binary
   # is executed in an image holding a shell, busybox's coreutils and
