@@ -11,10 +11,10 @@ findings: ["c4s1#3", "qqnx#1"]
 recurrence: 4
 report: docs/retros/2026-10-07-c4s1-c4-diagrams-parser.md
 
-run: specs-c4s1
-branch: sprint/specs-c4s1
+run: "the sprint run recorded in report"
+branch: sprint/<run-epic>
 skill_version: swarm 0.1.0 (source commit 1cea7e4)
-model: "dev-specs-c4s1-1 opus, dev-specs-c4s1-2 sonnet, dev-specs-c4s1-3 haiku, dev-specs-c4s1-4 haiku; coordinator, plan, review and retro agents on the session default model; effort unrecorded"
+model: "dev-<run-epic>-1 opus, dev-<run-epic>-2 sonnet, dev-<run-epic>-3 haiku, dev-<run-epic>-4 haiku; coordinator, plan, review and retro agents on the session default model; effort unrecorded"
 ---
 
 ## What is wrong, and what it costs
@@ -25,9 +25,9 @@ model: "dev-specs-c4s1-1 opus, dev-specs-c4s1-2 sonnet, dev-specs-c4s1-3 haiku, 
 
 Finding ids are `<bead>#<ordinal>` in agent-plugins' tracker, `specs-` prefix dropped.
 
-- `c4s1#3` — "retro:tooling:swarm swarm dispatch accept fast-forwarded the dispatch branch into the main checkout's CURRENT branch (claude/project-thread-u8o164, the harness-designated branch) rather than into the recorded sprint branch sprint/specs-c4s1, then exited 2 because bb/dev-specs-c4s1-1 was not an ancestor of sprint/specs-c4s1 (merged_sha read d21fdef). Repaired by git branch -f sprint/specs-c4s1 6c43deb and re-running accept (exit 0). Related: dispatch open refuses an existing branch as the sprint branch, so a harness that mandates one push branch forces a second sprint branch plus accept --no-push."
-- `qqnx#1` (run `specs-qqnx`, 2026-10-08; record `docs/retros/2026-10-08-qqnx-spec-cli-qa-round-2-fixes.md`) — "retro:tooling:swarm swarm dispatch accept fast-forwarded the CHECKED-OUT branch rather than the run's target: with the coordinator checkout on claude/project-thread-nr65x0, accept for dev-qqnx-1 reported 'serialized ... fast-forwarded into sprint/specs-qqnx' but sprint/specs-qqnx stayed at 4676bc4 and claude/project-thread-nr65x0 moved to a22fd79; it exited 2 on the ancestry guard. Its --explain lists 'git rev-parse --verify HEAD^{commit} (the repository is on the target)' but nothing refuses when HEAD is not the target. Repaired by hand: git branch -f claude/project-thread-nr65x0 4676bc4; git checkout sprint/specs-qqnx; re-ran accept -> exit 0. Expected: accept refuses (exit 2, naming the target) when HEAD is not on the target branch, before any merge."
-- Recurrence 4: the runs after `specs-c4s1` whose records cite this issue are `specs-c4s2`, `specs-c4model`, `specs-xqm` ("fourth run running") and `specs-qqnx`. `specs-qqnx` adds that accept's report says "fast-forwarded into sprint/specs-qqnx" while that ref did not move.
+- `c4s1#3` — "retro:tooling:swarm swarm dispatch accept fast-forwarded the dispatch branch into the main checkout's CURRENT branch (claude/project-thread-u8o164, the harness-designated branch) rather than into the recorded sprint branch sprint/<run-epic>, then exited 2 because bb/dev-<run-epic>-1 was not an ancestor of sprint/<run-epic> (merged_sha read d21fdef). Repaired by git branch -f sprint/<run-epic> 6c43deb and re-running accept (exit 0). Related: dispatch open refuses an existing branch as the sprint branch, so a harness that mandates one push branch forces a second sprint branch plus accept --no-push."
+- `qqnx#1` (a later run, 2026-10-08; record `docs/retros/2026-10-08-qqnx-spec-cli-qa-round-2-fixes.md`) — "retro:tooling:swarm swarm dispatch accept fast-forwarded the CHECKED-OUT branch rather than the run's target: with the coordinator checkout on claude/project-thread-nr65x0, accept for dev-qqnx-1 reported 'serialized ... fast-forwarded into sprint/<later-run>' but sprint/<later-run> stayed at 4676bc4 and claude/project-thread-nr65x0 moved to a22fd79; it exited 2 on the ancestry guard. Its --explain lists 'git rev-parse --verify HEAD^{commit} (the repository is on the target)' but nothing refuses when HEAD is not the target. Repaired by hand: git branch -f claude/project-thread-nr65x0 4676bc4; git checkout sprint/<later-run>; re-ran accept -> exit 0. Expected: accept refuses (exit 2, naming the target) when HEAD is not on the target branch, before any merge."
+- Recurrence 4: the records of four later runs cite this issue, one of them noting "fourth run running". The latest of them, quoted above, adds that accept's report says "fast-forwarded into sprint/<later-run>" while that ref did not move.
 
 ## Proposed change
 

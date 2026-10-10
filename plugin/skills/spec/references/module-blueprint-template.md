@@ -376,7 +376,7 @@ End with a Verification gates entry. Name the SPECIFIC tests that MUST
 run when this module changes — real runnable targets (test paths, ids,
 or task names), not "the suite." This is the minimal, targeted set an
 agent changing the module runs to prove the change before handoff:
-running the whole suite for every change does not scale (a bead bonanza
+running the whole suite for every change does not scale (a parallel sprint run
 slows to a crawl), so the blueprint is the authority on what THIS
 module's change must run. CI and downstream agents still run the full
 suite. Feature blueprints map their AC Coverage "Verified by" column onto

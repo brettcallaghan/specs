@@ -40,7 +40,7 @@ the orchestrator is the thing that died."**
 |-------|-------|
 | Origin project | agent-plugins (self) |
 | Skill critiqued | `bead-bonanza` v1.3 |
-| Task | Implement the reference-integrity feature (epic `agent-plugins-9kb`, 10 work orders + 4 prerequisite/adjacent beads) |
+| Task | Implement the reference-integrity feature (one epic, 10 work orders + 4 prerequisite/adjacent beads) |
 | Run directory | `/tmp/claude/bead-bonanza/1786121603-ri/` |
 | Subagents dispatched | 7 (tiers: 1 haiku, 2 sonnet, 4 opus) |
 | Beads closed by the run | `koi`, `tix`, `j7f`, `ml9`, `9kb.1`–`9kb.4` |
@@ -120,11 +120,11 @@ is not a store you may rely on for anything you need after a gap.**
    transcripts.
 
 2. **[gap, blocker] The exact fact reconstructed by hand was sitting in a
-   file.** `agent-plugins-9kb.5.progress.jsonl` contained, in full:
+   file.** `<bead-id>.progress.jsonl` contained, in full:
 
    > ```
-   > {"bead":"agent-plugins-9kb.5","phase":"claimed"}
-   > {"bead":"agent-plugins-9kb.5","phase":"implementing"}
+   > {"bead":"<bead-id>","phase":"claimed"}
+   > {"bead":"<bead-id>","phase":"implementing"}
    > ```
 
    against a completed bead's six-line trace ending
@@ -492,25 +492,25 @@ the proposal table.
 Approved alongside two sibling RFCs in `rfcs/inbox/bead-bonanza/`; with
 more than five proposals approved and most of them changing one file,
 step 5's "Sequence before you edit" branch applied, so each proposal was
-filed as a bead under epic `agent-plugins-92q` and run through
+filed as a bead under one epic and run through
 `groom-beads` rather than implemented inline. The second sprint replaced
 two mechanisms these proposals depended on — the tracker's transport and
 the liveness signal — and the affected rows say so.
 
-| Item | Outcome | Bead |
-|------|---------|------|
-| P1 — persist the run directory where recovery already looks | **adopted with refinement.** The problem is solved; the canonical store is not the one P1 named. P1 made a tracker note on the epic canonical *because* `.beads/issues.jsonl` was committed and therefore survived container reclaim. `agent-plugins-92q.31` untracked the JSONL exports, voiding that rationale, so no tracker note is written. What replaced it, in order of authority: the run is derived from the branch — one run, one branch, one run directory, and `git log <default-branch>..HEAD` lists the beads that landed; `.bonanza/<run-id>/SNAPSHOT.md`, committed on that branch, names the run and its as-of time and survives a reclaim; `${TMPDIR:-/tmp}/claude/bead-bonanza/current`, a symlink `pre-flight-check.sh` repoints at the start of every run, is the cheap local shortcut, kept as P1 proposed. `dispatch.md` is written unconditionally and carries a run manifest. | `agent-plugins-92q.3`, `agent-plugins-92q.6`, `agent-plugins-92q.13`, `agent-plugins-92q.23` |
-| P2 — add an orchestrator-recovery entry procedure | **adopted with refinement.** `references/recovery.md` gained the section, and steps 1, 2, 4 and 5 landed substantially as written. Step 3 did not survive: its mtime liveness table (`< ~5 min` alive, `> ~30 min` orphaned, via `git status --porcelain` and `stat`) landed as proposed and was then deleted when `agent-plugins-92q.30` made every bead run in its own worktree. Worktree presence is now the in-flight signal and `git worktree list` is the whole answer, so the file states the opposite of P2's step 3: "Do not infer liveness from file mtimes." The heuristic P2 was right to prefer over `bd list --status in_progress` was replaced by a fact rather than a better heuristic. | `agent-plugins-92q.11`; step 3 replaced by `agent-plugins-92q.30` / `agent-plugins-92q.33` |
-| P3 — back the Monitor with a durable trigger | **adopted** as written. `references/recovery.md`, "Back the Monitor with a durable trigger": the `Monitor` stays the fast path, an out-of-session check-in is armed before the first dispatch at 15–30 minute intervals carrying the run pointer and the recovery entry point, and it is cancelled in Phase 4. | `agent-plugins-92q.14` |
-| P4 — make `dispatch.md` amendable, with a revision log | **adopted** as written, and slightly widened: `dispatch.md` is now written unconditionally rather than only for large runs, enumerates the beads in scope, and carries a run manifest alongside the `## Amendments` log. The recovery procedure's step 2 reconciles the amendments against the wave table, which is what makes an amendment load-bearing rather than decorative. | `agent-plugins-92q.6` |
-| P5 — back up the run directory before it is reclaimed | **adopted with refinement, and merged with the sibling RFC's P2.** RFC 0018 (`rfc-0018-silent-ceremony-loss-and-the-stale-twin`) P2 refined this proposal rather than duplicating it, and the two were implemented as one bead: `scripts/bb-backup-run.sh` copies the run directory to `.bonanza/<run-id>/` and writes a self-describing `SNAPSHOT.md`. Two refinements to P5 as written: the snapshot is refreshed after **every bead's acceptance check**, not once per wave — a copy taken once goes stale within the half hour, which is the sibling's finding — and the live run directory is authoritative wherever both exist. Committed-not-gitignored and deleted as the final act of Phase 4 landed as proposed. | `agent-plugins-92q.13`, `agent-plugins-xvl`, `agent-plugins-vme` |
+| Item | Outcome |
+|------|---------|
+| P1 — persist the run directory where recovery already looks | **adopted with refinement.** The problem is solved; the canonical store is not the one P1 named. P1 made a tracker note on the epic canonical *because* `.beads/issues.jsonl` was committed and therefore survived container reclaim. A later bead untracked the JSONL exports, voiding that rationale, so no tracker note is written. What replaced it, in order of authority: the run is derived from the branch — one run, one branch, one run directory, and `git log <default-branch>..HEAD` lists the beads that landed; `.bonanza/<run-id>/SNAPSHOT.md`, committed on that branch, names the run and its as-of time and survives a reclaim; `${TMPDIR:-/tmp}/claude/bead-bonanza/current`, a symlink `pre-flight-check.sh` repoints at the start of every run, is the cheap local shortcut, kept as P1 proposed. `dispatch.md` is written unconditionally and carries a run manifest. |
+| P2 — add an orchestrator-recovery entry procedure | **adopted with refinement.** `references/recovery.md` gained the section, and steps 1, 2, 4 and 5 landed substantially as written. Step 3 did not survive: its mtime liveness table (`< ~5 min` alive, `> ~30 min` orphaned, via `git status --porcelain` and `stat`) landed as proposed and was then deleted when a later bead made every bead run in its own worktree. Worktree presence is now the in-flight signal and `git worktree list` is the whole answer, so the file states the opposite of P2's step 3: "Do not infer liveness from file mtimes." The heuristic P2 was right to prefer over `bd list --status in_progress` was replaced by a fact rather than a better heuristic. |
+| P3 — back the Monitor with a durable trigger | **adopted** as written. `references/recovery.md`, "Back the Monitor with a durable trigger": the `Monitor` stays the fast path, an out-of-session check-in is armed before the first dispatch at 15–30 minute intervals carrying the run pointer and the recovery entry point, and it is cancelled in Phase 4. |
+| P4 — make `dispatch.md` amendable, with a revision log | **adopted** as written, and slightly widened: `dispatch.md` is now written unconditionally rather than only for large runs, enumerates the beads in scope, and carries a run manifest alongside the `## Amendments` log. The recovery procedure's step 2 reconciles the amendments against the wave table, which is what makes an amendment load-bearing rather than decorative. |
+| P5 — back up the run directory before it is reclaimed | **adopted with refinement, and merged with the sibling RFC's P2.** RFC 0018 (`rfc-0018-silent-ceremony-loss-and-the-stale-twin`) P2 refined this proposal rather than duplicating it, and the two were implemented as one bead: `scripts/bb-backup-run.sh` copies the run directory to `.bonanza/<run-id>/` and writes a self-describing `SNAPSHOT.md`. Two refinements to P5 as written: the snapshot is refreshed after **every bead's acceptance check**, not once per wave — a copy taken once goes stale within the half hour, which is the sibling's finding — and the live run directory is authoritative wherever both exist. Committed-not-gitignored and deleted as the final act of Phase 4 landed as proposed. |
 
 **Triage-originated changes.** From the review session rather than from
 this RFC's testimony, numbered `T` so they are not read as its proposals.
 
-| Item | Outcome | Bead |
-|------|---------|------|
-| T1 — add `pre-flight-check.sh`: mechanize Phase 0 on macOS and Linux, and measure what it currently asserts | **adopted.** Phase 0 spent ~4,600 bytes of the compaction-surviving window describing shell commands; the script now performs them, including creating the run directory, repointing the `current` symlink P1 asks for, and capturing the gate baseline. | `agent-plugins-92q.3` |
+| Item | Outcome |
+|------|---------|
+| T1 — add `pre-flight-check.sh`: mechanize Phase 0 on macOS and Linux, and measure what it currently asserts | **adopted.** Phase 0 spent ~4,600 bytes of the compaction-surviving window describing shell commands; the script now performs them, including creating the run directory, repointing the `current` symlink P1 asks for, and capturing the gate baseline. |
 
 **On the P5/P2 merge.** Recorded in both Resolutions so neither reads as
 unaddressed. This RFC's P5 established *that* a copy must exist, be
@@ -553,7 +553,7 @@ RFC. Plugin 0.16.0→0.17.0, one MINOR bump covering this RFC and its two
 siblings.
 
 The `version` frontmatter of the changed shipped **skills** has been
-bumped in `agent-plugins-x8r`: `bead-bonanza` 1.3→1.4 and `spec` 1.8→1.9.
+bumped: `bead-bonanza` 1.3→1.4 and `spec` 1.8→1.9.
 The other four (`groom-beads` 1.1→1.2, `groom-feature-blueprint`
 1.2→1.3, `retro-skill` 0.3→0.4, `retro-spec` 1.3.0→1.4.0) were bumped
 for the SKILL.md edits this RFC's own closeout made, which had gone

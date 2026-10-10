@@ -11,8 +11,8 @@ findings: ["qqnx#4"]
 recurrence: 0
 report: docs/retros/2026-10-08-qqnx-spec-cli-qa-round-2-fixes.md
 
-run: specs-qqnx
-branch: sprint/specs-qqnx
+run: "the sprint run recorded in report"
+branch: sprint/<run-epic>
 skill_version: swarm 0.1.0 (source commit 1cea7e4)
 model: "<withheld by session policy>"
 ---
@@ -25,9 +25,9 @@ model: "<withheld by session policy>"
 
 Finding ids are `<bead>#<ordinal>` in agent-plugins' tracker, `specs-` prefix dropped.
 
-- `qqnx#4` — "retro:tooling:swarm A dispatch that fixes two beads in one commit fails accept's 'committed' signal (one '<id> P<n>' subject per bead) and 'findings' (no retro: comment) after the merge has already happened and the dispatch branch is deleted; re-accept then fails 'bb/dev-qqnx-9 could not be resolved'. evidence: accept exit 1 acceptance_failures [specs-qqnx.15: committed, findings, specs-qqnx.16: committed, findings]; second accept exit 2 rev-parse 128. Fixed by rewording to fc569da + empty close commit 793b724, adding retro:proof comments, recreating the branch at 793b724; third accept exit 0 landed true."
+- `qqnx#4` — "retro:tooling:swarm A dispatch that fixes two beads in one commit fails accept's 'committed' signal (one '<id> P<n>' subject per bead) and 'findings' (no retro: comment) after the merge has already happened and the dispatch branch is deleted; re-accept then fails 'bb/dev-qqnx-9 could not be resolved'. evidence: accept exit 1 acceptance_failures [<bead-a>: committed, findings, <bead-b>: committed, findings]; second accept exit 2 rev-parse 128. Fixed by rewording to fc569da + empty close commit 793b724, adding retro:proof comments, recreating the branch at 793b724; third accept exit 0 landed true."
 
-On the sprint branch, `git show --stat 793b724` lists no files. It is the empty close commit for `specs-qqnx.16`.
+On the sprint branch, `git show --stat 793b724` lists no files. It is the empty close commit for `<bead-b>`.
 
 ## Proposed change
 

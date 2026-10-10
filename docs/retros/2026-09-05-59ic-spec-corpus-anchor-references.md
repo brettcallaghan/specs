@@ -1,11 +1,11 @@
-# Run record — `agent-plugins-59ic`, spec corpus anchor references
+# Run record — spec corpus anchor references
 
 *Written by `retro-59ic` on 2026-09-05. One document: the run's results, every
 finding it captured, what it routed where, and what it could not establish.*
 
 *A companion document exists and is not this one.
 `rfcs/inbox/feature-blueprint/rfc-0025-implementing-anchor-references.md` was
-written by `agent-plugins-rc14.8` as the run's last work order, through the
+written by `rc14.8` as the run's last work order, through the
 `retro-spec` lens: it argues from nine of these findings into six proposals
 against **this project's specification documents**. It is cited throughout and
 deliberately not restated. What it does not carry — and what this document
@@ -17,13 +17,13 @@ and what could not be verified.*
 
 | | |
 |---|---|
-| run epic | `agent-plugins-59ic` — "Sprint run: spec corpus anchor references" |
-| target | `agent-plugins-rc14` — "Spec corpus anchor references", adopted whole as the run's flat target |
-| sprint branch | `sprint/agent-plugins-59ic` |
+| run epic | "Sprint run: spec corpus anchor references" |
+| target | "Spec corpus anchor references", adopted whole as the run's flat target |
+| sprint branch | the sprint branch |
 | `base_sha` → head | `225751e` → `a852925`, nine commits |
 | queue | 9 admitted, 0 excluded (`manifest.excluded` is `[]`), 0 moved |
 | dispatches | five — `dev-59ic-a` … `dev-59ic-e` |
-| partition | `.beads/plans/agent-plugins-59ic.edges.jsonl`; `concurrency_cap` 20 |
+| partition | the run's edges file under `.beads/plans/`; `concurrency_cap` 20 |
 | declared checks | 12 — `format`, `vet`, `build`, `test-go`, `skills`, `shared-refs`, `strata-docs`, `schemas`, `corpus`, `ref-links`, `template-drift`, `skills-strict` |
 | capability tiers | 6 `standard` → `sonnet`, 3 `advanced` → `opus`, resolved through `swarm.toml`'s `[models]`. **Which model actually served each dispatch is not recorded anywhere durable** — see "What the run could not verify" |
 | effort | `unrecorded` (`manifest.effort`) |
@@ -115,7 +115,7 @@ consequential discoveries:
   `[[#Terminology]]`, a section of the referring document, resolves its anchor
   and fails its slug half every time. A corpus gating on `spec check --strict`
   — this one does — cannot use the form the ADR requires. Filed as
-  `agent-plugins-clau`; `rfc-0025` P6 asks review to decide which of the two
+  a bead; `rfc-0025` P6 asks review to decide which of the two
   documents gives way. **Review pass 1 added the consequence that makes it
   worse than a failing gate:** `spec refs 'adr-800-current#Local Section'`
   returns `references: []` at exit 0 for a document that *does* carry that
@@ -133,10 +133,10 @@ nothing inherited a broken build and no acceptance obligation went unmet.
 exclusion.** `manifest.excluded` is `[]` and `manifest.moved` is `[]`. Two
 amendments widened it at the gate, both human-authorized:
 
-- `agent-plugins-bem` (P2, previously unparented) was admitted into the target
+- One P2 bead, previously unparented, was admitted into the target
   epic. It blocks `rc14.6`; without it `rc14.6` and `rc14.8` could never become
-  ready. No bead left an epic — `bem` had no parent.
-- `agent-plugins-rc14` (previously unparented) was adopted as the run's flat
+  ready. No bead left an epic — it had no parent.
+- The feature epic (previously unparented) was adopted as the run's flat
   target. Its children did not move.
 
 **Where the scope IS narrower than the run's own evidence, and it must be said
@@ -145,16 +145,16 @@ were **filed and not worked**. Both remain open:
 
 | bead | priority | what it is |
 |---|---|---|
-| `agent-plugins-59ic.7` | P1 | `Report.Ran` sets `Passed` whenever `state.failed` is false, and `Report.Add`'s unverified branch never sets `failed` — so an unverified outcome is overwritten and its reason wiped. Measured end to end: one report printing both `reference/unresolved-anchor unverified … could not run` and `reference/unresolved-anchor passed`. **This run created the defect's first reachable emitter**, so the run owns it |
-| `agent-plugins-59ic.8` | P2 | `specs/guides/spec-cli-reference.md` still says "an anchor is split off, not resolved" and names four reference rules where the tool now has six. Its vendored copy under `plugin/skills/spec/references/shared/` is generated, so it is one defect with one remedy — and that copy ships to every project that installs the `spec` skill |
+| `59ic.7` | P1 | `Report.Ran` sets `Passed` whenever `state.failed` is false, and `Report.Add`'s unverified branch never sets `failed` — so an unverified outcome is overwritten and its reason wiped. Measured end to end: one report printing both `reference/unresolved-anchor unverified … could not run` and `reference/unresolved-anchor passed`. **This run created the defect's first reachable emitter**, so the run owns it |
+| `59ic.8` | P2 | `specs/guides/spec-cli-reference.md` still says "an anchor is split off, not resolved" and names four reference rules where the tool now has six. Its vendored copy under `plugin/skills/spec/references/shared/` is generated, so it is one defect with one remedy — and that copy ships to every project that installs the `spec` skill |
 
 `59ic.7` is the sharper of the two: **the run shipped a check whose "passed"
 line can be vacuous**, and it shipped it green.
 
 Three further beads were touched by findings and deliberately not worked:
-`agent-plugins-bieu` (P2, `document-core` contradicts itself about Markdown
-Structure — `rc14.5#3`, `rc14.8#8`), `agent-plugins-clau` (P2, above), and
-`agent-plugins-z8r` (P4, deferred, untouched — verified by `rc14.8#3`).
+one P2 (`document-core` contradicts itself about Markdown
+Structure — `rc14.5#3`, `rc14.8#8`), the `adr-012` slug-less-anchor bead (P2, above), and
+one P4 (deferred, untouched — verified by `rc14.8#3`).
 
 ## What the coordinator recorded
 
@@ -166,8 +166,8 @@ candidate **D** below.
 
 1. **`swarm dispatch accept` folds into whatever `HEAD` is on, not into the
    manifest's branch — and reports success.** With the main checkout on
-   `claude/swarm-agent-plugins-rc14-lclbkc` it fast-forwarded *that* branch,
-   left `sprint/agent-plugins-59ic` at base, and still returned `merged: true`
+   the session's designated branch it fast-forwarded *that* branch,
+   left the sprint branch at base, and still returned `merged: true`
    with `merged_sha` set to the pre-merge target head. Only the ancestry guard
    (`ancestor: false`, exit 2) caught it. Repaired by checking the repository
    out onto the sprint branch, resetting the wrongly-advanced branch to
@@ -203,8 +203,7 @@ a finding rather than through an amendment:
    validate`, with **23** `is not an epic or molecule (type: task)` errors —
    it runs `bd swarm validate` over every issue in the repository and that
    subcommand accepts only epics and molecules. Its exit code cannot gate
-   anything. **Already filed three times** (`agent-plugins-7jxt`,
-   `agent-plugins-84yu`, `agent-plugins-prnv`); nothing new to file.
+   anything. **Already filed three times**; nothing new to file.
 6. **`scripts/regenerate-cli-snapshots.sh` already regenerates the fixtures
    three agents hand-patched** — `rc14.1#4`, `rc14.2#3`, `rc14.4#4`, measured
    as zero-diff on the finished tree by `rc14.8#7`. Pure wasted effort, three
@@ -308,7 +307,7 @@ ordinal being the finding's position among that bead's own `retro:` records.
 
 **`rc14.1#1`**
 
-> retro:decision Added the two anchor variants' Go constructors and RuleId constants (UnresolvedAnchor/AmbiguousAnchor, reference/unresolved-anchor and reference/ambiguous-anchor) in cli/core/finding in this bead, per the blueprint's FIND-delta Anchors line naming 'the constructors in cli/core/finding' as in scope. Left them unwired: not added to cli/cmd/check.go's checkRules registry nor to finding.corpusWideRules, since nothing raises these findings until the CHK bead (agent-plugins-rc14.6) implements the actual checks — registering an unused rule there would misreport it as 'passed' in every run's checks accounting before any check produces it.
+> retro:decision Added the two anchor variants' Go constructors and RuleId constants (UnresolvedAnchor/AmbiguousAnchor, reference/unresolved-anchor and reference/ambiguous-anchor) in cli/core/finding in this bead, per the blueprint's FIND-delta Anchors line naming 'the constructors in cli/core/finding' as in scope. Left them unwired: not added to cli/cmd/check.go's checkRules registry nor to finding.corpusWideRules, since nothing raises these findings until the CHK bead (rc14.6) implements the actual checks — registering an unused rule there would misreport it as 'passed' in every run's checks accounting before any check produces it.
 
 **`rc14.1#2`**
 
@@ -320,7 +319,7 @@ ordinal being the finding's position among that bead's own `retro:` records.
 
 > retro:gap The slug-less anchor form adr-012 mandates is reported as an
 > error by a check that predates this feature; anchor resolution is what
-> made the contradiction visible. Filed as agent-plugins-clau, not fixed.
+> made the contradiction visible. Filed as a bead, not fixed.
 > evidence: specs/adrs/adr-012-reference-conventions.md:54-55 — "A section
 > of the referring document itself is referenced by an anchor with the
 > slug omitted: `[[#Terminology]]`." AC-SPECANCH-002.6 resolves that
@@ -337,13 +336,13 @@ ordinal being the finding's position among that bead's own `retro:` records.
 > it today (all eleven anchored references carry a slug), so no gate
 > fails. The fix is a decision between exempting the form in
 > `reference/unresolved` and withdrawing it from adr-012; recorded as P6
-> of rfc-0025 and tracked as agent-plugins-clau.
+> of rfc-0025 and tracked as a bead.
 
 **`rc14.8#9`**
 
 > retro:gap Two findings from this run belong to the SKILL lens and are
 > not in rfc-0025; nobody has run retro-skill for them.
-> evidence: (1) agent-plugins-rc14.4 recorded that an `advanced`-tier bead
+> evidence: (1) rc14.4 recorded that an `advanced`-tier bead
 > landed on a dispatch also holding two `standard` ones because a shared
 > collision mark (generated:cli/core/schema/spec-model.schema.json)
 > serialized them, and asked whether tier is meant to gate assignment —
@@ -397,7 +396,7 @@ ordinal being the finding's position among that bead's own `retro:` records.
 > same corpus, `[[#Probe]]` written in a standalone docs/probe.feature
 > gave `reference/unresolved-anchor  unverified  4:48  check
 > reference/unresolved-anchor could not run: no headings are recorded for
-> docs/probe.feature`. agent-plugins-rc14.4 reached this empirically and
+> docs/probe.feature`. rc14.4 reached this empirically and
 > recorded that the FRD contradicted the code. Replaced the example with
 > the reachable case rather than filing it, per the RFC template's own
 > scope note ("The fix is to one document's CONTENT ... just fix the
@@ -410,7 +409,7 @@ ordinal being the finding's position among that bead's own `retro:` records.
 > evidence: the epic and this bead say nine; the FRD's Overview said "Nine
 > references in the corpus name an anchor — four into
 > `container-spec-cli#Command Surface`, five into component rosters of
-> [[module-document-core]]"; agent-plugins-rc14.6 measured eleven. Did not
+> [[module-document-core]]"; rc14.6 measured eleven. Did not
 > inherit any of them. Measured from a freshly built index over this
 > repository: `spec index --out - | jq '[.references[] | select(.anchor !=
 > null and .anchor != "")] | length'` -> 11 (of 697 references), and
@@ -432,7 +431,7 @@ ordinal being the finding's position among that bead's own `retro:` records.
 **`rc14.5#3`**
 
 > retro:stale The module document's Markdown Links relationship paragraph sits beside three claims about Markdown Structure that the heading work has already falsified; filed rather than fixed.
-> evidence: 'The Corpus -> Markdown Structure edge is still the intended shape rather than an existing one: nothing in Corpus calls `cli/core/markdown` yet' in specs/modules/document-core/document-core-module.md, contradicted by 'grep -n "markdown\." cli/core/corpus/corpus.go cli/core/corpus/features.go' -> 'corpus.go:556: found := markdown.HeadingsFrom(src, from)' and 'features.go:232: for _, block := range markdown.Fenced(...)'. Also 'Go package (fences built)' in the component's diagram entry, and 'Markdown Structure -> Spans is now real for the fenced-block half'. Filed as agent-plugins-bieu (discovered-from rc14.5), adjacent rather than blocking.
+> evidence: 'The Corpus -> Markdown Structure edge is still the intended shape rather than an existing one: nothing in Corpus calls `cli/core/markdown` yet' in specs/modules/document-core/document-core-module.md, contradicted by 'grep -n "markdown\." cli/core/corpus/corpus.go cli/core/corpus/features.go' -> 'corpus.go:556: found := markdown.HeadingsFrom(src, from)' and 'features.go:232: for _, block := range markdown.Fenced(...)'. Also 'Go package (fences built)' in the component's diagram entry, and 'Markdown Structure -> Spans is now real for the fenced-block half'. Filed as a bead (discovered-from rc14.5), adjacent rather than blocking.
 
 **`bem#4`**
 
@@ -442,7 +441,7 @@ ordinal being the finding's position among that bead's own `retro:` records.
 
 **`rc14.8#8`**
 
-> retro:scope agent-plugins-bieu overlaps this fold and was left alone, as
+> retro:scope the `document-core` Markdown Structure bead overlaps this fold and was left alone, as
 > instructed. Its subject is one of the two documents this bead verified.
 > evidence: specs/modules/document-core/document-core-module.md:1627 still
 > reads "The Corpus -> Markdown Structure edge is still the intended shape
@@ -476,7 +475,7 @@ ordinal being the finding's position among that bead's own `retro:` records.
 
 > retro:tooling Three agents in this run hand-patched the same five
 > snapshot fixtures; the regeneration script already covers them.
-> evidence: agent-plugins-rc14.1, .2 and .4 each recorded diffing a fresh
+> evidence: rc14.1, .2 and .4 each recorded diffing a fresh
 > run against the committed fixture and replacing the `input_hash` line by
 > hand in cli/testdata/cases/{index-default,index-features,
 > index-out-custom,index-out-stdout,index-unresolved-reference}/expected/
@@ -530,8 +529,8 @@ ordinal being the finding's position among that bead's own `retro:` records.
 > `spec check --strict` over this repository: exit 0, "no findings", with
 > `reference/ambiguous-anchor  passed` and `reference/unresolved-anchor
 > passed` both present in the per-rule list — 25 rules where the baseline
-> had 23. (5) Tracker Reconciliation: agent-plugins-bem CLOSED,
-> agent-plugins-z8r DEFERRED, agent-plugins-im99 OPEN; none subsumed, none
+> had 23. (5) Tracker Reconciliation: one bead CLOSED,
+> one DEFERRED, one OPEN; none subsumed, none
 > touched. (6) Retirement is safe: `spec refs
 > feature-spec-anchor-references` -> `references: []`, so no live document
 > cites the blueprint and `reference/retired-target` cannot fire on it.
@@ -618,7 +617,7 @@ running `retro-skill` for them:
   name" → `rfc-0025` routes this to "the repository that vends the template,
   not in this project's documents." **That repository is this one.**
   `plugin/skills/spec/references/feature-blueprint-template.md` is in this
-  tree, and `agent-plugins-im99` is an open bead against that very file. The
+  tree, and an open bead stands against that very file. The
   durable half of the run's most expensive finding was therefore routed
   nowhere. Candidate **F** recovers it.
 
@@ -707,7 +706,7 @@ figures do not match a fresh measurement — has not been seen to pass on
 
 ## Pushes
 
-**Nothing is stranded.** `git log origin/sprint/agent-plugins-59ic..HEAD` is
+**Nothing is stranded.** `git log origin/<sprint branch>..HEAD` is
 empty: the sprint branch is pushed at `a852925`. `git status --porcelain` is
 empty and `git worktree list` returns one entry.
 
@@ -737,7 +736,7 @@ does not exist.
   coordinator write the resolved model per dispatch onto the manifest.
 - **`bb-close-bead.sh --trailers-from <run-epic>` exiting 2.** The *consequence*
   is measured — no commit carries a trailer — and the *cause* is now measured
-  too: `swarm manifest get --run agent-plugins-59ic --key trailers` returns
+  too: `swarm manifest get --run <run epic> --key trailers` returns
   `ok: false, value: null`, and `bb-close-bead.sh`'s `--trailers-from`
   block (opening `if [ -n "$trailers_epic" ]` — line 150 as a hint) exits 2
   with "carries no `trailers` in its manifest" on exactly that. What is **not**
@@ -797,7 +796,7 @@ on, and reports success.** Priority **0**. New.
 > vc.Resolve("merged-head", target)` at line 620 — which is why `merged_sha`
 > comes back as the pre-merge target head while `merged` reads `true`.
 > **Cost, measured on this run:** the fold landed on
-> `claude/swarm-agent-plugins-rc14-lclbkc`, `sprint/agent-plugins-59ic` stayed
+> the session's designated branch, the sprint branch stayed
 > at `225751e`, and the command reported success. Only the ancestry guard
 > (`ancestor: false`, exit 2) caught it; without that guard a run would
 > continue against a branch carrying none of its work.
@@ -817,7 +816,7 @@ New.
 
 > `bb-close-bead.sh --trailers-from <run-epic>` reads `metadata.trailers` off
 > the run epic and exits 2 when it is empty. Measured on this run:
-> `swarm manifest get --run agent-plugins-59ic --key trailers` →
+> `swarm manifest get --run <run epic> --key trailers` →
 > `ok: false, value: null, issues: ["trailers is not set…"]`. Nothing in the
 > run's scope, plan or dispatch steps sets it. **Cost:** all nine closes ran
 > without trailers, and `git log --format='%H%n%b%n---' 225751e..a852925 |
@@ -835,7 +834,7 @@ worktree. RECURRENCE 1. ALREADY FILED — recommend filing nothing.**
 
 > Identical to
 > `.sf/outbox/swarm/2026-09-04-dispatch-accept-rebases-a-branch-still-checked-out-in-its-worktree.md`
-> (priority 0, from run `agent-plugins-d7w5`, finding `d7w5.2.1#12`), which
+> (priority 0, from the structure-extraction run, finding `d7w5.2.1#12`), which
 > reports `recurrence: 0`. This run hit it again — `fatal: 'bb/dev-59ic-c' is
 > already used by worktree` — with the same workaround. **A second issue would
 > split the evidence.** The action worth taking is to raise that issue's
@@ -851,7 +850,7 @@ harvest cannot see them.** Priority **2**. New.
 > `bd export | jq 'select(.text|startswith("retro:"))'` over the run's closure
 > set, and an `amend:` comment on the epic fails it twice over: wrong prefix,
 > and the epic is not in the closure set. Measured: that query returned **42**
-> findings across nine work-order beads and **0** from `agent-plugins-59ic`
+> findings across nine work-order beads and **0** from the run epic
 > itself — taken before this record added its own `retro:`-prefixed
 > bookkeeping comment there, which is not a finding and should not be read as
 > one. **Cost:** on this run the four survived only
@@ -903,7 +902,7 @@ out of this project by mistake.** Priority **2**. New.
 > form, routing it to "the repository that vends the template, not in this
 > project's documents". **That repository is this one:**
 > `plugin/skills/spec/references/feature-blueprint-template.md` is in this
-> tree, and `agent-plugins-im99` is an open bead against that same file.
+> tree, and an open bead stands against that same file.
 > **Cost:** the rule that would have prevented the run's worst failure is
 > currently filed nowhere at all.
 > **Proposed change:** add to the feature-blueprint template's delta guidance
@@ -923,7 +922,7 @@ Priority **2**. Recurrence **1**.
 > `dev-59ic-a` and `dev-59ic-c` both regenerated it, the rebase conflicted, and
 > **neither side was correct** — resolution required taking one side, re-running
 > `scripts/coverage.sh` on the combined tree, and folding the result into
-> `rc14.4`'s commit. **Recurrence:** run `agent-plugins-d7w5` pre-empted exactly
+> `rc14.4`'s commit. **Recurrence:** the structure-extraction run pre-empted exactly
 > this by putting "DO NOT run `scripts/coverage.sh` or commit README.md
 > coverage figures. The run's coordinator regenerates coverage once at the end"
 > into three bead Designs and the dispatch prompt — a remedy that had to be
@@ -1019,12 +1018,12 @@ acting on it in place.
 
 | candidate | bead | P |
 |---|---|---|
-| **F** | `agent-plugins-flvl` — the feature-blueprint template does not require a delta to list consumers that resolve a declaration by name | 2 |
-| **G** | `agent-plugins-x59j` — `AGENTS.md`'s `cli/**` coverage rule needs a concurrent-run exception | 2 |
-| **H** | `agent-plugins-e1zx` — ledger: the permission classifier blocks `swarm dispatch accept`'s push step, filed marked unverified as to what the classifier matches | 3 |
+| **F** | the feature-blueprint template does not require a delta to list consumers that resolve a declaration by name | 2 |
+| **G** | `AGENTS.md`'s `cli/**` coverage rule needs a concurrent-run exception | 2 |
+| **H** | ledger: the permission classifier blocks `swarm dispatch accept`'s push step, filed marked unverified as to what the classifier matches | 3 |
 
-`flvl` carries `discovered-from: agent-plugins-rc14.2`; `x59j` and `e1zx`
-carry `discovered-from: agent-plugins-59ic`, because both rest on coordinator
+F's bead carries `discovered-from: rc14.2`; G's and H's
+carry `discovered-from` the run epic, because both rest on coordinator
 records rather than on a work order's finding.
 
 **G was reframed by the decision, and the reframe changed the finding.**
@@ -1032,14 +1031,14 @@ records rather than on a work order's finding.
 `scripts/coverage.sh --check`, and the comment above it rejects a
 commit-the-README job because it "would put the number outside review, which is
 where an unnoticed coverage drop lives." So the CI half is settled and stays
-untouched. What `x59j` asks for is only the concurrent-run exception.
+untouched. What G's bead asks for is only the concurrent-run exception.
 
 ### The audit closes both ways
 
 Five `retro:filed:` back-links were written, one per finding an issue rests on:
 
 ```
-rc14.2 → agent-plugins-flvl                                   (rc14.2#1)
+rc14.2 → F's bead                                            (rc14.2#1)
 rc14.8 → issue-coordinator-tooling-findings-…                 (rc14.8#9)
 rc14.8 → issue-tier-and-collision-chain-…                     (rc14.8#9)
 rc14.4 → issue-tier-and-collision-chain-…                     (rc14.4#5)

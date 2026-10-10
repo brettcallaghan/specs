@@ -9,7 +9,7 @@ updated_at: 2026-10-07T06:05:00Z
 findings: []
 recurrence: 1
 report: docs/retros/2026-10-07-sra-c4-prerequisites-record-blocks.md
-run: specs-sra
+run: "the sprint run recorded in report"
 branch: claude/project-thread-es7x8o
 skill_version: swarm plugin as installed 2026-10-07 (swarm CLI 1cea7e43)
 model: dispatches resolved through manifest.models (standard->sonnet, light->haiku); served model and effort unrecorded

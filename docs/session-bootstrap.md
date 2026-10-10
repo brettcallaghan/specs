@@ -73,7 +73,7 @@ key highest-precedence-first — `.claude/settings.local.json`, then
 holds unless someone sets the local file. Pre-flight reads all three and reports
 which one answered.
 
-**It is no longer this repository's concern.** `bead-bonanza` and its worktree
+**It is no longer this repository's concern.** Parallel sprint runs and their worktree
 dispatch moved to [brettcallaghan/swarm](https://github.com/brettcallaghan/swarm),
 which commits the same key for the same reason; nothing left here runs a bead in
 a worktree. The committed value stays because a `swarm` run against THIS
@@ -117,7 +117,7 @@ go install github.com/steveyegge/beads/cmd/bd@latest >/dev/null 2>&1 || true
   && install -m 0755 "$(go env GOPATH)/bin/bd" /usr/local/bin/bd 2>/dev/null || true
 
 # Worktree base ref: without this a git worktree branches from the default
-# branch instead of session HEAD, and every bead in a bead-bonanza run loses
+# branch instead of session HEAD, and every bead in a parallel sprint run loses
 # the commits its sprint branch already carries. User-scope, so it belongs here.
 mkdir -p "$HOME/.claude"
 if [ ! -s "$HOME/.claude/settings.json" ]; then
@@ -134,8 +134,7 @@ cloned, and `scripts/install-strata-cli.sh` — which the hook runs, and which
 the `CLAUDE.md` fallback names — installs the release binary in seconds. That
 script reads `STRATA_ACCESS_TOKEN`, a fine-grained PAT with read access to
 `strata-lang/strata`, so set it as an environment variable on the
-environment. It goes away when `strata-lang/strata` becomes public —
-`agent-plugins-6gn` tracks the removal.
+environment. It goes away when `strata-lang/strata` becomes public.
 
 ### Trade-offs
 

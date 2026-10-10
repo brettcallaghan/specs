@@ -174,17 +174,17 @@ only through the command surface.
 
 ## Tracker Reconciliation
 
-- `specs-xqm.3` — subsumed by DIFF, with BASE: "criterion --changed
+- Subsumed by DIFF, with BASE: "criterion --changed
   compares against a git ref instead of the persisted index." Grooming
-  blocks it on DIFF, and the Definition of Done closes it.
-- `specs-xqm.20` — prerequisite: it implements the exit-status classes,
+  blocks that issue on DIFF, and the Definition of Done closes it.
+- Prerequisite: the work order that implements the exit-status classes,
   including the environment status `3` that BASE's errors and the
   `--since` invocation error depend on.
-- `specs-xqm.9` — out-of-scope: it renders `feature` and `criterion`
+- Out-of-scope: the work that renders `feature` and `criterion`
   queries as YAML lists. DIFF renders the change listing itself, and
   shares that work's YAML renderer without depending on its record
   shape.
-- `specs-xqm.21` — out-of-scope: whether queries may write `specs.json`.
+- Out-of-scope: whether queries may write `specs.json`.
   DIFF stops `--changed` reading it, whatever that decides.
 
 ## Sequencing Constraints
@@ -192,7 +192,7 @@ only through the command surface.
 - `delivery: single-pr`. BASE and DIFF land in the same change, with
   the documentation updates the Definition of Done lists.
 - The BASE delta SHALL land before the DIFF delta.
-- The `specs-xqm.20` work order SHALL land before the DIFF delta.
+- The exit-status work order SHALL land before the DIFF delta.
 
 ## AC Coverage
 
@@ -232,7 +232,8 @@ DIFF = change listing delta in [[container-spec-cli]].
   for (the default-branch order, the answer's shape, `--since` without
   `--changed`, a spec root outside the work tree) is lifted into
   [[frd-gherkin-adoption]] as a criterion and cited from its test
-- [x] `specs-xqm.3` is closed
+- [x] The subsumed `criterion --changed` issue is closed
+
 - [x] No live document references this blueprint (`specs refs
   feature-gherkin-change-detection` names no live document), per
   [[document-relationship-standards]]

@@ -40,7 +40,7 @@ import (
 // A member recorded with a parse error is the opposite case and IS
 // reported here, as [finding.RuleFrontmatterParse]. That document did
 // claim to be a specification and got the claim wrong. Skipping it —
-// which this function did until agent-plugins-5xo — left the run
+// which this function once did — left the run
 // reporting every rule as `passed` for the one document in the corpus
 // nothing had been able to read, so the worse a document's frontmatter
 // was, the quieter the tool got. The index recording the parse error is
@@ -84,7 +84,7 @@ func (c *Corpus) Check() ([]specmodel.Finding, error) {
 // that a mistyped path, a file outside the spec root and a file the
 // index excluded are all distinguishable from a document that passed.
 // Selecting nothing and reporting every rule passed is the vacuous
-// success this tool exists to catch elsewhere (`agent-plugins-ltd`).
+// success this tool exists to catch elsewhere.
 //
 // path may be absolute or repository-relative. On Windows it may use
 // either separator; on other platforms a backslash is an ordinary
@@ -174,7 +174,7 @@ func (c *Corpus) check(only *string, formerSlugs []string) ([]specmodel.Finding,
 	// A whole-corpus run that indexed no members at all is a broken
 	// configuration, not a pass: nothing below has anything to check
 	// against, so every rule would otherwise report "passed" for a run
-	// that examined zero documents (agent-plugins-qz9.2). This is
+	// that examined zero documents. This is
 	// deliberately narrowed to only == nil: CheckFor resolves a single
 	// named member against the same index, and a one-member selection is
 	// not what "empty corpus" means.

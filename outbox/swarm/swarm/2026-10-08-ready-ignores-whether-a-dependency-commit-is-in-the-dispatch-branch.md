@@ -11,8 +11,8 @@ findings: ["qqnx.9#1"]
 recurrence: 0
 report: docs/retros/2026-10-08-qqnx-spec-cli-qa-round-2-fixes.md
 
-run: specs-qqnx
-branch: sprint/specs-qqnx
+run: "the sprint run recorded in report"
+branch: sprint/<run-epic>
 skill_version: swarm 0.1.0 (source commit 1cea7e4)
 model: "<withheld by session policy>"
 ---
@@ -25,8 +25,8 @@ model: "<withheld by session policy>"
 
 Finding ids are `<bead>#<ordinal>` in agent-plugins' tracker, `specs-` prefix dropped. The finding was recorded as kind `sequencing`. The merge test sends it here because the fix lands in swarm.
 
-- `qqnx.9#1` — "retro:sequencing The tracker reported specs-qqnx.9 ready (its dependency specs-qqnx.3 closed), but the dispatch worktree bb/dev-qqnx-3 does not contain .3's commit: closed in the tracker is not the same as present in this branch, and the bead's Ordering section depends on the latter. evidence: git merge-base --is-ancestor f9165d7 HEAD → exit 1 on bb/dev-qqnx-3 (HEAD 7b22b57); git log sprint/specs-qqnx shows f9165d7 specs-qqnx.3 P2 headings matches carry a paste-ready reference. swarm ready --run specs-qqnx --agent dev-qqnx-3 listed specs-qqnx.9 state: ready."
+- `qqnx.9#1` — "retro:sequencing The tracker reported <bead-id> ready (its dependency <dep-id> closed), but the dispatch worktree bb/dev-qqnx-3 does not contain <dep-id>'s commit: closed in the tracker is not the same as present in this branch, and the bead's Ordering section depends on the latter. evidence: git merge-base --is-ancestor f9165d7 HEAD → exit 1 on bb/dev-qqnx-3 (HEAD 7b22b57); git log sprint/<run-epic> shows f9165d7 <dep-id> P2 headings matches carry a paste-ready reference. swarm ready --run <run-epic> --agent dev-qqnx-3 listed <bead-id> state: ready."
 
 ## Proposed change
 
-For each closed dependency that belongs to the run, `swarm ready --agent <dispatch>` checks that the dependency's commit is an ancestor of the dispatch branch's HEAD. If it is not, ready reports the bead as `needs-rebase`, naming the missing commit, rather than `ready`. The dispatch skill then rebases its worktree onto the sprint branch before claiming. Done when, in the situation above, `swarm ready` lists `specs-qqnx.9` as `needs-rebase` naming `f9165d7`, and lists it as `ready` after `git rebase sprint/specs-qqnx` inside the worktree.
+For each closed dependency that belongs to the run, `swarm ready --agent <dispatch>` checks that the dependency's commit is an ancestor of the dispatch branch's HEAD. If it is not, ready reports the bead as `needs-rebase`, naming the missing commit, rather than `ready`. The dispatch skill then rebases its worktree onto the sprint branch before claiming. Done when, in the situation above, `swarm ready` lists `<bead-id>` as `needs-rebase` naming `f9165d7`, and lists it as `ready` after `git rebase sprint/<run-epic>` inside the worktree.

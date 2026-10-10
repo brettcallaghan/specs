@@ -11,23 +11,23 @@ findings: ["c4s1#8", "qqnx#3"]
 recurrence: 4
 report: docs/retros/2026-10-07-c4s1-c4-diagrams-parser.md
 
-run: specs-c4s1
-branch: sprint/specs-c4s1
+run: "the sprint run recorded in report"
+branch: sprint/<run-epic>
 skill_version: swarm 0.1.0 (source commit 1cea7e4)
-model: "dev-specs-c4s1-1 opus, dev-specs-c4s1-2 sonnet, dev-specs-c4s1-3 haiku, dev-specs-c4s1-4 haiku; coordinator, plan, review and retro agents on the session default model; effort unrecorded"
+model: "dev-<run-epic>-1 opus, dev-<run-epic>-2 sonnet, dev-<run-epic>-3 haiku, dev-<run-epic>-4 haiku; coordinator, plan, review and retro agents on the session default model; effort unrecorded"
 ---
 
 ## What is wrong, and what it costs
 
-When a second concurrent dispatch is accepted after another has advanced the sprint branch, `swarm dispatch accept` rebases the dispatch branch from the main checkout. Git refuses because the dispatch's worktree still has the branch checked out: `git rebase` exits 128 with "fatal: 'bb/dev-specs-c4s1-2' is already used by worktree". Cost: every concurrent dispatch accepted second fails and needs a hand rebase inside the worktree before accept can be re-run.
+When a second concurrent dispatch is accepted after another has advanced the sprint branch, `swarm dispatch accept` rebases the dispatch branch from the main checkout. Git refuses because the dispatch's worktree still has the branch checked out: `git rebase` exits 128 with "fatal: 'bb/dev-<run-epic>-2' is already used by worktree". Cost: every concurrent dispatch accepted second fails and needs a hand rebase inside the worktree before accept can be re-run.
 
 ## Evidence
 
 Finding ids are `<bead>#<ordinal>` in agent-plugins' tracker, `specs-` prefix dropped.
 
-- `c4s1#8` — "retro:tooling:swarm swarm dispatch accept could not rebase a concurrent dispatch branch: 'git rebase' exited 128, "fatal: 'bb/dev-specs-c4s1-2' is already used by worktree" — it rebases the branch from the main checkout while the dispatch's worktree still holds it. Repaired by running git rebase 36f09ee inside the worktree (clean), then accept exit 0."
-- `qqnx#3` (run `specs-qqnx`, 2026-10-08; record `docs/retros/2026-10-08-qqnx-spec-cli-qa-round-2-fixes.md`) — "retro:tooling:swarm swarm dispatch accept's concurrent case runs 'git rebase <target-sha> bb/<dispatch>' from the main checkout while bb/<dispatch> is still checked out in its worktree, so it always fails: dev-qqnx-7 accept exit 2, 'fatal: bb/dev-qqnx-7 is already used by worktree at /home/user/.bb-worktrees/dev-qqnx-7'. Workaround: git rebase sprint/specs-qqnx inside the worktree (exit 0, clean), then accept takes the serialized path. Expected: rebase inside the dispatch worktree (git -C <worktree> rebase <target-sha>)."
-- Recurrence 4: besides `specs-c4s1`, the records of `agent-plugins-d7w5`, `agent-plugins-59ic`, `specs-c4s2` and `specs-qqnx` quote the same "already used by worktree" refusal.
+- `c4s1#8` — "retro:tooling:swarm swarm dispatch accept could not rebase a concurrent dispatch branch: 'git rebase' exited 128, "fatal: 'bb/dev-<run-epic>-2' is already used by worktree" — it rebases the branch from the main checkout while the dispatch's worktree still holds it. Repaired by running git rebase 36f09ee inside the worktree (clean), then accept exit 0."
+- `qqnx#3` (a later run, 2026-10-08; record `docs/retros/2026-10-08-qqnx-spec-cli-qa-round-2-fixes.md`) — "retro:tooling:swarm swarm dispatch accept's concurrent case runs 'git rebase <target-sha> bb/<dispatch>' from the main checkout while bb/<dispatch> is still checked out in its worktree, so it always fails: dev-qqnx-7 accept exit 2, 'fatal: bb/dev-qqnx-7 is already used by worktree at /home/user/.bb-worktrees/dev-qqnx-7'. Workaround: git rebase sprint/<later-run> inside the worktree (exit 0, clean), then accept takes the serialized path. Expected: rebase inside the dispatch worktree (git -C <worktree> rebase <target-sha>)."
+- Recurrence 4: besides this run, the records of four other runs quote the same "already used by worktree" refusal.
 
 ## Proposed change
 

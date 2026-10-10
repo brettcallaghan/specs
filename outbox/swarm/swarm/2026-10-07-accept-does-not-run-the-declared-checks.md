@@ -11,21 +11,21 @@ findings: ["c4s1.12#1"]
 recurrence: 0
 report: docs/retros/2026-10-07-c4s1-c4-diagrams-parser.md
 
-run: specs-c4s1
-branch: sprint/specs-c4s1
+run: "the sprint run recorded in report"
+branch: sprint/<run-epic>
 skill_version: swarm 0.1.0 (source commit 1cea7e4)
-model: "dev-specs-c4s1-1 opus, dev-specs-c4s1-2 sonnet, dev-specs-c4s1-3 haiku, dev-specs-c4s1-4 haiku; coordinator, plan, review and retro agents on the session default model; effort unrecorded"
+model: "dev-<run-epic>-1 opus, dev-<run-epic>-2 sonnet, dev-<run-epic>-3 haiku, dev-<run-epic>-4 haiku; coordinator, plan, review and retro agents on the session default model; effort unrecorded"
 ---
 
 ## What is wrong, and what it costs
 
-`swarm dispatch accept` merges a dispatch on the agent's report that its checks pass. Dispatch dev-specs-c4s1-4 reported "All project checks pass (format, ...)" while the declared `format` check failed on its own commit 0a4f37e. Cost: a check failure reached the sprint branch, and was caught only because the coordinator happened to re-run the checks on the combined tree; it then needed a run-introduced bead and a hand fix.
+`swarm dispatch accept` merges a dispatch on the agent's report that its checks pass. Dispatch dev-<run-epic>-4 reported "All project checks pass (format, ...)" while the declared `format` check failed on its own commit 0a4f37e. Cost: a check failure reached the sprint branch, and was caught only because the coordinator happened to re-run the checks on the combined tree; it then needed a run-introduced bead and a hand fix.
 
 ## Evidence
 
 Finding ids are `<bead>#<ordinal>` in agent-plugins' tracker, `specs-` prefix dropped.
 
-- `c4s1.12#1` — "retro:tooling:swarm-dispatch The light-tier dispatch dev-specs-c4s1-4 reported 'All project checks pass (format, ...)' but the declared format check fails on its own commit 0a4f37e; testimony, not measurement. Fixed by the coordinator with gofmt -w (whitespace only)."
+- `c4s1.12#1` — "retro:tooling:swarm-dispatch The light-tier dispatch dev-<run-epic>-4 reported 'All project checks pass (format, ...)' but the declared format check fails on its own commit 0a4f37e; testimony, not measurement. Fixed by the coordinator with gofmt -w (whitespace only)."
 
 ## Proposed change
 

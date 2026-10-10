@@ -1,12 +1,11 @@
-# Run record — `specs-c4s2`, C4 diagrams stage 2 (element resolution and `c4` checks)
+# Run record — C4 diagrams stage 2 (element resolution and `c4` checks)
 
 ## Read this first
 
 **Every admitted bead closed, and the ten `c4/*` rules are live in `specs
-check`.** 16 admitted, 15 landed as commits, 1 (`specs-c4s2.15`) closed by
+check`.** 16 admitted, 15 landed as commits, 1 (`.15`) closed by
 design at planning. Review ran two passes; the second admitted nothing, and
-**12 review findings sit in the backlog** (see Scope) — 2 at P3
-(`specs-ah2`, `specs-5ug`), the rest P4.
+**12 review findings sit in the backlog** (see Scope) — 2 at P3, the rest P4.
 
 **The tracker push was not held.** Brett asked for the final tracker push of
 closures to wait for his word (`standing_auth.note`); `bb-close-bead.sh`
@@ -14,7 +13,7 @@ pushes on every close, so every closure was pushed as it happened
 (`c4s2#4`). Candidate A.
 
 **Accept needed hand repair twice**, both recurrences of issues already in
-`outbox/swarm/swarm/` from run `specs-c4s1` (`c4s2#1`, `c4s2#3`).
+`outbox/swarm/swarm/` from the C4 diagrams stage 1 run (`c4s2#1`, `c4s2#3`).
 
 **All candidates are PENDING** — put to Brett by the coordinator, no answer
 recorded. Nothing has been filed and no `retro:filed:` comment written.
@@ -23,8 +22,8 @@ recorded. Nothing has been filed and no `retro:filed:` comment written.
 
 | | |
 |---|---|
-| run epic | `specs-c4s2` — "C4 diagrams stage 2: element resolution and c4 checks" (feature `feature-spec-c4-diagrams`, deltas XPT, PREG, ELEM, DRAW, CHKN, CHKR, DOC). The epic itself is still `open` |
-| branch | `sprint/specs-c4s2`, **not pushed** at the time of writing; the coordinator pushes after the retro |
+| run epic | "C4 diagrams stage 2: element resolution and c4 checks" (feature `feature-spec-c4-diagrams`, deltas XPT, PREG, ELEM, DRAW, CHKN, CHKR, DOC). The epic itself is still `open` |
+| branch | the sprint branch, **not pushed** at the time of writing; the coordinator pushes after the retro |
 | `base_sha` → head | `3e612b9` → `901c491` — 15 commits (before this record's commit) |
 | queue | 8 admitted at the gate (`.1`–`.8`); +8 admitted by review pass 1 (`.9`–`.16`); pass 2 admitted 0. 16 / 16 closed |
 | declared checks | `format`, `vet`, `build`, `test-go`, `skills`, `shared-refs`, `strata-docs`, `schemas`, `corpus`, `ref-links`, `template-drift`, `skills-strict` |
@@ -61,10 +60,9 @@ recorded. Nothing has been filed and no `retro:filed:` comment written.
 
 - **Pass 1** admitted 8 run-introduced findings (`.9`–`.16`); 7 fixed, `.15`
   closed by design by `plan-c4s2` (grooming comment on `.15`). Held out
-  `specs-2lq`, `specs-7i5` by the AC exception.
-- **Pass 2** filed 10, admitted 0: `specs-ah2`, `caa`, `5ug`, `n6h`, `0g1`,
-  `a9z`, `2x5`, `r4k` held by the AC exception or as doc-only; `cn0`, `tl9`
-  row 2. The review loop ended there (epic `amendment:` comments).
+  two findings by the AC exception.
+- **Pass 2** filed 10, admitted 0: eight held by the AC exception or as
+  doc-only; two row 2. The review loop ended there (epic `amendment:` comments).
 - `plan-c4s2` measured `.14`'s premise before admitting it and found the
   reviewer's "aborts the same way" claim true only for walk-level failures
   (grooming comment on `.14`) — admitted as a defect on that measurement.
@@ -112,20 +110,20 @@ feature blueprint or a bead did not answer.
   not a drop.
 - **Held out of the run — review findings filed to the backlog, not worked:**
 
-| bead | P | why held | title |
-|---|---|---|---|
-| `specs-2lq` | 4 | pass 1, AC exception | SystemProperty is registered and validated but no C4 check reads it |
-| `specs-7i5` | 4 | pass 1, AC exception | C4 node resolution trims entity_name but compares the label untrimmed |
-| `specs-ah2` | 3 | pass 2, AC exception / doc-only | An unreadable architecture blueprint yields c4/undeclared-node on the documents that draw it, and no finding names the unreadable file |
-| `specs-caa` | 4 | pass 2 | An unreadable member sorting first on a duplicated slug suppresses the readable member's entity name |
-| `specs-5ug` | 3 | pass 2 | Relationships naming a duplicated alias are silently excluded when every copy resolves to the same element |
-| `specs-n6h` | 4 | pass 2 | A duplicated alias whose first node is external or undeclared is excluded with that reason, not ambiguous_node as the module doc states |
-| `specs-0g1` | 4 | pass 2 | ValidateRegistration reports only the missing heading for a roster tag that is also unregistered |
-| `specs-a9z` | 4 | pass 2 | architectureDefects' doc comment still says the roster defect is keyed by the roster tag |
-| `specs-2x5` | 4 | pass 2 | c4elements.Build keeps an error return that nothing can set |
-| `specs-r4k` | 4 | pass 2 | sameTags hand-copies c4elements' slugKey normalisation |
-| `specs-cn0` | 4 | pass 2, row 2 | c4elements.Build walks in.References twice where one grouped pass would do |
-| `specs-tl9` | 4 | pass 2, row 2 | Set.declare looks up the empty key and then discards the result |
+| P | why held | title |
+|---|---|---|
+| 4 | pass 1, AC exception | SystemProperty is registered and validated but no C4 check reads it |
+| 4 | pass 1, AC exception | C4 node resolution trims entity_name but compares the label untrimmed |
+| 3 | pass 2, AC exception / doc-only | An unreadable architecture blueprint yields c4/undeclared-node on the documents that draw it, and no finding names the unreadable file |
+| 4 | pass 2 | An unreadable member sorting first on a duplicated slug suppresses the readable member's entity name |
+| 3 | pass 2 | Relationships naming a duplicated alias are silently excluded when every copy resolves to the same element |
+| 4 | pass 2 | A duplicated alias whose first node is external or undeclared is excluded with that reason, not ambiguous_node as the module doc states |
+| 4 | pass 2 | ValidateRegistration reports only the missing heading for a roster tag that is also unregistered |
+| 4 | pass 2 | architectureDefects' doc comment still says the roster defect is keyed by the roster tag |
+| 4 | pass 2 | c4elements.Build keeps an error return that nothing can set |
+| 4 | pass 2 | sameTags hand-copies c4elements' slugKey normalisation |
+| 4 | pass 2, row 2 | c4elements.Build walks in.References twice where one grouped pass would do |
+| 4 | pass 2, row 2 | Set.declare looks up the empty key and then discards the result |
 
 Four of the pass-2 holds (`ah2`, `caa`, `5ug`, `n6h`) are defects in code
 this run introduced or touched (`.14`, `.11`); the run is complete over its
@@ -147,7 +145,7 @@ and `.15`) are not findings.
 
 **`c4s2.1#3`** (dev-c4s2-1)
 
-> retro:decision Defect shapes not pinned by the spec: an undefined element/contract type is reported at profile level (DocumentType empty, Key = the type) and suppresses that type's level, property and roster defects; a level defect has Key = the level value; a roster is checked when either RosterHeading or RosterTag is set, so a heading with no tag reports Key "". A ProviderProperty registered with no ContractType, or properties registered with no element types, are vacuous but not reported, since the spec lists exactly four defects. Also: cli/profile's specDrivenDev returns the zero ArchitectureRules until specs-c4s2.2 fills it.
+> retro:decision Defect shapes not pinned by the spec: an undefined element/contract type is reported at profile level (DocumentType empty, Key = the type) and suppresses that type's level, property and roster defects; a level defect has Key = the level value; a roster is checked when either RosterHeading or RosterTag is set, so a heading with no tag reports Key "". A ProviderProperty registered with no ContractType, or properties registered with no element types, are vacuous but not reported, since the spec lists exactly four defects. Also: cli/profile's specDrivenDev returns the zero ArchitectureRules until the bead registering the architecture vocabulary fills it.
 > evidence: cli/core/corpus/registration.go architectureDefects; tests in cli/core/corpus/architecture_registration_test.go.
 
 **`c4s2.2#2`** (dev-c4s2-1)
@@ -203,7 +201,7 @@ and `.15`) are not findings.
 **`c4s2.16#1`** (dev-c4s2-4)
 
 > retro:decision also added a Path tie-break to scopeOf's final sort
-> evidence: elements with equal (empty) slugs from specs-c4s2.10 are ordered by map iteration in scopeOf (sort.Slice on Slug only); tie-break on Path makes Matches order deterministic. Alternative rejected: leave it, which keeps ambiguous_node match lists nondeterministic for slugless members.
+> evidence: elements with equal (empty) slugs from the empty-slug fix are ordered by map iteration in scopeOf (sort.Slice on Slug only); tie-break on Path makes Matches order deterministic. Alternative rejected: leave it, which keeps ambiguous_node match lists nondeterministic for slugless members.
 
 ### `gap` — 3
 
@@ -214,7 +212,7 @@ and `.15`) are not findings.
 
 **`c4s2.3#1`** (dev-c4s2-1)
 
-> retro:gap The ELEM delta puts C4 Elements in a new cli/core package that the corpus's checks (CHKN/CHKR, corpus/check.go) will call, but its input — the architecture vocabulary — was declared in cli/core/corpus by specs-c4s2.1, so the new package importing corpus would make that call a cycle. Decided: moved ArchitectureRules, ElementTypeRules, ElementLevel and the level constants into cli/core/c4elements and made corpus name them as type aliases (corpus.ArchitectureRules = c4elements.ArchitectureRules), so Profile's signature and every implementation are unchanged; c4elements takes the index entries, references, a Source func and a Decode func (corpus.DecodeRecordBlock) as data, and corpus.Corpus.C4Elements() wires them. Rejected: (a) a parallel Vocabulary struct in c4elements with a conversion in corpus — two definitions of one registration; (b) putting the component inside package corpus — contradicts 'a new package under cli/core'.
+> retro:gap The ELEM delta puts C4 Elements in a new cli/core package that the corpus's checks (CHKN/CHKR, corpus/check.go) will call, but its input — the architecture vocabulary — was declared in cli/core/corpus by the Profile-vocabulary bead, so the new package importing corpus would make that call a cycle. Decided: moved ArchitectureRules, ElementTypeRules, ElementLevel and the level constants into cli/core/c4elements and made corpus name them as type aliases (corpus.ArchitectureRules = c4elements.ArchitectureRules), so Profile's signature and every implementation are unchanged; c4elements takes the index entries, references, a Source func and a Decode func (corpus.DecodeRecordBlock) as data, and corpus.Corpus.C4Elements() wires them. Rejected: (a) a parallel Vocabulary struct in c4elements with a conversion in corpus — two definitions of one registration; (b) putting the component inside package corpus — contradicts 'a new package under cli/core'.
 > evidence: blueprint 'Corpus in [[module-document-core]] (modified — parse and node checks)' anchors the checks in cli/core/corpus/check.go; go build fails with an import cycle if c4elements imports corpus while corpus imports c4elements.
 
 **`c4s2.3#2`** (dev-c4s2-1)
@@ -246,13 +244,13 @@ None recorded.
 
 **`c4s2.8#3`** (dev-c4s2-3)
 
-> retro:unverifiable AC 'retro-spec has run over the feature retro comments' not satisfied here; agent-plugins-7os0 DoD item unverifiable (bd show: 'Issue not found', retired prefix). All 17 AC-C4-DIAG-001.1..004.5 verified cited (c4_check_test.go, c4diagram_test.go, snapshot cites); scripts/coverage.sh --check exit 0, README already current. The sprint retro (swarm-retro) is the natural home for the aggregated retro-spec pass.
+> retro:unverifiable AC 'retro-spec has run over the feature retro comments' not satisfied here; one DoD item naming a bead unverifiable (bd show: 'Issue not found', retired prefix). All 17 AC-C4-DIAG-001.1..004.5 verified cited (c4_check_test.go, c4diagram_test.go, snapshot cites); scripts/coverage.sh --check exit 0, README already current. The sprint retro (swarm-retro) is the natural home for the aggregated retro-spec pass.
 
 ### `tooling` — 7
 
 **`c4s2#1`** (coordinator-c4s2)
 
-> retro:tooling:swarm — `swarm dispatch accept` fast-forwarded the coordinator's CHECKED-OUT branch (claude/project-thread-w4yqh2) instead of the sprint branch sprint/specs-c4s2 when the coordinator checkout was not on the sprint branch; reported merged_sha=base, ancestor=false, exit 2, left worktree standing. `swarm dispatch open` cuts sprint/<epic> without checking it out. Repaired by `git branch -f sprint/specs-c4s2 1bbfb40`, re-running accept (exit 0), then checking out the sprint branch in the main checkout.
+> retro:tooling:swarm — `swarm dispatch accept` fast-forwarded the coordinator's CHECKED-OUT branch (claude/project-thread-w4yqh2) instead of the sprint branch when the coordinator checkout was not on the sprint branch; reported merged_sha=base, ancestor=false, exit 2, left worktree standing. `swarm dispatch open` cuts sprint/<epic> without checking it out. Repaired by `git branch -f <sprint branch> 1bbfb40`, re-running accept (exit 0), then checking out the sprint branch in the main checkout.
 
 **`c4s2#2`** (coordinator-c4s2)
 
@@ -264,7 +262,7 @@ None recorded.
 
 **`c4s2#4`** (coordinator-c4s2)
 
-> retro:tooling:swarm — bb-close-bead.sh pushes the tracker on every close; the run's "hold the tracker push" note could not be honoured, and specs-c4s2.3's push printed a failure warning.
+> retro:tooling:swarm — bb-close-bead.sh pushes the tracker on every close; the run's "hold the tracker push" note could not be honoured, and the c4elements bead's push printed a failure warning.
 
 **`c4s2#5`** (coordinator-c4s2)
 
@@ -288,7 +286,7 @@ None recorded.
 
 **`c4s2.2#1`** (dev-c4s2-1)
 
-> retro:proof Negative control for the drift test: with SystemProperty changed to "system_of" in cli/profile/profile.go, go test ./profile/ failed three tests — TestTheProfileRegistersTheArchitectureVocabulary, TestEveryRegisteredArchitecturePropertyIsDeclaredWhereItApplies ('system property "system_of" is not declared on "container-blueprint" in the generated schema') and TestTheRegistrationHasNoDefects (ValidateRegistration reported {DocumentType:container-blueprint Key:system_of ...}), which also exercises specs-c4s2.1's property defect against the real embedded schema. Restored, all pass; bb-checks.py exit 0; scripts/coverage.sh run and README figures committed.
+> retro:proof Negative control for the drift test: with SystemProperty changed to "system_of" in cli/profile/profile.go, go test ./profile/ failed three tests — TestTheProfileRegistersTheArchitectureVocabulary, TestEveryRegisteredArchitecturePropertyIsDeclaredWhereItApplies ('system property "system_of" is not declared on "container-blueprint" in the generated schema') and TestTheRegistrationHasNoDefects (ValidateRegistration reported {DocumentType:container-blueprint Key:system_of ...}), which also exercises the Profile-vocabulary bead's property defect against the real embedded schema. Restored, all pass; bb-checks.py exit 0; scripts/coverage.sh run and README figures committed.
 > evidence: go test ./profile/ → neg=1 with the three FAIL lines above; restored=0.
 
 **`c4s2.3#5`** (dev-c4s2-1)
@@ -367,7 +365,7 @@ None. Every `retro:` comment in scope carries a kind.
 | `environment` → ledger | 1 | `c4s2.5#3` — **not written to the ledger by this retro** (instructed to commit the record and `log.md` only). By the merge test it is a project fact, not an environmental one: the fix is a comment in this repository's `cli/core/finding/finding.go` (`Report.Add`) |
 | **unrouted** | **0** | — |
 
-Unrouted is 0 of 40, against 9 of 29 on `specs-c4s1`. The planner wrote no
+Unrouted is 0 of 40, against 9 of 29 on the C4 diagrams stage 1 run. The planner wrote no
 `retro:` findings this run — its two grooming decisions were plain comments —
 so the drop says nothing yet about whether `swarm-plan` now sets a kind.
 
@@ -384,7 +382,7 @@ so the drop says nothing yet about whether `swarm-plan` now sets a kind.
 
 ## Pushes
 
-`sprint/specs-c4s2` has **no remote counterpart**.
+The sprint branch has **no remote counterpart**.
 `git log --oneline origin/claude/project-thread-w4yqh2..HEAD` lists **15**
 commits (that remote branch is at `3e612b9`, the base) — every commit of the
 run is stranded locally until the coordinator pushes, which it does after this
@@ -404,10 +402,9 @@ failure warning, whose outcome this retro did not check.
 - **The feature blueprint's DoD item "retro-spec has run over the feature
   retro comments"** — not done by `.8` (`c4s2.8#3`) and not done by this
   retro (swarm-retro is not retro-spec). Candidate G.
-- **The DoD item `agent-plugins-7os0` is closed** — the id is retired and
+- **The DoD item naming a retired bead as closed** — the id is retired and
   `bd show` cannot resolve it (`c4s2.8#3`); the blueprint (now retired) still
-  checks it as `[x]` at `specs/features/spec-c4-diagrams/spec-c4-diagrams-blueprint.md`
-  ("`agent-plugins-7os0` is closed").
+  checks it as `[x]` at `specs/features/spec-c4-diagrams/spec-c4-diagrams-blueprint.md`.
 - **`plan-c4s2`'s `.15` decision** rests on reading, and its cost claim is
   unmeasured by design ("Reopen with a measured cost").
 
@@ -426,7 +423,7 @@ raise its recurrence rather than file anew.
 | C | **Fold: accept merges into the recorded sprint branch, not the checked-out one** — recurrence 1; add that `dispatch open` cuts `sprint/<epic>` without checking it out, which is what sets the trap | skill → existing `outbox/swarm/swarm/2026-10-07-accept-merges-into-the-current-branch.md` | `c4s2#1` | Second run in a row: first accept exits 2 and needs `git branch -f` | pending |
 | D | **Fold: accept rebases inside the worktree that holds the branch** — recurrence 1 | skill → existing `outbox/swarm/swarm/2026-10-07-accept-rebases-a-branch-held-by-a-worktree.md` | `c4s2#3` | Second run in a row: every concurrent accept after the first fails exit 128 | pending |
 | E | **Fold: a run resolves no `trailers`** — new evidence: `--trailers-from` is not merely unusable but fatal (`bb-close-bead.sh` exits 2 when the key is absent), so the issue's proposed "always pass `--trailers-from`" breaks every close until scope resolves the key | skill → existing `outbox/swarm/swarm/2026-10-07-a-run-resolves-no-trailers.md` (recurrence 2 → 3) | `c4s2#2` | Another run with no attribution trailers; the existing fix, applied alone, would turn that into a failed close | pending |
-| F | **Fold: a dispatch returns only when its queue is drained** — recurrence 1; concrete trigger this time: a bead released by the agent's own close (collision chain `.9 → .14 → …`) | skill → existing `outbox/swarm/swarm-dispatch/2026-10-07-dispatch-returned-with-queue-undrained.md` | `c4s2#6` | Second run (after `specs-sra`) where the coordinator had to resume a dispatch that returned early | pending |
+| F | **Fold: a dispatch returns only when its queue is drained** — recurrence 1; concrete trigger this time: a bead released by the agent's own close (collision chain `.9 → .14 → …`) | skill → existing `outbox/swarm/swarm-dispatch/2026-10-07-dispatch-returned-with-queue-undrained.md` | `c4s2#6` | Second run (after the C4 prerequisites run) where the coordinator had to resume a dispatch that returned early | pending |
 | G | **Run `retro-spec` over the C4 diagrams feature's findings** — the feature blueprint's DoD required it and nobody ran it; 3 `gap` and the unpinned-detail `decision` findings (`.1#3`, `.3#3`, `.4#1`, `.4#2`, `.7#2`) are its input, aimed at the durable homes (`module-document-core`, `c4-standards`) now that the feature blueprint is retired | project → bead | `c4s2.8#3`, `c4s2.1#2`, `c4s2.3#1`, `c4s2.3#2`, `c4s2.1#3`, `c4s2.3#3`, `c4s2.4#1`, `c4s2.4#2`, `c4s2.7#2` | The implementer filled every silent spot by choice; unless those choices reach the durable specs, stage 3 and the held-out `ah2`/`5ug`/`n6h` beads are groomed against documents that still do not say what the code does | pending |
 | H | **`runInFixture` leaves the working directory changed for the rest of the test** — resolve `casesDir` absolutely (as `c4CheckFixture` now does locally) or restore the directory after each run | project → bead (P4) | `c4s2.7#3` | The next cmd test that runs two fixtures in one test hits the same `lstat ../testdata/cases/...` failure; the local fix covers only `c4CheckFixture` | pending |
 

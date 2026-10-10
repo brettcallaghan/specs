@@ -36,9 +36,9 @@ non-zero assertion before aggregating.
 | Field | Value |
 |-------|-------|
 | Harness | Claude Code CLI, orchestrated via the `bead-bonanza` skill |
-| Task the skill was applied to | Implementing `agent-plugins-92q.18`, a bead that itself exists to fix this defect in the consuming skill (`bead-bonanza`); verifying the protocol document `retro-spec` owns carries the same defect |
+| Task the skill was applied to | Implementing a bead that itself exists to fix this defect in the consuming skill (`bead-bonanza`); verifying the protocol document `retro-spec` owns carries the same defect |
 | References / scripts / templates invoked | `plugin/skills/retro-spec/references/findings-capture-protocol.md` v0.2 (as run), `bd` 1.1.2 |
-| Run dates | 2026-08-04 / 2026-08-05 (prior run, cited in `agent-plugins-92q.18`'s Description, 53 findings across 15 beads), 2026-08-11 (this run) |
+| Run dates | 2026-08-04 / 2026-08-05 (prior run, cited in that bead's Description, 53 findings across 15 beads), 2026-08-11 (this run) |
 
 ## Evidence
 
@@ -49,22 +49,22 @@ non-zero assertion before aggregating.
    --json` returned a disjoint 20. The set was almost entirely closed,
    so the default query missed most of it.
 2. [script-defect · blocker] `bd show <id> --json` omits comments.
-   Measured the same run: `bd show agent-plugins-bge.8 --json | jq
-   '.comments | length'` → `0`; `bd show agent-plugins-bge.8 | grep -cE
+   Measured the same run: `bd show <bead-id> --json | jq
+   '.comments | length'` → `0`; `bd show <bead-id> | grep -cE
    '^\s+retro:'` → `7`. The text output carries what the JSON output
    drops.
 3. [script-defect · blocker] Re-measured 2026-08-11 against this
    project's own drained set (`bead-bonanza-hardening` label, 18 closed
    beads): `bd show <id> --json | jq 'has("comments")'` → `false` for
    every id, confirming finding 2 still holds on `bd` 1.1.2.
-   `bd export | jq 'select(.id=="agent-plugins-92q.9") | .comments |
+   `bd export | jq 'select(.id=="<bead-id>") | .comments |
    length'` → `1`, confirming `bd export` carries comments as a
    `comments` array on the issue record — the harvest is JSON-native
    after all, so the text-output-parsing fallback the two-command
    instruction implies is unnecessary and itself fragile (a bead's
    Description/Design prose can independently contain the substring
    `retro:`, which a `grep '^\s*retro:' <(bd show <id>)` over the whole
-   text output would then over-count; verified: `agent-plugins-34g`
+   text output would then over-count; verified: one bead
    scored 3 via `.comments[]` filtering vs 4 via whole-output grep,
    because its Description quotes another skill's `retro:` prose).
 4. [script-defect · blocker] The corrected harvest was run end to end
@@ -128,7 +128,7 @@ reworded during triage.
 
 **Evidence.** Finding 4's corroborating case: the original run's
 orchestrator "reported zero to the user before catching it" per
-`agent-plugins-92q.18`'s Description — the assertion is what would have
+the implementing bead's Description — the assertion is what would have
 caught it before the report went out, not after.
 
 ## Considered and Not Proposed
@@ -167,7 +167,7 @@ copy needs a structural change, only a content refresh.
 
 Backward compatibility: fully additive. A project already using `bd
 export | jq` (because it independently discovered the same defect, as
-`agent-plugins-92q.18` did) sees no behavior change; a project still on
+this project did) sees no behavior change; a project still on
 the old two-command instruction starts harvesting what it already
 should have been harvesting.
 

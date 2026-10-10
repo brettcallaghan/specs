@@ -193,10 +193,10 @@ possible one.
 
 **Triaged 2026-07-31.** 2 proposals, both adopted and implemented.
 
-| Proposal | Outcome | Bead |
-|----------|---------|------|
-| P1 — require a report's claims to cite their source | **adopted.** Step 7 now requires every factual claim to cite a finding, a `file:line`, or a command and its output, or be marked as inference, and forbids stating that a check was performed when it was not. The general rule was added to `docs/standards/skill-best-practices.md` under Workflow Design, since the same gap is present in every sibling skill. | `agent-plugins-cb6` |
-| P2 — sanction a route for findings that span skills | **adopted.** Step 5 now routes a cross-cutting finding to a standards requirement plus ONE RFC against the skill that most exhibits it, and the anti-pattern table gained a row against N near-identical RFCs. | `agent-plugins-5ra` |
+| Proposal | Outcome |
+|----------|---------|
+| P1 — require a report's claims to cite their source | **adopted.** Step 7 now requires every factual claim to cite a finding, a `file:line`, or a command and its output, or be marked as inference, and forbids stating that a check was performed when it was not. The general rule was added to `docs/standards/skill-best-practices.md` under Workflow Design, since the same gap is present in every sibling skill. |
+| P2 — sanction a route for findings that span skills | **adopted.** Step 5 now routes a cross-cutting finding to a standards requirement plus ONE RFC against the skill that most exhibits it, and the anti-pattern table gained a row against N near-identical RFCs. |
 
 **Files changed:** `plugin/skills/retro-skill/SKILL.md`,
 `docs/standards/skill-best-practices.md`.

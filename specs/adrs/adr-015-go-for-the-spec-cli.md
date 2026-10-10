@@ -133,7 +133,8 @@ YAML is the frontmatter format, so this cannot be a weak spot.
 
 - **52 of 53 documents with frontmatter parsed.** The single failure is
   the known defect in `work-order-template.md`, correctly located at
-  line 28 column 23 (tracked as `agent-plugins-6n4`).
+  line 28 column 23.
+
 - Errors carry line and column, including context: `found unexpected end
   of stream at line 3 column 1, while scanning a quoted scalar at line 1
   column 8`.

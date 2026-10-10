@@ -28,7 +28,7 @@ friction — the skill's authoring bundles omit references that its own
 workflow steps make mandatory, and one template contradicts the standard
 it is supposed to implement. The ADR contradiction is not hypothetical:
 it has already produced 11 non-conforming slugs and 26 dangling
-references in this repository, tracked as bead `agent-plugins-5nz`. The
+references in this repository. The
 thesis is that both defects are the same shape — a rule that lives in a
 document the authoring agent was never told to load.
 
@@ -65,7 +65,7 @@ oversight; the value could not be observed.
    `adr-011-targeted-verification-gates`); only `adr-012`, `adr-013` and
    this run's `adr-014` carry the registry form. Every citation in the
    repository uses the bare number, so 26 references dangle. Filed as
-   `agent-plugins-5nz`.
+   a follow-up issue.
 
 2. **[gap · blocker]** No rule at `spec` SKILL.md step 4
    (`plugin/skills/spec/SKILL.md:207`) or step 7 (`:229`) puts the
@@ -161,7 +161,7 @@ number. Finding 1 shows the template's form winning 11 times out of 14.
 from this template carries a registry-conforming slug without the author
 needing to notice a contradiction between two documents, only one of
 which is in the bundle. This does not itself fix the 11 existing slugs —
-that is `agent-plugins-5nz` — but it stops the template producing a
+that is a follow-up issue — but it stops the template producing a
 twelfth.
 
 ### P2 — Bundle the two always-required references [blocker]
@@ -295,7 +295,7 @@ rather than to a plausible variant.
 ## Non-Goals
 
 - Fixing the 11 existing non-conforming ADR slugs. P1 stops the template
-  producing more; correcting the existing ones is `agent-plugins-5nz`.
+  producing more; correcting the existing ones is a follow-up issue.
 - Changing what `cross-document-references.md` requires. The rule at
   `:124-125` is correct; P2 changes only when the authoring agent meets
   it.
@@ -317,7 +317,7 @@ lines. P2 is preventive and its evidence is a single run.
 
 Backward compatibility: P1 changes the slug an author will produce for
 *new* ADRs, which means new ADRs stop matching the pattern of the 11
-existing ones until `agent-plugins-5nz` lands. That inconsistency
+existing ones until that follow-up lands. That inconsistency
 already exists (`adr-012` and `adr-013` predate this RFC) and resolving
 it in the other direction — changing the registry to match the template
 — would invalidate 26 existing citations and the ADR-012 convention.
@@ -341,13 +341,13 @@ rather than after.
 | P1 — ADR slug format matches the registry | **adopted as proposed.** `references/adr-template.md` line 4 now reads `slug: adr-<nnn>`, and the Slug format block carries the filename-independence note. |
 | P2 — bundle the two always-required references | **adopted with refinement.** The bundle enlargement was NOT adopted: RFC 0001 weighed the same remedy for the same class of friction and declined it as "the more expensive of two fixes", and this RFC's own Adoption section priced it at ~1,700 tokens per run. Adopted instead as a one-line rule at the source, in step 4 itself. The `document-readiness-checklist.md` half was dropped for want of evidence — step 7 was reached and the checklist run successfully in both observed runs, so no wrong action followed from its absence from the bundle. |
 | P3 — correct the ADR template's README path | **adopted as proposed.** `docs/adr/README.md` → `docs/adrs/README.md`. |
-| P4 — `sources` records non-spec inputs | **deferred** → `agent-plugins-6tp`, `theme:reference-syntax`. Adopting the FRD template alone would make a template contradict `frontmatter-standards.md:119`, which owns the property — the same defect class P1 was adopted to remove. Three templates carry `sources`; the owner changes first. Bead is `deferred` / `blocked-ungroomable`. |
+| P4 — `sources` records non-spec inputs | **deferred** → `theme:reference-syntax`. Adopting the FRD template alone would make a template contradict `frontmatter-standards.md:119`, which owns the property — the same defect class P1 was adopted to remove. Three templates carry `sources`; the owner changes first. Bead is `deferred` / `blocked-ungroomable`. |
 | P5 — name the FRD directory | **adopted as proposed.** `docs/frds/` added to step 1's enumeration. |
 
 **Dedupe notes.** Three of the five proposals are follow-on gaps in
-changes adopted at the previous triage: P2 in `agent-plugins-fiu`'s step
-7, P5 in `agent-plugins-8bx`'s step 1, and P1 alongside
-`agent-plugins-x8t`, which applied the same filename-independence fix to
+changes adopted at the previous triage: P2 in the self-check step
+7, P5 in the destination rule in step 1, and P1 alongside
+the standards-template change, which applied the same filename-independence fix to
 `standards-template.md` but not to `adr-template.md` — the template that
 had actually produced the 11 non-conforming slugs. No proposal matched a
 prior rejection.

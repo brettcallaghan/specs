@@ -6,9 +6,9 @@
 | Run id | `1786562615-17` |
 | Branch | `claude/bead-bonanza-refinement-261qvk` (PR #20) |
 | Base sha | `b8b36d1` |
-| Epic | `agent-plugins-41z` — cut bead-bonanza's redundancy — plus 14 sibling beads |
+| Epic | `41z` — cut bead-bonanza's redundancy — plus 14 sibling beads |
 | Queue | 17 beads, enumerated at run start; no filter re-evaluated mid-run |
-| Outcome | 16 closed, 1 blocked (`agent-plugins-9ko`), 0 skipped |
+| Outcome | 16 closed, 1 blocked (`9ko`), 0 skipped |
 | Findings harvested | 73 `retro:` comments across all 17 beads |
 | Orchestrator model | `claude-opus-5` |
 | Subagent models | `sonnet` (waves 1a, 2A, 2B, 8ef.3), `opus` (d70, 8ef.1, 8ef.2, wave 4), `haiku` (wave 5) |
@@ -200,7 +200,7 @@ says `standard`; it ran at `standard` under the take-the-higher rule.
 
 All 73 harvested `retro:` comments, unfiltered, grouped by bead.
 
-### `agent-plugins-txq` (4)
+### `txq` (4)
 
 1. retro: Demonstrated the defect pre-fix by running the documented chain verbatim on the untouched tree: `scripts/check-skills.sh --strict && scripts/sync-shared-references.sh --check && scripts/sync-strata-docs.sh --check` printed only check-skills' own output (0 error(s), 2 warning(s), RESULT: FAIL) and stopped — no output at all from sync-shared-references.sh or sync-strata-docs.sh, chain exit=1. Confirms the && chain masks both later checks exactly as the bead states.
 
@@ -208,23 +208,23 @@ All 73 harvested `retro:` comments, unfiltered, grouped by bead.
 
 3. retro: Ran the new documented form for real (not just read it) on the current tree: check-skills --strict exit=1 (0 error(s), 2 warning(s)), sync-shared-references --check exit=0 (all 11 vendored references current), sync-strata-docs --check exit=0 (all 3 vendored strata docs match /root/.cache/strata-src — this ran for real, not a SKIP, since a strata checkout is present). Overall gate exit=1, correctly non-zero because check-skills is red, while the other two now visibly report green instead of never running.
 
-4. retro: Found beyond the bead's scope — check-skills.sh --strict currently reports 2 warnings (adds plugin/skills/spec/SKILL.md at ~22497 bytes) where the ledger's baseline states 1 warning. This predates my change (reproduced on the untouched tree too) and is a size-warning finding owned by agent-plugins-41z/agent-plugins-8ef.1 per this bead's own BLOCKS links, not this bead's fix. Left AGENTS.md's baseline text as-is since updating stale ledger numbers is agent-plugins-d6x's scope, not txq's; flagging here so d6x's citation audit picks it up.
+4. retro: Found beyond the bead's scope — check-skills.sh --strict currently reports 2 warnings (adds plugin/skills/spec/SKILL.md at ~22497 bytes) where the ledger's baseline states 1 warning. This predates my change (reproduced on the untouched tree too) and is a size-warning finding owned by 41z/8ef.1 per this bead's own BLOCKS links, not this bead's fix. Left AGENTS.md's baseline text as-is since updating stale ledger numbers is d6x's scope, not txq's; flagging here so d6x's citation audit picks it up.
 
 
-### `agent-plugins-d6x` (5)
+### `d6x` (5)
 
-5. retro: Settled the admission rule's wording almost verbatim from the bead's own Design (it was already fully drafted there) but had to decide scope: applied it to agent-plugins/AGENTS.md's ledger, and to the bead-bonanza dispatch-plan.md and project-setup.md templates (both live in this repo). Could NOT apply it to /home/user/strata/AGENTS.md — that repo is not attached in this session and the top-level dispatch explicitly scoped this batch to 'AGENTS.md — the repository's bead-bonanza gates block and its environmental-failure ledger' (singular repo). Filed agent-plugins-oy4 (discovered-from, adjacent — does not block this bead) to carry the rule to strata's own AGENTS.md in a session that has it attached.
+5. retro: Settled the admission rule's wording almost verbatim from the bead's own Design (it was already fully drafted there) but had to decide scope: applied it to agent-plugins/AGENTS.md's ledger, and to the bead-bonanza dispatch-plan.md and project-setup.md templates (both live in this repo). Could NOT apply it to /home/user/strata/AGENTS.md — that repo is not attached in this session and the top-level dispatch explicitly scoped this batch to 'AGENTS.md — the repository's bead-bonanza gates block and its environmental-failure ledger' (singular repo). Filed oy4 (discovered-from, adjacent — does not block this bead) to carry the rule to strata's own AGENTS.md in a session that has it attached.
 
 6. retro: Audited every existing ledger entry in AGENTS.md's 'Environmental-failure ledger' and 'strata CLI' sections (19 bullets total) against the new admission rule. Cheaply re-tested what I could: curl'd the actual github/proxy URLs the bd-install and strata-CLI entries cite (403/403/200/200, matching); read the current session-start.sh hook source line-by-line for every hook-behavior claim; read this session's own ~/.cache/strata-cli/build.log and measured target/ size (2m35s, 470M — the 470M matched exactly, the time ran higher than the documented ~1m50s). Two entries could not be cheaply tested (the generate-schemas.sh old-binary corruption claims) and were marked unverified with a settling command instead, per the rule's own escape hatch.
 
 7. retro: Found the bead's own assumption did not match repo reality — the Design says to add the rule to CLAUDE.md 'wherever the equivalent guidance sits,' but agent-plugins/CLAUDE.md has no environmental-failure-ledger-equivalent section at all (grepped for 'ledger'/'proved'/'verified'/'claim'; git log --follow on CLAUDE.md going back to the file's introduction shows it never had one). Decided not to invent a new section there to force-satisfy the AC, since that would be scope creep beyond citation/audit work; left CLAUDE.md untouched and record the gap here rather than silently treating the AC as satisfied.
 
-8. retro: Auditing turned up two ledger entries that were not merely uncited but factually stale: 'bd init + bd import' and 'bd init git-commits its own scaffolding, the hook unwinds it' — the current hook (read in full) uses bd bootstrap and contains zero git-commit/reset calls anywhere. This predates 2026-08-11's move to the Dolt remote (agent-plugins-92q.31) and nobody had updated these two bullets since. Corrected them in place with today's citation rather than just tagging 'unverified', since 'unverified' would understate it — they were actively wrong, not merely uncited.
+8. retro: Auditing turned up two ledger entries that were not merely uncited but factually stale: 'bd init + bd import' and 'bd init git-commits its own scaffolding, the hook unwinds it' — the current hook (read in full) uses bd bootstrap and contains zero git-commit/reset calls anywhere. This predates 2026-08-11's move to the Dolt remote and nobody had updated these two bullets since. Corrected them in place with today's citation rather than just tagging 'unverified', since 'unverified' would understate it — they were actively wrong, not merely uncited.
 
-9. retro: The check-skills.sh --strict baseline the top-level dispatch handed me as an established fact ('0 error(s), 1 warning(s))', 'do NOT re-diagnose') did not match what I actually observed running the exact same command today: 0 error(s), 2 warning(s) — a second SKILL.md (plugin/skills/spec) crossed the ~20000-byte guideline since that baseline was recorded. I did not re-diagnose or fix it (out of scope, owned by agent-plugins-41z/8ef.1 per agent-plugins-txq's BLOCKS links), but this bead's whole purpose is ledger accuracy, so I corrected AGENTS.md's own baseline text with today's citation. Sequencing surprise: an orchestrator-supplied 'established fact' had already drifted by the time the batch reached its second bead.
+9. retro: The check-skills.sh --strict baseline the top-level dispatch handed me as an established fact ('0 error(s), 1 warning(s))', 'do NOT re-diagnose') did not match what I actually observed running the exact same command today: 0 error(s), 2 warning(s) — a second SKILL.md (plugin/skills/spec) crossed the ~20000-byte guideline since that baseline was recorded. I did not re-diagnose or fix it (out of scope, owned by 41z/8ef.1 per txq's BLOCKS links), but this bead's whole purpose is ledger accuracy, so I corrected AGENTS.md's own baseline text with today's citation. Sequencing surprise: an orchestrator-supplied 'established fact' had already drifted by the time the batch reached its second bead.
 
 
-### `agent-plugins-d70` (4)
+### `d70` (4)
 
 10. retro: What I tried first and abandoned — extracting only the 'Boundary cases' bullets. That lands the body at ~19,700 bytes: under the 20,000 cap but with ~300 bytes of headroom, so the next sentence added to this SKILL.md re-trips the gate. Extracting the Anti-Patterns table as well took it to 16,941 bytes.
 
@@ -235,7 +235,7 @@ All 73 harvested `retro:` comments, unfiltered, grouped by bead.
 13. retro: Bead states the body as 21,419 bytes; measured baseline in the worktree was 22,497 bytes (the file grew after the bead was filed). Same conclusion, but a criterion phrased as a delta rather than an absolute threshold would have been unsatisfiable as written.
 
 
-### `agent-plugins-q1h` (3)
+### `q1h` (3)
 
 14. retro: observed pre-fix failure — the script printed 'Verdict / OK — safe to proceed to Phase 1.' and exited 0 for a run whose BB_DOLT_WRITE was computed afterward (awk over lines 470-527 showed the verdict block and 'exit $REPORT_FAIL' both preceding the DOLT_WRITE computation, with no block() call between them), matching the bead's cited repro exactly.
 
@@ -244,7 +244,7 @@ All 73 harvested `retro:` comments, unfiltered, grouped by bead.
 16. retro: clean on the 'what didn't work' and 'bead lacked information' axes — the Design pinned the fix (move the probe above the verdict, call block() on 'no') and the fix applied cleanly on the first attempt; nothing to record there.
 
 
-### `agent-plugins-td1` (3)
+### `td1` (3)
 
 17. retro: observed pre-fix failure — 'grep -rn "worktree prune" plugin/skills/bead-bonanza/scripts/' returned nothing (exit 1) while SKILL.md:91 and subagent-prompts.md:352 both assert pre-flight runs it, matching the bead's cited repro.
 
@@ -253,7 +253,7 @@ All 73 harvested `retro:` comments, unfiltered, grouped by bead.
 19. retro: clean on 'what didn't work' — the Design was fully pinned (add the prune call, do not weaken the docs) and applied without iteration.
 
 
-### `agent-plugins-9p4` (3)
+### `9p4` (3)
 
 20. retro: observed pre-fix failure — 'grep -n block plugin/skills/bead-bonanza/scripts/pre-flight-check.sh' showed block() called for the HEAD-vs-default-branch condition (line 350) but not for worktree.baseRef, and the script printed 'worktree.baseRef: head (advisory)' — matching the bead's cited repro exactly (SKILL.md says 'both are checked', script comment says 'advisory, never blocking').
 
@@ -262,7 +262,7 @@ All 73 harvested `retro:` comments, unfiltered, grouped by bead.
 22. retro: what I tried that needed a workaround — to demonstrate the new block() firing without touching the real $HOME/.claude/settings.json (which the sprint depends on staying head-set per the run's ledger), I pointed HOME at a scratch directory with a fake settings.json for one throwaway invocation, then removed it immediately. Confirmed the blocker text appears in the BLOCKED list and the script exits 1.
 
 
-### `agent-plugins-8mv` (3)
+### `8mv` (3)
 
 23. retro: decided silently — renamed DOLT_TELEMETRY's non-disabled value from 'skipped-sandbox' to 'not-suppressed' and DENY_ENTRY's non-present value from 'manual' to 'absent' (plus a new 'unknown' for no-jq/unreadable), since the old vocabulary named a write outcome ('skipped', 'manual' fix needed) that no longer applies once the script never attempts the write. Verified via grep that no other file in the plugin references these BB_* values or the old add_deny_entry function name, so the rename is self-contained.
 
@@ -271,11 +271,11 @@ All 73 harvested `retro:` comments, unfiltered, grouped by bead.
 25. retro: bead contradicted repo reality slightly — the real $HOME/.claude/settings.json already had the eventsapi.dolthub.com deny entry when I got to this bead, because the OLD (pre-fix) add_deny_entry ran during q1h/td1/9p4's earlier self-tests and functional exercises in this same session and wrote it. That's the bug this bead fixes, caught in the act; I left the existing entry in place (removing it is not in scope and worktree.baseRef, the setting the ledger says must survive, is untouched).
 
 
-### `agent-plugins-b13` (5)
+### `b13` (5)
 
 26. retro: the bead's cited line numbers (pre-flight-check.sh:269,:284,:455,:494-495; SKILL.md:1106-1113; bb-close-bead.sh:159-165) had all moved — four earlier-sprint beads (q1h, td1, 9p4, 8mv) touched pre-flight-check.sh. Located each effect by content (deny_entry_present, the DOLT_WRITE_PROBE push, the bash -c gate loop, msgfile) instead; matches the task instructions' warning.
 
-27. retro: two of the bead's five disclosed facts had changed under it — agent-plugins-8mv (this sprint) removed the ~/.claude/settings.json and global-dolt-config WRITES the bead asked to disclose; pre-flight-check.sh now only detects and advises (deny_entry_present is read-only, see its own self-test at line ~122). Disclosed what the script does today (remote probe push, --gate-baseline bash -c, git worktree prune) instead of the two retired writes.
+27. retro: two of the bead's five disclosed facts had changed under it — 8mv (this sprint) removed the ~/.claude/settings.json and global-dolt-config WRITES the bead asked to disclose; pre-flight-check.sh now only detects and advises (deny_entry_present is read-only, see its own self-test at line ~122). Disclosed what the script does today (remote probe push, --gate-baseline bash -c, git worktree prune) instead of the two retired writes.
 
 28. retro: AC 1 as literally read ("every write ... appears in the list") could not be satisfied against the bead's own enumerated facts, since two of those facts are no longer true. Satisfied its intent instead — the list now matches the script as it stands, verified live by running it and observing the actual probe push.
 
@@ -284,7 +284,7 @@ All 73 harvested `retro:` comments, unfiltered, grouped by bead.
 30. retro: pre-fix, running pre-flight-check.sh live showed the undisclosed push actually happening: 'refs/dolt/data write: yes (probed: git push origin HEAD:refs/dolt/preflight-probe-2925)' — a real write to the remote — while sed -n '1109,1113p' SKILL.md (and a grep for push/bash -c/prune over the whole disclosure bullet) showed no mention of it.
 
 
-### `agent-plugins-0z0` (3)
+### `0z0` (3)
 
 31. retro: pre-fix, grep -rn ":!.beads'" plugin/skills/bead-bonanza/ | grep -v jsonl showed the stale pathspec at subagent-prompts.md:107 and recovery.md:159-160, while scripts/bb-close-bead.sh:154 actually runs 'git add -A -- \'':!.beads/*.jsonl'\''' — confirming the docs described a whole-directory exclusion the script does not perform.
 
@@ -293,22 +293,22 @@ All 73 harvested `retro:` comments, unfiltered, grouped by bead.
 33. retro: SKILL.md's site (:1125) was prose — 'everything modified except `.beads/`' — not the literal ':!.beads' pathspec string, so AC4's grep alone would never have caught it; only AC1's broader 'no file describes the whole-directory exclusion' check does. Both ACs were needed together, not just the grep.
 
 
-### `agent-plugins-viy` (3)
+### `viy` (3)
 
 34. retro: what I tried that did not work first — cited the new pointer in operating-principles.md as 'references/shared/findings-capture-protocol.md' (matching how SKILL.md cites it). check-skills.sh --strict then reported 4 errors: 'backticked path does not resolve from this file'. The bug was mine — operating-principles.md already lives inside references/, so the correct relative cite from there is 'shared/findings-capture-protocol.md', not 'references/shared/...'. Fixed and re-verified back to the 0-error/1-warning baseline.
 
 35. retro: decided silently to leave the '## Findings harvest' intro paragraph (bd list defaults to open issues...) in place rather than trimming it further, even though it echoes reasoning also present in the vendored protocol's Aggregation section. The Design scoped the deletion to the ~1,800-char '### Harvesting' pipeline subsection specifically (character count matched exactly), so I read the intro as bead-bonanza's own framing rather than in-scope restatement and left it untouched.
 
-36. retro: agent-plugins-6uk (the linked BLOCKS bead deciding whether the harvest query should filter to closed beads) is still open, so the vendored copy was taken verbatim from retro-spec's current source with no query change, per Design's explicit out-of-scope note. No conflict encountered — recorded for visibility since the bead text called it out.
+36. retro: 6uk (the linked BLOCKS bead deciding whether the harvest query should filter to closed beads) is still open, so the vendored copy was taken verbatim from retro-spec's current source with no query change, per Design's explicit out-of-scope note. No conflict encountered — recorded for visibility since the bead text called it out.
 
 
-### `agent-plugins-8ef.1` (7)
+### `8ef.1` (7)
 
 37. retro: The bead promises eighteen rules but its description names only fourteen (A1-A11, A13, A17, A18); A12 and A14-A16 are never identified anywhere, so there was no way to action them as specified. I deduplicated the fourteen named rules plus three unnamed cross-file duplicates I found by reading the file pairs (recovery.md's interrupted-work restatement of operating-principles.md, SKILL.md's dispatch-manifest bullet, and the reference-header routing prose).
 
 38. retro: Every line number in the description is stale, as warned, but two rules were also already partly done: 9p4 had reduced SKILL.md's second baseRef statement (the BB_WORKTREE_BASEREF paragraph) to a pointer, and viy had already moved A11's harvest pipeline out of operating-principles.md into the vendored shared/findings-capture-protocol.md, so A11's canonical location is now a two-hop pointer chain rather than the operating-principles.md range the bead names.
 
-39. retro: A6 (bb-close-bead.sh, 5x) and A7 (bb-backup-run.sh, 4x) are specified with canonical locations inside SKILL.md and most of their duplicate sites also inside SKILL.md, but my dispatch prompt scoped this bead to CROSS-FILE duplication only and assigned within-SKILL.md duplication to agent-plugins-8ef.2. I actioned only their cross-file halves (recovery.md's restatements) and left SKILL.md's Phase-3-step-5 vs script-interface pairs for 8ef.2 — that pair is worth ~1,000 characters and 8ef.2 should be told it inherits it.
+39. retro: A6 (bb-close-bead.sh, 5x) and A7 (bb-backup-run.sh, 4x) are specified with canonical locations inside SKILL.md and most of their duplicate sites also inside SKILL.md, but my dispatch prompt scoped this bead to CROSS-FILE duplication only and assigned within-SKILL.md duplication to 8ef.2. I actioned only their cross-file halves (recovery.md's restatements) and left SKILL.md's Phase-3-step-5 vs script-interface pairs for 8ef.2 — that pair is worth ~1,000 characters and 8ef.2 should be told it inherits it.
 
 40. retro: What I tried that did not work — I first planned to delete recovery.md's 'Crash-resilient close' section wholesale, as the description instructs. That collides with acceptance criterion 4 ('no table of contents was modified'): the section has a Contents entry, and deleting it would either leave a dangling entry or force a ToC edit. I instead kept the heading and cut only the duplicated content (the write spec and the four re-listed recovery steps), leaving the rationale that lives nowhere else, so the ToC entry stays true and unmodified.
 
@@ -319,7 +319,7 @@ All 73 harvested `retro:` comments, unfiltered, grouped by bead.
 43. retro: Left in both places deliberately, beyond the three named carry-overs: the environmental-failure-ledger rule is stated three times cross-file (SKILL.md's operating principle, project-setup.md's AGENTS.md block template, dispatch-plan.md's dispatch.md section). Each copy is the content of a different artifact a reader copies out, so cutting any one weakens a template rather than removing a restatement. Possibly one of the unnamed A14-A16; flagging rather than actioning.
 
 
-### `agent-plugins-8ef.2` (9)
+### `8ef.2` (9)
 
 44. retro: every line number in the description had moved, but every named passage was still findable by content — nothing was pre-removed by the eleven earlier beads. The offsets are roughly uniform (-72 lines by the sprint-retro section), so locating by content cost little; the description's stale ranges are the only drift.
 
@@ -340,9 +340,9 @@ All 73 harvested `retro:` comments, unfiltered, grouped by bead.
 52. retro: 8ef.1's inherited pair is resolved — it is Phase 3 step 5 (bb-backup-run.sh) against the published script-interface bullet for the same script, and the interface bullet won per the keep-list. Step 5 now carries only the invocation, the never-from-a-worktree rule and the per-bead cadence carry-over; the ~900 characters of mechanics it restated (what the script copies, that it does not push, that Phase 4 deletes it) live in the interface bullet and the side-effects list.
 
 
-### `agent-plugins-8ef.3` (5)
+### `8ef.3` (5)
 
-53. retro: the bead's Category-D line-number citations were mostly stale, as warned. SKILL.md:423-431 (bd-ready filter restatement) now sits at a different section; the actual filter block moved to ~359-364, and I verified via `bd prime` that it does NOT inject --label/--priority/-n syntax, so that block is not actually redundant with the environment and I left it untouched. SKILL.md:1116-1117 (dup of :325-326) no longer exists — the file is 1019 lines and grep finds the trailers-file text only once, already fixed upstream. SKILL.md:1131-1133 ('script usage line') is present in reworded form protected by the epic's binding constraint 3 (deliberate redundancy with script headers) — no action needed. recovery.md:160 (hand-replay of bb-close-bead.sh with the old pathspec) is already fixed: agent-plugins-0z0 is closed and the current text explicitly forbids by-hand replay with the correct :!.beads/*.jsonl pathspec.
+53. retro: the bead's Category-D line-number citations were mostly stale, as warned. SKILL.md:423-431 (bd-ready filter restatement) now sits at a different section; the actual filter block moved to ~359-364, and I verified via `bd prime` that it does NOT inject --label/--priority/-n syntax, so that block is not actually redundant with the environment and I left it untouched. SKILL.md:1116-1117 (dup of :325-326) no longer exists — the file is 1019 lines and grep finds the trailers-file text only once, already fixed upstream. SKILL.md:1131-1133 ('script usage line') is present in reworded form protected by the epic's binding constraint 3 (deliberate redundancy with script headers) — no action needed. recovery.md:160 (hand-replay of bb-close-bead.sh with the old pathspec) is already fixed: 0z0 is closed and the current text explicitly forbids by-hand replay with the correct :!.beads/*.jsonl pathspec.
 
 54. retro: the description's claim that subagent-prompts.md 142-144 lists 'Bash(wait) and Bash(wait %1) twice' does not hold — a repo-wide grep finds Bash(wait)/Bash(wait %1) exactly once, in project-setup.md:91. No duplicate found or removed; noting it so the estimate isn't mistaken for a missed deletion.
 
@@ -353,11 +353,11 @@ All 73 harvested `retro:` comments, unfiltered, grouped by bead.
 57. retro: verification method for 'no rule lost' — for each of the two batch templates, I extracted the fenced prompt text only (stripped headers/prose) for: the pre-change template, the new preamble, and the new template; concatenated preamble+new-template to model exactly what the orchestrator sends; then took normalized (lowercased, punctuation-stripped) word-sets and diffed old-template-words minus assembled-words. Result for both fast-lane and shared-surface: the only word present in the old but absent from the assembled text was the numeral '3' (a list-numbering artifact from moving the shared step out of the numbered list, not lost content). The reverse diff (assembled minus old) showed only connective phrasing I added ('beyond', 'above', 'below', 'template-specific', 'when done') plus 'exactly' for the shared-surface template, which restores the 'exactly as in the sequential template' anchor that :209 had previously dropped (the drift the bead asked me to resolve).
 
 
-### `agent-plugins-new` (5)
+### `new` (5)
 
-58. retro: Every line number in the Design was stale. recovery.md was 17,277 bytes / 251 lines, not 18,767 / 263 — the cited ranges :24-150, :151-171, :172-250, :251-263 all shifted, and :160 (the pathspec defect) had already been taken by agent-plugins-0z0 as the Design anticipated. Sections were located by heading text instead.
+58. retro: Every line number in the Design was stale. recovery.md was 17,277 bytes / 251 lines, not 18,767 / 263 — the cited ranges :24-150, :151-171, :172-250, :251-263 all shifted, and :160 (the pathspec defect) had already been taken by 0z0 as the Design anticipated. Sections were located by heading text instead.
 
-59. retro: The Design said the crash-resilient-close section 'deletes wholesale' as ~0% read, but agent-plugins-8ef.1 had already cut its duplicated half and kept the heading. What remained is two paragraphs stating WHY the handoff precedes the close — a rule not restated in SKILL.md — so it was kept with the subagent-crash procedures rather than deleted. No rule lost.
+59. retro: The Design said the crash-resilient-close section 'deletes wholesale' as ~0% read, but 8ef.1 had already cut its duplicated half and kept the heading. What remained is two paragraphs stating WHY the handoff precedes the close — a rule not restated in SKILL.md — so it was kept with the subagent-crash procedures rather than deleted. No rule lost.
 
 60. retro: Decided silently, not pinned by the bead: the new reference file is named references/progress-streaming.md; recovery.md keeps its filename but is retitled to subagent-crash-only; the split boundary is exactly the three former H2s, with 'Crash-resilient close' following the subagent procedure it serves. Also added .claude/skills/recover-sprint as a committed symlink (matching all six existing plugin skills) and listed the skill in .claude-plugin/marketplace.json, which the bead named as c4_impacts.
 
@@ -366,7 +366,7 @@ All 73 harvested `retro:` comments, unfiltered, grouped by bead.
 62. retro: user-invocable: false CONFIRMED against the installed build (Claude Code 2.1.228, /opt/claude-code/bin/claude). The binary's frontmatter key list includes 'user-invocable'; its schema text reads "If false, hides the slash command from users; only the model can invoke it via the Skill tool"; the parser defaults it to true when absent. scripts/check-skills.sh parses the frontmatter with yaml.safe_load and ignores unknown keys, so it accepts the flag (exit 0, 0 errors).
 
 
-### `agent-plugins-b5z` (7)
+### `b5z` (7)
 
 63. retro: Every cited line range was stale. Phase 2.5 was SKILL.md:494-726, not :559-818; 'Classify each bead' was :505-572 not :570-642, 'Choose a dispatch mode' :574-614 not :643-686, 'Tier selection' :616-665, 'main-loop fallback' :667-701, 'Push policy' :703-712, 'The dispatch plan' :714-726. dispatch-plan.md was 8,163 bytes, not 7,663. Sections were located by heading text.
 
@@ -383,14 +383,14 @@ All 73 harvested `retro:` comments, unfiltered, grouped by bead.
 69. retro: AC 5 verified by reading what remains, not by assertion: recover-sprint step 2 reads dispatch.md in full for the mandate, enumerated bead list, standing authorization, wave table, gate profile, environmental ledger and Amendments; recover-sprint cites no bead-bonanza reference file at all (check-skills path resolution is clean); and every manifest field recovery needs is in the header the orchestrator still writes itself.
 
 
-### `agent-plugins-9ko` (1)
+### `9ko` (1)
 
-70. retro: Blocker agent-plugins-41z did not clear the size warning. scripts/check-skills.sh --strict exits 1 with bead-bonanza/SKILL.md at 51921 bytes, still over the ~20000-byte guideline. Enabling --strict in CI would break the default-branch workflow, so taking Blocked path per Design intent.
+70. retro: Blocker 41z did not clear the size warning. scripts/check-skills.sh --strict exits 1 with bead-bonanza/SKILL.md at 51921 bytes, still over the ~20000-byte guideline. Enabling --strict in CI would break the default-branch workflow, so taking Blocked path per Design intent.
 
 
-### `agent-plugins-x8r` (3)
+### `x8r` (3)
 
-71. retro: The bead's audit table was from the 92q epic, not this sprint. Actual changes this sprint: bead-bonanza (git log shows multiple beads touched it), spec (agent-plugins-d70). NOT changed: groom-beads, groom-feature-blueprint, retro-skill, retro-spec. Bumped only bead-bonanza 1.3→1.4 and spec 1.8→1.9, updated three RFC files to record this.
+71. retro: The bead's audit table was from the 92q epic, not this sprint. Actual changes this sprint: bead-bonanza (git log shows multiple beads touched it), spec (d70). NOT changed: groom-beads, groom-feature-blueprint, retro-skill, retro-spec. Bumped only bead-bonanza 1.3→1.4 and spec 1.8→1.9, updated three RFC files to record this.
 
 72. retro: the audit was scoped to the current sprint rather than to the 92q epic the bead names, so it bumped only bead-bonanza and spec and reported the other four skills as unchanged. 4443f24 in fact edited all four SKILL.md files while their version lines last moved 2026-07-30. The orchestrator completed the four bumps and corrected the three RFC closeout notes in a follow-up commit.
 

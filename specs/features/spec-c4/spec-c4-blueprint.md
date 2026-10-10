@@ -9,7 +9,6 @@ type: feature-blueprint
 status: retired
 delivery: single-pr
 frd: frd-spec-c4
-plan: specs-c4model
 ---
 
 # C4 Model
@@ -284,19 +283,20 @@ contract document until a consumer exists that is built independently.
 
 ## Tracker Reconciliation
 
-- `specs-f6tl.5` and `specs-f6tl.6` — prerequisite,
-  transitively, already met: Document Core's C4 Elements component
-  rests on both, and this feature rests on that component.
-- `agent-plugins-7os0` — out-of-scope: subsumed by
+- The record-block tag registration point and heading-scoped record
+  blocks — prerequisite, transitively, already met: Document Core's C4
+  Elements component rests on both, and this feature rests on that
+  component.
+- Out-of-scope: the C4 standards issue, subsumed by
   the [[c4-standards]] amendment that landed with Document Core's C4
   Elements component. This feature does not amend
   [[c4-standards]].
-- `agent-plugins-h6c` — out-of-scope: the index-schema and contract
+- Out-of-scope: the index-schema and contract
   ADR. This feature emits a separate model and changes no index shape,
   so it neither advances nor blocks that decision.
-- `agent-plugins-gz3` — prerequisite, already met: the index carries
-  per-type frontmatter since the change that closed
-  `agent-plugins-23f1`.
+- Prerequisite, already met: the index carries
+  per-type frontmatter.
+
 
 ## Sequencing Constraints
 

@@ -171,8 +171,8 @@ func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict, verb
 		// A path naming no corpus member is the caller's mistake, not a
 		// defect in the corpus, so it is an error rather than a finding —
 		// and it must not render as a report, because a report with no
-		// findings is what "this document passed" looks like
-		// (`agent-plugins-ltd`). corpus already distinguishes a file the
+		// findings is what "this document passed" looks like. corpus
+		// already distinguishes a file the
 		// index excluded, with its reason, from one discovery never saw.
 		//
 		// It is an invocation error (status 2) and never a pass: a gate

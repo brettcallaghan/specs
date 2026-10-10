@@ -46,7 +46,7 @@ because it answers confidently and wrongly.
 | Field | Value |
 |-------|-------|
 | Harness | Claude Code on the web (remote container session) |
-| Task the skill was applied to | The `agent-plugins-9kb` reference-integrity epic: 12 beads across two repos, on branch `claude/reference-integrity-blueprint-groom-xc7d30` |
+| Task the skill was applied to | The reference-integrity epic: 12 beads across two repos, on branch `claude/reference-integrity-blueprint-groom-xc7d30` |
 | References / scripts / templates invoked | `bead-bonanza` SKILL.md v1.3; `references/subagent-prompts.md`; `references/recovery.md`; `scripts/bb-progress.sh`; `scripts/bb-close-bead.sh`; `skill-rfc-template` v0.3 |
 | Run dates | 2026-08-07 (single continuous run, 17:21–22:24) |
 
@@ -73,7 +73,7 @@ stated there.
    and a `.retro.md` for `tix`, `ml9`, `j7f`, `9kb.1`–`9kb.4`, `9kb.8`
    and `9kb.9`. For `9kb.5` it holds a progress file of two events and
    **no** retro; for `9kb.6` and `9kb.7` it holds **nothing**. All three
-   are closed in `bd` (`bd show agent-plugins-9kb` reports 9/10
+   are closed in `bd` (`bd show <epic-id>` reports 9/10
    complete) with landing commits `bb7ecc3`, `a43bcf9`, `da9d8bd`. The
    epic's own progress note records the cause: "the previous three
    hand-written briefs cost 9kb.5/.6/.7 their progress files and retro
@@ -89,13 +89,13 @@ stated there.
    run directory, under the same run id.** `.bonanza/1786121603-ri/`
    was committed at 21:56 (`02c3cc8`, 17 paths). The live directory now
    holds five files the backup does not:
-   `agent-plugins-9kb.8.{progress.jsonl,retro.md,show.txt}` and
-   `agent-plugins-9kb.9.{progress.jsonl,retro.md}` — beads that landed
+   the `9kb.8.{progress.jsonl,retro.md,show.txt}` and
+   `9kb.9.{progress.jsonl,retro.md}` files — beads that landed
    at 22:17 and 22:24, after the snapshot. Nothing in the backup says
    it is partial or when it was taken. A retro run at 22:30 read the
    backup, found no `9kb.8`/`9kb.9` artifacts, and reported both beads
    as having closed with no ceremony — then, compounding it, asserted
-   that `agent-plugins-9kb.9.progress.jsonl` "has never existed in this
+   that the `9kb.9` progress file "has never existed in this
    run directory". It exists, with a complete seven-event trail ending
    `{"phase":"committed","sha":"7761db5"}` and `{"phase":"pushed"}`.
    Both errors are attributable to a backup that shares its name with
@@ -103,7 +103,7 @@ stated there.
 
 3. **[gap · snag] A ledger that stops short of `committed` says nothing
    about the bead, and no rule states this.**
-   `agent-plugins-9kb.5.progress.jsonl` ends at
+   The `9kb.5` progress file ends at
    `{"phase":"implementing"}` with mtime 18:29, while bead `9kb.5` was
    committed at 21:06 (`bb7ecc3`) and four further beads landed after
    it. `references/recovery.md:40-55` presents the event sequence as the
@@ -114,7 +114,7 @@ stated there.
 4. **[gap · snag] No rule for a bead that cannot land in one commit.**
    `SKILL.md:718-722`: "**One commit per bead, always.** Every closed
    bead = exactly one commit on the branch." Bead `9kb.5` landed in two
-   — `e3f2777` "WIP agent-plugins-9kb.5 (PREG): profile registration,
+   — `e3f2777` "WIP <bead-id> (PREG): profile registration,
    snapshots pending" at 20:52, then `bb7ecc3` at 21:06. The rule is
    absolute with no interruption case, so the agent improvised a commit
    the invariant forbids rather than following a stated resume path.
@@ -139,7 +139,7 @@ stated there.
    `Claude-Session` trailers must `git commit --amend` after step 6 —
    which rewrites the commit. Step 7 then records the pre-amend sha.
    Observed on `9kb.10`:
-   `agent-plugins-9kb.10.progress.jsonl` ends
+   the `9kb.10` progress file ends
    `{"phase":"committed","sha":"14f0be3"}`, while the landing commit on
    the branch is `875593a`; `git merge-base --is-ancestor 14f0be3 HEAD`
    exits non-zero — the recorded sha is a dangling pre-amend object.
@@ -454,25 +454,25 @@ table.
 Approved alongside two sibling RFCs in `rfcs/inbox/bead-bonanza/`; with
 more than five proposals approved and most of them changing one file,
 step 5's "Sequence before you edit" branch applied, so each proposal was
-filed as a bead under epic `agent-plugins-92q` and run through
+filed as a bead under one epic and run through
 `groom-beads` rather than implemented inline.
 
-| Item | Outcome | Bead |
-|------|---------|------|
-| P1 — verify the artifacts before recording a bead closed | **adopted with refinement**, and the refinement inverts the check. P1's test reads the run directory (`test -s "$RUN_DIR/$ID.retro.md"`, grep the progress ledger), but both files are written by the agent being checked, so the test is testimony verifying itself — exactly the failure it was written to catch. What landed is a five-signal acceptance check against git and tracker state: the bead reads closed in `bd`, a close commit exists on the bead's branch, that branch merged into the sprint branch `--ff-only`, **the worktree is gone** (the load-bearing signal — removal is the orchestrator's own act of accepting the bead, so a surviving worktree is a bead not accepted whatever the subagent reported), and at least one `retro:` comment exists or the subagent explicitly reported a clean bead. `SKILL.md` also names the two signals the check deliberately does not use, the `"phase":"committed"` ledger event and a per-bead retro file — which no longer exists, findings having moved to `retro:` comments. P1's disposition rules survived: a failing bead gets a Phase 4 row naming the failing signal instead of a commit sha, and is not counted among the closed. | `agent-plugins-92q.12`, `agent-plugins-92q.22` |
-| P2 — make the run-directory backup self-describing | **adopted with refinement, and merged with the sibling RFC's P5.** `scripts/bb-backup-run.sh` writes `SNAPSHOT.md` beside the copy recording the run id, the as-of timestamp, the live directory's path, the run branch, the HEAD when it was taken, and every bead id with a progress ledger or handoff file. The "live directory is authoritative, a snapshot never is" rule landed verbatim in `references/recovery.md` and binds recovery, retros and DoD audits alike. Refinement: the refresh is keyed to P1's acceptance check as proposed, but the bead-id list is of handoff files rather than `.retro.md` files, because the per-bead retro file was retired in the same sprint. | `agent-plugins-92q.13`, `agent-plugins-xvl`, `agent-plugins-vme` |
-| P3 — fit the operative procedure under the re-injection cap | **adopted with refinement — decomposed, and NOT yet complete.** See *On P3* below. The re-read instruction, the linter's byte threshold, the Phase 0 gate baseline and the reordering all landed. The size target did not: `SKILL.md`'s body is **61,153 bytes (~15,288 tokens)** against P3's ~20,000-byte target, and `scripts/check-skills.sh --strict` still exits 1 on it. Do not read this row as resolved. | `agent-plugins-92q.1`, `agent-plugins-92q.2`, `agent-plugins-92q.7`, `agent-plugins-92q.3` (Phase 0 baseline half); measurement gate `agent-plugins-8ef` deferred |
-| P4 — state what the ledger does and does not prove | **adopted** as written. `references/recovery.md` carries "the ledger is a hint, never the authority" directly under the event schema, with all three negative statements — a trail ending before `committed` proves nothing, an absent progress file proves nothing, an mtime bounds the last write and not liveness — and the resolution order `bd show`, then `git log --grep`, then the ledger. It survived the second sprint untouched and is now cited by the Phase 3 acceptance check as the reason a `"phase":"committed"` event is not an acceptance signal. | `agent-plugins-92q.11` |
-| P5 — define the resume path for an interrupted bead | **adopted, landed, and since retired.** The `WIP <bead-id>` exception and its squash-before-close rule landed as proposed. `agent-plugins-92q.30` then removed the condition that made it necessary: a bead's interrupted work sits in that bead's own worktree on its own branch, so there is nothing to persist with a WIP commit and nothing to squash. The resume path is now to re-enter the worktree and finish the work, and `references/recovery.md` says so explicitly. The proposal was correct for a shared working tree; it does not survive one worktree per bead. | `agent-plugins-92q.15`; retired by `agent-plugins-92q.30` / `agent-plugins-92q.33` |
-| P6 — let the close script write the project's trailers | **adopted** as written, both halves. `bb-close-bead.sh` takes `--trailers-file <path>`, appended to the commit message body after a blank line, resolved once per run at Phase 0 and threaded into every dispatch template; and the ceremony now reads the landed sha from the branch (`git rev-parse --short HEAD`) rather than from the script's printout, so a rewrite between the commit and the ledger write cannot desync them. | `agent-plugins-92q.16` |
+| Item | Outcome |
+|------|---------|
+| P1 — verify the artifacts before recording a bead closed | **adopted with refinement**, and the refinement inverts the check. P1's test reads the run directory (`test -s "$RUN_DIR/$ID.retro.md"`, grep the progress ledger), but both files are written by the agent being checked, so the test is testimony verifying itself — exactly the failure it was written to catch. What landed is a five-signal acceptance check against git and tracker state: the bead reads closed in `bd`, a close commit exists on the bead's branch, that branch merged into the sprint branch `--ff-only`, **the worktree is gone** (the load-bearing signal — removal is the orchestrator's own act of accepting the bead, so a surviving worktree is a bead not accepted whatever the subagent reported), and at least one `retro:` comment exists or the subagent explicitly reported a clean bead. `SKILL.md` also names the two signals the check deliberately does not use, the `"phase":"committed"` ledger event and a per-bead retro file — which no longer exists, findings having moved to `retro:` comments. P1's disposition rules survived: a failing bead gets a Phase 4 row naming the failing signal instead of a commit sha, and is not counted among the closed. |
+| P2 — make the run-directory backup self-describing | **adopted with refinement, and merged with the sibling RFC's P5.** `scripts/bb-backup-run.sh` writes `SNAPSHOT.md` beside the copy recording the run id, the as-of timestamp, the live directory's path, the run branch, the HEAD when it was taken, and every bead id with a progress ledger or handoff file. The "live directory is authoritative, a snapshot never is" rule landed verbatim in `references/recovery.md` and binds recovery, retros and DoD audits alike. Refinement: the refresh is keyed to P1's acceptance check as proposed, but the bead-id list is of handoff files rather than `.retro.md` files, because the per-bead retro file was retired in the same sprint. |
+| P3 — fit the operative procedure under the re-injection cap | **adopted with refinement — decomposed, and NOT yet complete.** See *On P3* below. The re-read instruction, the linter's byte threshold, the Phase 0 gate baseline and the reordering all landed. The size target did not: `SKILL.md`'s body is **61,153 bytes (~15,288 tokens)** against P3's ~20,000-byte target, and `scripts/check-skills.sh --strict` still exits 1 on it. Do not read this row as resolved. |
+| P4 — state what the ledger does and does not prove | **adopted** as written. `references/recovery.md` carries "the ledger is a hint, never the authority" directly under the event schema, with all three negative statements — a trail ending before `committed` proves nothing, an absent progress file proves nothing, an mtime bounds the last write and not liveness — and the resolution order `bd show`, then `git log --grep`, then the ledger. It survived the second sprint untouched and is now cited by the Phase 3 acceptance check as the reason a `"phase":"committed"` event is not an acceptance signal. |
+| P5 — define the resume path for an interrupted bead | **adopted, landed, and since retired.** The `WIP <bead-id>` exception and its squash-before-close rule landed as proposed. A later bead then removed the condition that made it necessary: a bead's interrupted work sits in that bead's own worktree on its own branch, so there is nothing to persist with a WIP commit and nothing to squash. The resume path is now to re-enter the worktree and finish the work, and `references/recovery.md` says so explicitly. The proposal was correct for a shared working tree; it does not survive one worktree per bead. |
+| P6 — let the close script write the project's trailers | **adopted** as written, both halves. `bb-close-bead.sh` takes `--trailers-file <path>`, appended to the commit message body after a blank line, resolved once per run at Phase 0 and threaded into every dispatch template; and the ceremony now reads the landed sha from the branch (`git rev-parse --short HEAD`) rather than from the script's printout, so a rewrite between the commit and the ledger write cannot desync them. |
 
 **Triage-originated changes.** From the review session rather than from
 this RFC's testimony, numbered `T` so they are not read as its proposals.
 
-| Item | Outcome | Bead |
-|------|---------|------|
-| T1 — Definition of Ready: require decisions to be closed, and narrow the sanctioned hedge in the Design check | **adopted.** The spec-owned `work-order-definition-of-ready` gained check 9; `groom-beads` gained the matching checklist line and parks a bead whose Design leaves a choice open as `blocked-needs-info` rather than guessing. | `agent-plugins-92q.4` |
-| T2 — delete `SKILL.md` Phase 2: the readiness gate owns decisions, and refinement does not run inside the sprint | **adopted.** Phase 2 was 4,280 bytes inside the window that survives compaction, spent on work the Definition of Ready (T1) already requires to be finished before dispatch. Recorded here as triage-originated, though it also served P3's byte budget. | `agent-plugins-92q.5` |
+| Item | Outcome |
+|------|---------|
+| T1 — Definition of Ready: require decisions to be closed, and narrow the sanctioned hedge in the Design check | **adopted.** The spec-owned `work-order-definition-of-ready` gained check 9; `groom-beads` gained the matching checklist line and parks a bead whose Design leaves a choice open as `blocked-needs-info` rather than guessing. |
+| T2 — delete `SKILL.md` Phase 2: the readiness gate owns decisions, and refinement does not run inside the sprint | **adopted.** Phase 2 was 4,280 bytes inside the window that survives compaction, spent on work the Definition of Ready (T1) already requires to be finished before dispatch. Recorded here as triage-originated, though it also served P3's byte budget. |
 
 **On P3.** Adopted with refinement because it was decomposed rather than
 implemented as the single restructure it describes, and it is the one row
@@ -480,7 +480,7 @@ in this Resolution that is not finished.
 
 *Why it was decomposed.* P3 proposes one restructure of a file whose
 contents were about to change. Within the same epic,
-`agent-plugins-92q.30` and `agent-plugins-92q.31` deleted whole passages
+the beads that made worktrees universal and untracked the JSONL exports deleted whole passages
 of `SKILL.md` outright — the shared-tree machinery, the tracker-write
 deferral, the JSONL-as-transport rules — so a restructure performed
 against the file as it stood would have been redone. The proposal was
@@ -488,25 +488,25 @@ split into the parts that were safe to land immediately, the reordering
 that had to wait for the content-reducing beads, and a measurement gate
 to verify the result.
 
-*What landed.* `agent-plugins-92q.1` put the post-compaction re-read
+*What landed.* One bead put the post-compaction re-read
 instruction at the top of the file, above the truncation point — the half
 P3 itself calls the cheapest and says can ship on its own.
-`agent-plugins-92q.2` rewrote `scripts/check-skills.sh` to threshold skill
+Another rewrote `scripts/check-skills.sh` to threshold skill
 bodies on bytes derived from the 5,000-token re-injection cap instead of
 on a 500-line guideline; the byte threshold immediately found a second
 skill over the cap that the line count had never flagged
-(`plugin/skills/spec/SKILL.md`, 22,497 bytes). `agent-plugins-92q.3`
+(`plugin/skills/spec/SKILL.md`, 22,497 bytes). A third
 carried P3's separate Phase 0 half: `pre-flight-check.sh --gate-baseline`
 runs the gate profile on the untouched tree, records the result in
 `dispatch.md`'s run manifest, and makes "no findings beyond the baseline"
 the stated bar — retiring the hand-written exception this run repeated
-into every prompt. `agent-plugins-92q.7` reordered the file so the
+into every prompt. A fourth reordered the file so the
 executable core comes first: worktrees, the merge policy, the phase loop,
 the acceptance check, the close ceremony and the script interfaces are all
 inside the surviving window, and the explanatory material moved to
 `references/operating-principles.md` and `references/dispatch-plan.md`.
 
-*What did not.* `agent-plugins-8ef` was the bead that would have measured
+*What did not.* A final bead was the one that would have measured
 the fit, trimmed the residual and retired the KNOWN RED entry. It was
 closed on 2026-08-12 by the repository owner's decision, to be revisited
 in a dedicated analysis round rather than carried as a standing open bead.
@@ -568,7 +568,7 @@ vendored copies under `groom-beads`, `groom-feature-blueprint` and
 covering this RFC and its two siblings.
 
 The `version` frontmatter of the changed shipped **skills** has been
-bumped in `agent-plugins-x8r`: `bead-bonanza` 1.3→1.4 and `spec` 1.8→1.9.
+bumped: `bead-bonanza` 1.3→1.4 and `spec` 1.8→1.9.
 The other four (`groom-beads` 1.1→1.2, `groom-feature-blueprint`
 1.2→1.3, `retro-skill` 0.3→0.4, `retro-spec` 1.3.0→1.4.0) were bumped
 for the SKILL.md edits this RFC's own closeout made, which had gone

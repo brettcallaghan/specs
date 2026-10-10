@@ -342,7 +342,7 @@ same defect class (a template prescribing what a standard prohibits),
 prior ADOPTED. That adoption covered `adr-template.md`'s slug only, so
 it does not cover this evidence; this is a genuine second occurrence of
 the class in a different set of files. P3 matches
-`theme:document-location`, bead `agent-plugins-8bx` (closed, ADOPTED)
+`theme:document-location`, a closed ADOPTED bead,
 and RFC 0006 P5. Both prior changes edited this same enumeration
 without stating the rule — verified still unstated before this triage —
 so neither addresses it. No proposal matched a prior rejection.

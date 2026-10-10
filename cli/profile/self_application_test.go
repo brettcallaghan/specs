@@ -52,29 +52,28 @@ func repositoryRoot(t *testing.T) string {
 //
 // It drives corpus.Build and Corpus.Check directly rather than through
 // cli/cmd, because stage 2's command surface (a `check` subcommand) had
-// not landed when this gate was wired (agent-plugins-bge.14, stage 2 of
-// 3 itself) — those two calls are the whole of what a future CLI
+// not landed when this gate was wired — those two calls are the whole of what a future CLI
 // invocation would make, so nothing about the check itself is a stand-in.
 //
 // The corpus root is specs/, not docs/. The blueprint's Definition of
 // Done originally named docs/; this repository's specs/ reorganization
 // left docs/ holding a single file (session-bootstrap.md), which would
 // make this gate pass vacuously. The corrected root — specs/, 27
-// markdown documents at the time this gate was wired — is recorded on
-// agent-plugins-bge.14 (author-confirmed 2026-08-04) and matches
-// [workspace].root in this repository's own specs.toml.
+// markdown documents at the time this gate was wired — was confirmed by
+// the author and matches [workspace].root in this repository's own
+// specs.toml.
 //
 // The result is asserted exactly, not merely "no error" or "no findings
-// above some severity": per bge.14's instruction not to weaken the gate
-// to make it green, a corpus defect this run surfaces is filed as its
-// own bead rather than fixed here or hidden by loosening this assertion.
+// above some severity": the gate is not weakened to make it green, so a
+// corpus defect this run surfaces is filed as its own issue rather than
+// fixed here or hidden by loosening this assertion.
 // Zero findings is expected here, not a placeholder — a finding
 // appearing where this asserts none is exactly the drift this gate
 // exists to catch, and this test should fail rather than pass silently.
 //
-// agent-plugins-tff (spec-index-blueprint.md's `plan: agent-plugins-bge`
-// tripped additionalProperties because FeatureBlueprint's schema did not
-// declare `plan`) was the one finding this test previously asserted
+// spec-index-blueprint.md's `plan` property once tripped
+// additionalProperties because FeatureBlueprint's schema did not declare
+// `plan`; that was the one finding this test previously asserted
 // exactly. It is resolved: FeatureBlueprint now declares an optional
 // `plan: String?`, schemas/frontmatter.strata was regenerated, and this
 // document validates.
@@ -104,15 +103,9 @@ func repositoryRoot(t *testing.T) string {
 //     branch and TestValidateReportsOneFindingPerUndeclaredProperty in
 //     schemaregistry_test.go.
 //
-// agent-plugins-6n4 (work-order-template.md is not valid YAML) is NOT
-// exercised by this test: that file is
-// plugin/skills/spec/references/work-order-template.md, outside the
-// specs/ root this gate is scoped to. The blueprint's Tracker
-// Reconciliation entry for 6n4 says this gate reports it, which was true
-// only under a broader (or pre-reorg) notion of corpus root; that
-// staleness is filed as agent-plugins-mvx for whoever verifies the
-// Definition of Done to reconcile, rather than resolved here by
-// widening this gate's root unreviewed.
+// Templates under plugin/skills/spec/references/ are NOT exercised by
+// this test: they sit outside the specs/ root this gate is scoped to, and
+// widening the root is a separate, reviewed decision.
 func TestProfileSelfApplicationAgainstThisRepositorysCorpus(t *testing.T) {
 	root := repositoryRoot(t)
 	specRoot := filepath.Join(root, "specs")

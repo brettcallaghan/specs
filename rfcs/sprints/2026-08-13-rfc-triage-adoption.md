@@ -9,13 +9,13 @@ status: active
 
 # Sprint report — 2026-08-13 RFC triage adoption
 
-Run `1786600009-7`, epic `agent-plugins-61f`, branch
+Run `1786600009-7`, epic `61f`, branch
 `claude/triage-rfc-self-report-anchors-7vlncg`, base sha `b8b36d1`… `b8e9436`.
 
 **Result: 7 closed, 0 blocked, 0 skipped.** 14 findings harvested.
 
 Findings are numbered **per bead** (`61f.4#3`), not globally — the citation form
-`agent-plugins-61f.1` introduced this run, dogfooded here in its first report.
+`61f.1` introduced this run, dogfooded here in its first report.
 Every harvested finding is reproduced verbatim below, **including the tail that
 warrants no RFC**: `triage-rfc` defers on recurrence, so a finding recorded once
 and filtered out next time can never be observed appearing twice.
@@ -127,7 +127,7 @@ measured baseline that makes the saving negligible.
 
 ## Findings (verbatim, per bead)
 
-### `agent-plugins-61f.1`
+### `61f.1`
 
 bead-bonanza Phase 4: number harvested findings per bead so citations can resolve (RFC A-P1a)
 
@@ -135,19 +135,19 @@ bead-bonanza Phase 4: number harvested findings per bead so citations can resolv
 
 **`61f.1#2`** — retro: Design didn't pin whether the per-bead citation-form requirement should be folded into the existing 'Write one sprint report' paragraph or added as its own paragraph; decided silently to add it as a new paragraph immediately after, so the citation form is easy to spot rather than lengthening the existing one.
 
-### `agent-plugins-61f.2`
+### `61f.2`
 
 bead-bonanza: chain each bead in a batch onto its predecessor's branch, not repo HEAD (RFC A-P2)
 
 **`61f.2#1`** — retro: Observed pre-fix state, quoted verbatim from references/subagent-prompts.md's 'Shared batch preamble' block before the edit: "Worktrees: one per bead, created by YOU, held ONE AT A TIME. Before each bead:\n  git -C <repo> worktree add -b <suffix> <repo>/../.bb-worktrees/<suffix> HEAD" -- confirms the bead's claim: no predecessor-chaining clause, every bead in a batch would branch from the same HEAD.
 
-### `agent-plugins-61f.3`
+### `61f.3`
 
 bead-bonanza Phase 4: report the durable trigger's disposition (RFC A-P5)
 
 **`61f.3#1`** — retro: Design said to place the reporting requirement 'with the other Phase 4 report contents ... near step 6a' but didn't say whether to amend item 6a's existing text or add a new list item; decided silently to fold it into 6a's existing sentence since 6a is already specifically about the trigger.
 
-### `agent-plugins-61f.4`
+### `61f.4`
 
 Definition of Ready and work-order template: require durable anchors, not line numbers (RFC B-P1)
 
@@ -159,7 +159,7 @@ Definition of Ready and work-order template: require durable anchors, not line n
 
 **`61f.4#4`** — retro: what I tried first and abandoned — I opened the source files expecting the two 'concrete anchors' sites to need a search, and started from the bead's six-file extent list. Three of those six paths are elided with '...' in the Design, so the list reads as an inventory rather than an edit list; I abandoned reading it as targets and re-derived the full set with the Design's own grep, which is what the extent check used. No work was lost, but the elided paths cost a re-derivation.
 
-### `agent-plugins-61f.5`
+### `61f.5`
 
 groom-beads: reject a bare file:line anchor with no quoted content (RFC B-P2)
 
@@ -171,13 +171,13 @@ groom-beads: reject a bare file:line anchor with no quoted content (RFC B-P2)
 
 **`61f.5#4`** — retro: silent decision — did not add a one-line pointer to the Definition of Ready, per the Design's instruction not to add one 'if the surrounding bullets don't carry them'; none of the other bullets in this list link to or name the DoR, so this was unambiguous, not a judgment call.
 
-### `agent-plugins-61f.6`
+### `61f.6`
 
 bead-bonanza: arm the Monitor persistent and stop it explicitly, instead of inheriting a 5-minute default (RFC A-P4, reshaped)
 
 **`61f.6#1`** — retro: Observed pre-fix state, quoted verbatim from references/progress-streaming.md's 'Monitor any subagent past 5 minutes' section before the edit: the arming guidance ended at 'For batch subagents, tail multiple files in one Monitor.' with no mention of persistent, timeout_ms, or TaskStop anywhere in the tail -F pattern paragraph -- confirmed by grep for those three terms across plugin/skills/bead-bonanza/ returning zero hits, matching the bead's claim exactly.
 
-### `agent-plugins-61f.7`
+### `61f.7`
 
 bead-bonanza: record the run's effort setting in the dispatch manifest, and carry it into routed RFCs (triage T1)
 

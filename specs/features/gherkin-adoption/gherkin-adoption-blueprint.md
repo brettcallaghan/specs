@@ -8,7 +8,6 @@ slug: feature-gherkin-adoption
 type: feature-blueprint
 status: retired
 delivery: staged
-plan: agent-plugins-wvd
 frd: frd-gherkin-adoption
 ---
 
@@ -100,8 +99,7 @@ transpiler reports, is the first act of this block.
 `schemas/finding.strata`; `scripts/generate-schemas.sh`, which
 regenerates `cli/core/specmodel/`, `cli/core/schema/` and the plugin
 markdown. Regeneration is the whole risk in this block — three
-unverified constructs are named in `agent-plugins-dc6` under Tracker
-Reconciliation.
+unverified constructs are named under Tracker Reconciliation.
 
 ### Profile extension point in [[module-document-core]] (modified) — XPT
 
@@ -561,83 +559,83 @@ sides of the comparison.
   repository's file changes meaning.
 - No new contract document. The index gains a `features` collection, and
   promotion of the index to a contract still waits on a second,
-  independently-built consumer (`agent-plugins-h6c`). The generated JSON
+  independently-built consumer. The generated JSON
   Schema remains its interim machine-readable specification. This is a
   scope decision, not an open question.
 
 ## Tracker Reconciliation
 
-- `agent-plugins-dc6` — **subsumed by MODEL**: "compile
+- **Subsumed by MODEL**: "compile
   `schemas/feature.strata` and regenerate derived artifacts." The file
   was authored on this branch while the strata CLI was unavailable and
   has never been transpiled. MODEL's first act is that compile, and the
-  three constructs the bead names as unverified — the escaped-dot and
+  three constructs the issue names as unverified — the escaped-dot and
   brace-quantifier regex literals, the `@discriminator`/`@tag` union,
   and cross-file resolution of `Span` and `Slug` — are what MODEL has to
-  prove. Grooming blocks the bead on the MODEL work order.
-- `agent-plugins-3wd` — **subsumed by DISC**: "AC index: extract
+  prove. Grooming blocks the issue on the MODEL work order.
+- **Subsumed by DISC**: "AC index: extract
   acceptance criteria into the corpus index." GHK extracts and DISC
   records them in `SpecIndex.features`, which is the whole of what the
-  bead asks for.
-- `agent-plugins-133` — **subsumed by VTAG**: "AC structural conformance
+  issue asks for.
+- **Subsumed by VTAG**: "AC structural conformance
   checks: identifier well-formedness, uniqueness, sequence." VTAG covers
   well-formedness and uniqueness. Sequence — that a feature's criterion
   numbers run without gaps — is **not** covered: no criterion in
   [[frd-gherkin-adoption]] requires it, and this feature does not add
-  it. The bead is re-scoped to the sequence check rather than closed.
-- `agent-plugins-d1g` — **subsumed by EMIT**: "emit conforming
+  it. The issue is re-scoped to the sequence check rather than closed.
+- **Subsumed by EMIT**: "emit conforming
   `.feature` files from extracted Gherkin blocks."
-- `agent-plugins-uoe` — **prerequisite**: PR #14 regressed the
+- **Prerequisite**: PR #14 regressed the
   warm-index path roughly 1.8x by emitting `UnmarshalJSON` on every
   generated model. MODEL adds `Feature` and `Criterion` to that same
   generator and DISC puts them on the read path, so landing this feature
   first would compound a known regression underneath AC-GHK-007.6's
   answer-from-the-index requirement and make the cause harder to
   isolate.
-- `agent-plugins-a7u` — **out-of-scope** (sequenced follow-on):
+- **Out-of-scope** (sequenced follow-on):
   "migrate acceptance criteria in the three FRDs to Gherkin." Nothing
   here reads a prose criterion ([[adr-021]] constraint 9), so until that
-  bead lands, three of this corpus's four FRDs contribute no feature
+  migration lands, three of this corpus's four FRDs contribute no feature
   records and a corpus-wide query under-reports. That is a translation
   job, not a blocker on this feature, and it is named here so no later
   agent re-derives a compatibility reader. The boundary: no delta here
   rewrites a criterion in an existing FRD.
-- `agent-plugins-8rr` — **out-of-scope** (coordination): Strata regex
+- **Out-of-scope** (coordination): Strata regex
   literals cannot contain a forward slash, even escaped. Neither pattern
   in `feature.strata` contains one, which is why the file could be
   authored at all; MODEL must not introduce one.
-- `agent-plugins-a7m` — **out-of-scope** (coordination):
+- **Out-of-scope** (coordination):
   `generate-schemas.sh` wipes `cli/core/specmodel`, so a test placed
   beside a generated model is destroyed on the next run. MODEL
   regenerates that directory; tests for the feature model therefore live
   in the consuming packages, as they already do.
-- `agent-plugins-006` — **resolved** (coordination): the schema is
+- **Resolved** (coordination): the schema is
   closed (`rejectUnknownProperties: true`, strata v0.8.0), which emits
   each union variant inline with its discriminator. `FeatureSource`
   keeps both tags — `fenced-block` and `feature-file` — as required
   constants in its closed `anyOf`.
-- `agent-plugins-9jo` — **out-of-scope**: the generated models embed
+- **Out-of-scope**: the generated models embed
   this framework's `DocumentType` vocabulary, coupling the
   framework-agnostic half to it. XPT widens the extension point without
   adding vocabulary to the host and extends the boundary test to the new
-  registered values; it neither worsens nor fixes 9jo.
-- `agent-plugins-h6c` — **out-of-scope** (deferred follow-up): "ADR:
+  registered values; it neither worsens nor fixes that coupling.
+- **Out-of-scope** (deferred follow-up): "ADR:
   index schema and versioning." The `features` collection is additive
   under 1.0, which is what makes shipping before that ADR safe.
-- `agent-plugins-krb` — **out-of-scope** (coordination):
+- **Out-of-scope** (coordination):
   `regenerate-cli-snapshots.sh` needs a gate so it cannot silently
   regress. VTAG, VCON, QRY, EMIT and CHG all change observable output,
   so a silently-regressed regeneration script would let a stale
   expectation pass.
-- `agent-plugins-bem` — **out-of-scope** (coordination): relational
+- **Out-of-scope** (coordination): relational
   reference checks read documents off disk on the warm single-document
   path. GREF adds reference sources without changing that path's shape.
-- `agent-plugins-gz3` — **out-of-scope**: index entries carry only the
+- **Out-of-scope**: index entries carry only the
   `DocumentFrontmatter` envelope. DISC derives a fenced block's owning
   slug from the parsed frontmatter the walk already holds, not from the
-  typed envelope, so this feature neither depends on gz3 nor resolves
-  it.
-- `agent-plugins-n2k` — **out-of-scope** (this document): tracks
+  typed envelope, so this feature neither depends on that issue nor
+  resolves it.
+- **Out-of-scope** (this document): tracks
   authoring this blueprint.
 
 ## Sequencing Constraints
@@ -847,9 +845,9 @@ retirement rather than dying with this document.
       than behind the `AC:` marker, and were given proper citations at
       retirement.
 - [x] Every issue listed as subsumed in Tracker Reconciliation is closed
-      or re-scoped: `agent-plugins-dc6` (MODEL), `agent-plugins-3wd`
-      (DISC) and `agent-plugins-d1g` (EMIT) closed; `agent-plugins-133`
-      re-scoped to the criterion-number sequence check alone, which no
+      or re-scoped: the MODEL, DISC and EMIT issues closed; the VTAG
+      issue re-scoped to
+ the criterion-number sequence check alone, which no
       criterion in [[frd-gherkin-adoption]] requires and this feature
       does not deliver.
 - [x] This blueprint's status → retired.

@@ -37,7 +37,7 @@ the blocked-bead flag — are the two places it does not actually bind.
 | Field | Value |
 |-------|-------|
 | Harness | Claude Code, remote (web) session |
-| Task the skill was applied to | Grooming four `rfc-triage` beads (`agent-plugins-fiu`, `-8bx`, `-x8t`, `-ual`) filed by a prior `triage-rfc` pass, to the Definition of Ready |
+| Task the skill was applied to | Grooming four `rfc-triage` beads filed by a prior `triage-rfc` pass, to the Definition of Ready |
 | References / scripts / templates invoked | `groom-beads/SKILL.md` v1.0; `references/shared/work-order-definition-of-ready.md` v1.1; `references/shared/work-order-field-guide.md` v1.1; `references/shared/work-order-template.md` v1.2; `references/bead.schema.json` (unversioned); `scripts/bd-health.sh` (unversioned); `scripts/validate_beads.py` (unversioned) — all under `plugin/skills/groom-beads/`. Tracker: `bd` 1.1.2 (dev), embedded Dolt mode |
 | Run dates | 2026-07-30 |
 
@@ -123,10 +123,10 @@ holds in both copies. The canonical source is the `plugin/` path.
    `grooming_status` is not a `bd` field — `bd update --help` on 1.1.2
    offers no such flag, so it lands in the metadata JSON. `bd ready`
    selects on the bead's `status`, which the skill never mentions.
-   Observed: after `agent-plugins-ual` was flagged exactly as instructed
+   Observed: after one bead was flagged exactly as instructed
    (`metadata.grooming_status = blocked-ungroomable`), `bd ready` still
    listed it as available work. It left the queue only after the agent
-   independently chose `bd update agent-plugins-ual --status deferred`.
+   independently chose `bd update <bead-id> --status deferred`.
    That choice was an improvisation; the skill offered no rule, and a
    different agent would plausibly leave the bead at `status: open`,
    where an orchestrator picks it up. This defeats the gate the
@@ -152,8 +152,8 @@ holds in both copies. The canonical source is the `plugin/` path.
    and `plugin/skills/groom-beads/SKILL.md:212` gives the same form for
    the C4 keys. Run verbatim, observed:
 
-       $ bd update agent-plugins-ual --set-metadata '{"tier":"standard","tier_reason":"probe"}'
-       Error: metadata edit failed for agent-plugins-ual: invalid
+       $ bd update <bead-id> --set-metadata '{"tier":"standard","tier_reason":"probe"}'
+       Error: metadata edit failed for <bead-id>: invalid
        --set-metadata: expected key=value, got
        "{\"tier\":\"standard\",\"tier_reason\":\"probe\"}"
        rc=1
@@ -352,7 +352,7 @@ and a failed command.
   be dispatched until specified". The existing text handled it; no
   change needed.
 - **`bd lint` silently dropping deferred beads.** Its count fell from 4
-  to "3 issues checked" once `agent-plugins-ual` was deferred, so a
+  to "3 issues checked" once one bead was deferred, so a
   parked bead's warnings stop being reported. This is `bd` behavior, not
   `groom-beads` guidance.
 - **Phase 5's C4 skip.** Worked exactly as written; recorded as a clean
@@ -406,12 +406,12 @@ appearing in `bd ready`.
 
 **Triaged 2026-07-31.** 4 proposals, all adopted and implemented.
 
-| Proposal | Outcome | Bead |
-|----------|---------|------|
-| P1 — stop scoring a success message as failure | **adopted.** `bd-health.sh` now scores on exit code, not output emptiness, and prints a passing check's output without marking it failed. The summary line was also changed to name the checks that actually failed instead of asserting "cycles/orphans" — that assertion was a false blocker, since `groom-beads` phase 6 forbids proceeding while the script exits non-zero. | `agent-plugins-t1m` |
-| P2 — scope `swarm validate` to an epic or report it skipped | **adopted.** It now enumerates active epics and validates each; zero epics is recorded as a skipped hard check, never a failure. Closed epics are excluded. | `agent-plugins-40v` |
-| P3 — rule for parking a blocked bead | **adopted.** Phase 2 now states that parking takes two writes and that `bd ready` reads `status`, not `grooming_status`. | `agent-plugins-4s2` |
-| P4 — correct the `--set-metadata` examples | **adopted-with-refinement.** Both examples corrected. The refinement: verification showed the two flags differ in more than syntax — `--set-metadata` is additive but stringifies values, `--metadata` takes real JSON but replaces the whole object. Since phase 5's `c4_*` fields are arrays, that distinction is load-bearing and is now documented alongside the fix. | `agent-plugins-t5v` |
+| Proposal | Outcome |
+|----------|---------|
+| P1 — stop scoring a success message as failure | **adopted.** `bd-health.sh` now scores on exit code, not output emptiness, and prints a passing check's output without marking it failed. The summary line was also changed to name the checks that actually failed instead of asserting "cycles/orphans" — that assertion was a false blocker, since `groom-beads` phase 6 forbids proceeding while the script exits non-zero. |
+| P2 — scope `swarm validate` to an epic or report it skipped | **adopted.** It now enumerates active epics and validates each; zero epics is recorded as a skipped hard check, never a failure. Closed epics are excluded. |
+| P3 — rule for parking a blocked bead | **adopted.** Phase 2 now states that parking takes two writes and that `bd ready` reads `status`, not `grooming_status`. |
+| P4 — correct the `--set-metadata` examples | **adopted-with-refinement.** Both examples corrected. The refinement: verification showed the two flags differ in more than syntax — `--set-metadata` is additive but stringifies values, `--metadata` takes real JSON but replaces the whole object. Since phase 5's `c4_*` fields are arrays, that distinction is load-bearing and is now documented alongside the fix. |
 
 **Files changed:** `plugin/skills/groom-beads/scripts/bd-health.sh`,
 `plugin/skills/groom-beads/SKILL.md`.
