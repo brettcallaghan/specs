@@ -2,7 +2,7 @@
 
 Run `1786778523-19` · branch `claude/gherkin-adoption-strategy-fikj4i` · PR #13
 20 beads queued + 1 admitted mid-run, 21 closed, 0 blocked, 0 skipped.
-Epic: `agent-plugins-wvd` (Gherkin Features and Acceptance Criteria).
+Epic: `wvd` (Gherkin Features and Acceptance Criteria).
 
 Model lineup for this run, from `dispatch.md`'s manifest — light `haiku`,
 standard `sonnet`, advanced `opus`, frontier `fable`;
@@ -12,27 +12,27 @@ orchestrator.
 
 | Bead | Tier | Bucket | Commit |
 |------|------|--------|--------|
-| agent-plugins-r19 | advanced | sequential | `135ceab` |
-| agent-plugins-4vz | advanced | sequential | `6f37319` |
-| agent-plugins-krb | light | fast-lane #1 | `21cfc72` |
-| agent-plugins-0i6 | standard | fast-lane #1 | *(no commit — verify-only)* |
-| agent-plugins-wvd.1 | advanced | sequential | `26d36f5` |
-| agent-plugins-wvd.3 | standard | sequential | `5263b1b` |
-| agent-plugins-wvd.2 | advanced | shared-batch #1 | `a9fe701` |
-| agent-plugins-nu2 | standard | shared-batch #1 | `4edbd7a` |
-| agent-plugins-wvd.4 | advanced | sequential | `bee37fe` |
-| agent-plugins-wvd.6 | standard | shared-batch #2 → concurrent | `54a74be` |
-| agent-plugins-wvd.5 | advanced | shared-batch #2 | `4642d13` |
-| agent-plugins-3wd | — | admitted mid-run | *(no commit — verify-only)* |
-| agent-plugins-wvd.9 | standard | sequential | `6c938e7` |
-| agent-plugins-wvd.11 | standard | shared-batch #4 | `9648e9b` |
-| agent-plugins-wvd.12 | standard | shared-batch #4 | `71ba642` |
-| agent-plugins-wvd.7 | standard | shared-batch #3 | `8cdbf27` |
-| agent-plugins-wvd.8 | standard | shared-batch #3 | `9c00498` |
-| agent-plugins-wvd.10 | standard | sequential | `6ca1fd1` |
-| agent-plugins-a7u | advanced | sequential | `6c38776` |
-| agent-plugins-oq8 | light | — | *(no commit — done-by `a7u`)* |
-| agent-plugins-wvd.13 | advanced | sequential | `c7cf0fc` |
+| r19 | advanced | sequential | `135ceab` |
+| 4vz | advanced | sequential | `6f37319` |
+| krb | light | fast-lane #1 | `21cfc72` |
+| 0i6 | standard | fast-lane #1 | *(no commit — verify-only)* |
+| wvd.1 | advanced | sequential | `26d36f5` |
+| wvd.3 | standard | sequential | `5263b1b` |
+| wvd.2 | advanced | shared-batch #1 | `a9fe701` |
+| nu2 | standard | shared-batch #1 | `4edbd7a` |
+| wvd.4 | advanced | sequential | `bee37fe` |
+| wvd.6 | standard | shared-batch #2 → concurrent | `54a74be` |
+| wvd.5 | advanced | shared-batch #2 | `4642d13` |
+| 3wd | — | admitted mid-run | *(no commit — verify-only)* |
+| wvd.9 | standard | sequential | `6c938e7` |
+| wvd.11 | standard | shared-batch #4 | `9648e9b` |
+| wvd.12 | standard | shared-batch #4 | `71ba642` |
+| wvd.7 | standard | shared-batch #3 | `8cdbf27` |
+| wvd.8 | standard | shared-batch #3 | `9c00498` |
+| wvd.10 | standard | sequential | `6ca1fd1` |
+| a7u | advanced | sequential | `6c38776` |
+| oq8 | light | — | *(no commit — done-by `a7u`)* |
+| wvd.13 | advanced | sequential | `c7cf0fc` |
 
 Plus one orchestrator commit, `8a53856`, repairing a manifest desync `a7u`
 left behind (amendment 7).
@@ -290,7 +290,7 @@ Reproduced complete, including findings that warrant no RFC — `triage-rfc`
 defers on recurrence, and a finding filtered out here can never be observed
 appearing twice.
 
-### agent-plugins-wvd.1
+### wvd.1
 
 1. **`wvd.1#1`** — schemas/feature.strata's CriterionId docstring carried a backticked `ac-traceability-standards.md`, which check-skills.sh rejects in the generated plugin/skills/spec/references/generated/feature.md because the path does not resolve from there. Docstrings in schemas/ are published into a skill directory, so a backticked repo path in a .strata docstring is a lint failure that only appears after generation; it was rewritten as prose.
 
@@ -298,9 +298,9 @@ appearing twice.
 
 3. **`wvd.1#3`** — decided silently — the five Gherkin FindingDetail variants are FindingGherkinParse{expected}, FindingIdentifierPattern{identifier?,pattern} (one shape for untagged and malformed, told apart by the rule id), FindingDuplicateIdentifier{identifier,other_path,other_position}, FindingPartiallyTaggedOutline{untagged:[Span]} and FindingOwningDocument{slug?,document_slug?} (both optional, since owner-missing has no tag slug and a .feature file has no containing document). Tags are gherkin-parse, identifier-pattern, duplicate-identifier, partially-tagged-outline, owning-document. No constructors were added — those belong to VTAG/VCON.
 
-4. **`wvd.1#4`** — the three constructs agent-plugins-dc6 flagged as unverified all compiled first time — the escaped-dot and brace-quantifier regex literals, the @discriminator("form")/@tag FeatureSource union, and cross-file resolution of Span and Slug. The only transpiler-adjacent friction in the whole item was the docstring lint above, not Strata itself.
+4. **`wvd.1#4`** — the three constructs dc6 flagged as unverified all compiled first time — the escaped-dot and brace-quantifier regex literals, the @discriminator("form")/@tag FeatureSource union, and cross-file resolution of Span and Slug. The only transpiler-adjacent friction in the whole item was the docstring lint above, not Strata itself.
 
-### agent-plugins-wvd.2
+### wvd.2
 
 1. **`wvd.2#1`** — implicit decision — Go names. The registration type is corpus.FeatureTagRules (parallel to LifecycleRules), with members FeaturePattern, CriterionPattern, OwnerPrefix, SharedCaptures and Qualifiers; one qualifier is corpus.QualifierTag{Tag, Meaning, Level}. The interface member is Profile.FeatureTags().
 
@@ -308,17 +308,17 @@ appearing twice.
 
 3. **`wvd.2#3`** — decided silently — the criterion-derivation rule is a list of named capture groups (SharedCaptures) both identifier patterns must define, rather than a template or a transform. It is the only shape that lets the host check the derivation while knowing nothing of either pattern's internals, and it makes the blueprint's 'names a capture the identifier pattern does not define' defect a direct SubexpNames lookup.
 
-4. **`wvd.2#4`** — the bead and blueprint both anchor on 'the generated specmodel.ProfileRegistration that MODEL extends', but MODEL (agent-plugins-wvd.1) did not touch schemas/profile.strata — it extended feature/finding/index only. Extending ProfileRegistration with feature_tags was folded into this bead, which pulled a schema regeneration and four testdata input_hash updates into an item scoped as a host-interface widening.
+4. **`wvd.2#4`** — the bead and blueprint both anchor on 'the generated specmodel.ProfileRegistration that MODEL extends', but MODEL (wvd.1) did not touch schemas/profile.strata — it extended feature/finding/index only. Extending ProfileRegistration with feature_tags was folded into this bead, which pulled a schema regeneration and four testdata input_hash updates into an item scoped as a host-interface widening.
 
 5. **`wvd.2#5`** — tried and abandoned — reading the tag vocabulary the extended boundary test forbids out of the CriterionId/FeatureId regex literals in the generated schema, to cover the blueprint's 'AC' and 'FEAT'. Extracting a literal prefix from a pattern is guesswork; the test instead reads the values a qualifier tag is liable to be spelled after (the criterion record's boolean properties and the VerificationLevel enum), and 'frd' was already covered as a reference-bearing property.
 
-### agent-plugins-wvd.3
+### wvd.3
 
 1. **`wvd.3#1`** — goldmark's public FencedCodeBlock AST does not expose whether a block closed on a real closing fence or absorbed the rest of the document at EOF -- both produce an identical node with no closure marker (only ast.HTMLBlock carries a ClosureLine; FencedCodeBlock does not). The blueprint's 'unterminated fence yields no block' requirement had to be detected independently, by checking whether the block's content (or, for empty content, the line after the opening fence) runs to len(body) with nothing left for a closing line.
 
 2. **`wvd.3#2`** — the blueprint's Anchors line names only span.Region/Of and the goldmark usage in references -- it does not name frontmatter, so I read that as an implicit steer toward a document-local package (body []byte in, no Path field), mirroring span and frontmatter rather than references' Options-struct/Path-carrying style. Recorded as an implicit decision in the retro since nothing in the bead confirmed it either way.
 
-### agent-plugins-wvd.4
+### wvd.4
 
 1. **`wvd.4#1`** — The blueprint says the component emits one criterion per Examples block 'that carries an identifier tag', but this component is forbidden from knowing what an identifier tag is. I resolved it by having Options carry two caller-supplied functions that resolve a set of tags to an identity, so the host never inspects a tag's spelling and the same call both groups the outline and fills the record's Id. A blueprint line that names a vocabulary concept in a host component is worth catching at grooming time.
 
@@ -330,7 +330,7 @@ appearing twice.
 
 5. **`wvd.4#5`** — Decided silently: parse takes the whole containing document plus the region the source occupies, not the source bytes plus a line offset. Every span then comes out of span.Of over the document, so the containing-document line arithmetic is computed in one place the module already owns instead of being reimplemented per record.
 
-### agent-plugins-wvd.5
+### wvd.5
 
 1. **`wvd.5#1`** — The blueprint requires a FeatureCode on every feature record but neither it nor the extension point says how to derive one — FeatureTagRules registers SharedCaptures as an unordered list, so no registered value identifies which capture is the code. I derived it structurally from the matched identifier (the segment before the number, which is the generated model's own composition of a FeatureId) rather than widening the extension point; a profile whose identifier pattern has a different shape silently gets an empty code.
 
@@ -342,11 +342,11 @@ appearing twice.
 
 5. **`wvd.5#5`** — My first unparsable-source fixture did not fail — the cucumber parser accepts a second Feature: keyword, an Examples: block with a non-table body, and a bare step outside a scenario, all without error. A trailing tag line with nothing beneath it is the cheapest genuine grammar error; worth knowing before writing a VCON fixture.
 
-### agent-plugins-wvd.6
+### wvd.6
 
 1. **`wvd.6#1`** — The subagent prompt's Worktree line says the cwd IS the worktree, but Read/Edit tool calls against the shared-checkout path (/home/user/agent-plugins/...) still succeed for Read and only fail on Edit with a worktree-isolation error. Reading several files under the shared path before the first Edit failure cost a redo pass. Stating explicitly that Read silently tolerates the wrong root while Edit enforces it would save the round-trip.
 
-### agent-plugins-wvd.7
+### wvd.7
 
 1. **`wvd.7#1`** — Finding message wording chosen: constructors state the fact plainly (e.g. "Feature carries no identifier tag matching %q", "%q does not match pattern %q") and quote every value the detail struct also carries, matching this package's existing style rather than inventing a new one.
 
@@ -368,7 +368,7 @@ appearing twice.
 
 10. **`wvd.7#10`** — Renamed finding.IsReferenceRule to IsCorpusWideRule (and referenceRules to corpusWideRules) since gherkin/identifier-duplicate needed the identical CheckFor-narrowing exception reference/unresolved already has, and a function named IsReferenceRule returning true for a non-reference rule would mislead the next reader. One call site (corpus/check.go) updated; the old doc comment already anticipated non-reference members joining the set.
 
-### agent-plugins-wvd.8
+### wvd.8
 
 1. **`wvd.8#1`** — Finding message wording chosen: plain statements naming the defect ("criterion carries no steps", "Scenario description reads as a normative statement, which is a probable untagged criterion", "Gherkin source could not be parsed: <parser expectation>", "Scenario Outline is partially tagged: N Examples block(s) carry no identifier while at least one sibling does") -- consistent with VTAG's style and this package's existing constructors.
 
@@ -382,23 +382,23 @@ appearing twice.
 
 6. **`wvd.8#6`** — Added one new snapshot case, check-gherkin-content-defects (check --json), exercising all four VCON rules from one corpus (a broken .feature file plus a second .feature carrying an empty criterion, a normative Scenario description, and a partially-tagged outline) -- the design note's own instruction to add cases for the JSON shape. All other check-* snapshot cases needed mechanical regeneration (four new 'passed' entries in checks:) after checkRules in cmd/check.go grew by VCON's four rules; reviewed every diff, all additive.
 
-### agent-plugins-wvd.9
+### wvd.9
 
 1. **`wvd.9#1`** — The blueprint's requirement to not resolve an anchor against a Feature/Rule/Scenario name needed no code change — Resolve() only ever looks up the slug half, and nothing in the codebase resolves an anchor against a heading either. The requirement was already true; the work was proving it with a test, not implementing it.
 
 2. **`wvd.9#2`** — Considered whether a gherkin fence's info-string segment should stay masked or become extractable once its tag matches — the blueprint's behavior line covers only content lines. Decided (silently) to keep the info string masked unconditionally, since it names the block rather than holding feature description/scenario/step content, consistent with the existing generic-fence test that treats an info string as code.
 
-### agent-plugins-wvd.10
+### wvd.10
 
 1. **`wvd.10#1`** — The FRD's AC-GHK-007.4 scenario ("a query names an identifier no record declares") is worded only around the positional <id> lookup, not --code/--of/--tag. I read the exit-non-zero rule as applying only to the identifier lookup and treated a filter matching nothing as a valid empty selection (exit 0) — this is a silent decision the blueprint didn't spell out and a future reader could reasonably invert it.
 
 2. **`wvd.10#2`** — EMIT's feature.go comment ("building an indexed lookup is QRY's job") pointed toward a map-based index on Corpus, but the warm-cache Open path builds Corpus in two separate places (Build's builder and cache.go's fromIndex) that would both need a new map kept in sync. I chose a linear scan over Index().Features in a new corpus/query.go file instead — simpler, and AC-GHK-007.6 only requires no filesystem re-walk, not O(1) lookup — but the comment's wording could mislead a future implementer into over-building this.
 
-### agent-plugins-wvd.11
+### wvd.11
 
 1. **`wvd.11#1`** — The prompt states cwd IS the worktree but early Read/Grep calls using absolute /home/user/agent-plugins/... paths (not worktree-prefixed) succeeded silently, reading from a sibling checkout rather than the worktree. Write/Edit/Bash refuse the same paths loudly, but Read/Grep do not — the mismatch wasn't caught until the first Write failed. Prefix all paths with the worktree root (or use cwd-relative paths) from the first tool call, not just for mutating tools.
 
-### agent-plugins-wvd.12
+### wvd.12
 
 1. **`wvd.12#1`** — The COORDINATION note said to use corpus.Open for the persisted side, but Open's warm path rebuilds silently on a hash mismatch and hands back the corpus it just built — discarding the earlier state --changed needs, which is exactly the case that matters. Used corpus.Load instead and documented why in both the code and the folded blueprint section.
 
@@ -406,7 +406,7 @@ appearing twice.
 
 3. **`wvd.12#3`** — Building realistic snapshot fixtures required running the actual CLI binary twice (before/after corpus states) to get authentic content hashes rather than hand-computing sha256 — the hash construction is an internal implementation detail (hash.go) not meant to be replicated by a test author.
 
-### agent-plugins-wvd.13
+### wvd.13
 
 1. **`wvd.13#1`** — Two fold obligations the checklist names belonged to no delta's Fold line and neither had landed: container-spec-cli's Key Decisions adr-021 line still read 'acceptance-criteria extraction is a follow-on feature', and module-document-core's Components prose still read 'Nothing in Corpus calls cli/core/markdown or cli/core/gherkin yet'. The DoD enumerates folds at a finer grain than the per-delta Fold lines carry, so an obligation named only in the DoD lands only if this item reads the documents rather than the checklist.
 
@@ -418,9 +418,9 @@ appearing twice.
 
 5. **`wvd.13#5`** — The retro-spec template says an RFC bundles ALL qualifying proposals and must not be split across files, while the skill says to file under rfcs/inbox/<spec-type>/ so one directory shows recurrence per document type. My findings split cleanly across two owners — five proposals change the feature-blueprint conventions and two amend frd-gherkin-adoption. I honoured the no-split rule and filed one RFC under feature-blueprint/, naming the target document in each proposal; a reader listing rfcs/inbox/frd/ will not see the two FRD proposals.
 
-6. **`wvd.13#6`** — agent-plugins-133's re-scope had to invent the bead's remaining shape. The blueprint says only that it is 're-scoped to the sequence check rather than closed', and the original bead's own wording ('in sequence within their Rule') disagrees with the blueprint's reading ('a feature's criterion numbers'). I wrote the narrowed description with three open questions rather than picking one, since the append-only rule in ac-traceability-standards.md means a deleted criterion leaves a permanent gap by design and that materially changes whether the check is an error at all.
+6. **`wvd.13#6`** — 133's re-scope had to invent the bead's remaining shape. The blueprint says only that it is 're-scoped to the sequence check rather than closed', and the original bead's own wording ('in sequence within their Rule') disagrees with the blueprint's reading ('a feature's criterion numbers'). I wrote the narrowed description with three open questions rather than picking one, since the append-only rule in ac-traceability-standards.md means a deleted criterion leaves a permanent gap by design and that materially changes whether the check is an error at all.
 
-### agent-plugins-4vz
+### 4vz
 
 1. **`4vz#1`** — Adopted option (c) — the three latency figures become advisory targets, measured and reported everywhere, gating only where an operator declares a reference environment (SPEC_LATENCY_REFERENCE_ENVIRONMENT). (a) was rejected because the margin a hardware class would preserve is ~4ms locally (46.3 against 50) and this sprint adds more UnmarshalJSON, so it would go red again within the sprint; (b) was rejected because a relative budget would still have flagged the 1.8x correctness change as a regression, which is the exact outcome this bead exists to stop; (d) was rejected as an unhardwared number chosen to survive noise.
 
@@ -428,7 +428,7 @@ appearing twice.
 
 3. **`4vz#3`** — Two things drifted out of the FRD's control and had to be corrected in the same change: referencePlatform() encoded the whole policy argument in a test comment (7ek's actual complaint) and is now deleted — the env-var declaration subsumes the GOOS check — and container-spec-cli's serve-mode Open Question asserted 'the measured margin against FEAT-SPEC-009.1 is wide', which stopped being true post-#14. The env var was renamed STRATA_ENFORCE_WARM_BUDGET -> SPEC_LATENCY_REFERENCE_ENVIRONMENT (nothing else referenced it; the old name said 'strata' in the spec CLI and 'warm' for a switch that now covers the cold build).
 
-### agent-plugins-r19
+### r19
 
 1. **`r19#1`** — The probe passed with the scoped helper, but the probe alone proves nothing — with no credential helper at all git already reaches origin through other config, so I ran a negative control first: suppressing all three helper keys made the same refs/dolt push fail with 'could not read Username'. That is what established the scoped helper is load-bearing rather than incidental.
 
@@ -438,7 +438,7 @@ appearing twice.
 
 4. **`r19#4`** — friction — the Bash tool's worktree-isolation guard refuses any multi-line or compound command containing git, so every verification step had to be written to a script file in the scratchpad and run as 'bash <file>'. Also: the two stale comments in the hook and docs/session-bootstrap.md that described the Dolt helper as 'unguarded, answering every host' were in scope and are now corrected; the strata -c credential.helper= resets stay, re-justified as defence in depth.
 
-### agent-plugins-krb
+### krb
 
 1. **`krb#1`** — What I tried that did not work: first built the reproduction with t.TempDir() (under the OS temp dir) holding the corrupted case copy, and passed regenerate() a path made relative via filepath.Rel. That version still passed against the reintroduced chdir bug, because the relative string carried enough '..' segments to bottom out at filesystem root regardless of the new cwd, and POSIX treats '..' at root as a no-op — so it always re-resolved to the correct absolute location by coincidence. Switched to a scratch dir created via os.MkdirTemp(".", ...) (nested under the package's own directory, pure descent, no '..'), matching the shape main() actually builds from a relative casesDir argument. That version reproduces the bug reliably.
 
@@ -446,7 +446,7 @@ appearing twice.
 
 3. **`krb#3`** — Observed pre-fix failure (reintroduced the historical chdir bug by removing the filepath.Abs(dir) call in regenerate, then ran the new test): 'main_test.go:120: regenerate left checks.log corrupted — it declares this artifact but did not write it', failing all 34 cases. Restored the fix (git checkout -- testdata/gen/main.go) and the test passes clean, confirming the gate detects the class of defect the bead describes.
 
-### agent-plugins-nu2
+### nu2
 
 1. **`nu2#1`** — observed pre-fix failure, from the reproducing test written before the fix — 'finding_test.go:359: detail.kind = "frontmatter-parse", want "corpus-empty"' and 'finding_test.go:362: detail.root = "", want the configured spec root'. TestCorpusEmptyDetailNamesItsOwnKind marshals finding.CorpusEmpty("docs") and reads detail.kind out of the JSON, so it compiles and fails against the pre-fix union rather than needing the new variant to exist.
 
@@ -456,17 +456,17 @@ appearing twice.
 
 4. **`nu2#4`** — the bead's description states the blocker as 'the installed strata binary may predate strata-lang/strata@8997153'. It did not: scripts/generate-schemas.sh --check was green before any edit and green after regeneration, so the block was stale rather than real by the time this ran.
 
-### agent-plugins-0i6
+### 0i6
 
-1. **`0i6#1`** — This bead's acceptance criterion is already satisfied on HEAD, no code change made. cli/cmd/snapshot_test.go's checkAssertionCoverage (added in commit 0d9be96, the same PR that closed agent-plugins-bge.13) already reconciles case.toml's declared 'artifacts' list against expected/ in both directions: a declared-but-absent artifact fails ('case.toml declares artifact %q but expected/%s does not exist'), a present-but-undeclared file fails, and declaring zero artifacts fails. Verified live: deleted testdata/cases/check-error/expected/checks.log (which case.toml declares) and re-ran TestSnapshotCases/check-error — it failed with exactly that message; restored the file and it passed again. Also verified the present-but-undeclared direction by adding a stray file and observing the matching failure.
+1. **`0i6#1`** — This bead's acceptance criterion is already satisfied on HEAD, no code change made. cli/cmd/snapshot_test.go's checkAssertionCoverage (added in commit 0d9be96, the same PR that closed bge.13) already reconciles case.toml's declared 'artifacts' list against expected/ in both directions: a declared-but-absent artifact fails ('case.toml declares artifact %q but expected/%s does not exist'), a present-but-undeclared file fails, and declaring zero artifacts fails. Verified live: deleted testdata/cases/check-error/expected/checks.log (which case.toml declares) and re-ran TestSnapshotCases/check-error — it failed with exactly that message; restored the file and it passed again. Also verified the present-but-undeclared direction by adding a stray file and observing the matching failure.
 
 2. **`0i6#2`** — Implicit decision this bead asked to record (key name; whether absence of the key means 'carries none' or 'carries both') was already resolved by the existing code, not by me: the key is case.toml's 'artifacts' list (declares() checks membership in it), and absence of any declared artifact is neither 'carries none' nor 'carries both' but a hard failure — checkAssertionCoverage requires every case to declare at least one artifact, on the reasoning that a snapshot case asserting nothing is almost always an oversight.
 
-### agent-plugins-3wd
+### 3wd
 
 *No findings recorded — verify-and-close.*
 
-### agent-plugins-a7u
+### a7u
 
 1. **`a7u#1`** — The guide said a Scenario description carries "per-criterion rationale only", but gherkin/scenario-prose reports ANY non-empty scenario description, so the slot the guide recommends is unusable. I discovered this by reading content.go rather than from the guide, and rerouted every per-criterion rationale into Feature descriptions and markdown notes. Fixed in the guide as part of this bead.
 
@@ -478,7 +478,7 @@ appearing twice.
 
 5. **`a7u#5`** — ADR-021 constraint 6 says a criterion with concrete example data SHOULD become a Scenario Outline, while the guide says below two instances an outline is ceremony. Most of the corpus's examples are single instances, so the two rules point opposite ways on the common case. I followed the guide, folded single examples into Given steps where they added precision, and kept the rest as backticked markdown notes citing their AC id — worth reconciling in one of the two documents.
 
-### agent-plugins-oq8
+### oq8
 
 *No findings recorded — verify-and-close.*
 
@@ -539,23 +539,23 @@ guidance gaps:
 
 ## 7. Follow-up beads
 
-**Admitted into the run:** `agent-plugins-3wd` (amendment 1) — verify-and-close,
+**Admitted into the run:** `3wd` (amendment 1) — verify-and-close,
 subsumed by DISC, closed with no commit.
 
 **Created mid-run, left for triage:**
 
-- `agent-plugins-h45m` (P2, bug, open) — `spec feature --emit` repeats the
+- `h45m` (P2, bug, open) — `spec feature --emit` repeats the
   `Rule:` header once per scenario instead of nesting scenarios under one
   rule. Filed by `a7u` with a `discovered-from` link, reproducible on the
   corpus as it stands.
 
-**Re-scoped:** `agent-plugins-133` — narrowed to the criterion-number sequence
+**Re-scoped:** `133` — narrowed to the criterion-number sequence
 check this feature does not deliver. `wvd.13` recorded that the re-scope had to
 invent the bead's remaining shape, because the blueprint and the original bead
 disagree on what the check even is, and wrote three open questions rather than
 picking one (`wvd.13#6`).
 
-**Closed as subsumed:** `agent-plugins-dc6`, `agent-plugins-d1g` (and `3wd`
+**Closed as subsumed:** `dc6`, `d1g` (and `3wd`
 above).
 
 **Stashes:** none.
@@ -580,8 +580,8 @@ at its highest member's tier).
 
 | Bead | Assigned | Ran at | Why raised |
 |------|----------|--------|------------|
-| agent-plugins-krb | light | standard | fast-lane #1 with `0i6` (standard); shared snapshot harness |
-| agent-plugins-nu2 | standard | advanced | shared-batch #1 with `wvd.2` (advanced); same findings/corpus surface |
+| krb | light | standard | fast-lane #1 with `0i6` (standard); shared snapshot harness |
+| nu2 | standard | advanced | shared-batch #1 with `wvd.2` (advanced); same findings/corpus surface |
 
 `wvd.6` is **not** an over-route despite being planned into a bucket with
 `wvd.5` (advanced): amendment 4 dissolved that batch and dispatched it as its

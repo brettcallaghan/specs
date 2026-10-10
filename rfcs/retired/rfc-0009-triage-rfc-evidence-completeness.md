@@ -399,14 +399,14 @@ change, an ungated ingestion — resolve from rules instead.
 **Triaged 2026-08-01.** 5 proposals plus 1 triage-originated change:
 4 adopted (1 with refinement), 1 deferred, 1 `T` change adopted.
 
-| Item | Outcome | Bead |
-|------|---------|------|
-| P1 — extent and sufficiency checks before adopting | **adopted as proposed.** Step 3 now carries both checks after the classification list, and the Anti-Patterns table gained the cited-occurrences row. | `agent-plugins-gos` |
-| P2 — initial version for a file with no version property | **adopted as proposed.** Appended to the step-5 version bullet: add `0.1`, do not bump, with the reason and a pointer to [[frontmatter-standards]]. | `agent-plugins-cpy` |
-| P3 — admit triage-originated changes | **adopted with refinement.** Step 4 gained the `T1..Tn` paragraph as proposed. The Resolution bullet gained one clause beyond the proposed wording: the RFC assumed a `T` change always traces to some RFC's evidence, but this very triage produced one that did not — T1 below was reported directly by the human. The added clause says where such a change is recorded. | `agent-plugins-ml3` |
-| P5 — state that retro-note ingestion is not gated | **adopted as proposed.** The retro-notes instruction now states the exemption and its reason, and asks the report to name each ingested note. | `agent-plugins-905` |
-| P4 — key the sequencing escape hatch on the graph's consumer | **deferred** → `agent-plugins-9q8`, `theme:implementation-sequencing`. Status `deferred`, `grooming_status: blocked-needs-info`. See the note below — the evidence strengthened during triage but remains self-referential. | `agent-plugins-9q8` |
-| **T1 — clarify `already-implemented` vs `reject — already addressed`** *(triage-originated)* | **adopted.** Not a proposal in this or any RFC: reported directly by the repository owner, quoting `SKILL.md:122` and stating the distinction was not clear. The bullet now states the merits test, what the other outcome means instead, and the step-2 dedupe consequence of each. | `agent-plugins-wsl` |
+| Item | Outcome |
+|------|---------|
+| P1 — extent and sufficiency checks before adopting | **adopted as proposed.** Step 3 now carries both checks after the classification list, and the Anti-Patterns table gained the cited-occurrences row. |
+| P2 — initial version for a file with no version property | **adopted as proposed.** Appended to the step-5 version bullet: add `0.1`, do not bump, with the reason and a pointer to [[frontmatter-standards]]. |
+| P3 — admit triage-originated changes | **adopted with refinement.** Step 4 gained the `T1..Tn` paragraph as proposed. The Resolution bullet gained one clause beyond the proposed wording: the RFC assumed a `T` change always traces to some RFC's evidence, but this very triage produced one that did not — T1 below was reported directly by the human. The added clause says where such a change is recorded. |
+| P5 — state that retro-note ingestion is not gated | **adopted as proposed.** The retro-notes instruction now states the exemption and its reason, and asks the report to name each ingested note. |
+| P4 — key the sequencing escape hatch on the graph's consumer | **deferred** → `theme:implementation-sequencing`. Status `deferred`, `grooming_status: blocked-needs-info`. See the note below — the evidence strengthened during triage but remains self-referential. |
+| **T1 — clarify `already-implemented` vs `reject — already addressed`** *(triage-originated)* | **adopted.** Not a proposal in this or any RFC: reported directly by the repository owner, quoting `SKILL.md:122` and stating the distinction was not clear. The bullet now states the merits test, what the other outcome means instead, and the step-2 dedupe consequence of each. |
 
 **Provenance check.** The RFC cites v1.2 for findings 1, 2, 3 and 5 and
 v1.3 for finding 4; the skill was at v1.3 at triage. All nine quoted

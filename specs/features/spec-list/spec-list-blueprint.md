@@ -8,7 +8,6 @@ type: feature-blueprint
 status: retired
 delivery: single-pr
 frd: frd-spec-list
-plan: agent-plugins-kgir
 ---
 
 # Corpus Listing
@@ -196,19 +195,20 @@ promoting it to a contract document is untouched.
 
 ## Tracker Reconciliation
 
-- `agent-plugins-gz3` — out-of-scope: index entries carry only the
+- Out-of-scope: index entries carry only the
   `DocumentFrontmatter` envelope, losing per-type properties. Every
   field a summary carries is on that envelope, so this feature neither
   depends on that issue nor is blocked by it. The boundary: `list` SHALL
   NOT be extended to report per-type properties as part of this feature.
-- `agent-plugins-1ao` — out-of-scope: a feature blueprint for the spec
+- Out-of-scope: a feature blueprint for the spec
   CLI as a whole, against `frd-spec-validation-cli`. This blueprint
   realizes `frd-spec-list` only and must not absorb that scope.
-- `agent-plugins-h6c` — out-of-scope: the index schema and versioning
+- Out-of-scope: the index schema and versioning
   ADR. This feature makes no index shape change, so it neither advances
   nor blocks that decision.
-- `agent-plugins-lyqk` — subsumed by this feature's upstream FRD, and
-  already closed.
+- An earlier issue for this capability — subsumed by this feature's
+  upstream FRD, and already closed.
+
 
 ## Sequencing Constraints
 

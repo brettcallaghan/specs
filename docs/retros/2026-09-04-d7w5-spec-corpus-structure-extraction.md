@@ -1,4 +1,4 @@
-# Run record — `agent-plugins-d7w5`, spec corpus structure extraction
+# Run record — spec corpus structure extraction
 
 *Written by `retro-d7w5` on 2026-09-04. One document: the run's results, every
 finding it captured, and what it could not establish.*
@@ -21,16 +21,16 @@ they raise.*
 
 | | |
 |---|---|
-| run epic | `agent-plugins-d7w5` — "Swarm run — Spec corpus structure extraction" |
-| target | `agent-plugins-f6tl` — "Spec corpus structure extraction", adopted whole |
-| sprint branch | `sprint/agent-plugins-d7w5`, merged into `claude/swarm-agent-plugins-5wxrfo` |
+| run epic | "Swarm run — Spec corpus structure extraction" |
+| target | "Spec corpus structure extraction", adopted whole |
+| sprint branch | the sprint branch, merged into `claude/swarm-agent-plugins-5wxrfo` |
 | `base_sha` → head | `70dddef` → `62e9e42` |
 | queue | 7 beads under the target. **5 admitted at the gate** (`.1 .2 .3 .4 .7`), 2 excluded; AMENDMENT 1 dropped `.7`, leaving **4**. `AMENDMENT 3` then admitted four review findings (`d7w5.7 .8 .9 .11`), so `manifest.admitted` ends at **8 ids** |
 | dispatches | three — `dev-d7w5-1` (batch `f6tl.1 → .2 → .3 → .4`), then `dev-d7w5-2` (`d7w5.9 → .8 → .7`) and `dev-d7w5-3` (`d7w5.11`) **concurrently** |
 | partition | pass 1: a strict dependency chain — zero parallelism, zero collision edges. Pass 2: **two collision edges** in `.beads/plans/d7w5.pass2.edges.jsonl` (`.8`←`.9`, `.7`←`.8`), partitioning four beads into two batches — **the run's first real parallelism**. `manifest.partition_preview` records pass 1 only |
 | declared checks | 12 — `format`, `vet`, `build`, `test-go`, `skills`, `shared-refs`, `strata-docs`, `schemas`, `corpus`, `ref-links`, `template-drift`, `skills-strict` |
 | model lineup | `advanced` tier → `opus` per `swarm.toml` `[models]`, for all three dispatches. **The manifest's `models` key is unset** and `effort` reads `unrecorded` — see `d7w5.2.1#3` |
-| gate | `agent-plugins-987r` — one authorization gate, taken once |
+| gate | one authorization gate, taken once |
 | amendments | 4, all on the run epic — 1 narrowed the queue, 2 recorded review pass 1, 3 widened scope after the drain, 4 closed the loop |
 | review passes | **2 of 3. The budget is unspent, not exhausted** |
 
@@ -186,7 +186,7 @@ further down.
 `manifest.moved` is `[]` — no bead was moved from another epic
 (`move_foreign_beads=false`).
 
-**The target epic `agent-plugins-f6tl` is still open, and that is correct.**
+**The target epic is still open, and that is correct.**
 Closing it would report the feature complete while its stage-2 deltas are
 unlanded. `f6tl.7` carries the bounce record and two ways a human can clear it
 (admit stage 2, or split a stage-1-only DoD verification out of it).
@@ -215,7 +215,8 @@ before the edges were loaded, exactly `.9` and `.11` after.
 (`swarm.toml` `[review] skill = "code-review"`). It confirmed that all four
 fixes fix the defect pass 1 found, each with a test that fails against the
 pre-fix code for the stated reason, and filed **four further findings** —
-`agent-plugins-yztv` (P2), `912t` (P2), `s5ok` (P3), `rk27` (P3). **None was
+two at P2 (the YAML-rendering performance regression and the `omitzero`
+key divergence) and two at P3. **None was
 admitted**, and all four were filed with `parent=null`, outside the run epic —
 which is exactly the correction to the defect pass 1 committed and that
 candidate S1 was filed against.
@@ -330,7 +331,7 @@ object reports a non-zero `comment_count`.
 > retro:decision AMENDED an acceptance criterion rather than the code: the AC's two literal expected strings were changed to the measured values, and the character filter was left exactly as documented. Reviewers should confirm this at the pull request.
 > evidence: AC as written — "Identifier(\"- Bullet\") is -bullet, and the identifier of the heading text 3. `## Design` present is 3-design-present". Shipped instead: "--bullet" and "3--design-present" (see the retro:stale comment for the measurement). Everything the AC asserts SUBSTANTIVELY is met and tested: numbered siblings differ (1-overview vs 2-overview), the ordinal survives, no identifier derived from a digit-initial heading begins with a hyphen, and inline rendering is unchanged.
 > REJECTED — make the AC's strings true by collapsing runs of hyphens and trimming leading ones. Cost, and why it is not this bead's call: (1) it contradicts the derivation documented in the Markdown Structure component block of specs/modules/document-core/document-core-module.md, which this bead is only meant to extend, not rewrite; (2) it breaks a committed assertion, headings_test.go's "corpus-in-module-document-core-modified--idx"; (3) the identifier is the whole key of the <document>#<heading> addressing grammar, so it would silently change the anchor of every corpus heading carrying punctuation beside a space — measured on one document alone, spec headings specs/standards/work-order-definition-of-ready.md --json shows "7. Tier assigned (+ reason)" -> 7-tier-assigned--reason, which predates this bead; (4) the bead's own Design says only rendered() changes and the existing character filter stays.
-> FILED rather than decided silently: agent-plugins-1j2i (P2, discovered-from d7w5.8) puts the collapse-and-trim question, with the two answers and their costs. It records as UNVERIFIED the premise the bead's problem statement leans on — that GitHub renders these without the doubled hyphen — because no probe of a rendered GitHub anchor was run in this container, and names what would settle it.
+> FILED rather than decided silently: a P2 bead (discovered-from d7w5.8) puts the collapse-and-trim question, with the two answers and their costs. It records as UNVERIFIED the premise the bead's problem statement leans on — that GitHub renders these without the doubled hyphen — because no probe of a rendered GitHub anchor was run in this container, and names what would settle it.
 
 **`d7w5.8#4`**
 
@@ -484,7 +485,7 @@ object reports a non-zero `comment_count`.
 >
 > No durable trigger prompt or dispatch prompt in this session carries the claim.
 >
-> FILED, not fixed here: agent-plugins-zka9 (P3, discovered-from d7w5.11) —
+> FILED, not fixed here: a P3 bead (discovered-from d7w5.11) —
 > renderYAML ignores encoding/json's `,string` tag option, so the two renderings
 > still differ in value TYPE where a field carries it. Measured on the fixed tree:
 >
@@ -686,19 +687,19 @@ something true, and is not true of the tree the bead ran against.
 
 **`d7w5.2.1#8`** · target `swarm`
 
-> retro:tooling:swarm — `swarm status` reports ceremony beads as scope additions. scope_additions listed agent-plugins-d7w5.2.1 (the run's own authorization gate task, closed) alongside the three genuinely-excluded beads. A ceremony bead is structurally never in manifest.admitted, so it will always read as creep and trains the reader to ignore the signal.
+> retro:tooling:swarm — `swarm status` reports ceremony beads as scope additions. scope_additions listed d7w5.2.1 (the run's own authorization gate task, closed) alongside the three genuinely-excluded beads. A ceremony bead is structurally never in manifest.admitted, so it will always read as creep and trains the reader to ignore the signal.
 
 **`d7w5.2.1#9`** · target `swarm`
 
-> retro:tooling:swarm — a retro that harvests findings from `bd show --json` will find none of them. Measured on bd 1.2.2 (dev): `bd show agent-plugins-d7w5.2.1 --json | jq '.[0].comments'` -> null while the same object reports comment_count: 9 and the text view prints all nine bodies. The count says the findings exist and the array does not carry them, so a JSON-based harvest silently returns empty rather than erroring. swarm-retro must read the text view, or bd must populate the array.
+> retro:tooling:swarm — a retro that harvests findings from `bd show --json` will find none of them. Measured on bd 1.2.2 (dev): `bd show <gate task> --json | jq '.[0].comments'` -> null while the same object reports comment_count: 9 and the text view prints all nine bodies. The count says the findings exist and the array does not carry them, so a JSON-based harvest silently returns empty rather than erroring. swarm-retro must read the text view, or bd must populate the array.
 
 **`d7w5.2.1#10`** · target `swarm`
 
-> retro:tooling:swarm — swarm-review parents its findings under the RUN epic, which puts unadmitted work straight into the run's own dispatch set. Measured: after pass 1, `swarm ready --run agent-plugins-d7w5` reported ready_count 9, every one a findings bead with dispatch "" and held false, despite standing_auth.admit_review_findings=false. Only the coordinator's manual diff of the ready set against manifest.admitted caught it; an orchestrator that auto-chained on the ready set would have dispatched all nine against the gate's explicit authorization. Findings should be filed against their origin outside the run epic, or filed deferred, rather than relying on every coordinator to notice.
+> retro:tooling:swarm — swarm-review parents its findings under the RUN epic, which puts unadmitted work straight into the run's own dispatch set. Measured: after pass 1, `swarm ready --run <run epic>` reported ready_count 9, every one a findings bead with dispatch "" and held false, despite standing_auth.admit_review_findings=false. Only the coordinator's manual diff of the ready set against manifest.admitted caught it; an orchestrator that auto-chained on the ready set would have dispatched all nine against the gate's explicit authorization. Findings should be filed against their origin outside the run epic, or filed deferred, rather than relying on every coordinator to notice.
 
 **`d7w5.2.1#11`** · target `swarm`
 
-> retro:tooling:swarm — the phase chain deadlocks whenever the target epic legitimately cannot close. Measured: `bd close agent-plugins-d7w5.4` -> 'cannot close agent-plugins-d7w5.4: blocked by open issues [agent-plugins-f6tl] (use --force to override)'. f6tl is open only because .5 .6 .7 are deferred, and closing it would falsely report the feature complete — the false-complete failure swarm-scope explicitly warns about. So review, retro and post-flight each need --force to close, on a run that did everything right. A run whose target is a partially-scoped feature epic is the normal case, not the exception, and `swarm phase close` has no path through it.
+> retro:tooling:swarm — the phase chain deadlocks whenever the target epic legitimately cannot close. Measured: `bd close <review phase bead>` -> 'cannot close [review phase bead]: blocked by open issues [[target epic]] (use --force to override)'. f6tl is open only because .5 .6 .7 are deferred, and closing it would falsely report the feature complete — the false-complete failure swarm-scope explicitly warns about. So review, retro and post-flight each need --force to close, on a run that did everything right. A run whose target is a partially-scoped feature epic is the normal case, not the exception, and `swarm phase close` has no path through it.
 
 **From pass 2 — the four admitted review-finding beads, and one further finding on the gate bead:**
 
@@ -792,7 +793,7 @@ could NOT verify".
   this retro** — the skill forbids a second pass over the run, so the claim is
   inherited, not measured here. Review pass 1 ran
   `python3 <swarm scripts>/bb-checks.py` → rc=0 against the pass-1 merged tree
-  (recorded on `agent-plugins-d7w5.4` with the placeholder `{SCRIPTS}`
+  (recorded on the review phase bead with the placeholder `{SCRIPTS}`
   unresolved; the run resolved it to
   `/root/.cache/swarm-src/plugin/skills/swarm/scripts`). Review pass 2
   independently confirmed all 12 exit 0 at **`62e9e42`**, the current head. The
@@ -819,11 +820,11 @@ could NOT verify".
 - `git log origin/claude/swarm-agent-plugins-5wxrfo..HEAD` is **empty** —
   nothing is stranded on the designated branch. Head is **`62e9e42`**. Measured
   at the run's end.
-- **`sprint/agent-plugins-d7w5` was never pushed, deliberately.** Only the
+- **The sprint branch was never pushed, deliberately.** Only the
   designated branch may be pushed in this environment, so every dispatch was
   accepted with `--no-push` and merged by hand. Measured at the run's end: the
   sprint branch's tip is `cbfb438` and
-  `git rev-list --left-right --count sprint/agent-plugins-d7w5...HEAD` → `0 1`,
+  `git rev-list --left-right --count <sprint branch>...HEAD` → `0 1`,
   so it is an ancestor of the pushed head and carries nothing head does not.
   (Pass 1's own figure, for the record it was taken in: the tip was then
   `ef94bd1`, likewise an ancestor.)
@@ -855,14 +856,14 @@ not exist.
 - **The pass-2 acceptance figures.** "Pre-merge checks 4/4 exit 0" and
   `acceptance_failures: []` with `beads_checked` 3 and 1 come from the
   coordinator's report and are carried into this record unmeasured: no bead or
-  phase epic holds them — `agent-plugins-d7w5.3` and `d7w5.6` both have
+  phase epic holds them — `d7w5.3` and `d7w5.6` both have
   `comment_count` 0, so the pass-2 groom & plan and post-flight phases left no
   durable record of their own. What **is** measured here: all four beads closed,
   one reachable commit each, the tree clean, no worktree standing, and nothing
   stranded. Settle the rest by re-running the acceptance command, which is no
   longer possible — the worktrees are gone.
-- **Whether `agent-plugins-912t` (the `omitzero` key divergence) is reachable on
-  this command surface.** Filed P2 by review pass 2 by analogy with `zka9`,
+- **Whether the `omitzero` key divergence is reachable on
+  this command surface.** Filed P2 by review pass 2 by analogy with the `,string` bead,
   whose finding states no type on this surface uses `,string`; no equivalent
   probe for `omitzero` was run here.
 - **The both-tagged same-depth promotion conflict cannot be covered by a static
@@ -927,9 +928,9 @@ two subsections are **pass 1's fifteen**, answered at `AMENDMENT 3` and
 unchanged; the third is **pass 2's four**, answered in a second decision round
 on 2026-09-04 — **S11, S12 and P6 accepted and filed; A1 HELD**, neither filed
 nor declined, pending a root-cause investigation already under way on
-`agent-plugins-yztv`.
+the YAML-rendering performance regression bead.
 
-Provenance carried by every candidate: run `agent-plugins-d7w5`, branch
+Provenance carried by every candidate: this run, branch
 `claude/swarm-agent-plugins-5wxrfo`, record this file, model `opus` (advanced
 tier per `swarm.toml` `[models]`) for the work-bead findings; the coordinator's
 model is **unrecorded** — see the could-not-verify list.
@@ -963,9 +964,9 @@ platform fact and is candidate **P4** below.
 | # | candidate | findings | rank |
 |---|---|---|---|
 | P1 | **A model or schema change cannot be scoped to "declare and regenerate", and grooming does not say so.** Three of the four beads under-declared their surface in the same direction: a Strata declaration forced the emitter, two fixtures and three tests; a wiring-only item had to add a function to the previous item's package; a command item made a standards document's status text false. `c4_docs` is what the partitioner serializes on, so under-declaration silently defeats batch serialization — it cost nothing here only because the partition had zero parallelism. Proposed: `groom-beads` gains a rule that a bead touching a generated model declares its emitter, its fixtures, its snapshots and any status-bearing standards document in `c4_docs`. **`groom-beads` is vended by this repository, so this is a bead here, not an outbox file.** | `f6tl.1#2`, `f6tl.3#2`, `f6tl.4#4` | **P1** |
-| P2 | **`.sf/outbox/README.md` and `.claude/skills/triage-issue/SKILL.md` both assert "we vend the skills we run, so we are our own downstream", which `swarm.toml`'s `[retros]` comment and bead `agent-plugins-g990` say is no longer true.** `triage-issue` sweeps `.sf/outbox/` into this tracker without anyone forwarding anything — so the ten swarm-plugin issues above would be swept straight back into the backlog this repository cannot act on, which is precisely the accumulation the audience split exists to prevent. Proposed: both documents state that `.sf/outbox/swarm/` is for **delivery to `brettcallaghan/swarm`** and is not swept here. | `d7w5.2.1#1`–`#11` (their existence is the evidence), plus the two documents quoted | **P1** |
+| P2 | **`.sf/outbox/README.md` and `.claude/skills/triage-issue/SKILL.md` both assert "we vend the skills we run, so we are our own downstream", which `swarm.toml`'s `[retros]` comment and an existing bead say is no longer true.** `triage-issue` sweeps `.sf/outbox/` into this tracker without anyone forwarding anything — so the ten swarm-plugin issues above would be swept straight back into the backlog this repository cannot act on, which is precisely the accumulation the audience split exists to prevent. Proposed: both documents state that `.sf/outbox/swarm/` is for **delivery to `brettcallaghan/swarm`** and is not swept here. | `d7w5.2.1#1`–`#11` (their existence is the evidence), plus the two documents quoted | **P1** |
 | P3 | **`cli-output-standards.md` carries a hand-maintained conformance table and a status line that were false from the day they were written**, and nothing checks them. The document says "A command specified after this document is written to conform from the start" while asserting "No command conforms today" — so the first conforming command makes it untrue, and the only thing that catches it is an agent noticing. Proposed: either derive the table, or replace the corpus-wide assertion with a per-command row nothing else has to remember. | `f6tl.4#4` | P2 |
-| P4 | **Three durable `bd` 1.2.2 facts belong in `AGENTS.md`'s environmental-failure ledger**, where the next agent looks: (a) `bd show <id> --json` returns `.comments` = **null** while the same object reports a non-zero `comment_count` and the text view prints every body — **re-measured by `retro-d7w5` on 2026-09-04**: `bd show agent-plugins-d7w5.2.1 --json | jq '.[0].comments'` → `null`, `jq '.[0].comment_count'` → `12`; (b) `bd` counts a **deferred** dependency as blocking, so a bead whose blockers were deferred can never enter `bd ready` — **re-measured by `retro-d7w5` on 2026-09-04**: `bd blocked --parent agent-plugins-f6tl` → `agent-plugins-f6tl.7: Blocked by 2 open dependencies: [agent-plugins-f6tl.6 agent-plugins-f6tl.5]`, and `bd export` reports both of those `deferred` (the count is 2 rather than AMENDMENT 1's 6 only because `.1`–`.4` have since closed); (c) `bd human respond` comments *and* closes and fails with `storage is nil` — **inherited from `f6tl.7`'s bounce comment and not re-measured here**, and it must be marked unverified in the ledger if filed. | `d7w5.2.1#9`, AMENDMENT 1, `f6tl.7` | P2 |
+| P4 | **Three durable `bd` 1.2.2 facts belong in `AGENTS.md`'s environmental-failure ledger**, where the next agent looks: (a) `bd show <id> --json` returns `.comments` = **null** while the same object reports a non-zero `comment_count` and the text view prints every body — **re-measured by `retro-d7w5` on 2026-09-04**: `bd show <gate task> --json | jq '.[0].comments'` → `null`, `jq '.[0].comment_count'` → `12`; (b) `bd` counts a **deferred** dependency as blocking, so a bead whose blockers were deferred can never enter `bd ready` — **re-measured by `retro-d7w5` on 2026-09-04**: `bd blocked --parent <target epic>` → `f6tl.7: Blocked by 2 open dependencies: [f6tl.6 f6tl.5]`, and `bd export` reports both of those `deferred` (the count is 2 rather than AMENDMENT 1's 6 only because `.1`–`.4` have since closed); (c) `bd human respond` comments *and* closes and fails with `storage is nil` — **inherited from `f6tl.7`'s bounce comment and not re-measured here**, and it must be marked unverified in the ledger if filed. | `d7w5.2.1#9`, AMENDMENT 1, `f6tl.7` | P2 |
 | P5 | **The two `gap` findings name exactly the two areas review then returned P1 defects against**, and both are places a blueprint declined to decide: whether a heading inside a blockquote or list item is reported and how its section span is bounded (`f6tl.2#3`), and that a frontmatter block's closing `---` is a setext heading so a whole-file search reports the block as a level-2 heading (`f6tl.3#1`). The already-filed `d7w5.7`, `d7w5.9` and `d7w5.12` fix the **code**; none of them says the module blueprint must state the rule. Proposed: `specs/modules/document-core/document-core-module.md` decides both cases explicitly. **Overlaps the three deferred review beads — decline if they are considered sufficient.** | `f6tl.2#3`, `f6tl.3#1` | P3 |
 
 **Considered and not raised as candidates.** The eleven `decision` findings are
@@ -986,12 +987,12 @@ PUT**; the second decision round's answer and what was filed for each are under
 accepted and filed on 2026-09-04**, their `retro:filed:` marks written, and the
 manifest counters moved once as one merge; **A1 held** — the human answered
 "investigate the cause but don't commit to a resolution yet", so
-`agent-plugins-yztv` was not touched at all.
+the YAML-rendering performance regression bead was not touched at all.
 
 | # | audience | candidate | findings | rank |
 |---|---|---|---|---|
 | **S11** | skill → `.sf/outbox/swarm/` | **`swarm dispatch accept` cannot accept the SECOND of two concurrent dispatches.** It rebases the dispatch branch while that branch is still checked out in the worktree the command itself created. Measured, accepting `dev-d7w5-2` after `dev-d7w5-3` had advanced the sprint head: exit 2, `fatal: bb/dev-d7w5-2 is already used by worktree at /home/user/.bb-worktrees/dev-d7w5-2`. It reproduces **only under real concurrency** — the thing the whole worktree design exists to enable — and the first accept was clean only because the sprint head had not moved. Workaround used: rebase inside the worktree, then re-run accept, which reports `case: serialized` and succeeds. Proposed: rebase inside the worktree, or remove the worktree before rebasing, since the command owns both | `d7w5.2.1#12` | **P0** |
-| **A1** | project → an **existing** bead | **The run introduced and shipped a performance regression against a specified target, and it is filed only as a P2.** `agent-plugins-yztv`: `d7w5.11`'s port of `encoding/json`'s `typeFields` is faithful but drops the one thing `encoding/json` does around it — the per-`reflect.Type` memo — so the field set is re-resolved for every struct **value**, and `isBlock` pays for it a second time on the same value. `AC-SPEC-009.1` sets 50 ms for a warm corpus query; the YAML rendering alone now costs ~40 ms of that budget on this corpus. A memoized prototype is faster than the pre-run code. Proposed: raise `yztv` to **P1** and record this retro's independent reproduction on it. **Not a new bead — `yztv` already exists**, so this is a priority change and a comment, not a filing | `d7w5.11#3` (its origin), `agent-plugins-yztv` | **P1** |
+| **A1** | project → an **existing** bead | **The run introduced and shipped a performance regression against a specified target, and it is filed only as a P2.** The regression: `d7w5.11`'s port of `encoding/json`'s `typeFields` is faithful but drops the one thing `encoding/json` does around it — the per-`reflect.Type` memo — so the field set is re-resolved for every struct **value**, and `isBlock` pays for it a second time on the same value. `AC-SPEC-009.1` sets 50 ms for a warm corpus query; the YAML rendering alone now costs ~40 ms of that budget on this corpus. A memoized prototype is faster than the pre-run code. Proposed: raise that bead to **P1** and record this retro's independent reproduction on it. **Not a new bead — it already exists**, so this is a priority change and a comment, not a filing | `d7w5.11#3` (its origin), the YAML-rendering performance regression bead | **P1** |
 | **P6** | project → a bead here | **A work order must not state a value or a signature it DERIVED by inference from a measurement.** In three of the four pass-2 beads what the bead *reported* was right and what it *prescribed* was wrong or unreachable: `d7w5.8`'s Design gave two of four post-filter identifiers incorrectly while its measured render table was byte-correct; `d7w5.7`'s acceptance criterion was unreachable given the signature its own Design pinned; `d7w5.11`'s three named fixes would have left the guarantee still false. Each cost the implementing agent an AC amendment or a mid-bead scope expansion, and each is exactly `AGENTS.md`'s "tool claims are measured at the point of use" one document earlier. Proposed: `specs/standards/work-order-definition-of-ready.md` — which `scripts/sync-shared-references.sh` vendors into both `groom-beads` and `spec`, so one edit reaches both — requires that a Design or AC stating a literal expected value cite the command that produced it, and marks a derived value **unverified** otherwise | `d7w5.8#2`, `d7w5.8#4`, `d7w5.7#2`, `d7w5.11#3` | **P1** |
 | **S12** | skill → `.sf/outbox/swarm/` | **`swarm-review` files a finding as a bead carrying a prescribed remedy the reviewer did not measure.** The same four findings read at their origin rather than at the gate: the reviewer's *evidence* was correct in all four cases and its *suggested shape* was wrong or incomplete in three. A bead reads as already-decided work, so the prescription gets acted on rather than re-derived. Proposed: a review-filed bead states the defect and its evidence, and marks any suggested remedy explicitly unverified. **Overlaps P6** — P6 is the gate that would catch this, S12 is the source that produces it; decline either half if the other is judged sufficient | `d7w5.8#2`, `d7w5.8#4`, `d7w5.7#2`, `d7w5.11#3` | P2 |
 
@@ -1044,7 +1045,7 @@ filed, 1 held; see "Pass 2's decision" at the end of this section.
 
 `manifest.retro_filed` = **16**, `manifest.retro_declined` = **2**,
 `manifest.retro_routed` = **45** — written as one merge with
-`swarm manifest set --run agent-plugins-d7w5`, once, after the second round came
+`swarm manifest set --run <run epic>`, once, after the second round came
 back. The figures cover both rounds together: 13 filed in pass 1 plus 3 in pass
 2, the two pass-1 declines unchanged (a held candidate is not a decline), and
 every one of the run's 45 findings routed.
@@ -1069,7 +1070,7 @@ plugin, so a proposal about it cannot be acted on here.
 | S10 | P2 | `d7w5.2.1#6` | `2026-09-04-no-way-to-list-the-declared-manifest-keys.md` |
 
 Every one carries its finding quoted inline, not only cited, and the run's
-provenance: run `agent-plugins-d7w5`, branch `claude/swarm-agent-plugins-5wxrfo`,
+provenance: this run, branch `claude/swarm-agent-plugins-5wxrfo`,
 this record, `skill_version` `swarm 0.1.0 @ 1a19e8e (2026-09-02)`. The `model`
 field reads **unrecorded** on all ten, with the reason — `manifest.models` is
 unset, which is candidate S2's own defect. `recurrence` is written as **0** on
@@ -1093,23 +1094,23 @@ work-order Definition of Ready — problem with durable anchors, design with the
 choice settled, checkable acceptance criteria, dependencies, tier and reason, and
 declared blast radius.
 
-| # | bead | rank | title |
-|---|---|---|---|
-| P1 | `agent-plugins-3oiv` | P1 | groom-beads has no rule that a "declare and regenerate" bead must declare the emitter, fixtures, snapshots and standards its regeneration reaches |
-| P2 | `agent-plugins-yqjh` | P1 | The outbox README and triage-issue still say we vend every skill we run, so triage would sweep the swarm deliveries into this backlog |
-| P3 | `agent-plugins-nduj` | P2 | `cli-output-standards`' conformance table and status line are hand-maintained, unchecked, and false again |
+| # | rank | title |
+|---|---|---|
+| P1 | P1 | groom-beads has no rule that a "declare and regenerate" bead must declare the emitter, fixtures, snapshots and standards its regeneration reaches |
+| P2 | P1 | The outbox README and triage-issue still say we vend every skill we run, so triage would sweep the swarm deliveries into this backlog |
+| P3 | P2 | `cli-output-standards`' conformance table and status line are hand-maintained, unchecked, and false again |
 
 Notes on each, where the filed bead differs from or extends the candidate:
 
-- **`agent-plugins-3oiv`** (findings `f6tl.1#2`, `f6tl.3#2`, `f6tl.4#4`) lands the
+- **The groom-beads regeneration bead** (findings `f6tl.1#2`, `f6tl.3#2`, `f6tl.4#4`) lands the
   rule in `specs/standards/work-order-definition-of-ready.md` check 8 rather than
   in `groom-beads`' own body — measured, `plugin/skills/groom-beads/SKILL.md` is
   19,825 bytes against `scripts/check-skills.sh`'s `BODY_BYTE_MAX = 20000`, so
   the rule does not fit there. `scripts/sync-shared-references.sh` vendors that
   standard into both `groom-beads` and `spec`, so one edit reaches both. Carries a
-  `related` edge to `agent-plugins-d7w5.15`, which it partially overlaps, and an
+  `related` edge to the review finding `d7w5.15`, which it partially overlaps, and an
   acceptance criterion requiring that overlap to be resolved rather than left.
-- **`agent-plugins-yqjh`** (findings `d7w5.2.1#1`–`#11`, whose existence is the
+- **The outbox README bead** (findings `d7w5.2.1#1`–`#11`, whose existence is the
   evidence). **Both file locations were re-verified before filing, because a
   variant of this candidate in circulation named the wrong one.** Measured
   2026-09-04: `ls plugin/skills/triage-issue` → "No such file or directory", and
@@ -1121,7 +1122,7 @@ Notes on each, where the filed bead differs from or extends the candidate:
   is its `## Inputs` bullet on `.sf/outbox/<skill>/*.md`. The second site,
   `.sf/outbox/README.md`'s "## In this repository" section, was confirmed as
   cited. The bead anchors on the quoted strings, not on line numbers.
-- **`agent-plugins-nduj`** (finding `f6tl.4#4`). The candidate offered two
+- **The conformance-table bead** (finding `f6tl.4#4`). The candidate offered two
   remedies — derive the table, or replace the corpus-wide assertion — which is an
   open decision and would have failed the Definition of Ready's check 9, so the
   bead settles it: the table is **not** derived (that would mean asserting in code
@@ -1158,12 +1159,12 @@ carried out by `retro-d7w5` after the answer; nothing was filed before it.
 |---|---|---|---|---|
 | S11 | P0 | **accepted** | `d7w5.2.1#12` | `.sf/outbox/swarm/2026-09-04-dispatch-accept-rebases-a-branch-still-checked-out-in-its-worktree.md` |
 | S12 | P2 | **accepted** | `d7w5.9#2`, `d7w5.11#3` | `.sf/outbox/swarm/2026-09-04-review-filed-beads-prescribe-a-remedy-the-reviewer-never-ran.md` |
-| P6 | P1 | **accepted** | `d7w5.9#2`, `d7w5.8#2`, `d7w5.7#2`, `d7w5.11#3` | bead `agent-plugins-yois` (P1, `parent=null`) |
-| A1 | P1 | **HELD** | `d7w5.11#3`, `agent-plugins-yztv` | nothing — see below |
+| P6 | P1 | **accepted** | `d7w5.9#2`, `d7w5.8#2`, `d7w5.7#2`, `d7w5.11#3` | bead (P1, `parent=null`) |
+| A1 | P1 | **HELD** | `d7w5.11#3`, the YAML-rendering performance regression bead | nothing — see below |
 
 **S11** and **S12** are skill-audience and went to `.sf/outbox/swarm/` for
 delivery to `brettcallaghan/swarm`, in the issue template's shape and with the
-same provenance the pass-1 ten carry: run `agent-plugins-d7w5`, branch
+same provenance the pass-1 ten carry: this run, branch
 `claude/swarm-agent-plugins-5wxrfo`, this record, `skill_version`
 `swarm 0.1.0 @ 1a19e8e (2026-09-02)`, `model` **unrecorded** with the reason,
 and `recurrence: 0` as the template's starting value rather than a measurement.
@@ -1172,7 +1173,7 @@ ACCEPTANCE EVIDENCE` comment, which records both accepts side by side. S12
 cites the three measured instances the human named: `d7w5.9`'s finding proposed
 asking `heading.Type()` / the AST kind and goldmark v1.8.5's `ast.Heading`
 carries only `BaseBlock` and `Level` (`d7w5.9#2`); the same finding mis-stated
-part of its own defect, and `agent-plugins-d7w5.9`'s Problem section records the
+part of its own defect, and `d7w5.9`'s Problem section records the
 grooming correction — "A's Section is EMPTY" is correct behaviour, A stands over
 nothing; and `d7w5.11`'s three named fixes left field dominance unhandled and
 would have produced the key `name` twice carrying two different values
@@ -1183,7 +1184,7 @@ gate that would catch such a work order at grooming; S12 is the source that
 produces it. Each says so on its face, and neither is offered as a substitute
 for the other.
 
-**`agent-plugins-yois`** (candidate P6) requires that a work order state as fact
+**The P6 bead** requires that a work order state as fact
 only what was measured: any value, signature, identifier or enumerated fix
 derived by inference either carries the command and output that establish it, or
 is marked unverified in place. It lands as a tenth check in
@@ -1201,11 +1202,11 @@ Definition of Ready — problem with durable anchors, design with the choice
 settled and its alternatives recorded, checkable acceptance criteria,
 `tier: advanced` with a reason, declared C4 blast radius. **`parent=null`**, with
 `discovered-from` edges to `d7w5.7`, `.8`, `.9` and `.11` and a `related` edge to
-`agent-plugins-3oiv`, which edits the same standard: parenting a retro filing
+the groom-beads regeneration bead, which edits the same standard: parenting a retro filing
 under the run epic is the P0 defect this run reported as `d7w5.2.1#10`.
 
 **A1 is HELD — neither filed nor declined.** The human answered "investigate the
-cause but don't commit to a resolution yet". `agent-plugins-yztv` was therefore
+cause but don't commit to a resolution yet". The regression bead was therefore
 **not touched at all**: its priority still reads **P2**, no remedy was recorded
 on it, and no comment was added — a separate agent is investigating its cause and
 owns that bead. The measurement behind A1 stands and is recorded above, in
@@ -1219,10 +1220,11 @@ at P1, this candidate is where the reproduction is written down.
 
 Each filed issue is marked on the bead carrying its finding, as a
 `retro:filed:<id> — <finding id>` comment. **Pass 1:** ten on
-`agent-plugins-d7w5.2.1` for the outbox deliveries, plus `3oiv` on `f6tl.1`,
-`f6tl.3` and `f6tl.4`, `yqjh` on `d7w5.2.1`, and `nduj` on `f6tl.4`. **Pass 2:**
+`d7w5.2.1` for the outbox deliveries, plus the groom-beads bead on `f6tl.1`,
+`f6tl.3` and `f6tl.4`, the outbox README bead on `d7w5.2.1`, and the
+conformance-table bead on `f6tl.4`. **Pass 2:**
 S11's outbox file on `d7w5.2.1` (for `#12`); S12's outbox file on `d7w5.9` (for
-`#2`) and on `d7w5.11` (for `#3`); and `agent-plugins-yois` on all four pass-2
+`#2`) and on `d7w5.11` (for `#3`); and the P6 bead on all four pass-2
 beads — `d7w5.9`, `d7w5.8`, `d7w5.7` and `d7w5.11`, each naming the finding it
 rests on. Nothing was marked for **A1**, which was held rather than filed, so
 `d7w5.11#3` remains unfiled for that candidate and keeps counting toward
@@ -1243,9 +1245,9 @@ terminating at `proof`), unrouted 0; 15 candidates, 13 filed, 2 declined.
 - **Candidates 19** — 15 in pass 1, 4 in pass 2. By audience: 12 skill, 7
   project.
 - **Filed 16** — 13 in pass 1 (10 outbox files, 3 beads) and 3 in pass 2 (2
-  outbox files, 1 bead: `agent-plugins-yois`). **Declined 2**, both pass 1's.
+  outbox files, 1 bead). **Declined 2**, both pass 1's.
   **Held 1** — candidate A1, pending a root-cause investigation on
-  `agent-plugins-yztv`; a held candidate is neither filed nor declined and is
+  the regression bead; a held candidate is neither filed nor declined and is
   counted as neither. **Pending 0.**
 - **Written to the manifest as one merge**, covering both rounds:
   `retro_filed` **16**, `retro_declined` **2**, `retro_routed` **45**.

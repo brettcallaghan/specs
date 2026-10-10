@@ -11,10 +11,10 @@ findings: ["c4s1#4"]
 recurrence: 0
 report: docs/retros/2026-10-07-c4s1-c4-diagrams-parser.md
 
-run: specs-c4s1
-branch: sprint/specs-c4s1
+run: "the sprint run recorded in report"
+branch: sprint/<run-epic>
 skill_version: swarm 0.1.0 (source commit 1cea7e4)
-model: "dev-specs-c4s1-1 opus, dev-specs-c4s1-2 sonnet, dev-specs-c4s1-3 haiku, dev-specs-c4s1-4 haiku; coordinator, plan, review and retro agents on the session default model; effort unrecorded"
+model: "dev-<run-epic>-1 opus, dev-<run-epic>-2 sonnet, dev-<run-epic>-3 haiku, dev-<run-epic>-4 haiku; coordinator, plan, review and retro agents on the session default model; effort unrecorded"
 ---
 
 ## What is wrong, and what it costs

@@ -382,16 +382,16 @@ their own planning session, and the vocabulary is being simplified
 before `reference-integrity` is implemented so that the feature is not
 built to maintain frontmatter the framework should not carry.
 
-| Item | Outcome | Bead |
-|------|---------|------|
-| P1 — adopt the Document Relationship Standard | **adopted with refinement.** The document was already at `status: approved`, not `draft` as the RFC states, so the transition made was `approved` → `active`. Version left at `0.1`: this is its first release, not a revision. | `agent-plugins-l7k` |
-| P2 — rename `FeatureBlueprint.sources` to `frd: Slug` | **adopted with refinement.** The rename landed as proposed. The refinement is the "check that its target declares `type: frd`" half, which had nowhere to be registered — see *On the typed-target check* below. | `agent-plugins-1h1` |
-| P3 — drop `updates` | **adopted with refinement.** Extent check found two sites the RFC did not name: the template's own Contracts instruction block ("list them in `updates`"), and [[frontmatter-standards]], which did not merely mention the property but *mandated* it ("the template SHALL include the `updates` and `creates` properties"). Removing the property without those would have left a standard requiring a property the schema rejects. | `agent-plugins-f48` |
-| P4 — drop `creates` and its readiness check | **adopted as proposed**, with the same two extra sites as P3. Both copies of `blueprint-readiness-checklist` were updated through the authored copy plus `scripts/sync-shared-references.sh`; the vendored copy is generated and was not hand-edited. | `agent-plugins-1rx` |
-| P5 — remove `related` from the envelope | **adopted with refinement.** See *On P5's extent and sufficiency* below — the blast radius was 48 files rather than 11, and one document would have lost an edge. | `agent-plugins-2b1` |
-| P6 — mark `depends_on` aspirational | **adopted as option (a): dropped.** Landed first as option (b), the RFC's recommendation; reversed in review — see *Reversed in review* below. `SystemBlueprint.depends_on` is gone. | `agent-plugins-yvo` |
-| P7 — derive `children` from `parent_slug`; drop the pairing | **adopted with refinement.** See *On P7* below — neither property exists in this vocabulary, so what was removed was the framework's own worked example of a pairing its new standard forbids, not a live configuration. | `agent-plugins-0qm` |
-| P8 — replace the composition rosters with child back-pointers | **adopted with refinement.** The four rosters were removed as proposed, and the migration was exactly what Evidence 7 predicted: two `contained_by` additions, four roster deletions. The back-pointers landed differently — one `contained_by: [Slug]?` on a shared `CompositionEdge` struct, inherited by both module and component, rather than the proposed singular `ComponentBlueprint.container`. See *Reversed in review* below. | `agent-plugins-4yv` |
+| Item | Outcome |
+|------|---------|
+| P1 — adopt the Document Relationship Standard | **adopted with refinement.** The document was already at `status: approved`, not `draft` as the RFC states, so the transition made was `approved` → `active`. Version left at `0.1`: this is its first release, not a revision. |
+| P2 — rename `FeatureBlueprint.sources` to `frd: Slug` | **adopted with refinement.** The rename landed as proposed. The refinement is the "check that its target declares `type: frd`" half, which had nowhere to be registered — see *On the typed-target check* below. |
+| P3 — drop `updates` | **adopted with refinement.** Extent check found two sites the RFC did not name: the template's own Contracts instruction block ("list them in `updates`"), and [[frontmatter-standards]], which did not merely mention the property but *mandated* it ("the template SHALL include the `updates` and `creates` properties"). Removing the property without those would have left a standard requiring a property the schema rejects. |
+| P4 — drop `creates` and its readiness check | **adopted as proposed**, with the same two extra sites as P3. Both copies of `blueprint-readiness-checklist` were updated through the authored copy plus `scripts/sync-shared-references.sh`; the vendored copy is generated and was not hand-edited. |
+| P5 — remove `related` from the envelope | **adopted with refinement.** See *On P5's extent and sufficiency* below — the blast radius was 48 files rather than 11, and one document would have lost an edge. |
+| P6 — mark `depends_on` aspirational | **adopted as option (a): dropped.** Landed first as option (b), the RFC's recommendation; reversed in review — see *Reversed in review* below. `SystemBlueprint.depends_on` is gone. |
+| P7 — derive `children` from `parent_slug`; drop the pairing | **adopted with refinement.** See *On P7* below — neither property exists in this vocabulary, so what was removed was the framework's own worked example of a pairing its new standard forbids, not a live configuration. |
+| P8 — replace the composition rosters with child back-pointers | **adopted with refinement.** The four rosters were removed as proposed, and the migration was exactly what Evidence 7 predicted: two `contained_by` additions, four roster deletions. The back-pointers landed differently — one `contained_by: [Slug]?` on a shared `CompositionEdge` struct, inherited by both module and component, rather than the proposed singular `ComponentBlueprint.container`. See *Reversed in review* below. |
 
 **Provenance check.** `skill: spec` at `skill_version: "1.7"` — current at
 triage. `plugin_version: 0.14.0` — current at triage. No cited text had
@@ -405,8 +405,8 @@ still this repository critiquing its own vocabulary, and the human gate
 did the substantive gatekeeping, including directing the adopt-now
 classification before triage began.
 
-**Dedupe.** No match in RFCs 0001–0011. One adjacent deferred bead:
-`agent-plugins-6tp` (RFC 0006 P4) asks whether `sources` can record an
+**Dedupe.** No match in RFCs 0001–0011. One adjacent deferred bead
+(RFC 0006 P4) asks whether `sources` can record an
 input that is not a spec document. P2 does not resolve it, but removes
 the overload that made it harder to reason about — after P2, `sources`
 names one relationship rather than two.
@@ -496,7 +496,7 @@ step-4 gate, on the stronger evidence of seeing the schema itself.
 **On the strata toolchain.** Regenerating the derived artifacts needs a
 `strata` newer than the 0.7.0 on PATH, which drops struct inheritance
 under `additionalProperties: false` and would have silently emptied every
-document type (open bead `agent-plugins-j7f`, still open — nothing here
+document type (an open bead — nothing here
 adds the version floor it asks for). The artifacts are generated from
 strata `origin/main` at `840f9ba`.
 

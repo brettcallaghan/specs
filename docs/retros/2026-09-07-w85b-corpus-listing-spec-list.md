@@ -1,11 +1,11 @@
-# Run record — `agent-plugins-w85b`, corpus listing (`spec list`)
+# Run record — corpus listing (`spec list`)
 
 *Written by `retro-w85b` on 2026-09-07. One document: the run's results, every
 finding it captured, what it routed where, and what it could not establish.*
 
 ## Read this first — the one decision the run refused to make
 
-**`agent-plugins-w85b.8` is parked, `deferred`, labelled `human`, and it is the
+**`w85b.8` is parked, `deferred`, labelled `human`, and it is the
 only thing in this run that is waiting on a person.**
 
 `spec list`'s YAML and JSON renderings disagree on a multi-line description, and
@@ -38,8 +38,8 @@ grooming rather than offered: it contradicts `[[container-spec-cli]]`'s Change
 Guidance and `renderList`'s construction, which derives both renderings from one
 struct declaration precisely so they cannot drift.
 
-**To act on it:** say A or B on `agent-plugins-w85b.8`, remove the `human`
-label, `bd update agent-plugins-w85b.8 --status open`. It then re-enters the
+**To act on it:** say A or B on `w85b.8`, remove the `human`
+label, and set its status back to `open`. It then re-enters the
 gate and its Design and acceptance criteria are written against the chosen
 option in one pass. Whichever way it goes, the demonstration is already in the
 tree and the losing side's regeneration is a one-command diff.
@@ -48,10 +48,10 @@ tree and the losing side's regeneration is a one-command diff.
 
 | | |
 |---|---|
-| run epic | `agent-plugins-w85b` — "Run: Corpus Listing (`spec list`)" |
-| target | `agent-plugins-kgir` — "Corpus Listing (`spec list`)", a pre-existing feature epic adopted whole; its six work orders kept their ids, edges and parent, and **no work bead was moved** |
+| run epic | "Run: Corpus Listing (`spec list`)" |
+| target | "Corpus Listing (`spec list`)", a pre-existing feature epic adopted whole; its six work orders kept their ids, edges and parent, and **no work bead was moved** |
 | specification | `specs/features/spec-list/spec-list-frd.md` (approved FRD) and `specs/features/spec-list/spec-list-blueprint.md` (feature blueprint, retired by `kgir.6`) |
-| sprint branch | `sprint/agent-plugins-w85b` |
+| sprint branch | the sprint branch |
 | `base_sha` → head | `ad64088` → `861fa52`, **ten commits** |
 | queue | 6 admitted at the gate (`manifest.admitted`), plus 4 review findings admitted mid-run across two loops. `manifest.excluded`, `manifest.moved` and `manifest.ledger` are all **unset**, not `[]` |
 | dispatches | six work dispatches — `dev-w85b-1` … `dev-w85b-6` — plus `plan-w85b`, `review-w85b`, `coordinator-w85b`, `retro-w85b` |
@@ -97,7 +97,7 @@ zero tier escalations.**
 - **No commit belongs to no bead**: `ad64088..861fa52` is exactly ten commits
   and ten beads.
 - **No commit carries a trailer.** Measured:
-  `git log --format='%H%n%(trailers)' ad64088..sprint/agent-plugins-w85b`
+  `git log --format='%H%n%(trailers)' ad64088..<sprint branch>`
   prints ten hashes and ten empty trailer blocks. The cause is measured below.
 - **`manifest.admitted` names only the six `kgir` work orders.** The four
   review findings this run actually worked and closed (`w85b.7`, `.9`, `.10`,
@@ -231,7 +231,7 @@ by the review budget and once by a human bounce.** Both must be said plainly:
   no fourth pass, so nothing in this run has looked at the tree as it now stands.
 - **`w85b.8` bounced.** The only bead the run refused to decide; see the top of
   this document.
-- Three P3 beads deferred: `w85b.11`, `w85b.16`, and `agent-plugins-ru7y`
+- Three P3 beads deferred: `w85b.11`, `w85b.16`, and one more
   (a third copy of the inverted parse-error clause, in the now-retired
   blueprint, filed by `w85b.10` rather than fixed inline).
 
@@ -240,11 +240,11 @@ off the epic's `admitted` list and the absence of any `amend:` comment, not off
 `manifest.excluded` or `manifest.moved`, which are unset rather than `[]`.
 
 Four beads were filed against **other** parts of the tree and deliberately not
-worked here: `agent-plugins-qvsa` (P2, open — `spec check --only ""` carries the
+worked here: one P2 (open — `spec check --only ""` carries the
 same pflag defect `w85b.7` fixed, but `--only` has a different behavioural
-contract and the fix is not a mechanical copy), `agent-plugins-ru6x` (P3, open —
+contract and the fix is not a mechanical copy), one P3 (open —
 vendored `shared/` references cite siblings with a `shared/` prefix that
-resolves one directory too deep), `agent-plugins-ru7y` and `w85b.16`.
+resolves one directory too deep), the third inverted-clause bead and `w85b.16`.
 
 ## What the coordinator's tooling did
 
@@ -288,8 +288,7 @@ sed -n 's/^[[:space:]]*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'   → 36
 26 of the 36 are not epics — they are bead ids scooped out of nested
 `metadata.moved[]` and `metadata.excluded[]` arrays by a line-oriented `sed`.
 Feed those to `bd swarm validate`, which accepts only epics, and the script
-exits 1 repo-wide. **Already filed twice** — `agent-plugins-84yu` (P1, open) and
-`agent-plugins-7jxt` (P1, open) — so nothing new goes on the pile; the figures
+exits 1 repo-wide. **Already filed twice**, both P1 and open — so nothing new goes on the pile; the figures
 above are recorded because AGENTS.md says to record the command for a volatile
 number, not the number.
 
@@ -297,10 +296,10 @@ number, not the number.
 standing-authorization rows have no manifest key at all.** Measured:
 
 ```
-swarm manifest require --run agent-plugins-w85b --key trailers
+swarm manifest require --run <run epic> --key trailers
   → trailers: ok: false — "trailers is not set"        (exit 1)
 
-swarm manifest get --run agent-plugins-w85b --key admit_review_findings --key pull_request
+swarm manifest get --run <run epic> --key admit_review_findings --key pull_request
   → "admit_review_findings, pull_request: not a declared manifest key"   (exit 3)
 ```
 
@@ -336,8 +335,8 @@ as a failure.
 closure set:
 
 ```bash
-bd export | jq -r 'select(.id | startswith("agent-plugins-w85b")
-                        or startswith("agent-plugins-kgir"))
+bd export | jq -r 'select(.id | startswith("<run epic>")
+                        or startswith("<target epic>"))
   | .id as $i | (.comments // [])[] | select(.text | startswith("retro:"))'
 ```
 
@@ -422,7 +421,7 @@ the ordinal being the finding's position among that bead's own `retro:` records.
 >
 > Run practice in this run agrees - both prior cli/-touching beads committed the
 > README diff:
->   $ git log --format=%h ad64088..sprint/agent-plugins-w85b -- cli/   (then per commit, --stat -- README.md)
+>   $ git log --format=%h ad64088..[sprint branch] -- cli/   (then per commit, --stat -- README.md)
 >   383bd06 TOUCHED README   (Snapshot cases 2,594 -> 2,608)
 >   d0c1647 TOUCHED README
 >
@@ -539,7 +538,7 @@ the ordinal being the finding's position among that bead's own `retro:` records.
 >   46019469ab1771ff8cbed7a5e24c994b
 >
 > The two the bead does not name are the error cases: list-type-unregistered predates this
-> run, and list-type-empty was added an hour earlier by agent-plugins-w85b.7 in the same
+> run, and list-type-empty was added an hour earlier by w85b.7 in the same
 > batch, which is why the bead's Affected-files list could not have named it. Neither
 > emits a listing, so neither has an expected artifact that moved — `git status` shows
 > their input changed and their expected/ untouched.
@@ -559,7 +558,7 @@ the ordinal being the finding's position among that bead's own `retro:` records.
 
 **`kgir.4#3`** — recorded by `dev-w85b-2`
 
-> retro:gap Neither the item nor the blueprint says which citation form to use when a corpus document that is ALSO vendored into a skill needs to cite a second such document, and the two homes disagree about what resolves. specs/guides/spec-cli-reference.md uses backticked `shared/<name>.md` paths; specs/standards/frontmatter-standards.md uses [[slug]]. I followed each file's own existing convention rather than unifying them, and filed the unresolvable-in-both-homes problem as agent-plugins-ru6x (discovered-from this item) rather than settling it inline.
+> retro:gap Neither the item nor the blueprint says which citation form to use when a corpus document that is ALSO vendored into a skill needs to cite a second such document, and the two homes disagree about what resolves. specs/guides/spec-cli-reference.md uses backticked `shared/<name>.md` paths; specs/standards/frontmatter-standards.md uses [[slug]]. I followed each file's own existing convention rather than unifying them, and filed the unresolvable-in-both-homes problem as a bead (discovered-from this item) rather than settling it inline.
 > evidence: measured — `plugin/skills/spec/references/shared/shared/frontmatter-standards.md` MISSING while `plugin/skills/spec/references/shared/frontmatter-standards.md` EXISTS, i.e. the `shared/` prefix is one directory too deep from the vendored file's own location; the same is true of the two pre-existing `shared/document-readiness-checklist.md` citations at lines 253 and 279 of the vendored copy. From the SOURCE at specs/guides/, neither `shared/x.md` nor a bare `x.md` resolves, because the targets live in specs/standards/. No check covers it: scripts/check-skills.sh skips vendored copies with four separate `if "/references/shared/" in p: continue` guards. AGENTS.md's "Citing another skill's reference" section governs skill-to-skill citation and does not reach this case.
 
 **`kgir.5#2`** — recorded by `dev-w85b-1`
@@ -753,11 +752,11 @@ the ordinal being the finding's position among that bead's own `retro:` records.
 **`w85b.10#2`** — recorded by `dev-w85b-5`
 
 > retro:scope a THIRD copy of the same inverted clause exists outside this bead's Affected files; filed, not fixed
-> evidence: the bead named two files (specs/guides/spec-cli-reference.md and its generated copy). A multiline sweep before editing found five sites carrying "would assert the document declares none": the two named, the two correct references (specs/modules/document-core/document-core-module.md, cli/core/corpus/query.go), AND specs/features/spec-list/spec-list-blueprint.md, which carries the inversion — "SHALL NOT carry a slug, type, status, title or description for it — an absent value here would assert the document declares none". After the fix, `grep -rIl -Pzo "absent\s+value\s+(here\s+)?would\s+assert" . --exclude-dir=.git` returns exactly that one file. Filed as agent-plugins-ru7y (P3, labels run-introduced, discovered-from this bead) rather than fixed inline: outside this bead's acceptance criteria, and the blueprint is `status: retired`. It was introduced by this run — `git cat-file -e 210058ee:specs/features/spec-list/spec-list-blueprint.md` -> "exists on disk, but not in 210058ee".
+> evidence: the bead named two files (specs/guides/spec-cli-reference.md and its generated copy). A multiline sweep before editing found five sites carrying "would assert the document declares none": the two named, the two correct references (specs/modules/document-core/document-core-module.md, cli/core/corpus/query.go), AND specs/features/spec-list/spec-list-blueprint.md, which carries the inversion — "SHALL NOT carry a slug, type, status, title or description for it — an absent value here would assert the document declares none". After the fix, `grep -rIl -Pzo "absent\s+value\s+(here\s+)?would\s+assert" . --exclude-dir=.git` returns exactly that one file. Filed as a bead (P3, labels run-introduced, discovered-from this bead) rather than fixed inline: outside this bead's acceptance criteria, and the blueprint is `status: retired`. It was introduced by this run — `git cat-file -e 210058ee:specs/features/spec-list/spec-list-blueprint.md` -> "exists on disk, but not in 210058ee".
 
 **`w85b.7#4`** — recorded by `dev-w85b-4`
 
-> retro:scope The same pflag defect is live on `spec check --only`, which this bead is scoped out of. Filed as agent-plugins-qvsa (discovered-from w85b.7) rather than fixed inline, because --only has a DIFFERENT behavioural contract and the fix is not a mechanical copy.
+> retro:scope The same pflag defect is live on `spec check --only`, which this bead is scoped out of. Filed as a bead (discovered-from w85b.7) rather than fixed inline, because --only has a DIFFERENT behavioural contract and the fix is not a mechanical copy.
 >
 > evidence: built ./spec from cli/ on the fixed tree and compared:
 >
@@ -845,7 +844,7 @@ the ordinal being the finding's position among that bead's own `retro:` records.
 **`kgir.5#1`** — recorded by `dev-w85b-1`
 
 > retro:proof The measurement was taken on a tree that carries every cli/** change this feature makes, which is the one way this item can silently produce wrong figures — it runs in a per-dispatch worktree, not on the merged sprint branch, so a sibling's cli/** commit would be missing from it and CI's --check would then fail on a number nobody could reproduce.
-> evidence: `git log --oneline HEAD..sprint/agent-plugins-w85b` showed exactly one commit absent from this worktree, `8bff463 agent-plugins-kgir.4 P2 DOC: ...`, and `git diff --name-only HEAD...sprint/agent-plugins-w85b` showed it touches only plugin/skills/spec/references/shared/frontmatter-standards.md, plugin/skills/spec/references/shared/spec-cli-reference.md, specs/guides/spec-cli-reference.md and specs/standards/frontmatter-standards.md — no cli/** path, so no statement it adds or removes is missing from these figures. The Go version matched the pin: cli/go.mod says `go 1.24`, `go version` says `go1.24.7 linux/amd64`. `scripts/coverage.sh --check` from the repository root exits 0 on the committed README.
+> evidence: `git log --oneline HEAD..<sprint branch>` showed exactly one commit absent from this worktree, `8bff463` (the kgir.4 DOC commit), and `git diff --name-only HEAD...<sprint branch>` showed it touches only plugin/skills/spec/references/shared/frontmatter-standards.md, plugin/skills/spec/references/shared/spec-cli-reference.md, specs/guides/spec-cli-reference.md and specs/standards/frontmatter-standards.md — no cli/** path, so no statement it adds or removes is missing from these figures. The Go version matched the pin: cli/go.mod says `go 1.24`, `go version` says `go1.24.7 linux/amd64`. `scripts/coverage.sh --check` from the repository root exits 0 on the committed README.
 
 **`kgir.6#2`** — recorded by `dev-w85b-3`
 
@@ -865,13 +864,13 @@ the ordinal being the finding's position among that bead's own `retro:` records.
 > had no comments --
 >   jq -r "keys[]" export.jsonl | sort -u
 > -> includes `comments`; and
->   jq -r "select(.id==\"agent-plugins-kgir.5\") | {comment_count,
+>   jq -r "select(.id==\"[id]\") | {comment_count,
 >     has_comments: has(\"comments\"), n: (.comments|length)}"
 > -> {"comment_count":2,"has_comments":true,"n":2}.
 > So `bd export` DOES carry comment bodies and the standard is correct; only
 > `bd show <id> --json` lacks them (its keys carry comment_count and no
 > comments array -- consistent with the finding already recorded on
-> agent-plugins-kgir.4). `bd comments <id>` is a third working route.
+> kgir.4). `bd comments <id>` is a third working route.
 > The transferable trap: `jq keys` on one line of a JSONL export describes
 > that RECORD, not the schema; use `jq -r "keys[]" | sort -u` across all
 > records before concluding a field is absent. AGENTS.md already warns that
@@ -907,10 +906,10 @@ the ordinal being the finding's position among that bead's own `retro:` records.
 >   `documents:`; --type adr -> 20; --type bogus -> rc=1 with
 >   `Error: corpus: "bogus" is not a registered document type; registered:
 >   adr, component-blueprint, ...`.
-> - coverage: commit 110a461 "agent-plugins-kgir.5 P2 COV" shows README.md
+> - coverage: commit 110a461 (the kgir.5 COV commit) shows README.md
 >   +8/-8 and no other path.
-> - Tracker Reconciliation: agent-plugins-lyqk reads closed; agent-plugins-
->   gz3, -1ao and -h6c all read open, as their out-of-scope classification
+> - Tracker Reconciliation: one bead reads closed; three others
+>   all read open, as their out-of-scope classification
 >   requires.
 > - Gates: bb-checks.py with NO arguments -> rc=0, and diffed line-by-line
 >   against the run checks_baseline the only differences are go test
@@ -1022,19 +1021,19 @@ the ordinal being the finding's position among that bead's own `retro:` records.
 **`kgir.1#4`** — recorded by `dev-w85b-1`
 
 > retro:environment A `bd dolt pull` run by the SIBLING dispatch held the tracker lock for ~5.5 minutes and every other `bd` call in the container blocked behind it, the coordinator's included. It is indistinguishable from a hang while it lasts, and it stalls the per-bead ceremony at exactly the point where the ceremony is all `bd` calls (comment, close, dolt push).
-> evidence: `ps -eo pid,etimes,args` showed `26487  269  bd dolt pull` (dispatch dev-w85b-2) with my `27559 bd comment agent-plugins-kgir.1` and the coordinator's `30504 bd list --parent agent-plugins-w85b --all --limit 0 --json` both queued behind it. `cat /proc/26487/status` → `State: S (sleeping)`, `Threads: 37`; `/proc/26487/wchan` → `futex_do_wait`; `ls /proc/26487/fd | grep -c socket` → `0`, so it was doing no network I/O and looked hung. It was not: it exited on its own at ~340s and every queued call then completed, mine with exit 0. Two consequences for a parallel run: a `bd` call that appears hung should be checked against `ps` for a sibling's `bd dolt` before being treated as a failure, and a 120s tool timeout is too short for any `bd` call made while a sibling may be pulling.
+> evidence: `ps -eo pid,etimes,args` showed `26487  269  bd dolt pull` (dispatch dev-w85b-2) with my `27559 bd comment <id>` and the coordinator's `30504 bd list --parent <run epic> --all --limit 0 --json` both queued behind it. `cat /proc/26487/status` → `State: S (sleeping)`, `Threads: 37`; `/proc/26487/wchan` → `futex_do_wait`; `ls /proc/26487/fd | grep -c socket` → `0`, so it was doing no network I/O and looked hung. It was not: it exited on its own at ~340s and every queued call then completed, mine with exit 0. Two consequences for a parallel run: a `bd` call that appears hung should be checked against `ps` for a sibling's `bd dolt` before being treated as a failure, and a 120s tool timeout is too short for any `bd` call made while a sibling may be pulling.
 
 **`kgir.1#5`** — recorded by `dev-w85b-1`
 
 > retro:environment CORRECTS the environment finding above, one clause of which I inferred rather than measured. `bd dolt pull` on this repository does NOT return: it takes the shared embedded-Dolt write lock, starves every other `bd` call in the container, and ignores SIGTERM. My earlier finding said the sibling's pull "exited on its own at ~340s" — I watched its PID disappear and inferred that; I did not measure who ended it, and the coordinator reports killing pulls with `kill -9`. Treat the whole claim as retracted. The trigger is a `bd dolt push` that loses a race to a sibling and fails non-fast-forward; the error text then instructs you to run `bd dolt pull`, which is the trap. A dispatch agent must do NEITHER — tracker durability is the coordinator's, and the repo's Stop hook is the documented pusher.
-> evidence: two of my own pulls were killed by the coordinator, both reported as `Killed ... pull rc=137` (PIDs 9148 and 21556); the second was launched with no tool timeout and still had to be killed. `bd dolt push` before and after both attempts printed `Error: push to origin/main: Error 1105 ... ! [rejected] main -> main (non-fast-forward) ... hint: Integrate the remote changes (e.g. dolt pull ...) before pushing again`, `push rc=1`. Not memory pressure: `free -m` during the stall showed 14656 MB free of 16075, and `dmesg | tail` carried no OOM kill, only `idle-reclaim ... drop_caches`. No committed data was lost either time — `bd show agent-plugins-kgir.1` still reads CLOSED and the four retro comments survived. Coordinator reports dispatch dev-w85b-2 hit the identical trap and measured a sibling stalled at zero CPU for 337s/211s/209s.
+> evidence: two of my own pulls were killed by the coordinator, both reported as `Killed ... pull rc=137` (PIDs 9148 and 21556); the second was launched with no tool timeout and still had to be killed. `bd dolt push` before and after both attempts printed `Error: push to origin/main: Error 1105 ... ! [rejected] main -> main (non-fast-forward) ... hint: Integrate the remote changes (e.g. dolt pull ...) before pushing again`, `push rc=1`. Not memory pressure: `free -m` during the stall showed 14656 MB free of 16075, and `dmesg | tail` carried no OOM kill, only `idle-reclaim ... drop_caches`. No committed data was lost either time — `bd show <kgir.1>` still reads CLOSED and the four retro comments survived. Coordinator reports dispatch dev-w85b-2 hit the identical trap and measured a sibling stalled at zero CPU for 337s/211s/209s.
 
 **`kgir.4#5`** — recorded by `dev-w85b-2`
 
 > retro:environment `bd dolt push` fails non-fast-forward when a sibling dispatch pushed first, and the documented remedy — `bd dolt pull` — DEADLOCKS the whole run: the pull takes the shared Dolt write lock, never releases it, and every concurrent `bd` call from the live sibling blocks behind it indefinitely. It also ignores SIGTERM. Two dispatches sharing one database means one agent running the documented recovery can freeze the other; the recovery is more dangerous than the failure it treats.
-> evidence: bb-close-bead.sh -> "WARNING — commit landed but `bd dolt push` failed" (commit 8bff463 landed, rc=0). Retried by hand: `bd dolt push` -> rc=1, `Error: push to origin/main: Error 1105: To git+https://github.com/brettcallaghan/agent-plugins.git / ! [rejected] main -> main (non-fast-forward) / hint: Updates were rejected because the tip of your current branch is behind its remote counterpart. Integrate the remote changes (e.g. 'dolt pull ...') before pushing again.` Ran that hint: `bd dolt pull` printed only `Pulling from Dolt remote...` and never returned. After 345s, `ps -eo pid,etimes,time,stat,args`: `26487 345 00:00:27 Sl bd dolt pull` (27s CPU, still resident) with three dev-w85b-1 processes stacked behind it at ZERO CPU and 337s/211s/209s elapsed — `bd comment agent-plugins-kgir.1`, `bd list --parent agent-plugins-w85b --all --limit 0 --json`, `bd show agent-plugins-kgir.1 --json` — i.e. the live sibling was fully stalled, not slow. `kill -TERM 26487` -> rc=0 and the process was STILL ALIVE 8s later. `kill -9 26487` cleared it; immediately afterwards the only bd process was a fresh sibling call (`bd list --parent agent-plugins-kgir.5`), confirming all three had unblocked. Post-kill integrity check: `bd show agent-plugins-kgir.4 --json` -> status `closed`, assignee `dev-w85b-2`, closed_at 2026-09-07T07:27:23Z, comment_count 4 — the SIGKILL cost no committed data.
+> evidence: bb-close-bead.sh -> "WARNING — commit landed but `bd dolt push` failed" (commit 8bff463 landed, rc=0). Retried by hand: `bd dolt push` -> rc=1, `Error: push to origin/main: Error 1105: To git+https://github.com/brettcallaghan/agent-plugins.git / ! [rejected] main -> main (non-fast-forward) / hint: Updates were rejected because the tip of your current branch is behind its remote counterpart. Integrate the remote changes (e.g. 'dolt pull ...') before pushing again.` Ran that hint: `bd dolt pull` printed only `Pulling from Dolt remote...` and never returned. After 345s, `ps -eo pid,etimes,time,stat,args`: `26487 345 00:00:27 Sl bd dolt pull` (27s CPU, still resident) with three dev-w85b-1 processes stacked behind it at ZERO CPU and 337s/211s/209s elapsed — `bd comment <kgir.1>`, `bd list --parent <run epic> --all --limit 0 --json`, `bd show <kgir.1> --json` — i.e. the live sibling was fully stalled, not slow. `kill -TERM 26487` -> rc=0 and the process was STILL ALIVE 8s later. `kill -9 26487` cleared it; immediately afterwards the only bd process was a fresh sibling call (`bd list --parent <kgir.5>`), confirming all three had unblocked. Post-kill integrity check: `bd show <kgir.4> --json` -> status `closed`, assignee `dev-w85b-2`, closed_at 2026-09-07T07:27:23Z, comment_count 4 — the SIGKILL cost no committed data.
 > also: `bd show <id> --json` carries `comment_count` and NO `comments` array (top-level keys: acceptance_criteria, assignee, closed_at, comment_count, created_at, created_by, dependencies, dependency_count, dependent_count, description, design, id, issue_type, labels, metadata, owner, parent, priority, started_at, status, title, updated_at). Reading `.comments` from it returns empty and looks exactly like lost findings; the plain `bd show` COMMENTS section is what actually lists them.
-> left undone: the closure of agent-plugins-kgir.4 is in the local shared database only — it is NOT pushed to refs/dolt/data. This dispatch pushes nothing by instruction, and the repo's Stop hook (.claude/hooks/dolt-push.sh) is the documented pusher, so whoever reclaims this container must confirm the push landed.
+> left undone: the closure of kgir.4 is in the local shared database only — it is NOT pushed to refs/dolt/data. This dispatch pushes nothing by instruction, and the repo's Stop hook (.claude/hooks/dolt-push.sh) is the documented pusher, so whoever reclaims this container must confirm the push landed.
 
 **`w85b.15#5`** — recorded by `dev-w85b-6`
 
@@ -1154,7 +1153,7 @@ repository and holds no work.
 ## Pushes
 
 **Nothing was stranded when this record was started.**
-`git log origin/sprint/agent-plugins-w85b..sprint/agent-plugins-w85b` is empty;
+`git log origin/<sprint branch>..<sprint branch>` is empty;
 both refs stand at `861fa52`.
 
 No merge to the default branch was made or attempted — `merge_to_default` is
@@ -1187,7 +1186,7 @@ does not exist.
   `kill -9`. Two independent dispatches measured it. The ledger entry added by
   this retro says so explicitly rather than presenting it as re-measured.
 - **Which model served each dispatch.** `manifest.models` and `manifest.effort`
-  are both unset — measured, `swarm manifest get --run agent-plugins-w85b --key
+  are both unset — measured, `swarm manifest get --run <run epic> --key
   models --key effort` returns `ok: false` for both. Every bead carries a tier
   and `swarm.toml` maps tiers to models, but nothing records what was served.
   Any issue filed from this run therefore carries a `model` field that is
@@ -1209,7 +1208,7 @@ does not exist.
 - **`kgir.6#4`'s Definition-of-Done verification was not re-run.** It is a
   `proof` finding carrying its own commands and outputs, cited as evidence
   rather than re-measured.
-- **`agent-plugins-ru6x`'s and `agent-plugins-qvsa`'s claims were not
+- **The claims of the vendored `shared/` citation bead and the `spec check --only` pflag bead were not
   re-measured** for this record. Both beads quote their evidence inline.
 
 ## Candidates
@@ -1264,7 +1263,7 @@ grep cannot find a hard-wrapped claim.** Priority **3**. New.
 > reports zero for a wrapped claim, which is indistinguishable from the claim not
 > being there.
 >
-> Adjacent and distinct: `agent-plugins-bfng` (P3, open) proposes a different
+> Adjacent and distinct: an existing P3 bead (open) proposes a different
 > addition, to step 4. `w85b.20` is a live instance of *bfng's* shape — a false
 > claim left in place as the justification for correct code — and is an unfiled
 > recurrence for it.
@@ -1293,9 +1292,9 @@ its criteria.** Priority **3**. New.
 `kgir.5#2` is already `rfc-0027` **P3**; the two-citation-surfaces cluster
 (`kgir.3#2`, `kgir.6#1`) is `rfc-0027` **P1**; the snapshot-harness-cannot-
 express-two-runs cluster (`kgir.3#1`, `kgir.6#3`) is `rfc-0027` **P2**;
-`bd-health.sh` is `agent-plugins-84yu` and `agent-plugins-7jxt`; the vendored
-`shared/` citation defect is `agent-plugins-ru6x`; `spec check --only ""` is
-`agent-plugins-qvsa`; the third inverted-clause copy is `agent-plugins-ru7y`.
+`bd-health.sh` has two existing beads; the vendored
+`shared/` citation defect, `spec check --only ""` and the third
+inverted-clause copy each have their own bead.
 **Seven clusters already have homes.** Nothing new goes on those piles.
 
 ### Skill audience → `.sf/outbox/swarm/`, for delivery to `brettcallaghan/swarm`
@@ -1304,7 +1303,7 @@ express-two-runs cluster (`kgir.3#1`, `kgir.6#3`) is `rfc-0027` **P2**;
 keys, and one of them governed this run.** Priority **1**. New.
 
 > Measured:
-> `swarm manifest get --run agent-plugins-w85b --key admit_review_findings --key pull_request`
+> `swarm manifest get --run <run epic> --key admit_review_findings --key pull_request`
 > → exit 3, `"admit_review_findings, pull_request: not a declared manifest key"`.
 > `manifest.standing_auth` accordingly carries five rows, not seven.
 >
@@ -1405,7 +1404,7 @@ hazard that costs twenty minutes the first time somebody meets it. An entry was
 added to `AGENTS.md` under "Environmental-failure ledger", citing the findings
 that measured it and stating plainly that this record did not re-run it.
 
-**`manifest.findings_path` on `agent-plugins-w85b` names this document**, which
+**`manifest.findings_path` on the run epic names this document**, which
 is what makes it findable from the epic id alone.
 
 ## Counts

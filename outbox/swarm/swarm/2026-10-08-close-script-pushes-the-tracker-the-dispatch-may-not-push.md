@@ -11,8 +11,8 @@ findings: ["qqnx.1#7", "qqnx#2"]
 recurrence: 0
 report: docs/retros/2026-10-08-qqnx-spec-cli-qa-round-2-fixes.md
 
-run: specs-qqnx
-branch: sprint/specs-qqnx
+run: "the sprint run recorded in report"
+branch: sprint/<run-epic>
 skill_version: swarm 0.1.0 (source commit 1cea7e4)
 model: "<withheld by session policy>"
 ---

@@ -82,11 +82,11 @@ jobs:
       # Needs no dependency — only the generated bundle and the
       # frontmatter keys.
       #
-      # continue-on-error until agent-plugins-3xx (rfc-template has drifted
-      # from the Rfc schema) and agent-plugins-j5n (work-order is not in the
-      # DocumentType vocabulary) close. Both need a decision rather than a
-      # fix, and gating on defects that predate this step would land CI red.
-      # agent-plugins-9fx flips it to gating.
+      # continue-on-error until two known drifts are settled: rfc-template
+      # has drifted from the Rfc schema, and work-order is not in the
+      # DocumentType vocabulary. Both need a decision rather than a fix,
+      # and gating on defects that predate this step would land CI red.
+      # Flip it to gating once both close.
       - name: Templates match their type's schema
         continue-on-error: true
         run: scripts/check-template-drift.py

@@ -23,8 +23,7 @@ plugin_version: "0.7.0"
 
 ## Summary
 
-`bead-bonanza` v1.2 was run over three groomed beads
-(`agent-plugins-fiu`, `agent-plugins-x8t`, `agent-plugins-8bx`) in this
+`bead-bonanza` v1.2 was run over three groomed beads in this
 repo, editing `plugin/skills/spec/`. All three closed and every gate
 passed, so the run succeeded — but it succeeded by improvising around
 the skill in two places and by guessing at a contract the skill
@@ -48,8 +47,7 @@ the gate profile's baseline an explicit Phase 0 output.
 | References / scripts / templates invoked | See the list below the table |
 | Run dates | 2026-07-30 |
 
-The beads were `agent-plugins-fiu`, `agent-plugins-x8t` and
-`agent-plugins-8bx`, which added an authoring-workflow self-check step
+The beads added an authoring-workflow self-check step
 and its new checklist reference, noted slug/filename independence in the
 standards template, and named a destination for newly authored
 documents. Invoked during the run:
@@ -108,13 +106,13 @@ documents. Invoked during the run:
    state that breaks every later correct one.** Exact command:
 
    ```
-   bb-progress.sh "$RUN_DIR/agent-plugins-fiu.progress.jsonl" \
-     agent-plugins-fiu claimed "main-loop dispatch, tier advanced"
+   bb-progress.sh "$RUN_DIR/<bead-id>.progress.jsonl" \
+     <bead-id> claimed "main-loop dispatch, tier advanced"
    ```
 
    Observed: `bb-progress: extra fields must be key=value, got
    'main-loop dispatch, tier advanced'`, exit 2 — *and* a new directory
-   at `$RUN_DIR/agent-plugins-fiu.progress.jsonl`. Expected: rejection
+   at `$RUN_DIR/<bead-id>.progress.jsonl`. Expected: rejection
    with no filesystem side effect. The cause is ordering: the `mkdir
    -p "$run_dir"` at `bb-progress.sh:46-50` runs before the
    `key=value` check at `bb-progress.sh:60-63`. Because the bad
@@ -383,15 +381,15 @@ whose failure a red gate is.
 
 **Triaged 2026-07-31.** 5 proposals: 4 adopted, 1 deferred.
 
-| Proposal | Outcome | Bead |
-|----------|---------|------|
-| P1 — main-loop fallback when delegation is unavailable | **adopted.** The skill now defines the fallback (sequential, full per-bead ceremony, parallel dispatch modes dropped, context as the scarce resource) and requires Phase 4 to report "no routing occurred" rather than `none`. | `agent-plugins-vtl` |
-| P2 — publish each bundled script's usage line | **adopted.** All three usage lines are now in the skill, verified against the scripts, with the script named authoritative on disagreement. | `agent-plugins-3rf` |
-| P3 — validate args before creating the run directory | **adopted.** Every argument is validated before any filesystem write; the RFC's repro no longer leaves a stray directory. | `agent-plugins-fme` |
-| P4 — probe for the `dolt` CLI | **adopted.** Phase 0 probes first and treats an absent `dolt` as a normal configuration, not a run failure. | `agent-plugins-cr2` |
-| P5 — record the gate profile's baseline verdict | **deferred** → `agent-plugins-1a9`, `theme:gate-baseline`. Entangled with an unsettled question: the standard states the body budget in CHARACTERS while `check-skills.sh` measures LINES. Bead is `deferred` / `blocked-needs-info` pending that decision. | `agent-plugins-1a9` |
+| Proposal | Outcome |
+|----------|---------|
+| P1 — main-loop fallback when delegation is unavailable | **adopted.** The skill now defines the fallback (sequential, full per-bead ceremony, parallel dispatch modes dropped, context as the scarce resource) and requires Phase 4 to report "no routing occurred" rather than `none`. |
+| P2 — publish each bundled script's usage line | **adopted.** All three usage lines are now in the skill, verified against the scripts, with the script named authoritative on disagreement. |
+| P3 — validate args before creating the run directory | **adopted.** Every argument is validated before any filesystem write; the RFC's repro no longer leaves a stray directory. |
+| P4 — probe for the `dolt` CLI | **adopted.** Phase 0 probes first and treats an absent `dolt` as a normal configuration, not a run failure. |
+| P5 — record the gate profile's baseline verdict | **deferred** → `theme:gate-baseline`. Entangled with an unsettled question: the standard states the body budget in CHARACTERS while `check-skills.sh` measures LINES. Bead is `deferred` / `blocked-needs-info` pending that decision. |
 
-**2026-08-10:** bead `agent-plugins-1a9` was never persisted to `.beads/issues.jsonl` and does not exist in any branch's database; the deferral was lost with its container. The blocking question (body budget in characters vs `check-skills.sh` measuring lines) is resolved: the binding constraint is the 5,000-token re-injection cap, so the threshold is a size in bytes. Both halves of P5 are now tracked by `agent-plugins-92q.2` (check-skills.sh: threshold skill bodies on bytes) and `agent-plugins-92q.3` (pre-flight-check.sh: mechanize Phase 0 on macOS and Linux).
+**2026-08-10:** the deferral bead was never persisted to `.beads/issues.jsonl` and does not exist in any branch's database; the deferral was lost with its container. The blocking question (body budget in characters vs `check-skills.sh` measuring lines) is resolved: the binding constraint is the 5,000-token re-injection cap, so the threshold is a size in bytes. Both halves of P5 are now tracked by two follow-up issues: check-skills.sh: threshold skill bodies on bytes, and pre-flight-check.sh: mechanize Phase 0 on macOS and Linux.
 
 **Files changed:** `plugin/skills/bead-bonanza/SKILL.md`,
 `plugin/skills/bead-bonanza/scripts/bb-progress.sh`.

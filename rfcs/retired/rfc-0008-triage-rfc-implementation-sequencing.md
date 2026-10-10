@@ -430,7 +430,7 @@ The finding's substance therefore holds and the proposal is adopted;
 the claim as literally written was already false when triage read it.
 
 **Dedupe.** No prior RFC or `rfc-triage` bead matches any of these six.
-The two deferred beads (`agent-plugins-6tp`, `agent-plugins-ual`) are
+The two deferred beads are
 untouched by this batch. The RFC's own Considered and Not Proposed
 correctly identified the `bd list` defect as already adopted in RFC
 0002 P2, and did not re-propose it.

@@ -8,7 +8,6 @@ slug: feature-spec-reference-integrity
 type: feature-blueprint
 status: retired
 delivery: staged
-plan: agent-plugins-9kb
 frd: frd-spec-reference-integrity
 ---
 
@@ -109,8 +108,9 @@ know without being told.
 **Anchors:** `schemas/index.strata`, `schemas/finding.strata`,
 `schemas/profile.strata`; `scripts/generate-schemas.sh`, which
 regenerates `cli/core/specmodel/`, `cli/core/schema/` and the plugin
-markdown. Regeneration is the whole risk in this block — see
-`agent-plugins-j7f` in Tracker Reconciliation, which must land first.
+markdown. Regeneration is the whole risk in this block — see the
+strata version floor prerequisite in Tracker Reconciliation, which must
+land first.
 
 ### Profile extension point in [[module-document-core]] (modified) — XPT
 
@@ -194,7 +194,7 @@ backticked illustration, and a frontmatter value describing the notation
   from the generic parsed frontmatter — the property tree the
   Frontmatter component retains with raw text and positions — and never
   from the typed `DocumentFrontmatter` envelope, which carries neither
-  per-type properties (`agent-plugins-gz3`) nor positions
+  per-type properties nor positions
   (AC-SPECREF-001.7).
 - WHERE a reference-bearing property holds a sequence, the component
   SHALL record one reference per item, each at that item's own span.
@@ -376,7 +376,7 @@ because a build's exit status depends on it.
   Selecting nothing and rendering every rule as `passed` is
   indistinguishable from a document that conformed, which is the vacuous
   pass AC-SPECREF-004.3's rationale exists to prevent arriving by a
-  different route (`agent-plugins-ltd`). A candidate the index recorded
+  different route. A candidate the index recorded
   as excluded SHALL report the reason the index already holds; a path
   discovery never saw SHALL report that instead.
 - The check SHALL declare `reference/unresolved` to the run report so
@@ -413,8 +413,7 @@ CHK.
   the retired target and its successor value where it has one
   (AC-SPECREF-002.6). This is the first registered check in this tool to
   emit `warning` at all, which is what makes AC-SPEC-006.7's `--strict`
-  boundary reachable end to end for the first time
-  (`agent-plugins-3md`).
+  boundary reachable end to end for the first time.
 - WHEN the profile registers a pairing and the resolved target does not
   declare the counterpart naming back, the check SHALL report a finding
   of severity `error` under `reference/pairing-incomplete` against both
@@ -517,78 +516,79 @@ under `cli/testdata/cases/`; `scripts/regenerate-cli-snapshots.sh`.
   repository's file changes meaning.
 - No new contract document. The index gains a reference collection, but
   promoting the index to a Contract still waits on a second,
-  independently-built consumer (`agent-plugins-h6c`); [[adr-018]]
+  independently-built consumer; [[adr-018]]
   decides the shape, and the generated JSON Schema remains its interim
   machine-readable specification. This is a scope decision, not an open
   question, and it does not block grooming.
 
 ## Tracker Reconciliation
 
-- `agent-plugins-j7f` — **prerequisite**: `generate-schemas.sh` has no
+- **Prerequisite**: `generate-schemas.sh` has no
   strata version floor, and run with an older binary it regenerates the
   bundled schema with every inherited envelope property dropped while
   reporting success. MODEL regenerates all three Strata sources, so this
   feature cannot start until the floor (or the equivalent
   post-generation assertion) is in place; committing a destroyed schema
   would silently disable the frontmatter checks CI depends on.
-- `agent-plugins-dgn` — **subsumed by MODEL**: "model references as a
+- **Subsumed by MODEL**: "model references as a
   separate edge collection, not only object properties." [[adr-018]]
   takes exactly that decision and MODEL implements it. Grooming blocks
-  the bead on the MODEL work order; the Definition of Done closes it
+  the issue on the MODEL work order; the Definition of Done closes it
   against the ADR.
-- `agent-plugins-3md` — **subsumed by LIFE**: AC-SPEC-006.7 is declared
+- **Subsumed by LIFE**: AC-SPEC-006.7 is declared
   at `integration` but unreachable, because no registered check emits
   `warning`. `reference/retired-target` is the first that does, so a
-  snapshot case can reach the `--strict` boundary. The bead is
+  snapshot case can reach the `--strict` boundary. The issue is
   `deferred`; grooming blocks it on the LIFE work order.
-- `agent-plugins-gz3` — **out-of-scope**: index entries carry only the
+- **Out-of-scope**: index entries carry only the
   `DocumentFrontmatter` envelope, so per-type properties are lost. REX
   reads reference-bearing properties from the generic parsed
   frontmatter, not the typed envelope, so this feature neither depends
-  on gz3 nor resolves it. The boundary: nothing in these deltas may
+  on that issue nor resolves it. The boundary: nothing in these deltas may
   reach a reference-bearing value through `IndexEntry.frontmatter`,
   because the envelope carries neither the per-type properties nor the
   spans AC-SPECREF-001.7 requires.
-- `agent-plugins-h6c` — **out-of-scope** (deferred follow-up): "ADR:
+- **Out-of-scope** (deferred follow-up): "ADR:
   index schema and versioning." [[adr-018]] settles the reference shape
   only. Promotion of the index to a contract document with a formal
   versioning policy still waits on a consumer that exists, and the
   additive-under-1.0 rule this feature obeys is what makes shipping
   before then safe.
-- `agent-plugins-a7m` — **out-of-scope** (coordination):
+- **Out-of-scope** (coordination):
   `generate-schemas.sh` wipes `cli/core/specmodel`, so a test placed
   beside the generated models is destroyed on the next run. MODEL
   regenerates that directory; tests for the reference model therefore
   live in the consuming packages, as they already do.
-- `agent-plugins-006` — **resolved** (coordination): the schema is
+- **Resolved** (coordination): the schema is
   closed (`rejectUnknownProperties: true`, strata v0.8.0), so unknown
   frontmatter keys are rejected. These checks read the generic property
   tree rather than the validated envelope, and closure flattens each
   type's inherited properties inline, so the registered reference
   properties remain in the per-type definitions.
-- `agent-plugins-9jo` — **out-of-scope**: the generated models embed
+- **Out-of-scope**: the generated models embed
   this framework's `DocumentType` vocabulary, coupling the
   framework-agnostic half to it. XPT widens the extension point without
   adding vocabulary to the host, and extends the existing boundary test
-  to the new registered values; it neither worsens nor fixes 9jo.
-- `agent-plugins-krb` — **out-of-scope** (coordination):
+  to the new registered values; it neither worsens nor fixes that
+  coupling.
+- **Out-of-scope** (coordination):
   `regenerate-cli-snapshots.sh` was a no-op and needs a gate so it
   cannot silently regress. CHK, LIFE and CMD all add snapshot cases and
   alter observable output, so a silently-regressed regeneration script
   would let a stale expectation pass; the container's Change Guidance
   already obliges running it and reviewing every diff.
-- `agent-plugins-9ko` — **out-of-scope**: enable `--strict` in the
+- **Out-of-scope**: enable `--strict` in the
   checks workflow. Adjacent — LIFE makes a `warning` reachable for the
-  first time — but the bead's blocker is an unrelated skill-length
+  first time — but the issue's blocker is an unrelated skill-length
   warning, and this feature neither resolves nor regresses it.
-- `agent-plugins-vg1` — **out-of-scope**: populate `contracts_consumed`
+- **Out-of-scope**: populate `contracts_consumed`
   on the committed blueprints. PREG registers the property as
   reference-bearing; an *unpopulated* property is not an unresolved
   reference, so no check here fires on it.
-- `agent-plugins-1ao` — **out-of-scope** (parent): the umbrella under
+- **Out-of-scope** (parent): the umbrella under
   which blueprint authoring, grooming and execution are tracked, not a
   delta this feature subsumes.
-- `agent-plugins-koi` — **out-of-scope** (this document): tracks
+- **Out-of-scope** (this document): tracks
   authoring this blueprint and [[adr-018]].
 
 ## Sequencing Constraints
@@ -742,8 +742,7 @@ and other artifacts, whose citation stands on its own.
   - [x] [[container-spec-cli]] — Command Surface records the `refs`
         subcommand and the profile-registration finding; the Components
         prose reflects the widened module surfaces. (`ContainerBlueprint`
-        declares no `version` property, so no bump is possible here —
-        `agent-plugins-e0t`.)
+        declares no `version` property, so no bump is possible here.)
 - [x] [[contract-specs-configuration]] — the internal registration
       surface revised in place to enumerate reference-bearing
       properties, typed references, pairings and the lifecycle
@@ -770,9 +769,10 @@ and other artifacts, whose citation stands on its own.
       and was fixed in the corpus rather than by loosening either the
       gate or the lifecycle registration.
 - [x] Every issue listed as subsumed in Tracker Reconciliation
-      (`agent-plugins-dgn`, `agent-plugins-3md`) is closed or
-      re-scoped, and the prerequisite (`agent-plugins-j7f`) is resolved
-      before MODEL lands.
+      (MODEL's edge collection, LIFE's `--strict` reachability) is closed
+      or re-scoped, and the prerequisite (the strata version floor) is
+      resolved before MODEL lands.
+
 - [x] This blueprint's status → retired.
 
 ## Open Questions

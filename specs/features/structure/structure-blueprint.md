@@ -8,7 +8,6 @@ type: feature-blueprint
 status: retired
 delivery: staged
 frd: frd-spec-structure
-plan: specs-f6tl
 ---
 
 # Spec Corpus Structure Extraction
@@ -230,11 +229,11 @@ in `cli/core/finding`.
 
 ## Tracker Reconciliation
 
-- `agent-plugins-gz3` — out-of-scope: `IndexEntry.frontmatter` carries
+- Out-of-scope: `IndexEntry.frontmatter` carries
   the shared envelope, so per-type properties are lost. MODEL adds
   properties beside `frontmatter` and must neither change how it is
   carried nor be read as fixing it.
-- `agent-plugins-h6c` — out-of-scope: the index schema and versioning
+- Out-of-scope: the index schema and versioning
   ADR. MODEL relies on the additive-at-1.0 rule
   [[container-spec-cli]] already states and adds no policy of its own.
 

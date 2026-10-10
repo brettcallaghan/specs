@@ -1189,7 +1189,7 @@ reference the value's own source text as written, quotes included.
 Reference-bearing values are read from the parsed frontmatter block and
 never from an index entry's typed envelope, which carries neither the
 per-type properties a profile registers nor the positions a reference
-needs (`agent-plugins-gz3`). A test in the package asserts the import is
+needs. A test in the package asserts the import is
 absent rather than leaving the boundary to review.
 
 ### Schema Registry
@@ -1441,14 +1441,14 @@ scratch on every run.
 
 Strata does support pinning a scalar to a single value with `==`, which
 would make the generated model carry the constant directly and remove
-the need for the separate package (`agent-plugins-13j`).
+the need for the separate package.
 
 The index is not yet a contract document, and that is now a recorded
 decision rather than an omission. It has one producer and no
 independently-built consumer, so the generated JSON Schema is its interim
 machine-readable specification. Promotion to a contract, with a formal
 versioning policy, is deferred to the index-schema ADR
-(`agent-plugins-h6c`) and waits on a real consumer — see the Open
+and waits on a real consumer — see the Open
 Questions in [[container-spec-cli]], which owns that decision.
 
 **Built** — `cli/core/corpus`. `Build` walks the spec root and returns a
@@ -2496,8 +2496,9 @@ This module SHALL comply with:
       hashes the same. Invalidation is whole-index rather than partial,
       and the persisted index is itself the cache, so there is no second
       on-disk location to place or ignore. The full argument is recorded
-      under Corpus above. `agent-plugins-igc` stays open to record this
-      as an ADR; it is no longer the question of what to build.
+      under Corpus above. Recording this as an ADR remains open; it is no
+      longer
+ the question of what to build.
 - [ ] Whether Findings should adopt `samber/oops` for structured error
       context, as raised in [[adr-015]]. Deferred to implementation; it
       affects this component's API shape. The implementation shipped

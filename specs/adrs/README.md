@@ -28,7 +28,8 @@ This directory contains Architecture Decision Records documenting significant de
 - [ADR-030: C4 Vocabulary Reaches Document Core Through the Profile](adr-030-c4-vocabulary-through-the-profile.md) — the C4 parser, element resolution and model live in Document Core, and the architecture vocabulary they read arrives as a profile registration, as the Gherkin tag vocabulary does
 - [ADR-031: Base Revisions Are Read Through the git Executable](adr-031-git-executable-for-base-revisions.md) — `criterion --changed` reads its base commit by running `git` and copying the spec root's tracked blobs into a temporary directory, rather than linking a git library or using `git archive`
 
-ADR-019 and ADR-022 through ADR-027 moved to [brettcallaghan/swarm](https://github.com/brettcallaghan/swarm) with the `swarm` CLI and the `bead-bonanza` plugin. They decide things about that codebase and are maintained in its corpus.
+ADR-019 and ADR-022 through ADR-027 moved to [brettcallaghan/swarm](https://github.com/brettcallaghan/swarm) with the `swarm` CLI and its plugin.
+ They decide things about that codebase and are maintained in its corpus.
 
 ADR-014 is unused: a draft at that number deliberated the same question
 ADR-021 settles, and was replaced by it rather than retained as a retired

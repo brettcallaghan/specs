@@ -37,7 +37,7 @@ used at all in the beads backend the skill exists to drive.
 | Field | Value |
 |-------|-------|
 | Harness | Claude Code on the web (remote execution environment) |
-| Task the skill was applied to | Resuming an interrupted run over epic `agent-plugins-bge`: 11 remaining work orders plus 7 discovered mid-run, dispatched across 10 waves at haiku/sonnet/opus by bead tier, in a Go + docs repository |
+| Task the skill was applied to | Resuming an interrupted run over an epic: 11 remaining work orders plus 7 discovered mid-run, dispatched across 10 waves at haiku/sonnet/opus by bead tier, in a Go + docs repository |
 | References / scripts / templates invoked | `bead-bonanza/SKILL.md` v1.3, `scripts/bb-close-bead.sh`, `scripts/bb-progress.sh`, `references/subagent-prompts.md`, `references/shared/work-order-definition-of-ready.md` v1.1, `rfcs/findings-capture.md` (vendored `findings-capture-protocol.md` v0.2), `groom-beads` v1.1 |
 | Run dates | 2026-08-04 / 2026-08-05 |
 
@@ -74,12 +74,12 @@ harness does not expose it to the running agent.
    commits* — regardless of what either party passes to `git add`.
 
    Observed: while the bge.12 subagent held the tree, the orchestrator
-   baked a decision into `agent-plugins-tff` and wired two dependency
+   baked a decision into another bead (tff) and wired two dependency
    edges (both tracker-only writes, no files touched). It then ran
    `git commit -- .beads/issues.jsonl .beads/interactions.jsonl` exactly
    as the guard prescribes, and got `nothing to commit, working tree
    clean` — because `bb-close-bead.sh` had already exported and committed
-   those edits inside `39e0e6a agent-plugins-bge.12 P1 Build the
+   those edits inside `39e0e6a <bead-id> P1 Build the
    four-subcommand command tree`. Confirmed by reading the committed
    ledger: `git show 39e0e6a:.beads/issues.jsonl` contains tff's
    `DECISION (2026-08-05)` section.
@@ -104,8 +104,8 @@ harness does not expose it to the running agent.
    ```
    $ bd list --label feature-spec-validation-cli --json | len   -> 16
    $ bd list --label feature-spec-validation-cli --status closed --json | len -> 20
-   $ bd show agent-plugins-bge.8 --json   -> "comments": 0
-   $ bd show agent-plugins-bge.8 | grep -cE '^\s+retro:'   -> 7
+   $ bd show <bead-id> --json   -> "comments": 0
+   $ bd show <bead-id> | grep -cE '^\s+retro:'   -> 7
    ```
 
    `bd list` defaults to open issues, and a drained closure set is
@@ -340,37 +340,37 @@ proposal table.
 More than five proposals were approved across the three `bead-bonanza`
 RFCs triaged together and most of them changed one file, so step 5's
 "Sequence before you edit" branch applied: every approved proposal was
-filed as a bead under epic `agent-plugins-92q` and run through
+filed as a bead under one epic and run through
 `groom-beads`, and the implementation is the epic rather than an inline
 edit. The second sprint then changed premises several of these proposals
 were written against; where that happened it is stated in the row rather
 than glossed.
 
-| Item | Outcome | Bead |
-|------|---------|------|
-| P1 — replace the guard that cannot work | **adopted, landed, and since retired.** The deferral rule and an export-delta counter landed as proposed (`d16abbc`). The counter over-reported by one, tripping its "another actor wrote" threshold on every close, and was corrected. Both halves are now gone: `agent-plugins-92q.31` moved the tracker onto `origin refs/dolt/data` and untracked `.beads/*.jsonl`, so the close ceremony stages code only and no export exists in the commit path to absorb anyone's tracker write. The finding was real; its remedy was scoped to a tracker model this repository has since abandoned. The current rule is the inverse — `references/operating-principles.md`, "Tracker writes are never deferred". | `agent-plugins-92q.17`, `agent-plugins-92q.29`; retired by `agent-plugins-92q.31` |
-| P2 — give the harvest a command that works | **adopted with refinement**, in three places the proposal did not anticipate. (a) The corrected harvest is `bd export \| jq`, not P2's `bd list --status closed` — `bd list` was dropped from the harvest entirely rather than repaired, because a second query form is a second thing to get wrong. (b) The correction lives in `findings-capture-protocol.md`, the single statement of the channel, vendored into the `references/shared/` of `retro-spec`, `retro-skill` and `groom-feature-blueprint`; `SKILL.md` carries the one-line rule and points there. (c) The per-project vendored copy P2's evidence cites, `rfcs/findings-capture.md`, was deleted — the protocol is no longer copied into target projects at all. The non-zero assertion before aggregating landed as written. Separately, findings moved off the close artifact: `retro:` comments own findings and the close file became `<bead-id>.handoff.md`. P2's downstream half travelled as its own RFC to the skill that owns the protocol, `rfcs/outbox/retro-spec/rfc-self-findings-capture-harvest.md`. | `agent-plugins-92q.18`, `agent-plugins-92q.22`, `agent-plugins-92q.28`, `agent-plugins-y1h` |
-| P3 — exclude worktree-parallel in the beads backend | **rejected as written.** See *On the rejection* below. Replaced by `agent-plugins-92q.9`, which states the git-side constraints measurement supports. The mode P3 sought to exclude has since ceased to exist as a mode: `agent-plugins-92q.30` made one worktree per bead universal and not opt-in, so there are no skip conditions left to add a third to. | rejected; replaced by `agent-plugins-92q.9` |
-| P4 — make the mixed-tier batching rule decidable | **adopted** as written — split WHEN more than one bead is dragged above its tier OR any bead is dragged more than one tier, weighed against gate-suite cost, with deliberate over-routes recorded in the Phase 4 report. Refinement in mechanism only: the gate-cost half is keyed to Phase 0's recorded gate baseline (`pre-flight-check.sh --gate-baseline`) rather than to an unmeasured impression of what the suite costs. The rule survives one-worktree-per-bead — batching remains a dispatch mode, with a batch subagent holding exactly one worktree at a time. | `agent-plugins-92q.10` |
+| Item | Outcome |
+|------|---------|
+| P1 — replace the guard that cannot work | **adopted, landed, and since retired.** The deferral rule and an export-delta counter landed as proposed (`d16abbc`). The counter over-reported by one, tripping its "another actor wrote" threshold on every close, and was corrected. Both halves are now gone: a later bead moved the tracker onto `origin refs/dolt/data` and untracked `.beads/*.jsonl`, so the close ceremony stages code only and no export exists in the commit path to absorb anyone's tracker write. The finding was real; its remedy was scoped to a tracker model this repository has since abandoned. The current rule is the inverse — `references/operating-principles.md`, "Tracker writes are never deferred". |
+| P2 — give the harvest a command that works | **adopted with refinement**, in three places the proposal did not anticipate. (a) The corrected harvest is `bd export \| jq`, not P2's `bd list --status closed` — `bd list` was dropped from the harvest entirely rather than repaired, because a second query form is a second thing to get wrong. (b) The correction lives in `findings-capture-protocol.md`, the single statement of the channel, vendored into the `references/shared/` of `retro-spec`, `retro-skill` and `groom-feature-blueprint`; `SKILL.md` carries the one-line rule and points there. (c) The per-project vendored copy P2's evidence cites, `rfcs/findings-capture.md`, was deleted — the protocol is no longer copied into target projects at all. The non-zero assertion before aggregating landed as written. Separately, findings moved off the close artifact: `retro:` comments own findings and the close file became `<bead-id>.handoff.md`. P2's downstream half travelled as its own RFC to the skill that owns the protocol, `rfcs/outbox/retro-spec/rfc-self-findings-capture-harvest.md`. |
+| P3 — exclude worktree-parallel in the beads backend | **rejected as written.** See *On the rejection* below. Replaced by a bead which states the git-side constraints measurement supports. The mode P3 sought to exclude has since ceased to exist as a mode: a later bead made one worktree per bead universal and not opt-in, so there are no skip conditions left to add a third to. |
+| P4 — make the mixed-tier batching rule decidable | **adopted** as written — split WHEN more than one bead is dragged above its tier OR any bead is dragged more than one tier, weighed against gate-suite cost, with deliberate over-routes recorded in the Phase 4 report. Refinement in mechanism only: the gate-cost half is keyed to Phase 0's recorded gate baseline (`pre-flight-check.sh --gate-baseline`) rather than to an unmeasured impression of what the suite costs. The rule survives one-worktree-per-bead — batching remains a dispatch mode, with a batch subagent holding exactly one worktree at a time. |
 
 **Triage-originated changes.** These came from the review session rather
 than from this RFC's testimony, and are numbered `T` so they are not read
 as proposals it made.
 
-| Item | Outcome | Bead |
-|------|---------|------|
-| T1 — bucket beads on C4 blast radius, not prose-scanned file paths, and treat impacts-intersects-changes as a sequencing constraint | **adopted.** Under one worktree per bead the hazard it guards became merge conflict rather than working-tree collision; the rule holds, its stated reason was corrected. | `agent-plugins-92q.8` |
-| T2 — add a sprint retro to Phase 4 | **adopted.** Closed 2026-08-12 on the sprint branch, after this worktree's base commit; its text is not in the tree this Resolution was verified against. | `agent-plugins-92q.19` |
-| T3 — RFC-0004's deferral bead `agent-plugins-1a9` was never persisted; correct the record and audit for other lost deferrals | **adopted.** The corrected record is in RFC 0004's Resolution and in `CLAUDE.md`. | `agent-plugins-92q.20` |
+| Item | Outcome |
+|------|---------|
+| T1 — bucket beads on C4 blast radius, not prose-scanned file paths, and treat impacts-intersects-changes as a sequencing constraint | **adopted.** Under one worktree per bead the hazard it guards became merge conflict rather than working-tree collision; the rule holds, its stated reason was corrected. |
+| T2 — add a sprint retro to Phase 4 | **adopted.** Closed 2026-08-12 on the sprint branch, after this worktree's base commit; its text is not in the tree this Resolution was verified against. |
+| T3 — RFC-0004's deferral bead was never persisted; correct the record and audit for other lost deferrals | **adopted.** The corrected record is in RFC 0004's Resolution and in `CLAUDE.md`. |
 
 **On the rejection.** P3's premise (`.beads/embeddeddolt/` is gitignored)
 is true; the conclusion drawn from it — "a worktree cannot see the tracker
 database at all" — does not hold and was never tested before this RFC
-asserted it. `agent-plugins-t09` measured `bd` 1.1.2 from a worktree with
+asserted it. One bead measured `bd` 1.1.2 from a worktree with
 `BEADS_DIR` unset: `bd where` and `bd worktree info` resolve the MAIN
 checkout's database through git's common directory, `bd list` returns the
 identical issue set, and no `embeddeddolt/` or redirect file is created in
-the worktree. `agent-plugins-jh6` independently reproduced this inside
+the worktree. A second bead independently reproduced this inside
 this repository. Tracker access was never the obstacle. The replacement
 bead states what measurement does support: the merge-conflict hazard in
 the exported ledger, and the requirement that `worktree.baseRef` be `head`
@@ -389,8 +389,8 @@ repository approving its own proposal, not as independent corroboration.
 The one place that materially changes the reading is P1, whose deferral
 rule ratifies a constraint its own author was operating under. The
 rejection of P3 is the exception that cuts the other way: it was refuted
-by measurements taken in `agent-plugins-t09` and `agent-plugins-jh6`,
-beads run separately from the session that authored this RFC.
+by measurements taken in those two beads,
+run separately from the session that authored this RFC.
 
 **Provenance check.** `skill: bead-bonanza` at `skill_version: "1.3"` and
 `plugin_version: "0.14.0"` — both current when the RFC was filed and when
@@ -417,7 +417,7 @@ and its vendored copies under `retro-skill` and `groom-feature-blueprint`;
 0.16.0→0.17.0, one MINOR bump covering this RFC and its two siblings.
 
 The `version` frontmatter of the changed shipped **skills** has been
-bumped in `agent-plugins-x8r`: `bead-bonanza` 1.3→1.4 and `spec` 1.8→1.9.
+bumped: `bead-bonanza` 1.3→1.4 and `spec` 1.8→1.9.
 The other four (`groom-beads` 1.1→1.2, `groom-feature-blueprint`
 1.2→1.3, `retro-skill` 0.3→0.4, `retro-spec` 1.3.0→1.4.0) were bumped
 for the SKILL.md edits this RFC's own closeout made, which had gone

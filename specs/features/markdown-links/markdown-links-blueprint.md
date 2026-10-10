@@ -7,7 +7,6 @@ slug: feature-spec-markdown-links
 type: feature-blueprint
 status: retired
 delivery: single-pr
-plan: agent-plugins-ia5
 frd: frd-spec-markdown-links
 ---
 
@@ -45,8 +44,8 @@ input), **CMD** (the `links` subcommand).
 distinct defects with distinct fixes, and AC-SPECMD-002.4 requires a
 consumer to tell them apart. `FindingDetail` is a closed union generated
 from `schemas/finding.strata`, so each gets its own variant rather than
-borrowing one that nearly fits — borrowing is the defect
-`agent-plugins-nu2` records, where a `corpus/empty` finding reports
+borrowing one that nearly fits — borrowing is the existing defect
+where a `corpus/empty` finding reports
 `detail.kind` as `frontmatter-parse` and misleads every JSON consumer.
 
 **Behavior:**
@@ -62,7 +61,7 @@ borrowing one that nearly fits — borrowing is the defect
 **Anchors:** `schemas/finding.strata` for the union;
 `cli/core/finding` for the constructor per variant.
 `scripts/generate-schemas.sh` regenerates `cli/core/specmodel`, which it
-rewrites from scratch on every run (`agent-plugins-a7m`).
+rewrites from scratch on every run.
 
 ### Markdown Links in [[module-document-core]] (added — targets) — TGT
 
@@ -263,25 +262,26 @@ framework's filing rule.
 
 ## Tracker Reconciliation
 
-- `agent-plugins-eaa.1` — out-of-scope: it backticks the ~50
+- Out-of-scope: the work that backticks the ~50
   illustrative wikilinks in the documents bound for `specs/`. This
   feature must not edit anyone's prose; it reports each one as a
   `links/unresolved` warning, which is the evidence that work acts on.
   The two are complementary and neither blocks the other.
-- `agent-plugins-eaa.2` — out-of-scope: it moves the 8 shipped standards
+- Out-of-scope: the work that moves the 8 shipped standards
   into `specs/standards` and inverts the sync direction. That is what
   makes this repository's own documents worth rewriting; it is not what
   the capability is built against, and this feature is tested on
   fixtures rather than on the move.
-- `agent-plugins-47b` — out-of-scope: it verifies that a committed
+- Out-of-scope: the work that verifies that a committed
   markdown link lands on a co-located file. This feature checks
   reachability at rewrite time, which cannot guard what is already
-  committed. Boundary: `47b` reads the rewritten copies; it does not
+  committed. Boundary: that work reads the rewritten copies; it does not
+
   reimplement resolution.
-- `agent-plugins-nu2` — out-of-scope: an existing finding reuses an
+- Out-of-scope: an existing finding reuses an
   ill-fitting `FindingDetail` variant. The FND delta adds its own two
   variants rather than repeating that; it does not fix `corpus/empty`.
-- `agent-plugins-a7m` — out-of-scope: `scripts/generate-schemas.sh`
+- Out-of-scope: `scripts/generate-schemas.sh`
   rewrites `cli/core/specmodel` from scratch, so the FND delta places no
   hand-written file there. It works within the constraint rather than
   lifting it.

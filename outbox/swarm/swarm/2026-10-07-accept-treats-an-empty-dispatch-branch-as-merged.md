@@ -11,10 +11,10 @@ findings: ["c4s1.9#1"]
 recurrence: 0
 report: docs/retros/2026-10-07-c4s1-c4-diagrams-parser.md
 
-run: specs-c4s1
-branch: sprint/specs-c4s1
+run: "the sprint run recorded in report"
+branch: sprint/<run-epic>
 skill_version: swarm 0.1.0 (source commit 1cea7e4)
-model: "dev-specs-c4s1-1 opus, dev-specs-c4s1-2 sonnet, dev-specs-c4s1-3 haiku, dev-specs-c4s1-4 haiku; coordinator, plan, review and retro agents on the session default model; effort unrecorded"
+model: "dev-<run-epic>-1 opus, dev-<run-epic>-2 sonnet, dev-<run-epic>-3 haiku, dev-<run-epic>-4 haiku; coordinator, plan, review and retro agents on the session default model; effort unrecorded"
 ---
 
 ## What is wrong, and what it costs
@@ -25,7 +25,7 @@ When a dispatch agent commits outside its worktree, its dispatch branch stays at
 
 Finding ids are `<bead>#<ordinal>` in agent-plugins' tracker, `specs-` prefix dropped.
 
-- `c4s1.9#1` — "retro:tooling:swarm-dispatch The dispatch agent (light tier) committed specs-c4s1.9 in the main checkout (then on claude/project-thread-u8o164) instead of its worktree /home/user/.bb-worktrees/dev-specs-c4s1-3, so bb/dev-specs-c4s1-3 stayed empty; swarm dispatch accept read the empty branch as merged, removed the worktree and deleted the branch, and only the post-merge re-check caught it. Repaired by fast-forwarding sprint/specs-c4s1 to 36f09ee. The agent recorded no retro: comment either."
+- `c4s1.9#1` — "retro:tooling:swarm-dispatch The dispatch agent (light tier) committed <bead-id> in the main checkout (then on claude/project-thread-u8o164) instead of its worktree /home/user/.bb-worktrees/dev-<run-epic>-3, so bb/dev-<run-epic>-3 stayed empty; swarm dispatch accept read the empty branch as merged, removed the worktree and deleted the branch, and only the post-merge re-check caught it. Repaired by fast-forwarding sprint/<run-epic> to 36f09ee. The agent recorded no retro: comment either."
 
 ## Proposed change
 
