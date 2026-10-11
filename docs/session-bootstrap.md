@@ -10,9 +10,8 @@ frontmatter and is not a corpus member.
 ## The problem
 
 `.claude/settings.json` registers `.claude/hooks/session-start.sh` as a
-SessionStart hook. That hook installs `bd`, installs the `strata` CLI,
-installs the `swarm` plugin and builds the `swarm` CLI, and regenerates
-the vendored shared references. (The skills are committed
+SessionStart hook. That hook installs `bd`, installs the `strata` CLI, and
+regenerates the vendored shared references. (The skills are committed
 symlinks under `.claude/skills/` → `plugin/skills/`, so they need no
 materialization and are unaffected by whether the hook runs.)
 
@@ -32,8 +31,7 @@ the multi-repo case both repositories are cloned as siblings:
   strata/              <- same
 ```
 
-The symptom is no `bd`, `strata` or `swarm` on PATH and no `swarm`
-plugin; this repository's own skills are committed symlinks and are
+The symptom is no `bd` or `strata` on PATH; this repository's own skills are committed symlinks and are
 present either way. The hook script is fine —
 run by hand it completes. It is simply never invoked.
 
@@ -163,40 +161,21 @@ agent acting on the instruction rather than on the harness enforcing it.
 ## Checking which path ran
 
 ```bash
-command -v bd strata swarm    # all three present -> provisioning worked
-claude plugin list            # specs@brettcallaghan and swarm@brettcallaghan-private, user scope
+command -v bd strata          # both present -> provisioning worked
 cat ~/.cache/strata-cli/installed-release   # the strata release tag installed
-cat ~/.cache/swarm-cli/build.log    # the hook's swarm clone, plugin and build output
 ```
 
-`swarm` and `strata` are provisioned by the hook only — the setup script
-above installs neither, so a session where the hook did not run has neither
-even when `bd` is present from the cache. The clone reads
-`SWARM_ACCESS_TOKEN`, falling back to `AGENT_PLUGINS_ACCESS_TOKEN`, which
-that same PAT covers; `SWARM_SRC_DIR` points the build at a checkout
-already on disk, and `SWARM_SKIP=1` skips the step.
-
-A swarm build log ending in `could not read Username for 'https://github.com'`
-means the clone was unauthenticated — neither token is set, or the PAT no
-longer reads `brettcallaghan/swarm`. Re-running the hook by hand with the
-variable set recovers it.
-
-A build log ending in **`remote: Write access to repository not granted`**
-and a **403** means something different, and the message is misleading twice
-over: it names *write* access for a read-only clone, and it looks like a
-proxy or a scope problem. It is neither. `credential.helper` is multi-valued
-and git tries **global** values before local ones, so any bare global helper
-answers before the clone's own. A PAT that cannot read the cloned repository
-therefore authenticates the clone, and GitHub refuses. The remedy is
-`-c credential.helper=` before the clone's helper, which resets the inherited
-list; the hook's swarm clone does this. Measured on a clone of
-`strata-lang/strata`: the identical clone returns 403 without the reset and
-succeeds with it.
+`strata` is provisioned by the hook only — the setup script above does not
+install it, so a session where the hook did not run has no `strata` even when
+`bd` is present from the cache.
 
 The hook registers no github.com credential helper of its own, and removes the
 URL-scoped helper and proxy bypass that the old `refs/dolt/data` tracker
-needed from any container that still carries them. The reset stays as defence
-in depth against a bare helper arriving from somewhere else.
+needed from any container that still carries them.
+
+The `swarm` plugin is not provisioned here. Install it at user scope on the
+machine or desktop setup that runs sprints; this repository only commits the
+`swarm.toml` it reads.
 
 `strata` is the signal that the hook ran, and `bd` that the hook or the
 setup script did; the skills under `.claude/skills/` are committed symlinks

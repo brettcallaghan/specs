@@ -19,7 +19,7 @@ status: active
 
 - The three text fields (Problem / Design / Acceptance) and what separates them
 - Dispatch metadata conventions — `tier`, `tier_reason`, `est_size`, `c4_*`
-- Why tiers, not model names — and the orchestrator's `swarm.toml` `[models]` lineup
+- Why tiers, not model names — and the orchestrator's model lineup
 - Tier-routing rubric — which signals push toward `light` / `standard` /
   `advanced` / `frontier`
 - Calibration — escalations as routing evidence, and why over-routing is
@@ -84,20 +84,9 @@ validator, and every skill that reads it.
 
 The tier is the durable claim ("this order needs advanced reasoning"); the
 model is a local binding. Each project declares that binding once, in
-`swarm.toml` at the repository root, and the orchestrator resolves `tier` → model
-at dispatch:
-
-```toml
-[models]
-# Least to most capable.
-light = "<model>"
-standard = "<model>"
-advanced = "<model>"
-frontier = "<model>"
-```
-
-It lives in a config file rather than in prose because it is a routing fact a
-script resolves, not guidance an agent reads.
+whatever configuration its orchestrator reads, and the orchestrator resolves
+`tier` → model at dispatch. It lives in a config file rather than in prose
+because it is a routing fact a script resolves, not guidance an agent reads.
 
 WHEN a project's lineup has fewer than four models, map several tiers onto
 one model rather than inventing tier names — the ordering is what the

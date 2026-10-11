@@ -209,7 +209,7 @@ record it on the epic and say so rather than leaving a failed command behind.
 
 Beads carry a **tier** (`light | standard | advanced | frontier`, least to most
 capable), never a model name — the orchestrator resolves tier → model at
-dispatch from the orchestrator's `swarm.toml` `[models]` lineup, so a bead groomed
+dispatch from the orchestrator's model lineup, so a bead groomed
 today still routes correctly after the lineup changes.
 
 ```

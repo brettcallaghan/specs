@@ -97,11 +97,19 @@ run_swarm_validate() {
   # run can act on, so validating it would be noise at best and a false hard
   # failure at worst.
   #
-  # Top-level "id" keys only. Sibling keys are `depends_on_id` / `issue_id`,
-  # which this pattern does not match because it anchors the whole key.
-  local epics
-  epics="$("$BD" list --type epic --json 2>/dev/null \
-            | sed -n 's/^[[:space:]]*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+  # Each epic's own "id" only. The JSON nests objects that carry an "id" of
+  # their own (dependencies, parents), so a pattern matching "id" at any depth
+  # collects ids and titles that are not epics. jq reads the top level
+  # exactly; without it, the fallback anchors on the indent `bd list --json`
+  # gives a top-level object's keys (four spaces: array, then object).
+  local json epics
+  json="$("$BD" list --type epic --json 2>/dev/null)"
+  if command -v jq >/dev/null 2>&1; then
+    epics="$(printf '%s\n' "$json" | jq -r '.[].id' 2>/dev/null)"
+  else
+    epics="$(printf '%s\n' "$json" \
+              | sed -n 's/^    "id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+  fi
 
   if [ -z "${epics//[[:space:]]/}" ]; then
     printf '  - %-18s (skipped: no epics in this repo to validate)\n' "$label"
