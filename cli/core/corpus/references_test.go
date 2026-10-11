@@ -19,8 +19,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/corpus"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // citing renders a conforming document whose body is the given text, for

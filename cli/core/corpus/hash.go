@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/specindex"
+	"github.com/brettcallaghan/specs/cli/core/specindex"
 )
 
 // hashAlgorithm labels the digest every input hash carries, so that a

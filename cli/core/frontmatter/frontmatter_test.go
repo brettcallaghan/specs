@@ -19,8 +19,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/frontmatter"
+	"github.com/brettcallaghan/specs/cli/core/span"
 )
 
 const valid = "---\n" +

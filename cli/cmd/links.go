@@ -9,12 +9,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
-	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
-	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
-	"github.com/brettcallaghan/agent-plugins/cli/core/mdlinks"
-	"github.com/brettcallaghan/agent-plugins/cli/core/references"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/corpus"
+	"github.com/brettcallaghan/specs/cli/core/finding"
+	"github.com/brettcallaghan/specs/cli/core/frontmatter"
+	"github.com/brettcallaghan/specs/cli/core/mdlinks"
+	"github.com/brettcallaghan/specs/cli/core/references"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // newLinksCmd builds the `links` subcommand: rewrite one document's

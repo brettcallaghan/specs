@@ -19,7 +19,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/span"
 )
 
 // The diagram types this package parses. Every other first statement is

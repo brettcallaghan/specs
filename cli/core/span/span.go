@@ -19,7 +19,7 @@ import (
 	"bytes"
 	"unicode/utf8"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // Span is a contiguous region of a document.

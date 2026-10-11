@@ -15,8 +15,8 @@ package mdlinks_test
 import (
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/mdlinks"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/mdlinks"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // The heading-anchor rule keeps every letter and digit and drops

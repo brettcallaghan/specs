@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specindex"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/envelope"
+	"github.com/brettcallaghan/specs/cli/core/specindex"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // schemaPath is the generated bundle scripts/generate-schemas.sh emits

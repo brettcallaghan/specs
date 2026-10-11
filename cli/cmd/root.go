@@ -26,9 +26,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
-	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/corpus"
+	"github.com/brettcallaghan/specs/cli/core/finding"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // ioStreams carries the two output streams a run writes to and the exit

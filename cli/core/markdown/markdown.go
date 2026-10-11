@@ -37,7 +37,7 @@ import (
 	mdast "github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/span"
 )
 
 // parser is the markdown parser fenced blocks are located with. It is the

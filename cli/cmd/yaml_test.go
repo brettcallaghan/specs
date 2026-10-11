@@ -11,7 +11,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // roundTrips parses rendered YAML back, so a case proves the bytes say

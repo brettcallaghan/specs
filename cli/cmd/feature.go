@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
-	"github.com/brettcallaghan/agent-plugins/cli/core/gherkin"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/corpus"
+	"github.com/brettcallaghan/specs/cli/core/gherkin"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // newFeatureCmd builds the `feature` subcommand: emit a feature as a

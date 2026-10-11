@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/mdlinks"
-	"github.com/brettcallaghan/agent-plugins/cli/core/references"
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/mdlinks"
+	"github.com/brettcallaghan/specs/cli/core/references"
+	"github.com/brettcallaghan/specs/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // bodyRef builds a body-origin reference over src, locating text's own

@@ -15,7 +15,7 @@
 // regeneration.
 package specindex
 
-import "github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+import "github.com/brettcallaghan/specs/cli/core/specmodel"
 
 // SchemaVersion is the value every emitted index declares in its
 // schema_version property.

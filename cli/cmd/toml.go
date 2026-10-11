@@ -5,8 +5,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // decodeConfig parses src as TOML into a generic value tree suitable for

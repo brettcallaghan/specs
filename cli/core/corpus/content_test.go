@@ -7,8 +7,8 @@ package corpus_test
 import (
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/finding"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // AC: AC-GHK-006.1

@@ -21,10 +21,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
-	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
-	"github.com/brettcallaghan/agent-plugins/cli/core/schemaregistry"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/finding"
+	"github.com/brettcallaghan/specs/cli/core/frontmatter"
+	"github.com/brettcallaghan/specs/cli/core/schemaregistry"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // fixtureSchema is a small union schema standing in for the real bundle

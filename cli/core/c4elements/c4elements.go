@@ -15,11 +15,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/c4diagram"
-	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
-	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
-	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/c4diagram"
+	"github.com/brettcallaghan/specs/cli/core/envelope"
+	"github.com/brettcallaghan/specs/cli/core/frontmatter"
+	"github.com/brettcallaghan/specs/cli/core/markdown"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // recordSlugKey is the key a record block names its element's slug

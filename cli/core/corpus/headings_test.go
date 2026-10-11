@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/corpus"
+	"github.com/brettcallaghan/specs/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // headingsOf returns the entry for path, failing the test when there is

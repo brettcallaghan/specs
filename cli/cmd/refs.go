@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
-	"github.com/brettcallaghan/agent-plugins/cli/core/references"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/markdown"
+	"github.com/brettcallaghan/specs/cli/core/references"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // newRefsCmd builds the `refs` subcommand: report which corpus members

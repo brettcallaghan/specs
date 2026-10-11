@@ -13,11 +13,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
-	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
-	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specindex"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/envelope"
+	"github.com/brettcallaghan/specs/cli/core/finding"
+	"github.com/brettcallaghan/specs/cli/core/frontmatter"
+	"github.com/brettcallaghan/specs/cli/core/specindex"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // IndexFileName is the fixed name of the index artifact: one file, in the

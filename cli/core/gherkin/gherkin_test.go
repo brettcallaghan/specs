@@ -13,10 +13,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/gherkin"
-	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/gherkin"
+	"github.com/brettcallaghan/specs/cli/core/markdown"
+	"github.com/brettcallaghan/specs/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 var (

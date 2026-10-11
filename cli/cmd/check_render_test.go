@@ -14,7 +14,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"github.com/brettcallaghan/agent-plugins/cli/cmd"
+	"github.com/brettcallaghan/specs/cli/cmd"
 )
 
 // runIn runs args against a copy of a snapshot case's input corpus and

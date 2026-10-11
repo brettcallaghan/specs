@@ -9,8 +9,8 @@ package references_test
 import (
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/references"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/references"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // heading returns a specmodel.Heading carrying the given text, with a

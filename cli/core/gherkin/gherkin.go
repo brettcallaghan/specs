@@ -36,8 +36,8 @@ import (
 	cucumber "github.com/cucumber/gherkin/go/v42"
 	messages "github.com/cucumber/messages/go/v34"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // FenceTag is the info string a fenced block holding Gherkin carries.

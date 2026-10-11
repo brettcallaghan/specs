@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // Envelope is what every document's frontmatter shares, whatever its type:

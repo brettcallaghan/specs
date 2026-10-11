@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
-	"github.com/brettcallaghan/agent-plugins/cli/core/numbering"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/corpus"
+	"github.com/brettcallaghan/specs/cli/core/numbering"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // rules is the numbered-type table this test file exercises Next

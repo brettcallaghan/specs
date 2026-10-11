@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/cmd"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/cmd"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // writeLinkMap writes content to name under dir and returns its path.

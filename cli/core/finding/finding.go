@@ -24,7 +24,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // The severities a finding may carry.

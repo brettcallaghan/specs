@@ -10,11 +10,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
-	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
-	"github.com/brettcallaghan/agent-plugins/cli/core/references"
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/envelope"
+	"github.com/brettcallaghan/specs/cli/core/markdown"
+	"github.com/brettcallaghan/specs/cli/core/references"
+	"github.com/brettcallaghan/specs/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // newHeadingsCmd builds the `headings` subcommand: answer a heading

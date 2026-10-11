@@ -28,7 +28,7 @@ the multi-repo case both repositories are cloned as siblings:
 
 ```
 /home/user/            <- project root; no .claude/, so no hooks
-  agent-plugins/       <- .claude/settings.json here is never read
+  specs/               <- .claude/settings.json here is never read
   strata/              <- same
 ```
 

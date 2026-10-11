@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 func mermaid(diagramType string, lines ...string) string {

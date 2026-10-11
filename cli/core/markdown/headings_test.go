@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/markdown"
+	"github.com/brettcallaghan/specs/cli/core/span"
 )
 
 // Every heading of a body is returned in document order, each carrying

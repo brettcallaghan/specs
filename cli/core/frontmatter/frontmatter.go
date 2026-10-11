@@ -36,8 +36,8 @@ import (
 	"github.com/goccy/go-yaml/parser"
 	"github.com/goccy/go-yaml/token"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // The delimiters of a frontmatter block.

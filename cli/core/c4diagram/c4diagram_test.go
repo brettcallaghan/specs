@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/c4diagram"
-	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
-	"github.com/brettcallaghan/agent-plugins/cli/core/span"
+	"github.com/brettcallaghan/specs/cli/core/c4diagram"
+	"github.com/brettcallaghan/specs/cli/core/markdown"
+	"github.com/brettcallaghan/specs/cli/core/span"
 )
 
 // parseBlock parses the content of the one mermaid block in doc.

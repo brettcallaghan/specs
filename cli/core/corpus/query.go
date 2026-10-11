@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/envelope"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // Feature returns the feature id names in c's index, and whether one was

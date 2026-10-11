@@ -722,7 +722,7 @@ Say so, and name the install, rather than reading the corpus by hand and
 reporting a result you cannot show your work for:
 
 ```
-go install github.com/brettcallaghan/agent-plugins/cli/specs@latest
+go install github.com/brettcallaghan/specs/cli/specs@latest
 ```
 
 or unpack a release archive from the repository's releases page onto

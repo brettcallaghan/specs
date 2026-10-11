@@ -44,7 +44,7 @@ for target in $targets; do
   echo "==> $target"
   mkdir -p "$work/$name"
   (cd "$root/cli" && CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath \
-    -ldflags="-s -w -X github.com/brettcallaghan/agent-plugins/cli/cmd.version=$version" \
+    -ldflags="-s -w -X github.com/brettcallaghan/specs/cli/cmd.version=$version" \
     -o "$work/$name/$exe" ./specs)
   if [ "$os" = windows ]; then
     (cd "$work/$name" && zip -q -X "$out/$name.zip" "$exe")

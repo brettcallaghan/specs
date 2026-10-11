@@ -9,7 +9,7 @@
 //
 // It sits in cli/specs/ rather than at the module root because Go names
 // an installed binary after the directory holding its main package: from
-// here, `go install github.com/brettcallaghan/agent-plugins/cli/specs@…`
+// here, `go install github.com/brettcallaghan/specs/cli/specs@…`
 // installs a binary called `specs`, which is the tool's name. At the
 // module root the same command would install one called `cli`. The Go
 // module proxy is the registry AC-SPEC-009.6 is satisfied by, so the
@@ -19,7 +19,7 @@ package main
 import (
 	"os"
 
-	"github.com/brettcallaghan/agent-plugins/cli/cmd"
+	"github.com/brettcallaghan/specs/cli/cmd"
 )
 
 func main() {

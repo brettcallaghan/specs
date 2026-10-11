@@ -27,7 +27,7 @@ export:
 # key for a ref. Never use `bd bootstrap` here: it clones from the default ref
 # and finds nothing.
 sync:
-    remote: "git+https://github.com/brettcallaghan/agent-plugins.git"
+    remote: "git+https://github.com/brettcallaghan/specs.git"
 
 # Never re-import a JSONL found lying around: the Dolt remote is the source of
 # truth, and a stale export would overwrite newer rows.

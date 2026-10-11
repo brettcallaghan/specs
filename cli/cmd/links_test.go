@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/cmd"
+	"github.com/brettcallaghan/specs/cli/cmd"
 )
 
 // writeLinksFixture materializes a minimal corpus — one ADR citing

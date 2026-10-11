@@ -39,7 +39,7 @@
     "brettcallaghan": {
       "source": {
         "source": "github",
-        "repo": "brettcallaghan/agent-plugins"
+        "repo": "brettcallaghan/specs"
       }
     },
     "brettcallaghan-release": {

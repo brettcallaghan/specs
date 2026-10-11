@@ -41,7 +41,7 @@ const coverDirEnv = "SPEC_E2E_COVERDIR"
 // instrument this directory alone, leaving cmd/ and core/ — everything
 // the binary actually spends its time in — uninstrumented and silently
 // reported as zero.
-const coverPkg = "github.com/brettcallaghan/agent-plugins/cli/..."
+const coverPkg = "github.com/brettcallaghan/specs/cli/..."
 
 // coverDir returns the directory end-to-end runs write coverage data
 // into, or "" when the run is not being measured.

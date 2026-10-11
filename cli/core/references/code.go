@@ -5,8 +5,8 @@ import (
 	markdown "github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/gherkin"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/gherkin"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // parser is the markdown parser code regions are located with. It is the

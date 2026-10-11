@@ -33,7 +33,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	"github.com/brettcallaghan/agent-plugins/cli/cmd"
+	"github.com/brettcallaghan/specs/cli/cmd"
 )
 
 // caseManifest mirrors cli/cmd/snapshot_test.go's caseManifest. The two

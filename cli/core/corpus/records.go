@@ -6,8 +6,8 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/markdown"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // recordTagsOf returns the info strings profile registers as record

@@ -17,10 +17,10 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
-	"github.com/brettcallaghan/agent-plugins/cli/core/numbering"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
-	"github.com/brettcallaghan/agent-plugins/cli/profile"
+	"github.com/brettcallaghan/specs/cli/core/corpus"
+	"github.com/brettcallaghan/specs/cli/core/numbering"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/profile"
 )
 
 // The conformance test the module's own Change Guidance requires: this

@@ -1,8 +1,8 @@
 package c4model
 
 import (
-	"github.com/brettcallaghan/agent-plugins/cli/core/c4elements"
-	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/specs/cli/core/c4elements"
+	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
 // narrow returns full narrowed to root and its descendants.

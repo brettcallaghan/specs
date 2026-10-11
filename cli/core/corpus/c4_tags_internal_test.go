@@ -3,7 +3,7 @@ package corpus
 import (
 	"testing"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/c4diagram"
+	"github.com/brettcallaghan/specs/cli/core/c4diagram"
 )
 
 func TestSameTagsComparesContractSlugsWithoutRegardToCase(t *testing.T) {
