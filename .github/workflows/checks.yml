@@ -11,13 +11,12 @@ name: checks
 #            intact? bash and stdlib python3 only, no dependency install.
 #   corpus — do this repository's own specification documents conform,
 #            according to the Spec CLI it ships? Needs a Go toolchain to
-#            build that binary. Covers specs/ and rfcs/.
+#            build that binary. Covers specs/.
 #
 # The corpus job is the dogfooding one: this repository's own documents,
-# checked by the binary it ships. It names its roots through specs.toml
-# — specs/ at the repository root, rfcs/ through rfcs/specs.toml — rather
-# than through globs, and the corpus/empty rule fails a root that matched
-# nothing rather than reporting a healthy count over an empty set.
+# checked by the binary it ships. It names its root through specs.toml
+# rather than through a glob, and the corpus/empty rule fails a root that
+# matched nothing rather than reporting a healthy count over an empty set.
 
 # Triggers: a pull request that is ready for review, a merge to the default
 # branch, and manual dispatch. A push to a working branch runs nothing, and
@@ -82,11 +81,10 @@ jobs:
       # Needs no dependency — only the generated bundle and the
       # frontmatter keys.
       #
-      # continue-on-error until two known drifts are settled: rfc-template
-      # has drifted from the Rfc schema, and work-order is not in the
-      # DocumentType vocabulary. Both need a decision rather than a fix,
-      # and gating on defects that predate this step would land CI red.
-      # Flip it to gating once both close.
+      # continue-on-error until work-order joins the DocumentType
+      # vocabulary. It needs a decision rather than a fix, and gating on a
+      # defect that predates this step would land CI red. Flip it to gating
+      # once that closes.
       - name: Templates match their type's schema
         continue-on-error: true
         run: scripts/check-template-drift.py
@@ -160,17 +158,3 @@ jobs:
       # findings it has decided to live with.
       - name: Check every document
         run: specs check --strict
-
-      # The RFC queue, checked by the same binary through a second
-      # specs.toml (rfcs/specs.toml, root "."). RFCs carry the same
-      # frontmatter as corpus members and drift the same way, but they
-      # are their own slug namespace and cite documents outside that
-      # root, so the rule set is narrowed to the document-local rules.
-      # The corpus-global rules (reference/*, slug/duplicate) are
-      # deliberately not requested — cross-root citations would report as
-      # unresolved. The narrowed report lists only the requested rules,
-      # so the narrowed scope is visible in the answer rather than implied.
-      - name: The RFC queue conforms
-        run: |
-          specs check --config rfcs/specs.toml \
-            --only frontmatter/parse,frontmatter/schema,frontmatter/missing-property,slug/pattern-mismatch

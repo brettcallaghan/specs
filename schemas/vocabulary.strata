@@ -59,28 +59,8 @@ enum DocumentType {
   """A transient change document describing how the system changes to deliver one feature."""
   FeatureBlueprint: "feature-blueprint"
 
-  """An improvement proposal raised against a skill by a run that exercised it."""
-  Rfc: "rfc"
-
   """A how-to document explaining a technique the other document types assume."""
   Guide: "guide"
-}
-
-"""
-How badly a run was impeded by the skill an RFC critiques.
-
-An RFC carries the highest severity among its proposals, so that triage
-can rank a queue without opening every document.
-"""
-enum RfcSeverity {
-  """Forced an unscripted improvisation, or the skill as written produced a wrong result."""
-  Blocker: "blocker"
-
-  """The skill was silent on a decision that materially changed the outcome."""
-  Snag: "snag"
-
-  """It worked, but a change would make the next run clearer, faster, or safer."""
-  Polish: "polish"
 }
 
 """

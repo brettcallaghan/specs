@@ -5,9 +5,10 @@ description: Triage issues reported against the skills, templates and
   current versions, dedupe against prior resolutions and deferred
   beads, decide adopt / defer / reject with a human, and turn what is
   accepted into groomed work orders bundled for a sprint. Use when
-  asked to triage the issue inbox, process an outbox delivery, review a
-  reported issue, or check on deferred themes.
-version: "2.0"
+  asked to triage reported issues or bug reports (GitHub issues, or an
+  issue file handed over from another project), review a reported
+  issue, or check on deferred themes.
+version: "3.0"
 ---
 
 # Issue Triage
@@ -16,8 +17,8 @@ version: "2.0"
 and this skill is how a report from downstream becomes work here.**
 
 **Triage is the decide stage for issues that arrive from outside.** A
-sprint's own retro decides which of *that run's* candidates make the
-cut; this decides which of the *incoming* ones do. Same judgement, same
+retro decides, with its user, which of *that run's* candidate issues
+are filed; this decides which of the *incoming* ones are. Same judgement, same
 human, same rule that declining is normal and is recorded — the only
 difference is where the issue came from.
 
@@ -40,30 +41,26 @@ Nothing here triages a document containing several of them.
 
 **Issues, from any channel.** The channel does not change the work:
 
-- **`outbox/specs/<skill>/*.md`** — a project that ran a sprint and
-  reported a finding about a skill it does not own. The common case, and
-  **this repository's own outbox is one of them**: we vend the skills we
-  run, so we are our own downstream and sweep `outbox/specs/` here without
-  anyone forwarding anything.
-- **Issues opened directly** — a GitHub issue, or a report handed over
-  in conversation.
-- **This repository's own retro output**, since it runs the plugin on
-  itself.
-- **`rfcs/inbox/**/*.md`** — the retired RFC format. Read the whole
-  tree; a glob that stops at the top level finds nothing. Each is a
-  document holding several issues, so triage its **proposals**
-  individually and migrate what survives into the issue format.
+- **GitHub issues** on this repository — a project that ran one of our
+  skills and reported a finding or a bug against it.
+- **An issue file handed over in conversation** — the standalone
+  Markdown a retro writes, outside source control, when it cannot reach
+  the vendor's tracker. One file may hold several issues, one section
+  each.
+- **A report typed in conversation.**
+
+This repository's **own** retros need no triage pass: we vend the
+skills we run, so a retro here files the issues its user chooses as
+beads directly, and that choice is the triage decision.
 
 Every issue arrives in the shape the issue template defines — the one
 the `spec` skill ships and every producer vendors. One that does not is
-normalized into it before triage, never triaged as prose.
+normalized into it before triage, never triaged as prose. **Nothing
+received is committed to the repository**: the issue becomes a bead or
+is declined, and the tracker records which.
 
-**Also read:**
-
-- `rfcs/*.md` — this repo's resolved history (dedupe source)
-- The beads database — deferred issues (`bd` CLI; label
-  `issue-triage`). IF `.beads/` does not exist yet, THEN run `bd init`
-  on first use.
+**Also read** the beads database — prior outcomes and deferred issues
+(`bd` CLI; label `issue-triage`). It is the only dedupe source.
 
 ## Process
 
@@ -78,7 +75,7 @@ Issue triage progress:
       already-implemented)
 - [ ] 4. Recommendation table presented — STOPPED for human approval
 - [ ] 5. Approved issues groomed into work orders and bundled
-- [ ] 6. Retro log appended
+- [ ] 6. Received issues closed out at their source
 - [ ] 7. Plugin version bumped IF any shipped skill/template/standard
       changed
 ```
@@ -86,10 +83,8 @@ Issue triage progress:
 Step 4 is a hard stop. Do not tick 5 before the human has answered.
 
 **The issue is the unit throughout.** Classification, the table's rows,
-the log's counts and the beads filed are all per issue. A legacy RFC
-holding several proposals is the one exception, and it is handled by
-triaging each proposal as its own issue rather than by making the
-document a unit.
+the counts reported and the beads filed are all per issue. A received
+file holding several issues is triaged one issue at a time.
 
 Then, per issue, in received order:
 
@@ -126,8 +121,7 @@ Then, per issue, in received order:
    say the check **could not be made**. Silence there reads as
    independent corroboration, which is the outcome this rule exists to
    prevent.
-2. **Dedupe.** Search this repo's `rfcs/` for prior proposals on the
-   same theme, and the beads:
+2. **Dedupe.** Search the beads for prior outcomes on the same theme:
 
    ```
    bd list --label issue-triage --all
@@ -143,13 +137,11 @@ Then, per issue, in received order:
    `--status open,in_progress,blocked,deferred,closed`; note that
    repeating `--status` overwrites rather than accumulates.)
 
-   Match on the outcome section of each resolved RFC whatever it is
-   titled — older RFCs may use a different heading than the current
-   template's, so search the content rather than assuming one heading.
+   Match on each bead's recorded outcome, not its title.
    - Prior REJECTED match: flag it with the prior rationale; recommend
-     reconsideration only if this RFC carries new evidence.
+     reconsideration only if this issue carries new evidence.
    - Prior DEFERRED match (a deferred bead): this is recurrence — the
-     accumulation signal working. Link the new RFC in the bead,
+     accumulation signal working. Link the new issue in the bead,
      bump its priority, and recommend promotion to adopt-now when a
      second independent project has hit the same theme.
    - Prior ADOPTED match: verify the adoption actually covers this
@@ -166,7 +158,7 @@ Then, per issue, in received order:
      already addressed, or fixes carelessness rather than guidance.
    - **already-implemented** — the proposal is sound and its change is
      already present in the tree, landed by earlier work rather than by
-     this triage. Record it in the Resolution as "adopted — already
+     this triage. Record it on the bead as "adopted — already
      implemented", name where the change lives, and bump nothing.
 
      The test against `reject — already addressed` is whether triage is
@@ -178,7 +170,7 @@ Then, per issue, in received order:
      no position on whether the idea was ever good.
 
      The difference is load-bearing at step 2, which reads prior
-     Resolutions. "Adopted" tells a future triage the idea is settled
+     outcomes. "Adopted" tells a future triage the idea is settled
      and should not be relitigated; "rejected — already addressed"
      tells it only that the evidence was stale, so the same idea backed
      by fresh evidence gets a fresh hearing.
@@ -192,7 +184,7 @@ Then, per issue, in received order:
      pattern across the whole surface before adopting. A cited list is
      a sample from one run's path, not a census: the reporting run only
      opened the files its task required. Put the enumerating command
-     and its result in the Resolution.
+     and its result in the bead's recorded outcome.
    - **Sufficiency.** Read the proposed Change against the finding it
      cites. WHEN the change resolves less than its own evidence
      describes, widen it and adopt with refinement.
@@ -226,8 +218,8 @@ Then, per issue, in received order:
      later by working the queue.
    - **Implement nothing, and bundle nothing.** Not the obvious ones,
      not the one-line ones.
-   - **Leave the issues where they arrived.** Do not mark them
-     accepted and do not delete them. Acceptance records what a human
+   - **Leave the issues where they arrived.** Do not close them and
+     do not mark them accepted. Acceptance records what a human
      approved; writing it here would be a record of an approval that
      never happened.
    - **Say in the report which steps the gate blocked** — namely 5
@@ -235,9 +227,9 @@ Then, per issue, in received order:
      session resumes from them rather than re-triaging the inbox.
 
    Do not resolve the ambiguity any other way. The three tempting
-   alternatives — discarding the analysis, writing into the
-   Resolution section, or reading an absent human as consent — lose
-   work, falsify the record, and defeat the gate respectively.
+   alternatives — discarding the analysis, recording an outcome on
+   the issue, or reading an absent human as consent — lose work,
+   falsify the record, and defeat the gate respectively.
 5. **Groom the approved issues into work orders, and bundle them.**
    **This is the step the whole skill exists for.**
 
@@ -251,7 +243,7 @@ Then, per issue, in received order:
      bar and do not approximate it: the Definition of Ready is
      spec-owned ([[work-order-definition-of-ready]]) and `groom-beads`
      is what enforces it. **The fresh-agent test is the one that
-     bites** — a bead saying "adopt the outbox issue about tier
+     bites** — a bead saying "adopt the reported issue about tier
      reasons" fails it, because the reader has neither the issue open
      nor the session that produced it.
 
@@ -318,39 +310,23 @@ Then, per issue, in received order:
    - **Verify before moving on.** Re-read each file you changed: the
      change is present, its version bumped, and its own conventions held.
      A half-applied adoption is worse than a deferral, because the
-     Resolution will claim it landed.
+     recorded outcome will claim it landed.
    - **Record the outcome on the bead, not in a document.** Adopted /
      adopted-with-refinement + the refinement / deferred / rejected +
      rationale, with the files changed and versions bumped. **The
      tracker holds workflow state**; writing a resolution section into
-     a separate document keeps a second copy of it in prose, which is
-     the defect the RFC format had.
+     a separate document keeps a second copy of it in prose.
 
      A `T` change carries the same record, marked triage-originated
      rather than as some reporter's testimony.
-   - **Then retire the issue from the inbox.** An `outbox/specs/` file
-     that has become a bead is deleted; a GitHub issue is closed with a
-     pointer to the bead. The bead is the record from here on, and an
-     issue left in the inbox behind a filed bead gets triaged twice.
-6. **Log.** Append one row per ingested item to `rfcs/retro-log.md`.
-   WHEN the file does not exist, create it with this header and no
-   other content; do not restyle an existing log to match:
-
-   ```markdown
-   # Retro Log
-
-   | Date | Origin | Retroed | Item | Outcome |
-   |------|--------|---------|------|---------|
-   ```
-
-   One row per triage, newest at the bottom: date (`YYYY-MM-DD`), origin
-   project (`self` for this repo), the skill or standard the issues were
-   about, the delivery (`outbox`, `github`, `retro`, or `RFC <nnnn>` for
-   a legacy document), and the outcome as counts
-   (`N adopted, N deferred, N rejected`). **Counts are per issue** — the
-   issue is the unit of decision, so it is the unit the log counts in
-   too. Any commentary goes below the table under `## Run notes`, never
-   inside a row.
+6. **Close out each issue at its source.** A GitHub issue is closed
+   with a pointer to its bead, or with the rejection rationale; a
+   handed-over file needs nothing — it was never committed. The bead is
+   the record from here on, and an issue left open behind a filed bead
+   gets triaged twice. Report the outcome as counts per issue
+   (`N adopted, N deferred, N rejected`) — the issue is the unit of
+   decision, so it is the unit the counts are in too. **Write no log
+   file**: the tracker already holds every outcome.
 7. **Publish.** WHEN any skill, template, or standard **that ships
    inside the plugin** changed, bump the plugin version in
    `plugin/.claude-plugin/plugin.json` (MINOR for normative changes).
@@ -378,4 +354,5 @@ Then, per issue, in received order:
 | Editing a received issue's evidence or proposed change | The issue is the reporter's testimony; triage records an outcome, it does not rewrite the report |
 | Adopting a self-reported issue without recording that it was self-reported | An undisclosed self-adoption is indistinguishable later from an independently reviewed one |
 | Treating an issue's cited occurrences as the complete set | The reporter lists what its run touched; a defect class usually reaches files that run never opened, and the record then says fixed about a class that is still live |
-| Writing a resolution document beside the tracker | The tracker holds workflow state. A second copy in prose is what made the RFC format count in a different unit than it filed in |
+| Writing a resolution document or log beside the tracker | The tracker holds workflow state. A second copy in prose drifts from it and counts in a different unit than it files in |
+| Committing a received issue file to the repository | The repository is not a tracker; the issue becomes a bead or is declined |

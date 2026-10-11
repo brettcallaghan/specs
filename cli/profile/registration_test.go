@@ -34,10 +34,8 @@ import (
 // complete set. That divergence is decided — see the PREG delta in
 // specs/features/reference-integrity/reference-integrity-blueprint.md.
 //
-// `sources` appears against `frd` and not against `rfc`, because
-// schemas/frontmatter.strata declares it on `Frd` alone. The set follows
-// the schema, which is what "derived rather than transcribed" means when
-// the two disagree.
+// `sources` appears against `frd` alone, because
+// schemas/frontmatter.strata declares it on `Frd` alone.
 var registeredReferenceProperties = map[string][]string{
 	"adr":                 {"superseded_by"},
 	"frd":                 {"sources", "superseded_by"},
@@ -48,7 +46,6 @@ var registeredReferenceProperties = map[string][]string{
 	"module-blueprint":    {"contracts_consumed", "modules", "superseded_by"},
 	"component-blueprint": {"contracts_consumed", "superseded_by"},
 	"feature-blueprint":   {"frd", "superseded_by"},
-	"rfc":                 {"superseded_by"},
 	"guide":               {"superseded_by"},
 }
 

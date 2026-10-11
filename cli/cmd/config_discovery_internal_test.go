@@ -59,13 +59,13 @@ func TestDiscoveryFindsTheSpecsTomlAtTheRepositoryRootFromBelowIt(t *testing.T) 
 // AC: AC-SPEC-008.7
 func TestDiscoveryPrefersTheNearestSpecsToml(t *testing.T) {
 	root := resolvedTempDir(t)
-	tree(t, root, "repo/.git/", "repo/specs.toml", "repo/rfcs/specs.toml", "repo/rfcs/drafts/")
+	tree(t, root, "repo/.git/", "repo/specs.toml", "repo/notes/specs.toml", "repo/notes/drafts/")
 
-	got, err := discoverConfig(filepath.Join(root, "repo", "rfcs", "drafts"))
+	got, err := discoverConfig(filepath.Join(root, "repo", "notes", "drafts"))
 	if err != nil {
 		t.Fatalf("discoverConfig: %v", err)
 	}
-	if want := filepath.Join(root, "repo", "rfcs", "specs.toml"); got != want {
+	if want := filepath.Join(root, "repo", "notes", "specs.toml"); got != want {
 		t.Errorf("found %s, want %s", got, want)
 	}
 }

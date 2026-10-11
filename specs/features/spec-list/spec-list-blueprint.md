@@ -294,8 +294,7 @@ replays each case once and cannot express a two-run comparison; it is
 verified instead by a Go test in `cli/cmd/list_test.go`. Citation is
 satisfied and the level obligation is a SHOULD in
 [[ac-traceability-standards]], so this is a permitted deviation rather
-than a gap — recorded here, and proposed as a standards change in
-`rfcs/inbox/standards/rfc-0027-two-standards-one-citation-surface.md`.
+than a gap — recorded here.
 
 Citations for the 21 non-`@manual` criteria live on two surfaces: `// AC:`
 comments under `cli/` for 11 of them, and the `cites` key of the snapshot

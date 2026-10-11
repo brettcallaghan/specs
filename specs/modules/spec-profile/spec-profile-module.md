@@ -167,14 +167,11 @@ Profile Registration and its checks placed in Document Core; and Element
 Records is retained as designed but marked not yet built.
 
 **The registered patterns are grounded in this repository's corpus, not
-transcribed from the prefix registry**, and in two places the two
-disagree. Guides: the registry has no row at all and this repository's four
-guides split two-and-two on a `guide-` prefix, so the pattern is the
-type's least restrictive form. RFCs: this repository mixes a numbered
-form (`rfc-0007`) with an unnumbered self-critique form, so `Numbered` is
-false for the type — a "highest number in use" query would silently
-ignore every `self-` document, which is worse than not offering `next-id`
-for RFCs at all. Each divergence is recorded at the table in
+transcribed from the prefix registry**, and for guides the two disagree:
+the registry has no row at all and this repository's guides do not
+consistently carry a `guide-` prefix (`work-order-field-guide` and
+`spec-cli-reference` do not), so the pattern is the type's least
+restrictive form. The divergence is recorded at the table in
 `cli/profile/profile.go`; the Change Guidance below is what obliges a
 template change to come back here.
 

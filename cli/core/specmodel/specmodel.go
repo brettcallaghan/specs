@@ -5804,166 +5804,6 @@ func (v *FeatureBlueprint) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// An improvement proposal raised against a skill by a run that exercised
-// it.
-//
-// The provenance properties below are the load-bearing part. A skill
-// behaves differently under different models, efforts and harnesses, so a
-// defect real under one may not reproduce under another, and triage cannot
-// scope a fix without knowing which run saw it. They are recorded
-// faithfully by the retro that raises the RFC and judged by the triage
-// that receives it — the two roles are deliberately separate.
-type Rfc struct {
-	// A one- to two-sentence summary of what this is and what it is
-	// responsible for.
-	//
-	// On C4 elements this is the brief description rendered on diagrams, so
-	// it is written to be read at a glance rather than as an introduction.
-	Description string `json:"description"`
-	// The identifier every other document uses to reference this.
-	//
-	// Unique across the corpus, compared without regard to letter case, and
-	// conventionally prefixed by the document type — `adr-013`,
-	// `container-spec-cli`, `module-document-core`.
-	Slug Slug `json:"slug"`
-	// Human-readable document title. Free text.
-	//
-	// Also the document's H1, and the two are kept in sync by hand. It
-	// carries no type label — `type` says what the document is — except
-	// that an ADR's title leads with its number, `ADR-011: …`, because the
-	// number is how an ADR is cited.
-	Title string `json:"title"`
-	// The document's lifecycle state.
-	Status Status `json:"status"`
-	// Free-form tags for filtering and search.
-	Tags *[]string `json:"tags,omitempty"`
-	// The document that replaces this one.
-	//
-	// Required in practice on any document at `status: retired` — a retired
-	// document with no resolvable successor is a dead end for anyone who
-	// follows a reference to it.
-	SupersededBy *Citation `json:"superseded_by,omitempty"`
-	// Where the run happened: `self` when this repository critiqued its own
-	// skill, otherwise the name of the project the run took place in.
-	Origin string `json:"origin"`
-	// The skill this RFC critiques.
-	Skill string `json:"skill"`
-	// The version recorded in the critiqued skill's own frontmatter at the
-	// time of the run, so triage can tell whether a defect has already been
-	// fixed since.
-	SkillVersion string `json:"skill_version"`
-	// The exact model identifier the run used — not a family name. A finding
-	// that reproduces under one model and not another is scoped by this
-	// property alone.
-	Model string `json:"model"`
-	// The reasoning effort the run used.
-	//
-	// Left unconstrained because the effort vocabulary belongs to the
-	// harness rather than to this framework, and `unknown` is a legitimate
-	// value when a transcript does not record it.
-	Effort string `json:"effort"`
-	// How many runs stand behind the evidence.
-	//
-	// This is the denominator for any claim about recurrence: an RFC may not
-	// assert more recurrence than it observed.
-	RunsObserved uint64 `json:"runs_observed"`
-	// The highest severity among this RFC's proposals.
-	Severity RfcSeverity `json:"severity"`
-	// The plugin version the critiqued skill shipped in.
-	PluginVersion string `json:"plugin_version"`
-}
-
-func (v *Rfc) UnmarshalJSON(data []byte) error {
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	if m, ok := raw["description"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Rfc: required field \"description\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Description); err != nil {
-		return prefixField("description", err)
-	}
-	if m, ok := raw["slug"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Rfc: required field \"slug\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
-		return prefixField("slug", err)
-	}
-	if m, ok := raw["title"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Rfc: required field \"title\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Title); err != nil {
-		return prefixField("title", err)
-	}
-	if m, ok := raw["status"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Rfc: required field \"status\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Status); err != nil {
-		return prefixField("status", err)
-	}
-	if m, ok := raw["tags"]; ok {
-		if err := json.Unmarshal(m, &v.Tags); err != nil {
-			return prefixField("tags", err)
-		}
-	}
-	if m, ok := raw["superseded_by"]; ok {
-		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
-			return prefixField("superseded_by", err)
-		}
-	}
-	if m, ok := raw["origin"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Rfc: required field \"origin\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Origin); err != nil {
-		return prefixField("origin", err)
-	}
-	if m, ok := raw["skill"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Rfc: required field \"skill\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Skill); err != nil {
-		return prefixField("skill", err)
-	}
-	if m, ok := raw["skill_version"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Rfc: required field \"skill_version\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.SkillVersion); err != nil {
-		return prefixField("skill_version", err)
-	}
-	if m, ok := raw["model"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Rfc: required field \"model\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Model); err != nil {
-		return prefixField("model", err)
-	}
-	if m, ok := raw["effort"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Rfc: required field \"effort\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Effort); err != nil {
-		return prefixField("effort", err)
-	}
-	if m, ok := raw["runs_observed"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Rfc: required field \"runs_observed\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.RunsObserved); err != nil {
-		return prefixField("runs_observed", err)
-	}
-	if m, ok := raw["severity"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Rfc: required field \"severity\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Severity); err != nil {
-		return prefixField("severity", err)
-	}
-	if m, ok := raw["plugin_version"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Rfc: required field \"plugin_version\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.PluginVersion); err != nil {
-		return prefixField("plugin_version", err)
-	}
-	var unknown string
-	for key := range raw {
-		switch key {
-		case "description", "slug", "title", "status", "tags", "superseded_by", "origin", "skill", "skill_version", "model", "effort", "runs_observed", "severity", "plugin_version":
-		default:
-			if unknown == "" || key < unknown {
-				unknown = key
-			}
-		}
-	}
-	if unknown != "" {
-		return &unknownFieldError{Struct: "Rfc", Field: unknown}
-	}
-	return nil
-}
-
 // A how-to document explaining a technique that other document types
 // assume knowledge of — EARS syntax, C4 mapping, cross-document reference
 // conventions.
@@ -6083,7 +5923,6 @@ func (ContainerBlueprint) isTypedFrontmatterVariant() {}
 func (ModuleBlueprint) isTypedFrontmatterVariant()    {}
 func (ComponentBlueprint) isTypedFrontmatterVariant() {}
 func (FeatureBlueprint) isTypedFrontmatterVariant()   {}
-func (Rfc) isTypedFrontmatterVariant()                {}
 func (Guide) isTypedFrontmatterVariant()              {}
 
 func NewTypedFrontmatterAdr(v Adr) TypedFrontmatter {
@@ -6119,10 +5958,6 @@ func NewTypedFrontmatterComponentBlueprint(v ComponentBlueprint) TypedFrontmatte
 }
 
 func NewTypedFrontmatterFeatureBlueprint(v FeatureBlueprint) TypedFrontmatter {
-	return TypedFrontmatter{Value: v}
-}
-
-func NewTypedFrontmatterRfc(v Rfc) TypedFrontmatter {
 	return TypedFrontmatter{Value: v}
 }
 
@@ -6175,11 +6010,6 @@ func (u TypedFrontmatter) AsFeatureBlueprint() (FeatureBlueprint, bool) {
 	return v, ok
 }
 
-func (u TypedFrontmatter) AsRfc() (Rfc, bool) {
-	v, ok := u.Value.(Rfc)
-	return v, ok
-}
-
 func (u TypedFrontmatter) AsGuide() (Guide, bool) {
 	v, ok := u.Value.(Guide)
 	return v, ok
@@ -6216,9 +6046,6 @@ func (u TypedFrontmatter) MarshalJSON() ([]byte, error) {
 		payload, err = json.Marshal(v)
 	case FeatureBlueprint:
 		tag = "feature-blueprint"
-		payload, err = json.Marshal(v)
-	case Rfc:
-		tag = "rfc"
 		payload, err = json.Marshal(v)
 	case Guide:
 		tag = "guide"
@@ -6319,13 +6146,6 @@ func (u *TypedFrontmatter) UnmarshalJSON(data []byte) error {
 		return nil
 	case "feature-blueprint":
 		var v FeatureBlueprint
-		if err := json.Unmarshal(body, &v); err != nil {
-			return err
-		}
-		u.Value = v
-		return nil
-	case "rfc":
-		var v Rfc
 		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
@@ -8356,15 +8176,13 @@ const (
 	DocumentTypeComponentBlueprint DocumentType = "component-blueprint"
 	// A transient change document describing how the system changes to deliver one feature.
 	DocumentTypeFeatureBlueprint DocumentType = "feature-blueprint"
-	// An improvement proposal raised against a skill by a run that exercised it.
-	DocumentTypeRfc DocumentType = "rfc"
 	// A how-to document explaining a technique the other document types assume.
 	DocumentTypeGuide DocumentType = "guide"
 )
 
 func (e DocumentType) MarshalJSON() ([]byte, error) {
 	switch e {
-	case DocumentTypeAdr, DocumentTypeFrd, DocumentTypeContract, DocumentTypeStandards, DocumentTypeSystemBlueprint, DocumentTypeContainerBlueprint, DocumentTypeModuleBlueprint, DocumentTypeComponentBlueprint, DocumentTypeFeatureBlueprint, DocumentTypeRfc, DocumentTypeGuide:
+	case DocumentTypeAdr, DocumentTypeFrd, DocumentTypeContract, DocumentTypeStandards, DocumentTypeSystemBlueprint, DocumentTypeContainerBlueprint, DocumentTypeModuleBlueprint, DocumentTypeComponentBlueprint, DocumentTypeFeatureBlueprint, DocumentTypeGuide:
 		return json.Marshal(string(e))
 	}
 	return nil, fmt.Errorf("DocumentType: unknown value %q", string(e))
@@ -8376,7 +8194,7 @@ func (e *DocumentType) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	switch DocumentType(s) {
-	case DocumentTypeAdr, DocumentTypeFrd, DocumentTypeContract, DocumentTypeStandards, DocumentTypeSystemBlueprint, DocumentTypeContainerBlueprint, DocumentTypeModuleBlueprint, DocumentTypeComponentBlueprint, DocumentTypeFeatureBlueprint, DocumentTypeRfc, DocumentTypeGuide:
+	case DocumentTypeAdr, DocumentTypeFrd, DocumentTypeContract, DocumentTypeStandards, DocumentTypeSystemBlueprint, DocumentTypeContainerBlueprint, DocumentTypeModuleBlueprint, DocumentTypeComponentBlueprint, DocumentTypeFeatureBlueprint, DocumentTypeGuide:
 		*e = DocumentType(s)
 		return nil
 	}
@@ -8384,46 +8202,6 @@ func (e *DocumentType) UnmarshalJSON(data []byte) error {
 }
 
 func (e DocumentType) String() string {
-	return string(e)
-}
-
-// How badly a run was impeded by the skill an RFC critiques.
-//
-// An RFC carries the highest severity among its proposals, so that triage
-// can rank a queue without opening every document.
-type RfcSeverity string
-
-const (
-	// Forced an unscripted improvisation, or the skill as written produced a wrong result.
-	RfcSeverityBlocker RfcSeverity = "blocker"
-	// The skill was silent on a decision that materially changed the outcome.
-	RfcSeveritySnag RfcSeverity = "snag"
-	// It worked, but a change would make the next run clearer, faster, or safer.
-	RfcSeverityPolish RfcSeverity = "polish"
-)
-
-func (e RfcSeverity) MarshalJSON() ([]byte, error) {
-	switch e {
-	case RfcSeverityBlocker, RfcSeveritySnag, RfcSeverityPolish:
-		return json.Marshal(string(e))
-	}
-	return nil, fmt.Errorf("RfcSeverity: unknown value %q", string(e))
-}
-
-func (e *RfcSeverity) UnmarshalJSON(data []byte) error {
-	var s string
-	if err := json.Unmarshal(data, &s); err != nil {
-		return err
-	}
-	switch RfcSeverity(s) {
-	case RfcSeverityBlocker, RfcSeveritySnag, RfcSeverityPolish:
-		*e = RfcSeverity(s)
-		return nil
-	}
-	return fmt.Errorf("RfcSeverity: unknown value %q", s)
-}
-
-func (e RfcSeverity) String() string {
 	return string(e)
 }
 

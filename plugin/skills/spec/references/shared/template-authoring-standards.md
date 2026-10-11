@@ -370,9 +370,9 @@ commit. A standards document or guide carries no version of its own;
 where it ships to other repositories it is vendored into a skill, and a
 change to the vendored copy bumps that skill's version.
 
-**Rationale:** Improvement RFCs (see the `rfc` template) cite the
-versions of the templates and skills a session followed.
-Triage uses those citations to answer "is this proposal already
+**Rationale:** Issues raised by a retro (see the issue template) cite
+the versions of the templates and skills a session followed.
+Triage uses those citations to answer "is this issue already
 fixed?" mechanically; without version stamps that judgment requires
 diff archaeology. The version lives in the instruction block — not
 the template's frontmatter — because template frontmatter is the

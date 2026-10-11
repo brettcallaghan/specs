@@ -609,8 +609,8 @@ with no `specs.toml`, the CLI names the file it looked for and every
 directory it looked in, and exits `3`, the environment-error status of
 [[cli-exit-status-standards]] (AC-SPEC-008.3). Run from `specs/adrs/` in
 this repository, the CLI finds `specs.toml` at the repository root; run
-from `rfcs/drafts/` in a repository that also holds `rfcs/specs.toml`, it
-uses that nearer file (AC-SPEC-008.7). `--config build/alt.toml` reads
+from `notes/drafts/` in a repository that also holds `notes/specs.toml`,
+it uses that nearer file (AC-SPEC-008.7). `--config build/alt.toml` reads
 that file even where a `specs.toml` sits in the working directory
 (AC-SPEC-008.8). Run from a directory unpacked from an archive, with no
 `.git` above it, the CLI searches up to `/` and uses the first

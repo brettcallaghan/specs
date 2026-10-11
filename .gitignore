@@ -22,10 +22,7 @@ local/
 # Spec CLI index output — a build artifact and cache, never source.
 # `specs index` writes it here by default (AC-SPEC-010.1); deleting it is
 # always safe, since any changed input triggers a rebuild (AC-SPEC-010.6).
-# One entry per spec root: `rfcs/specs.toml` declares a second root, and a
-# `specs check` against it writes an index there too.
 specs/specs.json
-rfcs/specs.json
 
 build/
 # Python bytecode caches. Several repo scripts are Python; running one in a
@@ -36,3 +33,7 @@ __pycache__/
 
 # bd runtime lock, created beside .beads/ (not inside it) while a command runs
 *.gate.lock*
+
+# Retro records and hand-over issue files. A retro reports in the session and
+# files what is worth doing as beads; nothing it writes is source.
+.retros/
