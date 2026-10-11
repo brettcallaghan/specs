@@ -579,8 +579,8 @@ from gates rather than diligence cannot exempt itself.
 WHEN a skill is changed in a way that alters its normative content, the
 author SHALL increment its `version`.
 
-**Rationale:** Retrospective RFCs cite the version they exercised, and
-triage answers "is this already fixed?" from that citation. Without the
+**Rationale:** Retrospective issues cite the version they exercised,
+and triage answers "is this already fixed?" from that citation. Without the
 stamp the question requires diff archaeology.
 
 ---

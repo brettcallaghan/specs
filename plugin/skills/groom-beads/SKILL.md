@@ -10,7 +10,7 @@ description: >-
   before a long-running or orchestrated session. Trigger even if the user
   just says "groom these" or "make these beads ready" in a repo that uses
   beads.
-version: "1.4"
+version: "1.5"
 ---
 
 # Bead Grooming
@@ -377,7 +377,7 @@ WHEN a run of `groom-beads` struggled — you improvised around its
 guidance, a command or script it prescribed misbehaved, or an
 instruction here pointed you the wrong way — offer to run `retro-skill`
 on `groom-beads` while the session is fresh, to capture the friction
-as an evidence-backed RFC. This skill prescribes scripts
+as evidence-backed issues. This skill prescribes scripts
 (`scripts/bd-health.sh`, `scripts/validate_beads.py`), so a misbehaving
 check is a
 prime `script-defect` finding. WHEN the friction was instead in what

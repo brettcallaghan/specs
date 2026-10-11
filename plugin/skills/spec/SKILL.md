@@ -12,7 +12,7 @@ description: Spec-first development using this framework's specification
   system, container, component, or interface. Covers choosing the right
   document type and authoring it from the framework templates using Gherkin
   and EARS syntax and the C4 model.
-version: "1.14"
+version: "1.15"
 ---
 
 # Spec-First Development
@@ -61,9 +61,9 @@ skill owns its format and its readiness bar (the Definition of Ready);
 grooming owns its production. What remains a derived, non-spec artifact
 is the *plan*: the whole graph of work orders for a feature. Only the
 atomic order is promoted to a type — not the aggregate, and not the
-grooming that emits it. Improvement RFCs are likewise not specification
-documents: they are process artifacts produced by the `retro-spec`
-skill.
+grooming that emits it. Issues are likewise not specification
+documents: the retro skills raise them in a report, and the ones a user
+chooses become tracker records, never files in the corpus.
 
 | Type | Captures | One per |
 |------|----------|---------|
@@ -344,5 +344,5 @@ when reviewing someone else's.
 WHEN a run of `spec` struggled — you improvised around its guidance, a
 command or script it prescribed misbehaved, or an instruction here
 pointed you the wrong way — offer to run `retro-skill` on `spec` while
-the session is fresh, to capture the friction as an evidence-backed
-RFC. A clean run needs nothing; never run it unprompted.
+the session is fresh, to capture the friction as evidence-backed
+issues. A clean run needs nothing; never run it unprompted.

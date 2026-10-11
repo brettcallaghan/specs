@@ -8,7 +8,6 @@ slug: feature-spec-index
 type: feature-blueprint
 status: retired
 delivery: staged
-plan: agent-plugins-bge
 frd: frd-spec-index
 ---
 
@@ -307,7 +306,7 @@ cache" data made concrete.
 - The CLI SHALL detect staleness by a **content hash** of the index's
   inputs, not by modification time, so a fresh CI checkout whose files
   carry new mtimes but identical content is still served warm — the
-  condition FEAT-SPEC-009.1's CI budget depends on (`agent-plugins-igc`).
+  condition FEAT-SPEC-009.1's CI budget depends on.
 - WHEN a query or single-document check runs and the persisted index's
   input hash is unchanged since it was written, the CLI SHALL answer from
   the persisted index without re-walking the corpus (AC-SPEC-010.5,
@@ -441,54 +440,53 @@ the repository currently has no CI (see Tracker Reconciliation).
   filing rule promotes a schema to a Contract only when a second,
   independently-built consumer appears. The shape is additive and the
   generated JSON Schema is the interim machine-readable spec, so promotion
-  — with a formal `schema_version` policy — is deferred to
-  `agent-plugins-h6c`, to land with the first consumer. This is a scope
+  — with a formal `schema_version` policy — is deferred to the
+  index-schema ADR, to land with the first consumer. This is a scope
   decision, not an open question, and it does not block grooming or
   implementation.
 
 ## Tracker Reconciliation
 
-- `agent-plugins-1ao` — out-of-scope (parent): tracks authoring this
-  blueprint and the subsequent groom and bead-bonanza run; it is the
+- Out-of-scope (parent): tracks authoring this
+  blueprint and the subsequent groom and parallel sprint run; it is the
   umbrella this feature is delivered under, not a delta it subsumes.
-- `agent-plugins-h6c` — out-of-scope (deferred follow-up): "ADR: index
+- Out-of-scope (deferred follow-up): "ADR: index
   schema and versioning." Promoting the emitted index to a contract
   document with a formal versioning policy is deferred until a consumer or
   catalogue exists; the sprint-1 shape is additive, carries no references,
   and is pinned in Strata at `schema_version` 1.0, so this does not block
   the feature. Not a prerequisite.
-- `agent-plugins-igc` — resolved: "ADR: index cache invalidation." The
-  decision is **content hash**, pinned in the CACHE delta; the bead's ADR
+- Resolved: "ADR: index cache invalidation." The
+  decision is **content hash**, pinned in the CACHE delta; the issue's ADR
   can be closed by recording that choice, or written up to document the
   mtime alternative that was rejected.
-- `agent-plugins-2l2` — resolved: "Settle 'index' vs 'manifest' as the
+- Resolved: "Settle 'index' vs 'manifest' as the
   name of the corpus artifact." The name is **index**; the model is
-  `SpecIndex` and the file is `specs.json`. The bead can be closed.
-- `agent-plugins-47r` — out-of-scope (relied upon): tracks [[adr-016]]
+  `SpecIndex` and the file is `specs.json`. The issue can be closed.
+- Out-of-scope (relied upon): tracks [[adr-016]]
   (Strata as single source), already `ready-for-review`; IDX extends its
   generation pipeline rather than reopening the decision.
-- `agent-plugins-dgn` — out-of-scope: "model references as a separate
+- Out-of-scope: "model references as a separate
   edge collection." A reference-feature concern; IDX's additive shape must
   not preclude it, but this feature indexes no references.
-- `agent-plugins-6n4` — out-of-scope (coordination): `work-order-template.md`
+- Out-of-scope (coordination): `work-order-template.md`
   is not valid YAML. Its file
   (`plugin/skills/spec/references/work-order-template.md`) sits outside
-  `specs/`, the corpus root this feature's self-application gate scans
-  (confirmed on `agent-plugins-bge.14`), so the gate cannot surface it as
+  `specs/`, the corpus root this feature's self-application gate scans,
+  so the gate cannot surface it as
   scoped — a stale assumption from before the `specs/` reorg, corrected
   here. The CO parse-failure path would still record the defect if pointed
   at a root that included this file; this feature does not fix the
-  document or widen the gate's root, and 6n4's own acceptance criteria
+  document or widen the gate's root, and that issue's own acceptance criteria
   already call for a separate, generic regression check to cover it.
-- `agent-plugins-5nz`, `agent-plugins-vg1` — out-of-scope: dangling
-  wikilinks and unpopulated `contracts_consumed` are reference-feature and
+- Out-of-scope: dangling wikilinks and unpopulated `contracts_consumed` are reference-feature and
   corpus-data concerns this feature neither resolves nor regresses.
 
-**Reconciled at retirement (2026-08-05, `agent-plugins-bge.16`).**
+**Reconciled at retirement (2026-08-05).**
 
-- `agent-plugins-2l2` — **closed.** The artifact is named *index*:
+- The index-vs-manifest naming issue — **closed.** The artifact is named *index*:
   `SpecIndex` in `schemas/index.strata`, emitted as `specs.json`.
-- `agent-plugins-igc` — **closed**, taking the blueprint's stated default
+- The cache-invalidation issue — **closed**, taking the blueprint's stated default
   of recording the choice rather than authoring an ADR. Staleness is a
   content hash of the corpus inputs (`input_hash`, a `sha256:` digest
   carried in the emitted index); mtime was rejected because a fresh CI
@@ -496,30 +494,31 @@ the repository currently has no CI (see Tracker Reconciliation).
   build every CI run and break the FEAT-SPEC-009.1 budget the decision
   exists to protect. No second alternative was in contention, so the ADR
   would have recorded one rejected option and no open trade-off.
-- `agent-plugins-1ao`, `agent-plugins-h6c`, `agent-plugins-47r`,
-  `agent-plugins-dgn`, `agent-plugins-6n4`, `agent-plugins-5nz` — remain
-  open and out-of-scope; each was confirmed neither regressed nor
-  silently absorbed. `47r` is `in_progress` (ADR-016 is
-  `ready-for-review`), which is its own lifecycle, not this feature's.
-- `agent-plugins-vg1` — **exists in the tracker** ("Populate
+- The parent, the index-schema ADR, the [[adr-016]] issue, the
+  edge-collection issue, the `work-order-template.md` issue and the
+  dangling-wikilinks issue — remain open and out-of-scope; each was
+  confirmed neither regressed nor silently absorbed. The [[adr-016]]
+  issue is `in_progress` (ADR-016 is `ready-for-review`), which is its
+  own lifecycle, not this feature's.
+- The `contracts_consumed` issue — **exists in the tracker** ("Populate
   `contracts_consumed` on the committed blueprints", open). The claim in
   the grooming that it does not exist was wrong; its out-of-scope
   classification is unchanged and correct.
-- `agent-plugins-55q` ("ADR: release and distribution of CLI binaries") —
-  open, and deliberately so. The BUILD delta (`agent-plugins-bge.13`)
+- "ADR: release and distribution of CLI binaries" —
+  open, and deliberately so. The BUILD delta
   pre-empted three of its five questions by shipping the answer: the
   platform/arch matrix, cross-compilation from one source, and GitHub
-  Releases as the channel. What `55q` still owns is the part BUILD did
+  Releases as the channel. What that ADR still owns is the part BUILD did
   not decide — how an agent session obtains the binary given that this
   repository is distributed by clone, and whether checksums or signing
   apply. It is a distribution-policy decision, not a gap in this feature,
-  and it blocks nothing here. Its sibling `agent-plugins-8i2` (`spec
-  --version` and version stamping) is open for the same reason.
-- Filed during implementation and left open: `agent-plugins-0i6`
-  (snapshot harness treats a missing expected artifact as "case carries
-  none"), `agent-plugins-8i2`, `agent-plugins-e0t` (no `version` on
-  `ContainerBlueprint`), `agent-plugins-3md` (AC-SPEC-006.7's declared
-  level unreachable). None blocks retirement.
+  and it blocks nothing here. Its sibling (`spec --version` and version
+  stamping) is open for the same reason.
+- Filed during implementation and left open: the snapshot harness
+  treats a missing expected artifact as "case carries none"; `spec
+  --version` and version stamping; no `version` on
+  `ContainerBlueprint`; AC-SPEC-006.7's declared level unreachable. None
+  blocks retirement.
 
 ## Sequencing Constraints
 
@@ -632,15 +631,15 @@ binary and distribution.
   component is removed) and is recorded here for folding into that
   blueprint at retirement; a standalone ADR is warranted only if a second
   profile reopens the question (its `kind: pattern` Open Question).
-- Cache invalidation is decided — **content hash** (`agent-plugins-igc`),
+- Cache invalidation is decided — **content hash**,
   pinned in the CACHE delta. The index-schema contract and its versioning
-  policy (`agent-plugins-h6c`) are deferred until a consumer exists and do
+  policy are deferred until a consumer exists and do
   not block this feature; if the index is promoted to a contract later,
   that decision is authored as an ADR then.
 
 ## Definition of Done
 
-Verified 2026-08-05 on `agent-plugins-bge.16`.
+Verified 2026-08-05.
 
 - [x] Every delta above is folded into its owning blueprint:
   - [x] [[module-document-core]] — Spans, Frontmatter, Schema Registry
@@ -659,8 +658,8 @@ Verified 2026-08-05 on `agent-plugins-bge.16`.
         index-schema decision. **`version` was not bumped**: the
         `ContainerBlueprint` schema declares no `version` property and
         sets `additionalProperties: false`, so this DoD clause is
-        unsatisfiable for a container as written (`agent-plugins-e0t`,
-        open). The other two bumps stand.
+        unsatisfiable for a container as written (an open issue). The
+        other two bumps stand.
 - [x] The IDX index model and the FIND finding model exist in `schemas/`
       (`index.strata`, `finding.strata`), generated artifacts are
       regenerated, and `scripts/generate-schemas.sh --check` passes.
@@ -673,7 +672,7 @@ Verified 2026-08-05 on `agent-plugins-bge.16`.
     unit test of `exitCodeFor`. No snapshot case can reach it: every
     finding constructor this sprint registers emits `error` or
     `unverified`, and none emits `warning`, so no corpus produces the
-    warning-only run the criterion describes (`agent-plugins-3md`, open).
+    warning-only run the criterion describes (an open issue).
   - The remaining 48 of 51 are cited at or above their declared level;
     no citation is orphaned.
 - [x] The profile self-application gate runs the built profile against
@@ -687,11 +686,11 @@ Verified 2026-08-05 on `agent-plugins-bge.16`.
 ## Open Questions
 
 None. Three questions raised during authoring are resolved or scoped out:
-the corpus artifact is named **index** (`SpecIndex`, `specs.json`;
-`agent-plugins-2l2`); cache staleness is detected by **content hash**
-(`agent-plugins-igc`); and promoting the emitted index to a **contract
+the corpus artifact is named **index** (`SpecIndex`, `specs.json`);
+cache staleness is detected by **content hash**; and promoting the emitted index to a **contract
 document** with a formal versioning policy is **deferred** until a
-consumer exists (`agent-plugins-h6c`) — a scope decision recorded in
+consumer exists — a scope decision
+ recorded in
 Contracts and Tracker Reconciliation, not a plannability gap.
 
 ## References

@@ -144,7 +144,7 @@ status: approved
 // but does not fit the document envelope: status carries an unfilled
 // placeholder, which is outside the status vocabulary.
 //
-// This is the real-world shape of the defect (agent-plugins-5xo), not a
+// This is the real-world shape of the defect, not a
 // contrived one: the spec skill instructs an author to copy a template
 // and then to run `specs check`, so a document with a placeholder still
 // in it is exactly what that second step sees.
@@ -499,7 +499,7 @@ func TestCheckOutputIsDeterministic(t *testing.T) {
 
 // AC: AC-SPEC-003.6
 //
-// The regression test for agent-plugins-5xo. Before the fix, Check
+// The regression test for parse-error members. Before the fix, Check
 // skipped every entry with no parsed frontmatter, so this corpus
 // produced zero findings and every rule reported `passed` — the worst
 // document in a corpus was the one the checker was guaranteed to be
@@ -1425,7 +1425,7 @@ func TestCheckForReportsTheNamedDocumentsReferenceFindingsAsACorpusCheckDoes(t *
 }
 
 // A path that names no corpus member is an error, never a report with no
-// findings — the vacuous success agent-plugins-ltd is about. The index
+// findings — a vacuous success. The index
 // already distinguishes a candidate it excluded, with the reason, from a
 // path discovery never saw, and both are reported as such.
 //

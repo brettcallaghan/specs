@@ -49,7 +49,6 @@ sh_run "template-drift" 'scripts/check-template-drift.py'
 # --- the Spec CLI against this repository's own documents ------------------
 sh_run "corpus"        'cd cli && go build -o ../build/specs ./specs && cd .. && build/specs check --strict'
 sh_run "cli-conformance-table" 'scripts/check-cli-conformance-table.py'
-sh_run "rfc-queue"     'build/specs check --config rfcs/specs.toml --only frontmatter/parse,frontmatter/schema,frontmatter/missing-property,slug/pattern-mismatch'
 
 # --- generated artifacts (need a local strata build; each SKIPs without one)
 sh_run "strata-docs"   'scripts/sync-strata-docs.sh --check'

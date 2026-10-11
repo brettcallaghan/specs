@@ -147,7 +147,7 @@ func corpusOptions(cfg *Config, configPath string) (corpus.Options, error) {
 // only `specs index` ever wrote the artifact, so a workflow of checks and
 // queries rebuilt from scratch every invocation and the warm path the
 // FEAT-SPEC-009 budgets are stated against was never reached by the
-// commands those budgets are about (`agent-plugins-9ur`).
+// commands those budgets are about.
 //
 // Writing is best-effort and its failure is discarded on purpose. A
 // read-only checkout, a race with a concurrent writer, a full disk: none

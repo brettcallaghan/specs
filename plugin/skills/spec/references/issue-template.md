@@ -14,7 +14,9 @@ updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 findings: []                         # finding ids, e.g. ["92u#2", "1ilc.7#1"]
 recurrence: 0                        # prior runs in the window carrying an
                                      # UNFILED finding of this kind and target
-report: <path>                       # the run report carrying those findings
+report: <path>                       # OPTIONAL — the kept run report carrying
+                                     # those findings; omit when the report was
+                                     # presented in-session only
 
 # Provenance — who and what produced this
 run: <run id>                        # the sprint run epic; absent for a solo retro
@@ -30,7 +32,7 @@ model: <model that produced the findings>   # load-bearing; never omit
 
 <!--
 Template: Issue
-Version: 1.0
+Version: 1.1
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]]. The findings this issue cites are
   captured per [[findings-capture-protocol]].
@@ -47,8 +49,10 @@ Purpose
   to decide inside it, and forces its own bookkeeping to count in a
   different unit than it files in.
 
-  An issue is produced by a retro (from that run's own findings) or arrives
-  from a project reporting one. Both use this template unchanged.
+  An issue is produced by a retro (from that run's own findings), is a bug
+  report from someone who hit a defect, or arrives from a project reporting
+  one. All use this template unchanged. A retro presents its issues to the
+  user as candidates, and only the ones the user chooses are filed.
 
 Which audience — apply the merge test
   Findings and the issues built from them serve two audiences, and the
@@ -60,12 +64,20 @@ Which audience — apply the merge test
       - In this project's own repository  -> audience: project
       - In the repository that vends the skill -> audience: skill
 
-  `audience: project` renders straight into the project's own tracker.
-  `audience: skill` is written to `outbox/<plugin>/<target>/` — `<plugin>`
-  being the plugin that vends the skill — for delivery to the repository
-  that vends it, and is NEVER filed in the reporting
-  project's own backlog — a project must not accumulate issues it cannot
-  act on. Same fields, two encodings; it is one template.
+  `audience: project` is filed in the project's own tracker — a bead where
+  the project uses beads. `audience: skill` goes to the repository that
+  vends the skill, by the first of these that applies unless the user
+  picks another:
+    - this project vends it      -> a bead in this project's tracker
+    - the vendor takes issues the session can file -> an issue there
+      (e.g. a GitHub issue on the vendor's repository)
+    - otherwise -> a standalone Markdown file written OUTSIDE source
+      control and handed to the user to carry to the vendor
+  An `audience: skill` issue about a skill this project does not vend is
+  NEVER filed in the reporting project's own backlog — a project must not
+  accumulate issues it cannot act on. No issue is ever committed to a
+  repository as a file: the tracker holds it. Same fields, every
+  destination; it is one template.
 
 Non-corpus: no `type` frontmatter property
   Like a work order, an issue materializes into a tracker record and stops

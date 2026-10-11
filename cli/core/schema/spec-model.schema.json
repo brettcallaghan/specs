@@ -1498,7 +1498,6 @@
         "module-blueprint",
         "component-blueprint",
         "feature-blueprint",
-        "rfc",
         "guide"
       ],
       "type": "string"
@@ -1670,7 +1669,7 @@
           "description": "The FRD this blueprint realizes, one to one.\n\nA feature blueprint answers how the system changes; the FRD it names\nanswers what the change must achieve. Singular and required, so the\none-to-one relationship is expressible in the schema rather than only\nin this comment, and named `frd` rather than `sources` so that one\nproperty name does not span two relationships — `Frd.sources` is\noptional, many-valued provenance, which is a different edge."
         },
         "plan": {
-          "description": "Where this feature's implementation plan lives, stamped in by the\ngroom-feature-blueprint skill once grooming serializes the plan:\nan epic id (`agent-plugins-bge`) when the plan is beads, or a\nrepository-relative directory (`plans/<feature-slug>/`) when it is\ntask files. Absent before grooming, since an ungroomed blueprint has\nno plan yet; present through `retired`, since the pointer retires\nwith the document rather than being cleared.",
+          "description": "Where this feature's implementation plan lives, stamped in by the\ngroom-feature-blueprint skill once grooming serializes the plan:\nan epic id (`bd-a3f8`) when the plan is beads, or a\nrepository-relative directory (`plans/<feature-slug>/`) when it is\ntask files. Absent before grooming, since an ungroomed blueprint has\nno plan yet; present through `retired`, since the pointer retires\nwith the document rather than being cleared.",
           "type": [
             "string",
             "null"
@@ -3983,107 +3982,6 @@
       "properties": {},
       "type": "object"
     },
-    "Rfc": {
-      "additionalProperties": false,
-      "description": "An improvement proposal raised against a skill by a run that exercised\nit.\n\nThe provenance properties below are the load-bearing part. A skill\nbehaves differently under different models, efforts and harnesses, so a\ndefect real under one may not reproduce under another, and triage cannot\nscope a fix without knowing which run saw it. They are recorded\nfaithfully by the retro that raises the RFC and judged by the triage\nthat receives it — the two roles are deliberately separate.",
-      "properties": {
-        "description": {
-          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
-          "type": "string"
-        },
-        "effort": {
-          "description": "The reasoning effort the run used.\n\nLeft unconstrained because the effort vocabulary belongs to the\nharness rather than to this framework, and `unknown` is a legitimate\nvalue when a transcript does not record it.",
-          "type": "string"
-        },
-        "model": {
-          "description": "The exact model identifier the run used — not a family name. A finding\nthat reproduces under one model and not another is scoped by this\nproperty alone.",
-          "type": "string"
-        },
-        "origin": {
-          "description": "Where the run happened: `self` when this repository critiqued its own\nskill, otherwise the name of the project the run took place in.",
-          "type": "string"
-        },
-        "plugin_version": {
-          "description": "The plugin version the critiqued skill shipped in.",
-          "type": "string"
-        },
-        "runs_observed": {
-          "description": "How many runs stand behind the evidence.\n\nThis is the denominator for any claim about recurrence: an RFC may not\nassert more recurrence than it observed.",
-          "maximum": 9007199254740991,
-          "minimum": 1,
-          "type": "integer"
-        },
-        "severity": {
-          "$ref": "#/definitions/RfcSeverity",
-          "description": "The highest severity among this RFC's proposals."
-        },
-        "skill": {
-          "description": "The skill this RFC critiques.",
-          "type": "string"
-        },
-        "skill_version": {
-          "description": "The version recorded in the critiqued skill's own frontmatter at the\ntime of the run, so triage can tell whether a defect has already been\nfixed since.",
-          "type": "string"
-        },
-        "slug": {
-          "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
-        },
-        "status": {
-          "$ref": "#/definitions/Status",
-          "description": "The document's lifecycle state."
-        },
-        "superseded_by": {
-          "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
-          "oneOf": [
-            {
-              "$ref": "#/definitions/Citation"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "tags": {
-          "description": "Free-form tags for filtering and search.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "title": {
-          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand. It\ncarries no type label — `type` says what the document is — except\nthat an ADR's title leads with its number, `ADR-011: …`, because the\nnumber is how an ADR is cited.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "description",
-        "slug",
-        "title",
-        "status",
-        "origin",
-        "skill",
-        "skill_version",
-        "model",
-        "effort",
-        "runs_observed",
-        "severity",
-        "plugin_version"
-      ],
-      "type": "object"
-    },
-    "RfcSeverity": {
-      "description": "How badly a run was impeded by the skill an RFC critiques.\n\nAn RFC carries the highest severity among its proposals, so that triage\ncan rank a queue without opening every document.",
-      "enum": [
-        "blocker",
-        "snag",
-        "polish"
-      ],
-      "type": "string"
-    },
     "RuleId": {
       "description": "The identifier of one check, stable across releases.\n\nEvery finding names the rule that raised it, and the run report accounts\nfor every rule it knows about, so the identifier is the join between the\ntwo: a caller naming a subset of checks to run names them by these\nvalues, and reads the outcome of each back under the same value.\n\nIdentifiers are namespaced kebab-case — `slug/pattern-mismatch`,\n`frontmatter/missing-property` — so the family a check belongs to is\nlegible without a lookup table. The shape is stated rather than\nconstrained because a Strata regex literal cannot contain a forward\nslash.",
       "type": "string"
@@ -5031,88 +4929,6 @@
             "status",
             "delivery",
             "frd"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "description": {
-              "type": "string"
-            },
-            "effort": {
-              "type": "string"
-            },
-            "model": {
-              "type": "string"
-            },
-            "origin": {
-              "type": "string"
-            },
-            "plugin_version": {
-              "type": "string"
-            },
-            "runs_observed": {
-              "maximum": 9007199254740991,
-              "minimum": 1,
-              "type": "integer"
-            },
-            "severity": {
-              "$ref": "#/definitions/RfcSeverity"
-            },
-            "skill": {
-              "type": "string"
-            },
-            "skill_version": {
-              "type": "string"
-            },
-            "slug": {
-              "$ref": "#/definitions/Slug"
-            },
-            "status": {
-              "$ref": "#/definitions/Status"
-            },
-            "superseded_by": {
-              "oneOf": [
-                {
-                  "$ref": "#/definitions/Citation"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "tags": {
-              "items": {
-                "type": "string"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
-            "title": {
-              "type": "string"
-            },
-            "type": {
-              "const": "rfc",
-              "type": "string"
-            }
-          },
-          "required": [
-            "type",
-            "description",
-            "slug",
-            "title",
-            "status",
-            "origin",
-            "skill",
-            "skill_version",
-            "model",
-            "effort",
-            "runs_observed",
-            "severity",
-            "plugin_version"
           ],
           "type": "object"
         },

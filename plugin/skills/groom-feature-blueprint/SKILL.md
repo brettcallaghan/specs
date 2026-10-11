@@ -7,7 +7,7 @@ description: Translate an approved feature blueprint and its FRD into an
   guessing. Use when a feature blueprint is ready for implementation
   planning, or when asked to groom, decompose, or plan a specified
   feature.
-version: "1.5"
+version: "1.6"
 ---
 
 # Groom Feature Blueprint
@@ -177,8 +177,9 @@ Deriving them here would fork routing logic that must live in one place.
   feature's items. Implementation is the phase that finally exercises
   the work orders, so this is where their quality becomes evidence.
   The approved plan is the standing authorization for this retro (no
-  further prompt needed); the RFCs it produces remain human-gated at
-  review.
+  further prompt needed); the issues it raises remain human-gated —
+  with no human to choose, it files none and records its report on
+  this item.
 
 **Dependencies:**
 
@@ -230,7 +231,7 @@ inputs produce identical graphs:
   Before closing this item, record retro findings on this issue —
   one `bd comment` per finding, prefixed `retro:`, 1-3 sentences.
   Friction only: what happened plus the item or spec text that caused
-  it (or the gap where guidance was missing). No analysis, no RFCs —
+  it (or the gap where guidance was missing). No analysis, no issues —
   the plan's final DoD item runs the aggregated retro. A clean item
   records none; say so rather than inventing filler.
   ```
@@ -287,7 +288,7 @@ verify: [unit]          # levels from the AC Coverage table
   them to a `## Retro findings` section at the end of this file —
   one bullet per finding, 1-3 sentences. Friction only: what happened
   plus the item or spec text that caused it (or the gap where
-  guidance was missing). No analysis, no RFCs — the plan's final DoD
+  guidance was missing). No analysis, no issues — the plan's final DoD
   item runs the aggregated retro. A clean item records none; say so
   rather than inventing filler.
   ```

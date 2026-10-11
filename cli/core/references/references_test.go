@@ -672,7 +672,7 @@ var _ span.Span = specmodel.Reference{}.Span
 // The index's entries carry each document's typed frontmatter values but
 // not their positions, which a reference needs. Reading one through an
 // entry would lose them, so this package reads the parsed block instead — enforced here rather
-// than left to review (agent-plugins-gz3).
+// than left to review.
 func TestExtractionReadsNoIndexEntry(t *testing.T) {
 	const forbidden = "github.com/brettcallaghan/specs/cli/core/specindex"
 

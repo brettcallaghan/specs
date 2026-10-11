@@ -167,8 +167,9 @@ func (t targets) resolve(slug string) specmodel.ReferenceResolution {
 }
 
 // numberedSlug matches a numbered slug form: hyphen-separated lowercase
-// segments whose last is all digits — `adr-012`, `rfc-0001`. It is
-// lexical, so resolution stays a function of the index alone.
+// segments whose last is all digits — `adr-012`, or `ticket-0001` under
+// a profile that numbers a ticket type. It is lexical, so resolution
+// stays a function of the index alone.
 var numberedSlug = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*-[0-9]+$`)
 
 // lookupKey normalizes a slug for comparison: trimmed of surrounding

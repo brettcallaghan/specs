@@ -190,8 +190,8 @@ references. Making it an explicit frontmatter property is planned.
 | **`spec`** | Authors every document type above from the framework's templates, writing acceptance criteria in Gherkin, other requirements in [EARS](https://alistairmavin.com/ears/), and architecture in the C4 model. Picks the right type for what you're describing and refuses to invent new ones. Runs readiness checklists before anything is handed to a reviewer. |
 | **`groom-feature-blueprint`** | The boundary between the human specification loop and autonomous execution. Gates on an approved blueprint with no open questions, then decomposes its deltas into a graph of work orders carrying AC coverage and a definition of done. A quality firewall: a blueprint it can't plan mechanically gets sent back, not guessed at. |
 | **`groom-beads`** | The Definition of Ready engine for the beads backend. Materializes work orders as beads, wires the dependency graph, assigns each a capability tier, validates the result, and previews execution waves. The north star: a fresh sub-agent with zero context can open `bd show <id>` and finish the job without asking anyone anything. |
-| **`retro-spec`** | Retrospective on the *documents* a completed phase consumed. A spec's quality is only observable through its consumers, so this runs after a downstream phase has exercised it, and argues from that evidence into improvement RFCs for your own specs. |
-| **`retro-skill`** | Retrospective on the *skill* an agent just ran. Cites the exact instruction that misled, names the script that failed, records the model that ran it — and produces an RFC against the skill itself. This is how the framework improves. |
+| **`retro-spec`** | Retrospective on the *documents* a completed phase consumed. A spec's quality is only observable through its consumers, so this runs after a downstream phase has exercised it, and argues from that evidence to a ranked list of issues against your own specs. You choose which to file. |
+| **`retro-skill`** | Retrospective on the *skill* an agent just ran. Cites the exact instruction that misled, names the script that failed, records the model that ran it — and ranks issues against the skill for you to file with whoever vends it: a bead, a GitHub issue, or a Markdown file to hand over. This is how the framework improves. |
 
 ---
 
@@ -221,8 +221,9 @@ PR.
 
 **6. Retro.** When a phase struggled, run `/retro-spec` on the documents
 it consumed, or `/retro-skill` on the skill that guided it. The friction
-is only visible while the session is fresh — and it is the raw material
-for making the next run better.
+is only visible while the session is fresh. The retro reports back in
+the session with a ranked list of issues; you pick which to file, and
+nothing else is kept.
 
 ---
 
@@ -293,7 +294,7 @@ alone is visible rather than averaged away.
 | Test layer | Statements covered | Coverage |
 |:---|---:|---:|
 | Unit tests | 4,959 / 5,847 | 84.8% |
-| Snapshot cases | 4,455 / 5,847 | 76.2% |
+| Snapshot cases | 4,454 / 5,847 | 76.2% |
 | End-to-end (built binary) | 2,578 / 5,847 | 44.1% |
 | **All layers combined** | **5,345 / 5,847** | **91.4%** |
 
@@ -320,7 +321,7 @@ alone is visible rather than averaged away.
 | `cli/specs` | 1 | 1 | 100.0% |
 | **Total** | **5,847** | **5,345** | **91.4%** |
 
-Generated code is excluded from these figures: 3,321 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
+Generated code is excluded from these figures: 3,235 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
 <!-- coverage:table:end -->
 
 CI regenerates this and fails if it is stale
@@ -338,7 +339,6 @@ trust.
 | `specs/` | This repository's own specs — the framework applied to itself |
 | `cli/` | The `specs` CLI (Go) |
 | `schemas/` | [Strata](https://github.com/strata-lang/strata) schema sources for frontmatter, findings, the index, and the profile |
-| `rfcs/` | Improvement RFCs: `inbox/` received, `outbox/` sent, `retired/` resolved |
 
 The framework specifies itself. The FRDs, ADRs, blueprints and standards
 under `specs/` are the ones that produced the CLI in `cli/` — which is

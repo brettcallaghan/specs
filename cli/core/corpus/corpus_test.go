@@ -5,7 +5,7 @@
 // generated model rather than a choice: `specmodel.DocumentFrontmatter`
 // types its `type` property as the closed `DocumentType` vocabulary, so
 // a document declaring a type outside it cannot decode into an index
-// entry at all (agent-plugins-9jo tracks that coupling). Nothing in the
+// entry at all. Nothing in the
 // package under test names a document type — the extension point's own
 // source scan in profile_test.go is what enforces that — so the host
 // stays framework-agnostic whatever this fixture happens to register.

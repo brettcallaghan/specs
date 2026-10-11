@@ -5,7 +5,6 @@
 - [Slug](#slug)
 - [Citation](#citation)
 - [DocumentType](#documenttype)
-- [RfcSeverity](#rfcseverity)
 - [Status](#status)
 - [Visibility](#visibility)
 - [BlueprintKind](#blueprintkind)
@@ -70,24 +69,7 @@ being checked against the wrong rules.
 | ModuleBlueprint | "module-blueprint" | A C4 module blueprint: a coherent unit of code with its own interface. |
 | ComponentBlueprint | "component-blueprint" | A C4 component blueprint: a single component promoted to its own document. |
 | FeatureBlueprint | "feature-blueprint" | A transient change document describing how the system changes to deliver one feature. |
-| Rfc | "rfc" | An improvement proposal raised against a skill by a run that exercised it. |
 | Guide | "guide" | A how-to document explaining a technique the other document types assume. |
-
-
-## RfcSeverity
-
-How badly a run was impeded by the skill an RFC critiques.
-
-An RFC carries the highest severity among its proposals, so that triage
-can rank a queue without opening every document.
-
-**Value Type:** String
-
-| Name | Value | Documentation |
-|------|-------|---------------|
-| Blocker | "blocker" | Forced an unscripted improvisation, or the skill as written produced a wrong result. |
-| Snag | "snag" | The skill was silent on a decision that materially changed the outcome. |
-| Polish | "polish" | It worked, but a change would make the next run clearer, faster, or safer. |
 
 
 ## Status

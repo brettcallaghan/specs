@@ -738,7 +738,7 @@ is what makes AC-SPEC-010.5's own example — "run twice in a row reads
 `index`. Until they did, only `index` ever created the artifact, and
 since nothing instructs an author to run it, every check and query in
 practice rebuilt from cold and the warm path the FEAT-SPEC-009 budgets
-are stated against went unreached (`agent-plugins-9ur`). That write is
+are stated against went unreached. That write is
 best-effort and its failure is discarded: a read-only checkout or a race
 with a concurrent writer makes the answer no less correct, and a query
 that failed because it could not refresh a cache would be a worse tool
@@ -882,13 +882,12 @@ does not apply to a compiled binary.
       Catalogue. That makes it a contract by this framework's own filing
       rule, but no contract document exists yet. It is deferred to the
       index-schema ADR, which also has to settle whether references are
-      modelled as object properties or as a separate edge collection
-      (`agent-plugins-dgn`). Decide whether the contract is authored
+      modelled as object properties or as a separate edge collection.
+      Decide whether the contract is authored
       alongside that ADR or before it.
 
       **Decided, in part.** Promotion to a contract document, with a
-      formal versioning policy, is **deferred to `agent-plugins-h6c`**
-      and waits on a consumer or catalogue that actually exists. Until
+      formal versioning policy, is **deferred** and waits on a consumer or catalogue that actually exists. Until
       one does, the generated JSON Schema for `SpecIndex` — emitted from
       `schemas/index.strata` with every other model — is the index's
       machine-readable specification, and it is the only consumer-facing
@@ -911,7 +910,8 @@ does not apply to a compiled binary.
       until the version says otherwise. It is deliberately weaker than a
       contract — nothing here says how long 1.0 is supported, or what a
       consumer is owed on a bump — and closing that gap is exactly what
-      `agent-plugins-h6c` is for.
+      the deferred contract is for.
+
 - [ ] Whether the CLI ships a `serve` mode holding the index in memory
       across queries. Not required — FEAT-SPEC-009.1 states a latency
       target, not a gate, and the warm path holds it on a quiet machine —

@@ -45,30 +45,6 @@ const Name = "specs"
 // codepoints per that same standard.
 const defaultLineWidth = 80
 
-// documentTypes is the authored half of the per-type table: a slug
-// pattern and whether the type is numbered, for every value in the
-// DocumentType vocabulary. It carries no schema —
-// DocumentTypeRegistration.schema in cli/core/specmodel is left
-// unpopulated, since the one union schema this profile embeds already
-// covers every type. It carries no reference registration either: that
-// half is derived from the same schema, in registration.go, and the two
-// are joined by [registeredTypes] — which is what [New] returns.
-//
-// Patterns are grounded in this repository's own corpus rather than
-// restated from the prefix registry in template-authoring-standards.md,
-// because the registry and this repository's actual documents disagree
-// on guides: the registry has no row for this type at all. Of this
-// repository's four guide documents, two are prefixed guide- and two are
-// not (work-order-field-guide.md, in two copies). The pattern here is
-// accordingly the type's least restrictive form: any kebab-case slug.
-//
-// RFCs mix two identifier schemes: a numbered form (rfc-0007) and the
-// self-critique form the retro skills author, with no number at all
-// (rfc-self-greenfield-anchors-and-split-numbering). Because a
-// meaningful share of real RFC slugs carry no number, Numbered is false
-// here — a "highest number in use" query would silently ignore every
-// self- document, which is worse than not offering next-id for the
-// type.
 // featureIDPattern and criterionIDPattern are this framework's Gherkin
 // identifier patterns (specs/standards/gherkin-guide.md, AC-GHK-002.1,
 // AC-GHK-002.3).
@@ -116,6 +92,23 @@ var featureTags = corpus.FeatureTagRules{
 	},
 }
 
+// documentTypes is the authored half of the per-type table: a slug
+// pattern and whether the type is numbered, for every value in the
+// DocumentType vocabulary. It carries no schema —
+// DocumentTypeRegistration.schema in cli/core/specmodel is left
+// unpopulated, since the one union schema this profile embeds already
+// covers every type. It carries no reference registration either: that
+// half is derived from the same schema, in registration.go, and the two
+// are joined by [registeredTypes] — which is what [New] returns.
+//
+// Patterns are grounded in this repository's own corpus rather than
+// restated from the prefix registry in template-authoring-standards.md,
+// because the registry and this repository's actual documents disagree
+// on guides: the registry has no row for this type at all, and this
+// repository's guides do not consistently carry a guide- prefix
+// (work-order-field-guide and spec-cli-reference do not). The pattern
+// here is accordingly the type's least restrictive form: any kebab-case
+// slug.
 var documentTypes = map[string]corpus.DocumentTypeRules{
 	string(specmodel.DocumentTypeAdr): {
 		SlugPattern: `^adr-[0-9]{3,}(-[a-z0-9]+(-[a-z0-9]+)*)?$`,
@@ -153,9 +146,6 @@ var documentTypes = map[string]corpus.DocumentTypeRules{
 	},
 	string(specmodel.DocumentTypeFeatureBlueprint): {
 		SlugPattern: `^feature-[a-z0-9]+(-[a-z0-9]+)*$`,
-	},
-	string(specmodel.DocumentTypeRfc): {
-		SlugPattern: `^rfc-([0-9]{4}(-[a-z0-9]+(-[a-z0-9]+)*)?|self-[a-z0-9]+(-[a-z0-9]+)*)$`,
 	},
 	string(specmodel.DocumentTypeGuide): {
 		SlugPattern: `^[a-z0-9]+(-[a-z0-9]+)*$`,

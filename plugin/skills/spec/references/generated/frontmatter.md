@@ -15,7 +15,6 @@
 - [ModuleBlueprint](#moduleblueprint)
 - [ComponentBlueprint](#componentblueprint)
 - [FeatureBlueprint](#featureblueprint)
-- [Rfc](#rfc)
 - [Guide](#guide)
 - [TypedFrontmatter](#typedfrontmatter)
 
@@ -270,34 +269,8 @@ that must agree.
 | Property | Type | Documentation |
 |----------|------|---------------|
 | delivery | [Delivery](vocabulary.md#delivery) | The delivery unit grooming plans against. When `staged`, each stage boundary is enumerated in the blueprint's Sequencing Constraints. |
-| plan | String? | Where this feature's implementation plan lives, stamped in by the groom-feature-blueprint skill once grooming serializes the plan: an epic id (`agent-plugins-bge`) when the plan is beads, or a repository-relative directory (`plans/<feature-slug>/`) when it is task files. Absent before grooming, since an ungroomed blueprint has no plan yet; present through `retired`, since the pointer retires with the document rather than being cleared. |
+| plan | String? | Where this feature's implementation plan lives, stamped in by the groom-feature-blueprint skill once grooming serializes the plan: an epic id (`bd-a3f8`) when the plan is beads, or a repository-relative directory (`plans/<feature-slug>/`) when it is task files. Absent before grooming, since an ungroomed blueprint has no plan yet; present through `retired`, since the pointer retires with the document rather than being cleared. |
 | frd | [Citation](vocabulary.md#citation) | The FRD this blueprint realizes, one to one.<br><br>A feature blueprint answers how the system changes; the FRD it names answers what the change must achieve. Singular and required, so the one-to-one relationship is expressible in the schema rather than only in this comment, and named `frd` rather than `sources` so that one property name does not span two relationships — `Frd.sources` is optional, many-valued provenance, which is a different edge. |
-
-
-## Rfc
-
-An improvement proposal raised against a skill by a run that exercised
-it.
-
-The provenance properties below are the load-bearing part. A skill
-behaves differently under different models, efforts and harnesses, so a
-defect real under one may not reproduce under another, and triage cannot
-scope a fix without knowing which run saw it. They are recorded
-faithfully by the retro that raises the RFC and judged by the triage
-that receives it — the two roles are deliberately separate.
-
-**Inherits from:** [DocumentFrontmatter](#documentfrontmatter)
-
-| Property | Type | Documentation |
-|----------|------|---------------|
-| origin | String | Where the run happened: `self` when this repository critiqued its own skill, otherwise the name of the project the run took place in. |
-| skill | String | The skill this RFC critiques. |
-| skill_version | String | The version recorded in the critiqued skill's own frontmatter at the time of the run, so triage can tell whether a defect has already been fixed since. |
-| model | String | The exact model identifier the run used — not a family name. A finding that reproduces under one model and not another is scoped by this property alone. |
-| effort | String | The reasoning effort the run used.<br><br>Left unconstrained because the effort vocabulary belongs to the harness rather than to this framework, and `unknown` is a legitimate value when a transcript does not record it. |
-| runs_observed | UInt ≥ 1 | How many runs stand behind the evidence.<br><br>This is the denominator for any claim about recurrence: an RFC may not assert more recurrence than it observed.<br><br>__Constraint:__ Values must be ≥ 1. |
-| severity | [RfcSeverity](vocabulary.md#rfcseverity) | The highest severity among this RFC's proposals. |
-| plugin_version | String | The plugin version the critiqued skill shipped in. |
 
 
 ## Guide
@@ -345,7 +318,6 @@ The tag values are the `DocumentType` vocabulary, one variant per value.
 | "module-blueprint" | [ModuleBlueprint](#moduleblueprint) |  |
 | "component-blueprint" | [ComponentBlueprint](#componentblueprint) |  |
 | "feature-blueprint" | [FeatureBlueprint](#featureblueprint) |  |
-| "rfc" | [Rfc](#rfc) |  |
 | "guide" | [Guide](#guide) |  |
 
 
