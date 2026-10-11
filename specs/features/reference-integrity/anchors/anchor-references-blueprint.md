@@ -8,7 +8,6 @@ type: feature-blueprint
 status: retired
 delivery: staged
 frd: frd-spec-anchor-references
-plan: agent-plugins-rc14
 ---
 
 # Spec Corpus Anchor References
@@ -220,16 +219,16 @@ cases under `cli/testdata/cases/`.
 
 ## Tracker Reconciliation
 
-- `agent-plugins-bem` — prerequisite: the relational reference checks
+- Prerequisite: the issue that the relational reference checks
   read documents off disk on the warm single-document path, which is the
   path CHK extends with per-reference heading lookups. Landing anchor
   checks on top of it compounds a budget defect rather than inheriting
   it.
-- `agent-plugins-z8r` — out-of-scope: whether a retired document is
+- Out-of-scope: whether a retired document is
   exempt from reference checks is a policy question for reference checks
   as a whole. The anchor checks follow whatever that decides and
   introduce no exemption of their own.
-- `agent-plugins-im99` — out-of-scope: the feature-blueprint template's
+- Out-of-scope: the issue that the feature-blueprint template's
   slug rule contradicts the profile. This document follows the profile's
   registered pattern; the template fix is not this feature's to make.
 
@@ -357,9 +356,10 @@ checks in `Corpus`; CMD = Command Surface in [[container-spec-cli]].
   (003.1), `check-path-anchor-elsewhere` (003.2), `refs-anchor-no-match`
   (003.3), `refs-anchor-ambiguous` (003.4)
 - [x] Every issue listed as subsumed in Tracker Reconciliation is closed
-  or re-scoped (none; `agent-plugins-bem` closed as the prerequisite it
-  was, and `agent-plugins-z8r` — deferred — and `agent-plugins-im99` —
-  open — remain out-of-scope, neither touched by this feature)
+  or re-scoped (none; the prerequisite closed as such, and the
+  retired-document exemption question — deferred — and the template slug
+  rule — open — remain out-of-scope, neither touched by this feature)
+
 - [x] [[frd-spec-markdown-links]]'s revised fragment criteria are
   verified by the MDL delta's tests, since this feature is what makes
   them true — AC-SPECMD-001.3 by

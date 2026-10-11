@@ -30,8 +30,9 @@ The index is `SpecIndex`, declared in `schemas/index.strata` and
 generated per [[adr-016]]; today it carries `entries` and `exclusions`
 and nothing else. Two constraints bear on the shape. AC-SPEC-002.3 gives
 every entry a workspace identifier precisely so that indexes emitted by
-separate repositories merge into one graph, and `agent-plugins-dgn`
-raised — during review of [[frd-spec-index]], and explicitly as
+separate repositories merge into one graph, and it was
+raised — during review
+ of [[frd-spec-index]], and explicitly as
 architectural input for later — that references occurring inside
 document bodies behave like edges rather than like members of the
 objects they connect. Separately, [[container-spec-cli]] pins the index

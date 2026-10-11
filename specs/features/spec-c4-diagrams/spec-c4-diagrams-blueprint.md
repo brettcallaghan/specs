@@ -10,7 +10,6 @@ type: feature-blueprint
 status: retired
 delivery: staged
 frd: frd-spec-c4-diagrams
-plan: specs-c4s2
 ---
 
 # C4 Diagram Conformance
@@ -433,22 +432,21 @@ document.
 
 ## Tracker Reconciliation
 
-- `specs-f6tl.5` — prerequisite: the record-block tag
+- Prerequisite: the record-block tag
   registration point. XPT validates the roster tag against the
   registered tags and ELEM reads roster blocks by one; neither can land
   before this does.
-- `specs-f6tl.6` — prerequisite: recording record blocks against
+- Prerequisite: recording record blocks against
   their heading, and the decoding function ELEM uses. Without it no
   un-promoted component is an element, and every component node on this
   repository's diagrams is undeclared.
-- `agent-plugins-7os0` — subsumed by the DOC delta, which amends
+- Subsumed by the DOC delta, which amends
   [[c4-standards]] and the four templates exactly as that issue
   describes.
-- `agent-plugins-gz3` — prerequisite, already met: the index carries
-  per-type frontmatter since the change that closed
-  `agent-plugins-23f1`. It blocks nothing; this feature does not close
+- Prerequisite, already met: the index carries
+  per-type frontmatter. It blocks nothing; this feature does not close
   it.
-- `agent-plugins-4me` — out-of-scope: stale `c4-guide.md` paths under
+- Out-of-scope: stale `c4-guide.md` paths under
   `specs/features/`. This feature adds no such path and fixes none.
 
 ## Sequencing Constraints
@@ -456,8 +454,8 @@ document.
 - Delivery is staged. Stage 1 is PARSE and FIND, which depend on
   nothing outside this blueprint, add no rule to `checkRules` and change
   no output. Stage 2 is XPT, PREG, ELEM, DRAW, CHKN, CHKR and DOC.
-- Stage 2 SHALL NOT begin until `specs-f6tl.5`,
-  `specs-f6tl.6`, and the registration of the `component`
+- Stage 2 SHALL NOT begin until the record-block tag registration
+  point, heading-scoped record blocks, and the registration of the `component`
   record-block tag that FEAT-SPECSTR-004 of
   [[frd-spec-structure-conformance]] specifies, have landed. No work
   order for that registration exists yet.
@@ -539,7 +537,8 @@ Corpus delta (relationship and tag checks); DOC = Documentation delta.
       and cited from its tests per [[ac-traceability-standards]]
 - [x] `scripts/coverage.sh` has been run from the repository root and
       the README diff committed, since `cli/**` changed
-- [x] `agent-plugins-7os0` is closed
+- [x] The issue subsumed by the DOC delta is closed
+
 - [x] This blueprint's status → retired
 
 ## Open Questions

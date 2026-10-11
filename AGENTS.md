@@ -86,7 +86,7 @@ a ledger entry is admitted.
 
 ### Why the ledger rule alone did not bind
 
-The ledger has required evidence throughout, and run `agent-plugins-so39`
+The ledger has required evidence throughout, and one sprint run
 violated it four times while correcting three other documents for exactly
 this defect. Four structural reasons, each a thing to fix rather than a thing
 to try harder at:
@@ -127,11 +127,10 @@ the point of use narrows the gap. It does not close it.
 - **"`--set-metadata` stores every value as a string"** — false. Measured on
   bd 1.2.2: `num=5` → number, `b=true` → boolean, `f=1.5` → number,
   `n=null` → null; only arrays, objects and non-numeric text are stored as
-  strings. Installed by `agent-plugins-4tjk`, which was removing a different
+  strings. Installed by a change that was removing a different
   false claim — "`bd update --metadata` replaces the entire metadata object";
   measured, it merges at the **top level** and replaces a **nested** value
-  wholesale. The false universal survives in `capability-tier.md`
-  (`agent-plugins-so39.5`, deferred).
+  wholesale. The false universal survives in `capability-tier.md`.
 
 - **`sync_dir`'s `rm -rf "$dest"` attributed to
   `scripts/sync-shared-references.sh`** in a dispatch prompt, with an argument
@@ -152,8 +151,8 @@ the point of use narrows the gap. It does not close it.
 
 - **`printf … | grep -qxF` under `set -o pipefail`** in this repository's own
   orphan guard, in `scripts/sync-shared-references.sh` — the trap
-  "Pipes hide exit statuses" above already names. Measured by
-  `agent-plugins-b9ft`: 2 failures in 30 `--check` runs on an unchanged tree,
+  "Pipes hide exit statuses" above already names. Measured:
+  2 failures in 30 `--check` runs on an unchanged tree,
   herestring control 100/100 clean. Intermittent by construction — a
   three-line reproduction (`printf '%s\n' a b c | grep -qxF a`) exits 0, so
   failing to trigger it is not evidence against it.
@@ -273,8 +272,7 @@ scope for this run's beads" tells a future reader nothing they can act on.
   hint.** A closure already committed to the local database is not lost; the
   repository's `Stop` hook (`.claude/hooks/dolt-push.sh`) is the documented
   pusher, and in a swarm run tracker durability is the coordinator's.
-  Measured twice, independently, in run `agent-plugins-w85b` — findings
-  `kgir.1#5` and `kgir.4#5`: during one pull
+  Measured twice, independently, in one sprint run: during one pull
   `ps -eo pid,etimes,time,stat,args` showed `bd dolt pull` resident with three
   sibling `bd` calls stacked behind it at **zero CPU** for 337s/211s/209s;
   `/proc/<pid>/wchan` read `futex_do_wait` with no open sockets, so it looks
@@ -300,13 +298,12 @@ scope for this run's beads" tells a future reader nothing they can act on.
 - **`bd`'s JSONL export lags the database.** A close reaches the Dolt DB
   seconds before it reaches `.beads/issues.jsonl`, so an export taken
   immediately after `bd update --status closed` can still return pre-close
-  bytes. Measured 2026-08-10 in run `1786345424-bbh` on two consecutive
-  beads: `agent-plugins-92q.20` (`d5a6de5`) and `agent-plugins-92q.23`
-  (`905aee4`) each committed without `.beads/issues.jsonl`, and on the clean
-  tree straight afterwards
-  `jq -r 'select(.id=="agent-plugins-92q.20") | .status' .beads/issues.jsonl`
+  bytes. Measured 2026-08-10 on two consecutive beads of one run (commits
+  `d5a6de5` and `905aee4`), each committed without `.beads/issues.jsonl`;
+  on the clean tree straight afterwards
+  `jq -r 'select(.id=="<bead-id>") | .status' .beads/issues.jsonl`
   printed `open` while `bd export | jq -r 'select(...) | .status'` printed
-  `closed` — same for `92q.23`. Every other bead in the run exported
+  `closed`, for both beads. Every other bead in the run exported
   correctly, so this is intermittent, not a broken build. Do not re-diagnose
   it: any hand-rolled close must verify the ledger — re-export a bounded number
   of times and refuse to commit a closure the export does not carry — rather
@@ -368,7 +365,7 @@ scope for this run's beads" tells a future reader nothing they can act on.
   detected`.
 - **The issue prefix comes from the database, not `config.yaml`.** Measured on
   1.2.2: with `issue-prefix: "zzztest"` in `.beads/config.yaml` and a database
-  configured `agent-plugins`, `bd create` minted `agent-plugins-4731`. The file
+  configured `agent-plugins`, `bd create` minted an `agent-plugins-` id. The file
   key is ignored entirely.
 - `strata`: not preinstalled either. The hook installs the release binary —
   see "strata CLI" below.
@@ -393,7 +390,7 @@ cloud sessions, and anyone can run it locally. It is a no-op when
 `~/.cache/strata-cli/installed-release` already names the latest tag.
 
 - **Needs `STRATA_ACCESS_TOKEN`** while `strata-lang/strata` is private
-  (`docs/session-bootstrap.md`); `agent-plugins-6gn` tracks removing it.
+  (`docs/session-bootstrap.md`).
   Without it the release lookup fails: measured, unauthenticated direct
   `api.github.com/repos/strata-lang/strata/releases/latest` → 403.
 - **Its GitHub requests fall back to bypassing the egress proxy, and must.**
@@ -482,13 +479,12 @@ to the change, `git log` finds it, and nothing loads it into context.
    discovery narrative — "`bd` resolves the shared database from any worktree
    through git's common directory", not "we measured that…".
 
-**Do not cross-reference issue ids in skill files.** Skills are exported to
-other projects, where `<this-project>-abc.12` resolves to nothing. A reader
-there sees a dangling reference and cannot look it up. Cross-reference the bead
-in the COMMIT that makes the change; keep the skill file self-contained.
-This applies to `plugin/skills/**` and anything vendored from it. Files that
-never leave this repo — `CLAUDE.md`, `AGENTS.md`, `docs/`, `.beads/config.yaml`
-— may cite ids, and should still keep the narrative short.
+**Do not cite bead ids in any committed file.** Code, specs, skills, docs,
+retros and RFC records alike. The tracker is kept lean and beads are not
+preserved forever, so an id in a file becomes a reference nobody can look up
+— and skills are exported to other projects, where `<this-project>-abc.12`
+never resolved at all. Cross-reference the bead in the COMMIT message that
+makes the change, and in the file state the fact the id stood for.
 
 ## Citing another skill's reference
 
@@ -610,8 +606,8 @@ how issues travel.
 
 **Ids of the form `agent-plugins-…` are retired.** Until 2026-10-06 the
 tracker lived under `refs/dolt/data` with that prefix. Open work moved to this
-database under the same suffix with the `specs-` prefix (`agent-plugins-hx1x`
-became `specs-hx1x`); closed beads were not carried over.
+database under the same suffix with the `specs-` prefix; closed beads were
+not carried over.
 
 ### What this requires of you
 

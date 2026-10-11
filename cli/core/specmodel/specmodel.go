@@ -5721,7 +5721,7 @@ type FeatureBlueprint struct {
 	Delivery Delivery `json:"delivery"`
 	// Where this feature's implementation plan lives, stamped in by the
 	// groom-feature-blueprint skill once grooming serializes the plan:
-	// an epic id (`agent-plugins-bge`) when the plan is beads, or a
+	// an epic id (`bd-a3f8`) when the plan is beads, or a
 	// repository-relative directory (`plans/<feature-slug>/`) when it is
 	// task files. Absent before grooming, since an ungroomed blueprint has
 	// no plan yet; present through `retired`, since the pointer retires

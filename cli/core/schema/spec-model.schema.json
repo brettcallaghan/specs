@@ -1669,7 +1669,7 @@
           "description": "The FRD this blueprint realizes, one to one.\n\nA feature blueprint answers how the system changes; the FRD it names\nanswers what the change must achieve. Singular and required, so the\none-to-one relationship is expressible in the schema rather than only\nin this comment, and named `frd` rather than `sources` so that one\nproperty name does not span two relationships — `Frd.sources` is\noptional, many-valued provenance, which is a different edge."
         },
         "plan": {
-          "description": "Where this feature's implementation plan lives, stamped in by the\ngroom-feature-blueprint skill once grooming serializes the plan:\nan epic id (`agent-plugins-bge`) when the plan is beads, or a\nrepository-relative directory (`plans/<feature-slug>/`) when it is\ntask files. Absent before grooming, since an ungroomed blueprint has\nno plan yet; present through `retired`, since the pointer retires\nwith the document rather than being cleared.",
+          "description": "Where this feature's implementation plan lives, stamped in by the\ngroom-feature-blueprint skill once grooming serializes the plan:\nan epic id (`bd-a3f8`) when the plan is beads, or a\nrepository-relative directory (`plans/<feature-slug>/`) when it is\ntask files. Absent before grooming, since an ungroomed blueprint has\nno plan yet; present through `retired`, since the pointer retires\nwith the document rather than being cleared.",
           "type": [
             "string",
             "null"

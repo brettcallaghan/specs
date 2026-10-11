@@ -386,7 +386,7 @@ MUST run when this container changes — real runnable targets (test
 paths, ids, or task names), not "the suite." This is the minimal,
 targeted set an agent changing the container runs to prove the change
 before handoff: running the whole suite for every change does not scale
-(a bead bonanza slows to a crawl), so the blueprint is the authority on
+(a parallel sprint run slows to a crawl), so the blueprint is the authority on
 what THIS container's change must run. CI and downstream agents still
 run the full suite. Feature blueprints map their AC Coverage "Verified
 by" column onto these gates.

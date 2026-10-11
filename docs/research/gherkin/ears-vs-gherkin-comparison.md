@@ -131,7 +131,7 @@ This restored the count to 52.
 **Implication:** the AC-tag conformance check must look at
 `Scenario.Tags` **and** `Examples.Tags`, and should probably require
 that an Outline's identifiers live on its `Examples` blocks rather than
-on the scenario. Worth adding to `agent-plugins-133`.
+on the scenario. Worth adding to the AC sequence-conformance rule.
 
 ## Finding 3 — the criterion/example split holds up, and reads well
 

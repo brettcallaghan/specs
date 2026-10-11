@@ -81,10 +81,10 @@ jobs:
       # Needs no dependency — only the generated bundle and the
       # frontmatter keys.
       #
-      # continue-on-error until agent-plugins-j5n (work-order is not in the
-      # DocumentType vocabulary) closes. It needs a decision rather than a
-      # fix, and gating on a defect that predates this step would land CI
-      # red. agent-plugins-9fx flips it to gating.
+      # continue-on-error until work-order joins the DocumentType
+      # vocabulary. It needs a decision rather than a fix, and gating on a
+      # defect that predates this step would land CI red. Flip it to gating
+      # once that closes.
       - name: Templates match their type's schema
         continue-on-error: true
         run: scripts/check-template-drift.py
