@@ -80,7 +80,7 @@ before a bulk pass:
 
 Beads carry a **tier** (`light | standard | advanced | frontier`, least to
 most capable), not a model name. The orchestrator resolves tier → model at
-dispatch from the orchestrator's `swarm.toml` `[models]` lineup, so a bead groomed today
+dispatch from the orchestrator's model lineup, so a bead groomed today
 still routes correctly after the lineup changes. The routing rubric is owned by
 `shared/work-order-field-guide.md`. Apply it, and:
 

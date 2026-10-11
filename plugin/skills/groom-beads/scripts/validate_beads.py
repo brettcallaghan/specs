@@ -41,7 +41,7 @@ GROOMING = {"ready", "blocked-needs-info", "blocked-ungroomable"}
 EDGE_TYPES = {"blocks", "blocked-by", "parent", "related", "discovered-from"}
 # Capability tiers, least to most capable. ORDER IS SIGNIFICANT: the orchestrator's
 # escalation ladder walks this list upward. Deliberately model-name-free — a project
-# binds tiers to named models in the orchestrator's `swarm.toml` `[models]` lineup, so a lineup change
+# binds tiers to named models in its orchestrator's model lineup, so a lineup change
 # never edits this file. Canonical definition: spec skill, work-order-field-guide.md.
 TIERS = ["light", "standard", "advanced", "frontier"]
 # bd's documented advisory scale (docs/METADATA.md). A consumer on a different
@@ -205,7 +205,7 @@ def semantic_checks(beads, rep, vocab, have_c4_docs):
                     # to diagnose — but still an error, because dispatch reads `tier`.
                     rep.err(bid, f"ready bead has metadata.model '{md['model']}' but no metadata.tier "
                                  f"— migrate: set tier to one of {TIERS} per the project's "
-                                 f"`swarm.toml` [models] lineup, move the rationale to tier_reason, and drop "
+                                 f"orchestrator's model lineup, move the rationale to tier_reason, and drop "
                                  f"`model` unless a named model is genuinely required")
                 else:
                     rep.err(bid, f"ready bead has no metadata.tier (must be non-null; one of {TIERS}, "
