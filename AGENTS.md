@@ -229,11 +229,12 @@ why it points at `scripts/format-check`.
 
 **Coverage belongs to none of those lists.** `scripts/coverage.sh` measures the
 unit, snapshot and end-to-end layers separately and writes the merged figures
-into `README.md` between generated markers; `cli.yml`'s `coverage` job runs
+between generated markers: the tables into `docs/code-coverage.md`, the badge
+into `README.md`; `cli.yml`'s `coverage` job runs
 `scripts/coverage.sh --check` and fails when the committed figures do not match
 a fresh measurement. A change under `cli/**` is therefore not finished until
-that script has been run from the repository root and the README diff committed
-with it. Regenerate with the Go version in `cli/go.mod` — statement counts come
+that script has been run from the repository root and the diff of both files
+committed with it. Regenerate with the Go version in `cli/go.mod` — statement counts come
 from the toolchain, so a different one moves the numbers. It is in `ci.sh` and
 deliberately not in `swarm.toml`: three instrumented test legs is not a price
 worth paying per bead.
