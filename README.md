@@ -181,8 +181,8 @@ defined, and they apply **from that level down**.
 - A component-level ADR — say, picking an external framework — records
   a decision for that component alone.
 
-Today the level is conveyed by where the document lives and what it
-references. Making it an explicit frontmatter property is planned.
+The level is conveyed by where the document lives and what it
+references; frontmatter does not record it.
 
 ---
 
