@@ -15,9 +15,9 @@ status: draft
 
 ## Context
 
-The `specs` plugin is distributed by clone through
-`.claude-plugin/marketplace.json` and consists entirely of markdown:
-six skills and their bundled references. The Spec CLI is a Go binary,
+The `specs` plugin is distributed by clone through the `brettcallaghan`
+marketplace (`brettcallaghan/agent-plugins`) and consists entirely of
+markdown: six skills and their bundled references. The Spec CLI is a Go binary,
 published by `.github/workflows/release.yml` through two channels — the
 Go module proxy (`go install …/cli/specs@cli/vX.Y.Z`) and per-platform
 release archives.

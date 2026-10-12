@@ -135,7 +135,7 @@ for p in SKILLS:
 IGNORE = {'AGENTS.md','CLAUDE.md','CONTRIBUTING.md','SKILL.md','index.md',
           'decisions.md','dispatch.md','.handoff.md','SNAPSHOT.md',
           '.claude/settings.local.json',
-          'plugin/.claude-plugin/plugin.json','.claude-plugin/marketplace.json',
+          'plugin/.claude-plugin/plugin.json',
           # Filenames a skill *describes* rather than ships: these name files
           # in the user's project, or upstream in strata-lang/strata, so there
           # is nothing here to resolve.
