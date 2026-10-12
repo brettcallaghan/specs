@@ -336,10 +336,10 @@ Then, per issue, in received order:
    changing it does NOT on its own justify a bump, because installs
    never receive it. WHEN a triage changed only repo-local skills, say
    so and skip the bump. Distribution is plugin-only: installs pick
-   up the change on plugin update once the bump lands on the
-   marketplace (repo-root `.claude-plugin/marketplace.json`); a
-   session run with `claude --plugin-dir ./plugin` sees it after
-   `/reload-plugins`.
+   up the change on plugin update once a release carrying it is
+   published, because the marketplace serves the plugin from the
+   `stable` branch the publish workflow moves; a session run with
+   `claude --plugin-dir ./plugin` sees it after `/reload-plugins`.
 
 ## Anti-Patterns
 

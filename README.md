@@ -74,11 +74,12 @@ to change your mind.
 
 ## Install
 
-**The plugin** (skills, in Claude Code). This repository is the
-`brettcallaghan` marketplace:
+**The plugin** (skills, in Claude Code), from the `brettcallaghan`
+marketplace in [brettcallaghan/agent-plugins](https://github.com/brettcallaghan/agent-plugins),
+which serves the latest release:
 
 ```
-/plugin marketplace add brettcallaghan/specs
+/plugin marketplace add brettcallaghan/agent-plugins
 /plugin install specs@brettcallaghan
 ```
 
