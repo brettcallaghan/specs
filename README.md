@@ -6,27 +6,32 @@
 
 **Agency for the agents.**
 
-A Claude Code plugin — five skills, a document taxonomy, and a CLI — that
-takes a feature from a written requirement to merged code with agents
-doing the work and humans reviewing at two checkpoints.
+An agentic development plugin for Claude Code. Skills author a taxonomy
+of feature requirements, architecture blueprints, decision records
+(ADRs) and software development standards. A CLI navigates, validates
+and maintains those specs. Together they take a feature from concept, to
+written requirements, to an architecture design, to an implementation
+plan.
 
 ---
 
 ## The premise
 
-Vibe coding is genuinely fun. It is also how demos get built, and it is
-why the influencer feed looks the way it does. Specs are how systems get
-built — and the question every enterprise is actually asking is not
-"should agents write our code" but **"how do we adopt agentic
-development at scale, and trust what comes back?"**
+Agents are becoming an **AI software factory**: they plan, write and
+test code at a pace no team can match by hand. A factory builds what its
+inputs describe, so feature and architecture specs are the critical
+inputs that make sure agents build software as it was intended.
+
+Vibe coding is a fine way to explore an idea or build a demo. Specs are
+how systems get built, and the question teams are asking is not "should
+agents write our code" but **"how do we adopt agentic development at
+scale, and trust what comes back?"**
 
 The answer is not more supervision. It is **agency**.
 
 An agent that must stop and ask a human every time reality diverges from
-the plan is not autonomous — it is an expensive autocomplete with a
-human in the loop on the critical path. But an agent turned loose with
-no written intent does not stop; it guesses, and it guesses
-confidently.
+the plan puts that human on the critical path. An agent with no written
+intent doesn't stop; it has to guess.
 
 Autonomy is only safe when the agent can make a **good decision** on its
 own. Specs are what make the decision good. When the plan meets reality
@@ -40,7 +45,7 @@ mid-run:
 | Scope quietly grows | Absorbs it — the diff triples | Recognizes the work is outside the blueprint's deltas and files it as new work |
 
 Specs enable agents to act with agency. Agency requires good decisions.
-Good decisions come from written intent. The result is a better
+Good decisions come from clear intent. The result is a better
 implementation — and a diff a human can actually review, because the
 thing it was supposed to do was written down first.
 
@@ -50,25 +55,39 @@ thing it was supposed to do was written down first.
 
 ```mermaid
 flowchart LR
-    A["/spec<br/>FRD"] --> B{{"Product<br/>review"}}
-    B --> C["/spec<br/>Feature Blueprint"]
-    C --> D{{"Engineer<br/>review"}}
-    D --> E["/groom-feature-blueprint<br/>→ work orders"]
-    E --> F["Agents<br/>→ implementation"]
-    F --> G{{"PR<br/>review"}}
+    P["Product<br/>definition"] --> A["/spec<br/>FRD"]
+    P --> H["/spec<br/>Architecture<br/>Blueprints"]
+    A --> B{{"Product<br/>review"}}
+    H --> I{{"Architecture<br/>review"}}
+    B --> C["/spec<br/>Feature<br/>Blueprint"]
+    I --> C
+    C --> E["/groom-feature-<br/>blueprint"]
+    E --> F["Agents<br/>implement"]
+    F --> J["Agents<br/>review"]
+    J -.-> F
+    J --> G{{"Engineer<br/>PR review"}}
 
     style B fill:#fde68a,stroke:#b45309,color:#1c1917
-    style D fill:#fde68a,stroke:#b45309,color:#1c1917
+    style I fill:#fde68a,stroke:#b45309,color:#1c1917
     style G fill:#fde68a,stroke:#b45309,color:#1c1917
     style F stroke-dasharray: 4 4
+    style J stroke-dasharray: 4 4
 ```
 
-Two review checkpoints before the PR: the **FRD**, where Product asks
-whether this is the right feature, and the **Feature Blueprint**, where
-an Engineer asks whether this is the right way to build it. Everything
-downstream of the blueprint is mechanical enough to hand to agents —
-which is exactly the point. The blueprint review is the last cheap place
-to change your mind.
+Everything starts from a **product definition**: a high-level
+description of the product you're going to build, which may list its
+features without going into acceptance criteria. It feeds both tracks.
+
+Two tracks then run in parallel. On the **Product** track, Product
+defines features and reviews the acceptance criteria in each FRD. On the
+**Architecture & Engineering** track, Engineering designs the systems,
+containers and components based on the product definition.
+
+Both tracks feed the **Feature Blueprint**, which maps one FRD onto the
+architecture. From there the work is mechanical enough to hand to
+agents: grooming turns the blueprint into work orders, agents implement
+them, and agents review, test and refine the result. Once the
+implementation is complete, Engineering reviews the PR.
 
 ---
 
@@ -83,8 +102,8 @@ which serves the latest 0.x release:
 /plugin install specs@brettcallaghan
 ```
 
-Or install the skills into `~/.claude/skills` from a checkout, without
-the plugin system:
+For development of the skills themselves, install them into
+`~/.claude/skills` from a checkout, without the plugin system:
 
 ```bash
 scripts/install-spec-skill.sh
@@ -156,8 +175,8 @@ or delete them once merged.
 | **Work Order** | One atomic unit of work — a "dev task". Everything a fresh, zero-context agent needs to finish one job, connecting component changes to code changes | Materialized as beads in this repository's own tracker | [`work-order-template.md`](plugin/skills/spec/references/work-order-template.md) |
 
 A **Feature Blueprint** references exactly one FRD, and as many
-system/container/component/module blueprints as the change touches. It
-is the last review before the PR review. When it merges, its
+system/container/component/module blueprints as the change touches.
+When it merges, its
 architecture deltas get folded back into the owning blueprints —
 `groom-feature-blueprint` makes each work order carry the fold of its
 own delta alongside the code and tests, and ends the plan with one that
@@ -200,27 +219,36 @@ references; frontmatter does not record it.
 
 ## How to use these skills
 
-**1. Start with the FRD.** Gather your notes, links, and context
-documents, start a session, and run `/spec`. Review what comes back —
-this is the cheapest possible moment to disagree.
+**0. Define the product.** Write a high-level definition of what you're
+building: its purpose, its users, and the features you expect, without
+acceptance criteria yet. Both tracks start from it.
 
-**2. New project? Scaffold your architecture first.** Identify your
-containers and modules. Write down the technology decisions you've
-already landed — as ADRs if they had real alternatives. Establish the
-standards you want up front (testing approach, security posture, and so
-on). A blueprint written against no architecture invents one.
+**1. Specify the feature.** Gather your notes, links, and context
+documents, start a session, and run `/spec` to write the FRD. Product
+reviews its acceptance criteria — this is the cheapest possible moment
+to disagree.
 
-**3. Design the feature.** Once the FRD is approved and you have at
-least a skeleton architecture, run `/spec` again to produce a Feature
-Blueprint for it. An Engineer reviews and approves it.
+**2. Design the architecture, in parallel.** Starting from the product
+definition, Engineering runs `/spec` for the system, container, module
+and component blueprints. You don't need every FRD
+first; after a few, the architecture usually has enough to go on. Write
+down the technology decisions you've landed — as ADRs if they had real
+alternatives — and the standards you want up front (testing approach,
+security posture, and so on). Engineering reviews the blueprints. A
+feature blueprint written against no architecture invents one.
+
+**3. Design the feature.** With an approved FRD and the architecture it
+touches, run `/spec` again to produce a Feature Blueprint, mapping the
+feature onto the architecture.
 
 **4. Groom.** Run `/groom-feature-blueprint`. It turns the approved
 blueprint into specific work orders — beads, if you use them —
 specifying how agents should build the feature.
 
 **5. Execute.** Hand each work order to a fresh agent session. Every
-one carries what that agent needs, so no one has to brief it. Review the
-PR.
+one carries what that agent needs, so no one has to brief it. Agents
+review, test and refine the work; Engineering reviews
+the PR only after that.
 
 **6. Retro.** When a phase struggled, run `/retro-spec` on the documents
 it consumed, or `/retro-skill` on the skill that guided it. The friction
