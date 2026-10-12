@@ -226,23 +226,26 @@ jobs:
           gh release edit "$TAG" --draft=false --latest="$latest"
 
       # The brettcallaghan marketplace (brettcallaghan/agent-plugins) serves
-      # the plugin from the stable branch, so stable names the latest
-      # published release, and moves only after the step above has attached
-      # every asset. It decides "latest" itself, as the step above does, so a
-      # re-run that finds the release already published still moves it. A
-      # plain push only fast-forwards: a stable that is not an ancestor fails
-      # here, loudly.
-      - name: Move stable to the release
+      # the plugin from release/v<major> (RRP-005), so that branch names the
+      # latest published release of its major and moves only after the step
+      # above has attached every asset. The first release of a major creates
+      # it; once a later major ships, it stays on its major's last release,
+      # where a maintenance line starts (RRP-006). It decides "latest" itself,
+      # so a re-run that finds the release already published still moves it.
+      # A plain push only fast-forwards: a branch that is not an ancestor
+      # fails here, loudly.
+      - name: Move release/v<major> to the release
         run: |
           set -euo pipefail
-          tags="$(git tag -l "$TAG_PREFIX*" --sort=-v:refname)"
-          highest="$(printf '%s\n' "$tags" | grep -E "^${TAG_PREFIX}[0-9]+\.[0-9]+\.[0-9]+\$" || true)"
+          major="${VERSION%%.*}"
+          tags="$(git tag -l "$TAG_PREFIX$major.*" --sort=-v:refname)"
+          highest="$(printf '%s\n' "$tags" | grep -E "^${TAG_PREFIX}${major}\.[0-9]+\.[0-9]+\$" || true)"
           highest="${highest%%$'\n'*}"
           if [ "$highest" != "$TAG" ]; then
-            echo "$TAG is not the highest release ($highest); stable stays"
+            echo "$TAG is not the highest $major.x release ($highest); release/v$major stays"
             exit 0
           fi
-          git push origin "$MERGE_SHA:refs/heads/stable"
+          git push origin "$MERGE_SHA:refs/heads/release/v$major"
 
       # Which artifacts reached the release and which did not, whatever step
       # failed.

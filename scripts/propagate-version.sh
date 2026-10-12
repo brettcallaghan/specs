@@ -6,8 +6,9 @@
 # commits what it changes, provided every path is in release_paths. It writes
 # the version into the specs plugin manifest, so the plugin and the `specs`
 # CLI released from the same commit carry one version. The marketplace that
-# vends the plugin, in brettcallaghan/agent-plugins, serves it from the stable
-# branch, which the publish workflow moves to each release.
+# vends the plugin, in brettcallaghan/agent-plugins, serves it from
+# release/v<major>, which the publish workflow moves to each release of that
+# major.
 set -eu
 
 : "${RELEASE_VERSION:?RELEASE_VERSION is not set; release cut sets it}"

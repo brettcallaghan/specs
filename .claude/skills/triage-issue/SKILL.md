@@ -338,7 +338,7 @@ Then, per issue, in received order:
    so and skip the bump. Distribution is plugin-only: installs pick
    up the change on plugin update once a release carrying it is
    published, because the marketplace serves the plugin from the
-   `stable` branch the publish workflow moves; a session run with
+   `release/v<major>` branch the publish workflow moves; a session run with
    `claude --plugin-dir ./plugin` sees it after `/reload-plugins`.
 
 ## Anti-Patterns
