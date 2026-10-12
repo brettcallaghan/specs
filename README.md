@@ -55,6 +55,8 @@ thing it was supposed to do was written down first.
 
 ```mermaid
 flowchart LR
+    P["Product<br/>definition"] --> A
+    P --> H
     subgraph product["Product track"]
         A["/spec<br/>FRD"] --> B{{"Product<br/>review"}}
     end
@@ -77,7 +79,11 @@ flowchart LR
     style J stroke-dasharray: 4 4
 ```
 
-Two tracks run in parallel. On the **Product** track, Product reviews
+Everything starts from a **product definition**: a high-level
+description of the product you're going to build, which may list its
+features without going into acceptance criteria. It feeds both tracks.
+
+Two tracks then run in parallel. On the **Product** track, Product reviews
 each FRD and asks whether this is the right feature. On the
 **Architecture & Engineering** track, an architect reviews the system,
 container, module and component blueprints, which can be designed once
@@ -219,6 +225,10 @@ references; frontmatter does not record it.
 ---
 
 ## How to use these skills
+
+**0. Define the product.** Write a high-level definition of what you're
+building: its purpose, its users, and the features you expect, without
+acceptance criteria yet. Both tracks start from it.
 
 **1. Specify the feature.** Gather your notes, links, and context
 documents, start a session, and run `/spec` to write the FRD. Product
