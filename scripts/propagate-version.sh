@@ -5,8 +5,9 @@
 # `release cut` runs it in the stage checkout with RELEASE_VERSION set and
 # commits what it changes, provided every path is in release_paths. It writes
 # the version into the specs plugin manifest, so the plugin and the `specs`
-# CLI released from the same commit carry one version. The marketplace serves
-# the plugin from ./plugin, so it carries no version or ref to pin.
+# CLI released from the same commit carry one version. The marketplace
+# (brettcallaghan/agent-plugins) serves the plugin from the release/vMAJOR
+# branch, which the release workflow moves, so it carries no version to pin.
 set -eu
 
 : "${RELEASE_VERSION:?RELEASE_VERSION is not set; release cut sets it}"

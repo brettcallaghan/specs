@@ -18,6 +18,10 @@ name: release
 #     Downloading one retrieves an already-built artifact and runs no
 #     install-time code (AC-SPEC-009.5).
 #
+# The plugin is distributed separately, by the brettcallaghan marketplace
+# (brettcallaghan/agent-plugins), which serves `release/vMAJOR`; the last
+# step moves that branch to the release.
+#
 # The tag is `cli/vX.Y.Z`, not `vX.Y.Z`: the Go module lives in `cli/`, and
 # the module proxy resolves a subdirectory module's versions only from tags
 # carrying that prefix. Channel 1 does not work without it.
@@ -224,6 +228,22 @@ jobs:
           latest=false
           [ "$highest" = "$TAG" ] && latest=true
           gh release edit "$TAG" --draft=false --latest="$latest"
+
+      # The marketplace (brettcallaghan/agent-plugins) serves the plugin from
+      # `release/vMAJOR`, so installs only see a release once that branch
+      # reaches it. Fast-forward only: a late re-run or a maintenance release
+      # behind the branch's head never moves it backwards.
+      - name: Move release/vMAJOR to the release
+        run: |
+          set -euo pipefail
+          branch="release/v${VERSION%%.*}"
+          if git fetch -q origin "refs/heads/$branch:refs/remotes/origin/$branch" 2>/dev/null; then
+            if ! git merge-base --is-ancestor "origin/$branch" "$MERGE_SHA"; then
+              echo "::notice::$branch is not behind $MERGE_SHA; left where it is"
+              exit 0
+            fi
+          fi
+          git push origin "$MERGE_SHA:refs/heads/$branch"
 
       # Which artifacts reached the release and which did not, whatever step
       # failed.
