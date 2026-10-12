@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Merge Go coverage profiles and render the result into the README.
+"""Merge Go coverage profiles and render the result into the docs.
 
 Reads one text-format coverage profile per test layer, merges them into a
-single profile, and rewrites the generated regions of a Markdown file
-with the resulting statistics. Standard library only.
+single profile, and rewrites two generated Markdown regions with the
+resulting statistics: the badge in the README, and the tables in the
+coverage report. Standard library only.
 
 The layers are merged rather than reported side by side alone: a
 statement executed by any layer is covered, and the union is the only
@@ -15,17 +16,18 @@ Usage:
   coverage-report.py --layer Unit=unit.cov --layer E2E=e2e.cov \\
       --module github.com/example/repo/cli \\
       --merged-out build/coverage/coverage.out \\
-      --readme README.md [--check] [--min 70]
+      --readme README.md --report docs/code-coverage.md [--check] [--min 70]
 
 Exit status:
-  0  the README was written, or (with --check) is already current
-  1  --check found the README stale, or --min was not met
+  0  the files were written, or (with --check) are already current
+  1  --check found either file stale, or --min was not met
   2  bad invocation, or a profile could not be parsed
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
@@ -148,7 +150,7 @@ def badge_color(pct: float) -> str:
     return "red"
 
 
-def render_badge(covered: int, total: int) -> str:
+def render_badge(covered: int, total: int, link: str) -> str:
     pct = percent(covered, total)
     # A static shields.io badge rather than a coverage service: the value
     # is committed alongside the numbers it summarizes, so the badge and
@@ -156,7 +158,7 @@ def render_badge(covered: int, total: int) -> str:
     # or paid to keep serving it.
     return (
         f"[![coverage](https://img.shields.io/badge/"
-        f"cli%20coverage-{pct:.1f}%25-{badge_color(pct)})](#test-coverage)"
+        f"cli%20coverage-{pct:.1f}%25-{badge_color(pct)})]({link})"
     )
 
 
@@ -224,14 +226,14 @@ def render_table(
     return "\n".join(lines)
 
 
-def replace_region(text: str, region: str, body: str) -> str:
+def replace_region(text: str, region: str, body: str, path: Path) -> str:
     start, end = REGIONS[region]
     start_at = text.find(start)
     end_at = text.find(end)
     if start_at < 0 or end_at < 0:
-        raise SystemExit(f"the README has no {start} … {end} region to write into")
+        raise SystemExit(f"{path} has no {start} … {end} region to write into")
     if end_at < start_at:
-        raise SystemExit(f"the README's {end} appears before {start}")
+        raise SystemExit(f"{path}'s {end} appears before {start}")
     return text[: start_at + len(start)] + "\n" + body + "\n" + text[end_at:]
 
 
@@ -269,7 +271,12 @@ def main() -> int:
         action="store_true",
         help="leave machine-written files out of the statistics, and say so in the output",
     )
-    parser.add_argument("--readme", type=Path, help="the Markdown file whose generated regions are rewritten")
+    parser.add_argument("--readme", type=Path, help="the Markdown file whose badge region is rewritten")
+    parser.add_argument(
+        "--report",
+        type=Path,
+        help="the Markdown file whose table region is rewritten; the badge links to it",
+    )
     parser.add_argument("--merged-out", type=Path, help="where to write the merged profile")
     parser.add_argument(
         "--markdown-out",
@@ -279,10 +286,12 @@ def main() -> int:
     parser.add_argument(
         "--check",
         action="store_true",
-        help="do not write the README; exit non-zero if it is not already current",
+        help="write nothing; exit non-zero if --readme or --report is not already current",
     )
     parser.add_argument("--min", type=float, default=None, metavar="PCT", help="fail if total coverage is below PCT")
     args = parser.parse_args()
+    if bool(args.readme) != bool(args.report):
+        parser.error("--readme and --report go together: the badge links to the report")
 
     layers: dict[str, dict[str, tuple[int, bool]]] = {}
     for spec in args.layer:
@@ -332,7 +341,7 @@ def main() -> int:
     total_stmt, total_covered = totals(combined)
 
     # Written after the exclusion, so that `go tool cover -func` and
-    # `-html` over this profile report the same total the README
+    # `-html` over this profile report the same total the report
     # publishes. A profile that still carried the generated files would
     # put a second, larger, equally official-looking percentage in the
     # same artifact.
@@ -340,7 +349,10 @@ def main() -> int:
         write_merged(args.merged_out, combined)
 
     table = render_table(layers, args.module, footnote)
-    badge = render_badge(total_covered, total_stmt)
+    link = "#"
+    if args.report:
+        link = os.path.relpath(args.report.resolve(), args.readme.resolve().parent)
+    badge = render_badge(total_covered, total_stmt, link)
     print(table)
     print()
 
@@ -350,22 +362,22 @@ def main() -> int:
 
     status = 0
     if args.readme:
-        original = args.readme.read_text(encoding="utf-8")
-        updated = replace_region(original, "badge", badge)
-        updated = replace_region(updated, "table", table)
-        if args.check:
-            if updated != original:
-                print(
-                    f"error: {args.readme} does not match the measured coverage.\n"
-                    "       regenerate it with scripts/coverage.sh and commit the result.",
-                    file=sys.stderr,
-                )
-                status = 1
-        elif updated != original:
-            args.readme.write_text(updated, encoding="utf-8")
-            print(f"updated {args.readme}")
-        else:
-            print(f"{args.readme} is already current")
+        for path, region, body in ((args.readme, "badge", badge), (args.report, "table", table)):
+            original = path.read_text(encoding="utf-8")
+            updated = replace_region(original, region, body, path)
+            if args.check:
+                if updated != original:
+                    print(
+                        f"error: {path} does not match the measured coverage.\n"
+                        "       regenerate it with scripts/coverage.sh and commit the result.",
+                        file=sys.stderr,
+                    )
+                    status = 1
+            elif updated != original:
+                path.write_text(updated, encoding="utf-8")
+                print(f"updated {path}")
+            else:
+                print(f"{path} is already current")
 
     if args.min is not None and percent(total_covered, total_stmt) < args.min:
         print(

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # Measure statement coverage of the Spec CLI across every layer that
-# exercises it, and render the result into the root README.
+# exercises it, and render the result into docs/code-coverage.md, with the
+# badge in the root README.
 #
 # Three legs, run separately so each layer's contribution is visible
 # rather than only their union:
@@ -20,13 +21,13 @@
 # layer that proves the exit statuses would report as zero coverage.
 #
 # Usage:
-#   scripts/coverage.sh              measure, write README, write reports
-#   scripts/coverage.sh --check      measure, fail if the README is stale
+#   scripts/coverage.sh              measure, write README and docs, write reports
+#   scripts/coverage.sh --check      measure, fail if either is stale
 #   scripts/coverage.sh --min 70     also fail below a total percentage
 #
 # Reports are written to build/coverage/ (gitignored):
 #
-#   summary.md         the badge and the tables, as published in the README
+#   summary.md         the badge and the tables, as published in the docs
 #   coverage-func.txt  per-function coverage and the total
 #   coverage.html      annotated source, one file at a time
 #   coverage.out       the merged profile — input to other tools, not a report
@@ -128,6 +129,7 @@ python3 "$REPO_ROOT/scripts/coverage-report.py" \
   --merged-out "$OUT_DIR/coverage.out" \
   --markdown-out "$OUT_DIR/summary.md" \
   --readme "$REPO_ROOT/README.md" \
+  --report "$REPO_ROOT/docs/code-coverage.md" \
   "${REPORT_ARGS[@]+"${REPORT_ARGS[@]}"}" || report_status=$?
 
 if [ -f "$OUT_DIR/coverage.out" ]; then

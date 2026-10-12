@@ -37,7 +37,8 @@ sh_run "vet"           'cd cli && go vet ./...'
 sh_run "build"         'cd cli && go build ./...'
 sh_run "test-go"       'cd cli && go test ./...'
 # Re-runs the suite three times instrumented, so it is here rather than in
-# swarm.toml. Fails when README.md's committed figures are not what it measured.
+# swarm.toml. Fails when the committed figures (docs/code-coverage.md and the
+# README badge) are not what it measured.
 sh_run "coverage"      'scripts/coverage.sh --check'
 
 # --- documentation corpus and skills --------------------------------------
