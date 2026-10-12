@@ -58,8 +58,9 @@ flowchart LR
     subgraph product["Product track"]
         A["/spec<br/>FRD"] --> B{{"Product<br/>review"}}
     end
-    subgraph architecture["Architecture track"]
+    subgraph architecture["Architecture & Engineering track"]
         H["/spec<br/>Architecture Blueprints"] --> I{{"Architecture<br/>review"}}
+        G{{"Engineer<br/>PR review"}}
     end
     B --> C["/spec<br/>Feature Blueprint"]
     I --> C
@@ -67,7 +68,7 @@ flowchart LR
     E --> F["Agents<br/>implement"]
     F --> J["Agents<br/>review"]
     J -.-> F
-    J --> G{{"Engineer<br/>PR review"}}
+    J --> G
 
     style B fill:#fde68a,stroke:#b45309,color:#1c1917
     style I fill:#fde68a,stroke:#b45309,color:#1c1917
@@ -78,9 +79,10 @@ flowchart LR
 
 Two tracks run in parallel. On the **Product** track, Product reviews
 each FRD and asks whether this is the right feature. On the
-**Architecture** track, an architect reviews the system, container,
-module and component blueprints, which can be designed once you broadly
-understand what the system will do, before every feature is specified.
+**Architecture & Engineering** track, an architect reviews the system,
+container, module and component blueprints, which can be designed once
+you broadly understand what the system will do, before every feature is
+specified. The same track owns the Engineer's review of the finished PR.
 
 Both tracks feed the **Feature Blueprint**, which maps one FRD onto the
 architecture. From there the work is mechanical enough to hand to
