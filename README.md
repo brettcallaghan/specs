@@ -78,18 +78,16 @@ Everything starts from a **product definition**: a high-level
 description of the product you're going to build, which may list its
 features without going into acceptance criteria. It feeds both tracks.
 
-Two tracks then run in parallel. On the **Product** track, Product reviews
-each FRD and asks whether this is the right feature. On the
-**Architecture & Engineering** track, an architect reviews the system,
-container, module and component blueprints, which can be designed once
-you broadly understand what the system will do, before every feature is
-specified. The same track owns the Engineer's review of the finished PR.
+Two tracks then run in parallel. On the **Product** track, Product
+defines features and reviews the acceptance criteria in each FRD. On the
+**Architecture & Engineering** track, Engineering designs the systems,
+containers and components based on the product definition.
 
 Both tracks feed the **Feature Blueprint**, which maps one FRD onto the
 architecture. From there the work is mechanical enough to hand to
 agents: grooming turns the blueprint into work orders, agents implement
-them, and agents review the result, sending it back for another pass
-until it holds up. Only then does an Engineer review the PR.
+them, and agents review, test and refine the result. Once the
+implementation is complete, Engineering reviews the PR.
 
 ---
 
@@ -227,16 +225,16 @@ acceptance criteria yet. Both tracks start from it.
 
 **1. Specify the feature.** Gather your notes, links, and context
 documents, start a session, and run `/spec` to write the FRD. Product
-reviews what comes back — this is the cheapest possible moment to
-disagree.
+reviews its acceptance criteria — this is the cheapest possible moment
+to disagree.
 
-**2. Design the architecture, in parallel.** Once you broadly
-understand what the system will do, run `/spec` for its system,
-container, module and component blueprints. You don't need every FRD
+**2. Design the architecture, in parallel.** Starting from the product
+definition, Engineering runs `/spec` for the system, container, module
+and component blueprints. You don't need every FRD
 first; after a few, the architecture usually has enough to go on. Write
 down the technology decisions you've landed — as ADRs if they had real
 alternatives — and the standards you want up front (testing approach,
-security posture, and so on). An architect reviews the blueprints. A
+security posture, and so on). Engineering reviews the blueprints. A
 feature blueprint written against no architecture invents one.
 
 **3. Design the feature.** With an approved FRD and the architecture it
@@ -249,7 +247,7 @@ specifying how agents should build the feature.
 
 **5. Execute.** Hand each work order to a fresh agent session. Every
 one carries what that agent needs, so no one has to brief it. Agents
-review the work and send it back until it holds up; an Engineer reviews
+review, test and refine the work; Engineering reviews
 the PR only after that.
 
 **6. Retro.** When a phase struggled, run `/retro-spec` on the documents
