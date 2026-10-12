@@ -64,13 +64,16 @@ flowchart LR
     B --> C["/spec<br/>Feature Blueprint"]
     I --> C
     C --> E["/groom-feature-blueprint<br/>→ work orders"]
-    E --> F["Agents<br/>→ implementation"]
-    F --> G{{"Engineer<br/>PR review"}}
+    E --> F["Agents<br/>implement"]
+    F --> J["Agents<br/>review"]
+    J -.-> F
+    J --> G{{"Engineer<br/>PR review"}}
 
     style B fill:#fde68a,stroke:#b45309,color:#1c1917
     style I fill:#fde68a,stroke:#b45309,color:#1c1917
     style G fill:#fde68a,stroke:#b45309,color:#1c1917
     style F stroke-dasharray: 4 4
+    style J stroke-dasharray: 4 4
 ```
 
 Two tracks run in parallel. On the **Product** track, Product reviews
@@ -82,7 +85,8 @@ understand what the system will do, before every feature is specified.
 Both tracks feed the **Feature Blueprint**, which maps one FRD onto the
 architecture. From there the work is mechanical enough to hand to
 agents: grooming turns the blueprint into work orders, agents implement
-them, and an Engineer reviews the resulting PR.
+them, and agents review the result, sending it back for another pass
+until it holds up. Only then does an Engineer review the PR.
 
 ---
 
@@ -237,8 +241,9 @@ blueprint into specific work orders — beads, if you use them —
 specifying how agents should build the feature.
 
 **5. Execute.** Hand each work order to a fresh agent session. Every
-one carries what that agent needs, so no one has to brief it. An
-Engineer reviews the PR.
+one carries what that agent needs, so no one has to brief it. Agents
+review the work and send it back until it holds up; an Engineer reviews
+the PR only after that.
 
 **6. Retro.** When a phase struggled, run `/retro-spec` on the documents
 it consumed, or `/retro-skill` on the skill that guided it. The friction
