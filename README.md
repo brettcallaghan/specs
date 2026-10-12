@@ -90,8 +90,9 @@ the plugin system:
 scripts/install-spec-skill.sh
 ```
 
-**The CLI** (optional, but recommended once you have more than a handful
-of documents):
+**The CLI.** The skills call `specs` directly to check documents, number
+them and trace references. Without it they fall back to checking by hand
+and say so, which is slower and cannot be re-run by a reviewer:
 
 ```bash
 go install github.com/brettcallaghan/specs/cli/specs@latest
@@ -158,8 +159,9 @@ A **Feature Blueprint** references exactly one FRD, and as many
 system/container/component/module blueprints as the change touches. It
 is the last review before the PR review. When it merges, its
 architecture deltas get folded back into the owning blueprints —
-`groom-feature-blueprint` always emits a work order to do exactly that,
-so the architecture docs can't rot.
+`groom-feature-blueprint` makes each work order carry the fold of its
+own delta alongside the code and tests, and ends the plan with one that
+verifies every delta was folded, so the architecture docs can't rot.
 
 A **Work Order** is never hand-written. It is *generated* by grooming,
 to a Definition of Ready, because the bar it has to clear is specific: a
@@ -190,7 +192,7 @@ references. Making it an explicit frontmatter property is planned.
 |:---|:---|
 | **`spec`** | Authors every document type above from the framework's templates, writing acceptance criteria in Gherkin, other requirements in [EARS](https://alistairmavin.com/ears/), and architecture in the C4 model. Picks the right type for what you're describing and refuses to invent new ones. Runs readiness checklists before anything is handed to a reviewer. |
 | **`groom-feature-blueprint`** | The boundary between the human specification loop and autonomous execution. Gates on an approved blueprint with no open questions, then decomposes its deltas into a graph of work orders carrying AC coverage and a definition of done. A quality firewall: a blueprint it can't plan mechanically gets sent back, not guessed at. |
-| **`groom-beads`** | The Definition of Ready engine for the beads backend. Materializes work orders as beads, wires the dependency graph, assigns each a capability tier, validates the result, and previews execution waves. The north star: a fresh sub-agent with zero context can open `bd show <id>` and finish the job without asking anyone anything. |
+| **`groom-beads`** | The Definition of Ready engine for the beads backend. Materializes work orders as beads, wires the dependency graph, assigns each a capability tier, validates the result, and previews which beads would collide if run in parallel. The north star: a fresh sub-agent with zero context can open `bd show <id>` and finish the job without asking anyone anything. |
 | **`retro-spec`** | Retrospective on the *documents* a completed phase consumed. A spec's quality is only observable through its consumers, so this runs after a downstream phase has exercised it, and argues from that evidence to a ranked list of issues against your own specs. You choose which to file. |
 | **`retro-skill`** | Retrospective on the *skill* an agent just ran. Cites the exact instruction that misled, names the script that failed, records the model that ran it — and ranks issues against the skill for you to file with whoever vends it: a bead, a GitHub issue, or a Markdown file to hand over. This is how the framework improves. |
 
@@ -242,16 +244,17 @@ didn't parse — none of which a reviewer had noticed.
 
 | Command | Purpose |
 |:---|:---|
-| `specs index` | Walk the spec root, build a machine-readable index of every document's metadata and location, write it to `specs.json` (or `--out`, or stdout) |
-| `specs check [path]` | Check the corpus, or one document, for conformance: frontmatter against the active profile's schema, slug patterns, duplicate slugs. `--json`, `--strict`, `--only <rule>` |
+| `specs index` | Walk the spec root, build a machine-readable index of every document's metadata and location, write it to `specs.json` in the spec root (or `--out`, or stdout) |
+| `specs check [path]` | Check the corpus, or one document, for conformance: frontmatter against the active profile's schema, slug patterns, duplicate slugs, unresolved references. `--json`, `--strict`, `--only <rule>`, `--verbose` |
 | `specs next-id <type>` | Return the next identifier for a numbered document type |
 | `specs slug-exists <slug>` | Report whether any corpus member declares that slug |
-| `specs list` | Report every document's path, slug, type, status, title and description |
+| `specs list` | Report every document's path, slug, type, status, title and description. `--type` filters; `--all` includes superseded documents |
 | `specs refs <slug>` | Report which documents reference a slug or one of its headings, or what it references |
 | `specs headings` | Report the headings matching a selection, with the span of each one's section |
 | `specs criterion [id]` | Query an acceptance criterion, or list ones that changed locally |
 | `specs feature [id]` | Query a feature, or emit one as a standalone Gherkin file |
 | `specs links <path>` | Rewrite a document's wikilinks into markdown links |
+| `specs c4` | Emit the corpus's C4 model: the systems, containers, components and modules it documents, their relationships, and any relationship statements it rejects. `--root <slug>` narrows to one element |
 
 Configuration lives in [`specs.toml`](specs.toml) at the repository
 root:
@@ -339,7 +342,9 @@ trust.
 | `plugin/skills/` | The five skills, each with its templates, references, and scripts |
 | `specs/` | This repository's own specs — the framework applied to itself |
 | `cli/` | The `specs` CLI (Go) |
-| `schemas/` | [Strata](https://github.com/strata-lang/strata) schema sources for frontmatter, findings, the index, and the profile |
+| `schemas/` | [Strata](https://github.com/strata-lang/strata) schema sources for frontmatter, findings, the index, the profile, the C4 model, features and configuration |
+| `scripts/` | Repository checks, the coverage report, release builds, and the skill installer |
+| `docs/` | Research notes and transient plans for changes to this repository |
 
 The framework specifies itself. The FRDs, ADRs, blueprints and standards
 under `specs/` are the ones that produced the CLI in `cli/` — which is
