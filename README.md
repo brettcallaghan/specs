@@ -54,19 +54,22 @@ thing it was supposed to do was written down first.
 ## The workflow
 
 ```mermaid
-flowchart LR
-    P["Product<br/>definition"] --> A
-    P --> H
+flowchart TB
+    P["Product<br/>definition"]
     subgraph product["Product track"]
+        direction TB
         A["/spec<br/>FRD"] --> B{{"Product<br/>review"}}
     end
     subgraph architecture["Architecture & Engineering track"]
-        H["/spec<br/>Architecture Blueprints"] --> I{{"Architecture<br/>review"}}
+        direction TB
+        H["/spec<br/>Architecture<br/>Blueprints"] --> I{{"Architecture<br/>review"}}
         G{{"Engineer<br/>PR review"}}
     end
-    B --> C["/spec<br/>Feature Blueprint"]
+    P --> A
+    P --> H
+    B --> C["/spec<br/>Feature<br/>Blueprint"]
     I --> C
-    C --> E["/groom-feature-blueprint<br/>→ work orders"]
+    C --> E["/groom-feature-<br/>blueprint"]
     E --> F["Agents<br/>implement"]
     F --> J["Agents<br/>review"]
     J -.-> F
