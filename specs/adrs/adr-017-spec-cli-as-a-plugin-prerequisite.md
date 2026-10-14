@@ -1,14 +1,14 @@
 ---
-title: "ADR-017: The Spec CLI Is a Prerequisite of the specs Plugin, Not a Payload"
-description: The specs plugin stays pure markdown and names the specs binary as
-  a prerequisite; skills call it directly and degrade to hand-checking
-  rather than branching on its absence
+title: "ADR-017: The specs Plugin Provisions the Spec CLI Version It Pins"
+description: A SessionStart hook in the specs plugin puts the Spec CLI release
+  matching the plugin's version first on the session's PATH; skills call it
+  directly and degrade to hand-checking only when provisioning failed
 slug: adr-017
 type: adr
 status: draft
 ---
 
-# ADR-017: The Spec CLI Is a Prerequisite of the specs Plugin, Not a Payload
+# ADR-017: The specs Plugin Provisions the Spec CLI Version It Pins
 
 **Status:** draft
 **Date:** 2026-08-05
@@ -16,91 +16,122 @@ status: draft
 ## Context
 
 The `specs` plugin is distributed by clone through the `brettcallaghan`
-marketplace (`brettcallaghan/agent-plugins`) and consists entirely of
-markdown: six skills and their bundled references. The Spec CLI is a Go binary,
-published by `.github/workflows/release.yml` through two channels — the
-Go module proxy (`go install …/cli/specs@cli/vX.Y.Z`) and per-platform
-release archives.
+marketplace (`brettcallaghan/agent-plugins`) and its skills are markdown.
+The Spec CLI is a Go binary, published by `.github/workflows/release.yml`
+through two channels — the Go module proxy
+(`go install …/cli/specs@cli/vX.Y.Z`) and per-platform release archives
+with a `SHA256SUMS` file.
 
-The skills now want to call it. `specs check` decides three of the eight
+The skills call it throughout. `specs check` decides three of the eight
 checks in `document-readiness-checklist.md`, and `specs next-id` and
-`specs slug-exists` answer questions the skill previously told an agent to
-answer by reading the corpus. Those instructions were both expensive and
-unverifiable: an agent that scanned the corpus and one that assumed the
-answer produce identical output.
+`specs slug-exists` answer questions an agent would otherwise answer by
+reading the corpus — expensively and unverifiably, since an agent that
+scanned the corpus and one that assumed the answer produce identical
+output.
+
+The skills are written against one release of the CLI: they cite its
+subcommands, flags, output shapes and exit statuses. A skill citing a
+subcommand an older binary lacks fails at the point of use. One release
+cut versions both: `cli/vX.Y.Z` tags the CLI, and the same cut writes
+`X.Y.Z` into `plugin/.claude-plugin/plugin.json`. The plugin version
+therefore names exactly one CLI release, the one its skills were written
+against.
 
 A markdown plugin and a compiled binary have different distribution
-mechanics, so the two cannot simply be shipped as one artifact. The
-choice is what the skills may assume, and nothing about it is
-reversible cheaply — every skill's instructions are written against the
-answer.
+mechanics, so the two cannot be one artifact. The choice is how the binary
+reaches a session, and what the skills may assume about it.
 
 ## Decision
 
-The plugin ships markdown only. The Spec CLI is a **named prerequisite**,
-installed by the adopting user or project through either published
-channel.
+The plugin pins the CLI release whose version equals its own, and a
+`SessionStart` hook (`plugin/hooks/install-cli`) provisions it before any
+skill runs:
+
+1. With `SPECS_CLI_PROVISION=off` the hook does nothing; the user's own
+   `specs`, if any, is what the skills run.
+2. A `specs` on the PATH whose `--version` reports the pinned version is
+   used as it is. Nothing is downloaded and the PATH is not changed.
+3. Otherwise the hook downloads the pinned release archive for the
+   platform from the public release assets on github.com, verifies it
+   against the release's `SHA256SUMS`, keeps it under
+   `${CLAUDE_PLUGIN_DATA}/bin/<version>/`, and prepends that directory to
+   the session's PATH through `CLAUDE_ENV_FILE`. A version already kept
+   there is not downloaded again.
+
+**On a user's machine a different `specs` on the PATH is shadowed, never
+replaced.** It stays installed and in use everywhere outside the
+session; the hook adds one line to the session's context naming it, its
+version, and the opt-out. In a cloud session (`CLAUDE_CODE_REMOTE=true`)
+the container is disposable and the pinned binary is the only right
+answer, so the hook also links it as `specs` into `/usr/local/bin`,
+replacing whatever is there, and says nothing.
+
+The hook never fails a session. A failure — no release for the platform,
+no network, a checksum mismatch — is one line in the session's context
+saying the CLI was not installed and what to do, and the hook exits 0.
+When another `specs` is still first on the PATH, that line names it and
+says not to run it, since its commands are not the ones the skills cite;
+the skills then take the hand-checking fallback.
+
+**The checksum detects a corrupted download; it does not authenticate the
+binary.** `SHA256SUMS` comes from the same release as the archive, so
+anyone who can replace one can replace both. That is write access to this
+repository, which is also where the plugin, and so the hook itself, is
+served from: such a person could equally change the hook. The trust root
+is the repository, as it is for every skill the plugin ships, and a
+signature verified by a key or verifier the plugin carries would rest on
+the same root.
 
 Skills call `specs` directly, in a single code path. They do not branch on
-whether it is installed, and they do not carry a parallel set of
-instructions for its absence.
-
-The fallback is stated once, where the checks are already defined
-(`document-readiness-checklist.md`), and it is a fallback rather than a
-second procedure: every check remains defined independently of the tool,
-so all of them can be run by hand, and the agent SHALL say which happened.
-"`specs check` reports no findings" and "I read the frontmatter and it
-looks right" are different claims, and only the first can be re-run by a
-reviewer.
+whether it is installed. The fallback is stated once, where the checks
+are defined (`document-readiness-checklist.md`): every check remains
+defined independently of the tool, so all of them can be run by hand, and
+the agent SHALL say which happened. "`specs check` reports no findings"
+and "I read the frontmatter and it looks right" are different claims, and
+only the first can be re-run by a reviewer.
 
 ## Alternatives Considered
 
 | Option | Pros | Cons | Why rejected |
 |--------|------|------|--------------|
-| Prerequisite; single-path skills (selected) | The skill body shrinks, because there is one procedure instead of two; every instruction is a command a reviewer can re-run | A user who has not installed it gets degraded checking, and must be told so | N/A — selected |
-| Optional accelerator; skills branch on `command -v spec` | Nothing to install; works for every consumer today | The skills get *longer*: two procedures for the same eight checks, and the hand path is the one that was already too vague to follow. Directly defeats the reason for building the CLI | Adding a tool that makes the instructions longer is a net loss |
-| Plugin provisions the binary via a `SessionStart` hook | Zero-touch; the skill can assume the binary unconditionally | A plugin advertised as markdown would download and execute a binary at session start. That is a trust and support surface the plugin does not currently have, and it is orthogonal to what the skills assume | Deferred, not rejected — see Consequences |
-| Vendor per-platform binaries in the plugin directory | No install step, no network at run time | Six platforms of static binary in every clone of a markdown plugin, re-cloned on every plugin update | Cost falls on every consumer to serve the ones who skip an install |
-
-The third option is worth separating from this decision precisely
-because it does not change it: whether the user installs the binary by
-hand or a hook installs it for them, the skills are written the same way.
-Provisioning can therefore land later without reopening this ADR.
+| Hook provisions the pinned release; another version is shadowed for the session (selected) | The skills meet the binary they were written against, with no install step; a user's own install is never modified outside a cloud container | The plugin downloads and runs a binary at session start, a trust surface a markdown plugin otherwise lacks — bounded by fetching only the release that the plugin's own version names, from the repository that serves the plugin | N/A — selected |
+| Prerequisite installed by the user; skills single-path | Plugin stays markdown only | A consumer who skips the install gets degraded checking on every document, and nothing fails loudly; version skew between plugin and binary is unmanaged | Every skill instruction assumes a binary that nothing provides |
+| Install on demand, when a skill first needs it | Nothing runs for a session that never touches a document | Every skill has to carry the provisioning step before its first command, and the first command of a session pays the download | The skills call `specs` in nearly every procedure; up front is simpler and makes the binary an invariant rather than a step |
+| Use whatever `specs` is on the PATH, and warn on a mismatch | Respects a deliberate local install | A mismatched binary fails at the point of use, mid-procedure, on a subcommand or output shape the skill assumed | The opt-out covers a deliberate choice; the default should be the version the skills were written against |
+| Replace a different `specs` on the PATH | One binary everywhere | Modifies the user's own install, which other tools and other projects may depend on | Out of the plugin's remit outside a disposable container |
+| Vendor per-platform binaries in the plugin directory | No network at run time | Six platforms of static binary in every clone, re-cloned on every plugin update | Cost falls on every consumer to serve the ones offline |
 
 ## Consequences
 
 **Positive:**
-- The skills' verification guidance collapses to a command plus the
-  checks the command does not make. The mechanized rules are named in
-  one table with who decides each.
+- The skills meet the CLI release they were written against, so a
+  subcommand they cite exists and its output has the shape they parse.
 - A check an agent claims to have run is re-runnable by a reviewer,
   which is what makes the claim worth anything.
-- The plugin stays clonable, inspectable markdown with no install-time
-  execution.
-- The two publication channels already exist and need nothing further.
+- A user's own `specs` is never modified, and `SPECS_CLI_PROVISION=off`
+  makes it the one the skills run.
+- An update downloads once; a downgrade, or a second project on an
+  earlier plugin version, downloads nothing.
 
 **Negative:**
-- A consumer who installs the plugin and not the CLI gets weaker
-  checking than the skill describes, and depends on the agent saying so.
-- The prerequisite is stated in the skill's references rather than
-  enforced by anything; nothing fails loudly at install time.
-- Version skew between the plugin and the binary is unmanaged. A skill
-  citing a subcommand an older binary does not have fails at the point
-  of use, and no compatibility floor is declared today.
-
-**Follow-on work, deliberately not decided here:**
-- Whether a `SessionStart` hook in the plugin provisions the binary, and
-  if so with what platform detection, checksum verification, and opt-out.
-- Whether the plugin declares a minimum CLI version, and how a skill
-  states the requirement it depends on.
+- The first session after an install or update depends on reaching
+  github.com. Offline, the skills fall back to hand-checking and say so.
+- A plugin version with no matching CLI release provisions nothing; the
+  release workflow is what keeps the two in step.
+- The hook runs `specs --version` on whatever `specs` is first on the
+  PATH, to decide whether it is already the pinned one.
+- Nothing authenticates the binary independently of the repository that
+  serves the plugin; the checksum only rejects a corrupted download.
 
 ## References
 
 - [[adr-015]] — Go for the Spec CLI; the single static binary with no
-  runtime is what makes an install-it-yourself prerequisite cheap
+  runtime is what makes provisioning a download and a rename
 - [[container-spec-cli]] — the container this distributes, including the
   Coding Agent interaction this decision serves
-- `plugin/skills/spec/references/spec-cli.md` — the command surface the
-  skills call, and the install instructions this decision points users at
+- `plugin/hooks/install-cli` — the hook, with its lookup order and output
+  contract
+- `plugin/skills/spec/references/shared/spec-cli-reference.md` — the
+  command surface the skills call
 - `plugin/skills/spec/references/document-readiness-checklist.md` — where
   the mechanized/human split is recorded

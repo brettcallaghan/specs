@@ -1,0 +1,233 @@
+#!/usr/bin/env bash
+# install-cli — the specs plugin's SessionStart hook: put the Spec CLI this
+# plugin pins on the session's PATH before any skill calls it.
+#
+#   bash install-cli            (run by Claude Code; see hooks.json)
+#
+# The pinned version is the `version` of ../.claude-plugin/plugin.json, which
+# the release workflow keeps equal to the CLI's `cli/v<version>` tag. In order:
+#
+#   1. SPECS_CLI_PROVISION=off: do nothing. The user's own `specs`, if any,
+#      is what the skills run.
+#   2. A `specs` on the PATH whose `--version` reports the pinned version:
+#      do nothing. It is already the right binary.
+#   3. Otherwise ensure <data>/bin/<version>/specs exists, downloading the
+#      release archive for this platform with SHA256SUMS and verifying it,
+#      and prepend that directory to the session's PATH through
+#      CLAUDE_ENV_FILE. A `specs` of another version stays installed and
+#      untouched; it is shadowed for this session only, and the agent is
+#      told so. With CLAUDE_CODE_REMOTE=true the pinned binary is also
+#      linked as `specs` into /usr/local/bin, replacing whatever is there,
+#      so processes that never read CLAUDE_ENV_FILE get it too; a cloud
+#      container is disposable, so no notice is given there.
+#
+# <data> is CLAUDE_PLUGIN_DATA, which survives plugin updates; each version
+# is kept in its own directory, so an update downloads once and a downgrade
+# downloads nothing.
+#
+# The download needs no credential: the archives are public release assets
+# on github.com, and nothing else is fetched.
+#
+# Output: nothing on success. Anything on standard output is added to the
+# session's context, so the notice that another `specs` is shadowed, and a
+# failure, are each one line there: `specs plugin: <what>. <remedy>`. The
+# exit status is always 0, because no failure here should stop a session;
+# the skills say what they could not check.
+#
+# Test seams: SPECS_CLI_DOWNLOAD_URL (default https://github.com) and
+# SPECS_CLI_LINK_DIR (default /usr/local/bin).
+#
+# POSIX tools plus curl and tar: no jq, Python or Go.
+set -u
+
+REPO=brettcallaghan/specs
+
+say() {
+  printf 'specs plugin: %s\n' "$1"
+}
+# A failure leaves any other `specs` first on the PATH, so it is named, and
+# the agent told not to run it: its commands and output are not the ones
+# the skills are written against.
+other=""
+fail() {
+  if [ -n "$other" ]; then
+    say "$1. $2. Do not run $other in its place: it is not the version these skills are written against, so check documents by hand, or set SPECS_CLI_PROVISION=off to use it anyway"
+  else
+    say "$1. $2"
+  fi
+  exit 0
+}
+
+[ "${SPECS_CLI_PROVISION:-}" = off ] && exit 0
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+manifest="$script_dir/../.claude-plugin/plugin.json"
+version=""
+if [ -f "$manifest" ] && [ -r "$manifest" ]; then
+  # Only a "version" key at the top level of the document counts; a nested
+  # one and the layout of the file are ignored.
+  version="$(awk '
+    { text = text $0 "\n" }
+    END {
+      n = length(text); depth = 0; instr = 0; esc = 0
+      last = ""; want = 0
+      for (i = 1; i <= n; i++) {
+        c = substr(text, i, 1)
+        if (instr) {
+          if (esc) { esc = 0; buf = buf c }
+          else if (c == "\\") { esc = 1; buf = buf c }
+          else if (c == "\"") {
+            instr = 0
+            if (want) { if (!found) first = buf; found++; want = 0 }
+            else last = buf
+          } else buf = buf c
+          continue
+        }
+        if (c == "\"") { instr = 1; buf = ""; if (depth != 1) want = 0; continue }
+        if (c ~ /[ \t\r\n]/) continue
+        if (c == "{" || c == "[") { depth++; want = 0; last = "" }
+        else if (c == "}" || c == "]") { depth--; want = 0; last = "" }
+        else if (c == ":") { want = (depth == 1 && last == "version"); last = "" }
+        else { want = 0; last = "" }
+      }
+      if (found == 1) print first
+    }' "$manifest" 2>/dev/null)"
+fi
+case "$version" in
+  [0-9]*.[0-9]*.[0-9]*) ;;
+  *) fail "the Spec CLI was not installed: no single version in $manifest" "reinstall the specs plugin" ;;
+esac
+
+# 2. Already the right binary on the PATH.
+if found="$(command -v specs 2>/dev/null)" && [ -n "$found" ]; then
+  reported="$("$found" --version 2>/dev/null | awk '$1 == "version:" { print $2; exit }')"
+  if [ "$reported" = "v$version" ]; then
+    exit 0
+  fi
+  other="$found (${reported:-unknown version})"
+fi
+
+if [ -z "${CLAUDE_PLUGIN_DATA:-}" ]; then
+  fail "the Spec CLI v$version was not installed: CLAUDE_PLUGIN_DATA is not set" \
+    "update Claude Code, or install specs v$version on the PATH yourself"
+fi
+data="$CLAUDE_PLUGIN_DATA"
+
+os=""
+case "$(uname -s 2>/dev/null)" in
+  Linux) os=linux ;;
+  Darwin) os=darwin ;;
+  MINGW* | MSYS* | CYGWIN*) os=windows ;;
+esac
+arch=""
+case "$(uname -m 2>/dev/null)" in
+  x86_64 | amd64) arch=amd64 ;;
+  aarch64 | arm64) arch=arm64 ;;
+esac
+exe=specs
+[ "$os" = windows ] && exe=specs.exe
+
+dest_dir="$data/bin/$version"
+dest="$dest_dir/$exe"
+
+# 3. Provision, unless an earlier session already did.
+if ! { [ -f "$dest" ] && [ -x "$dest" ]; }; then
+  [ -n "$os" ] && [ -n "$arch" ] ||
+    fail "the Spec CLI v$version was not installed: no release archive for $(uname -s 2>/dev/null)/$(uname -m 2>/dev/null)" \
+      "build it with: go install github.com/$REPO/cli/specs@cli/v$version"
+  command -v curl >/dev/null 2>&1 ||
+    fail "the Spec CLI v$version was not installed: curl is not on the PATH" "install curl"
+
+  ext=tar.gz
+  [ "$os" = windows ] && ext=zip
+  archive="specs_v${version}_${os}_${arch}.$ext"
+  base="${SPECS_CLI_DOWNLOAD_URL:-https://github.com}"
+  base="${base%/}/$REPO/releases/download/cli/v$version"
+
+  tmp="$data/bin/.tmp-$$"
+  trap 'rm -rf "$tmp"' EXIT
+  trap 'exit 0' HUP INT TERM
+  mkdir -p "$tmp" ||
+    fail "the Spec CLI v$version was not installed: cannot create $tmp" "make $data writable"
+
+  # get <name>: download one release asset into $tmp, or fail naming it.
+  # Two of these at --max-time 90 stay inside hooks.json's 240s timeout, so
+  # a slow download fails here, with its one line, before the hook is killed.
+  get() {
+    status="$(curl -sS -L --connect-timeout 30 --max-time 90 -o "$tmp/$1" \
+      -w '%{http_code}' "$base/$1" 2>/dev/null)" ||
+      fail "the Spec CLI v$version was not installed: cannot reach $base/$1" \
+        "check that this machine can reach github.com"
+    case "$status" in
+      2??) ;;
+      *) fail "the Spec CLI v$version was not installed: HTTP $status for $base/$1" \
+        "check that release cli/v$version of $REPO exists" ;;
+    esac
+  }
+  get SHA256SUMS
+  get "$archive"
+
+  want="$(awk -v n="$archive" '$2 == n || $2 == "*" n { print $1; exit }' "$tmp/SHA256SUMS")"
+  if command -v sha256sum >/dev/null 2>&1; then
+    got="$(sha256sum "$tmp/$archive" | awk '{ print $1 }')"
+  elif command -v shasum >/dev/null 2>&1; then
+    got="$(shasum -a 256 "$tmp/$archive" | awk '{ print $1 }')"
+  else
+    fail "the Spec CLI v$version was not installed: neither sha256sum nor shasum is on the PATH to verify it" \
+      "install coreutils"
+  fi
+  if [ -z "$want" ] || [ "$want" != "$got" ]; then
+    fail "the Spec CLI v$version was not installed: checksum mismatch for $archive" \
+      "retry; a repeated mismatch is a corrupted release to report"
+  fi
+
+  # GNU tar, the one Git Bash and MSYS2 put first, cannot read a zip; unzip
+  # and the bsdtar Windows ships as tar.exe can, and so can PowerShell.
+  unpack_zip() {
+    if command -v unzip >/dev/null 2>&1 && unzip -q -o "$1" -d "$2"; then
+      return 0
+    fi
+    tar -xf "$1" -C "$2" 2>/dev/null && [ -f "$2/$exe" ] && return 0
+    command -v powershell.exe >/dev/null 2>&1 &&
+      powershell.exe -NoProfile -NonInteractive -Command \
+        "Expand-Archive -Force -LiteralPath '$(cygpath -w "$1" 2>/dev/null || printf '%s' "$1")' -DestinationPath '$(cygpath -w "$2" 2>/dev/null || printf '%s' "$2")'"
+  }
+  mkdir -p "$tmp/x" &&
+    if [ "$ext" = zip ]; then
+      unpack_zip "$tmp/$archive" "$tmp/x"
+    else
+      tar -xzf "$tmp/$archive" -C "$tmp/x"
+    fi >/dev/null 2>&1 ||
+    fail "the Spec CLI v$version was not installed: cannot extract $archive" \
+      "retry; a repeated failure is a corrupted release to report"
+  [ -f "$tmp/x/$exe" ] ||
+    fail "the Spec CLI v$version was not installed: $archive holds no $exe" \
+      "retry; a repeated failure is a corrupted release to report"
+
+  # A rename within one directory tree, so a concurrent session sees either
+  # no binary or the whole one.
+  mkdir -p "$dest_dir" &&
+    chmod 755 "$tmp/x/$exe" &&
+    mv -f "$tmp/x/$exe" "$dest" ||
+    fail "the Spec CLI v$version was not installed: cannot place it in $dest_dir" "make $data writable"
+fi
+
+placed=false
+if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+  q="$(printf '%s' "$dest_dir" | sed "s/'/'\\\\''/g")"
+  printf "export PATH='%s':\"\$PATH\"\n" "$q" >> "$CLAUDE_ENV_FILE" 2>/dev/null && placed=true
+fi
+if [ "${CLAUDE_CODE_REMOTE:-}" = true ]; then
+  link_dir="${SPECS_CLI_LINK_DIR:-/usr/local/bin}"
+  rm -f "$link_dir/specs" 2>/dev/null
+  ln -s "$dest" "$link_dir/specs" 2>/dev/null && placed=true
+fi
+
+if [ "$placed" = false ]; then
+  fail "the Spec CLI v$version is installed at $dest but could not be put on this session's PATH" \
+    "run it by that path, or add $dest_dir to PATH"
+fi
+if [ -n "$other" ] && [ "${CLAUDE_CODE_REMOTE:-}" != true ]; then
+  say "specs v$version from $dest_dir is first on this session's PATH, ahead of $other. Set SPECS_CLI_PROVISION=off to use that one instead."
+fi
+exit 0

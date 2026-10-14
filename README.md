@@ -107,11 +107,18 @@ scripts/install-spec-skill.sh
 ### Install the CLI
 
 The skills call the `specs` CLI to check documents, number them, and
-trace references. If the CLI isn't installed, the skills check documents
-by hand and say so. A manual check is slower, and a reviewer can't
-rerun it.
+trace references. The plugin installs it for you: when a session starts,
+a hook puts the CLI release that matches the plugin's version first on
+the session's PATH, downloading and checksum-verifying it the first time.
+If a different version of `specs` is already installed on your machine,
+it stays as it is and is shadowed for the session only. In a Claude Code
+cloud session, the plugin's version also replaces `/usr/local/bin/specs`. To use your own `specs` instead,
+set `SPECS_CLI_PROVISION=off`.
 
-To install the CLI with Go, run the following command:
+If the CLI isn't available, the skills check documents by hand and say
+so. A manual check is slower, and a reviewer can't rerun it.
+
+To install the CLI yourself with Go, run the following command:
 
 ```bash
 go install github.com/brettcallaghan/specs/cli/specs@latest

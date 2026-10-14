@@ -36,8 +36,10 @@ verifiable by whoever reviews the work, where yours is an assertion.
 
 Two things, both cheap to confirm:
 
-- **The binary.** `command -v specs`. If it is missing, see the last
-  section — do not silently fall back to reading documents.
+- **The binary.** `command -v specs`. The specs plugin's session hook
+  puts the release matching the plugin's version first on the PATH, so
+  in a session with the plugin it is normally there. If it is missing,
+  see the last section — do not silently fall back to reading documents.
 - **A `specs.toml`**, declaring `[workspace].root` (the corpus
   directory), `[workspace].name`, and `[profile].name`. Every command
   resolves the corpus through it. The CLI reads the nearest `specs.toml`
@@ -718,8 +720,21 @@ each check with who decides it.
 
 ## When it is not installed
 
-Say so, and name the install, rather than reading the corpus by hand and
-reporting a result you cannot show your work for:
+The specs plugin installs the CLI when a session starts: it pins the
+release whose version equals the plugin's own, and puts it first on the
+session's PATH. On a user's machine a `specs` of another version already
+on the PATH stays installed and is shadowed for the session only; in a
+cloud session the pinned binary also replaces `/usr/local/bin/specs`.
+When provisioning fails, the session's context carries one line
+beginning `specs plugin:` naming the cause. If that line also says not
+to run another `specs` left on the PATH, don't: it is not the version
+these skills are written against, so check by hand as below. When a user
+has set `SPECS_CLI_PROVISION=off`, the `specs` on their PATH is the one
+that runs, whatever its version.
+
+Without the binary, say so and name the cause and the install, rather
+than reading the corpus by hand and reporting a result you cannot show
+your work for. Outside the plugin, install it with:
 
 ```
 go install github.com/brettcallaghan/specs/cli/specs@latest
@@ -728,9 +743,8 @@ go install github.com/brettcallaghan/specs/cli/specs@latest
 or unpack a release archive from the repository's releases page onto
 `PATH` (a single static binary; nothing runs at install time).
 
-Reading the corpus by hand is the correct fallback for a project that
-has chosen not to install it — but it is a fallback, and the human
-should know that is what happened. The checks in
-`shared/document-readiness-checklist.md` are defined independently of
-the tool, so all of them can be run by hand; the cost is that the result
-is an assertion rather than a verifiable one.
+Reading the corpus by hand is the correct fallback when the binary is
+unavailable — but it is a fallback, and the human should know that is
+what happened. The checks in `shared/document-readiness-checklist.md` are
+defined independently of the tool, so all of them can be run by hand;
+the cost is that the result is an assertion rather than a verifiable one.
