@@ -4,6 +4,7 @@ package pluginhooks
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
@@ -32,6 +33,7 @@ var pluginDir = filepath.Join("..", "..", "plugin")
 var tools = []string{
 	"bash", "sh", "curl", "tar", "gzip", "sha256sum", "shasum", "awk", "sed",
 	"mkdir", "rm", "mv", "chmod", "ln", "cat", "dirname", "uname", "printf",
+	"unzip",
 }
 
 // fakeHost stands in for github.com's release downloads.
@@ -73,6 +75,30 @@ func (h *fakeHost) publish(t *testing.T, version string) string {
 	h.files["cli/v"+version+"/"+name] = data
 	h.files["cli/v"+version+"/SHA256SUMS"] = []byte(hex.EncodeToString(sum[:]) + "  " + name + "\n")
 	return name
+}
+
+// publishWindows adds release cli/v<version> for windows/amd64: a zip holding
+// specs.exe, and a SHA256SUMS covering it.
+func (h *fakeHost) publishWindows(t *testing.T, version string) {
+	t.Helper()
+	name := "specs_v" + version + "_windows_amd64.zip"
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	w, err := zw.CreateHeader(&zip.FileHeader{Name: "specs.exe", Method: zip.Deflate})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Write([]byte(fakeSpecs(version))); err != nil {
+		t.Fatal(err)
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(buf.Bytes())
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.files["cli/v"+version+"/"+name] = buf.Bytes()
+	h.files["cli/v"+version+"/SHA256SUMS"] = []byte(hex.EncodeToString(sum[:]) + "  " + name + "\n")
 }
 
 func (h *fakeHost) corrupt(version, name string) {
@@ -392,5 +418,41 @@ func TestFailuresAreOneLineOfContextAndInstallNothing(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestAWindowsZipIsUnpackedWhereTarCannotReadOne(t *testing.T) {
+	host := newFakeHost(t)
+	host.publishWindows(t, pinned)
+	e := newEnv(t, host, pinned)
+	// A Git Bash uname, and a GNU-like tar that cannot read a zip.
+	for name, body := range map[string]string{
+		"uname": "#!/bin/sh\ncase \"$1\" in -s) echo MINGW64_NT-10.0-19045 ;; -m) echo x86_64 ;; esac\n",
+		"tar":   "#!/bin/sh\necho 'tar: This does not look like a tar archive' >&2\nexit 2\n",
+	} {
+		p := filepath.Join(e.path, name)
+		_ = os.Remove(p)
+		mustWrite(t, p, body, 0o755)
+	}
+
+	if out := e.run(); out != "" {
+		t.Fatalf("printed %q", out)
+	}
+	exe := filepath.Join(e.data, "bin", pinned, "specs.exe")
+	if body, err := os.ReadFile(exe); err != nil || string(body) != fakeSpecs(pinned) {
+		t.Fatalf("specs.exe not installed from the zip: %v", err)
+	}
+}
+
+func TestAFailureTellsTheAgentNotToRunAnotherVersionLeftOnThePath(t *testing.T) {
+	host := newFakeHost(t)
+	e := newEnv(t, host, pinned)
+	theirs := filepath.Join(e.path, "specs")
+	mustWrite(t, theirs, fakeSpecs("0.1.0"), 0o755)
+
+	out := e.run()
+	if !strings.HasPrefix(out, "specs plugin: ") || !strings.Contains(out, "HTTP 404") ||
+		!strings.Contains(out, "Do not run "+theirs+" (v0.1.0)") || strings.Count(out, "\n") != 1 {
+		t.Fatalf("printed %q; want one line naming the failure and warning off %s", out, theirs)
 	}
 }

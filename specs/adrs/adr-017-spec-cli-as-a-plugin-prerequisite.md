@@ -69,6 +69,9 @@ replacing whatever is there, and says nothing.
 The hook never fails a session. A failure — no release for the platform,
 no network, a checksum mismatch — is one line in the session's context
 saying the CLI was not installed and what to do, and the hook exits 0.
+When another `specs` is still first on the PATH, that line names it and
+says not to run it, since its commands are not the ones the skills cite;
+the skills then take the hand-checking fallback.
 
 Skills call `specs` directly, in a single code path. They do not branch on
 whether it is installed. The fallback is stated once, where the checks

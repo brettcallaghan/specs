@@ -6,7 +6,7 @@
           {
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/install-cli\"",
-            "timeout": 120
+            "timeout": 240
           }
         ]
       }

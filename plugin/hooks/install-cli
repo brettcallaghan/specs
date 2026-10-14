@@ -45,8 +45,16 @@ REPO=brettcallaghan/specs
 say() {
   printf 'specs plugin: %s\n' "$1"
 }
+# A failure leaves any other `specs` first on the PATH, so it is named, and
+# the agent told not to run it: its commands and output are not the ones
+# the skills are written against.
+other=""
 fail() {
-  say "$1. $2"
+  if [ -n "$other" ]; then
+    say "$1. $2. Do not run $other in its place: it is not the version these skills are written against, so check documents by hand, or set SPECS_CLI_PROVISION=off to use it anyway"
+  else
+    say "$1. $2"
+  fi
   exit 0
 }
 
@@ -91,7 +99,6 @@ case "$version" in
 esac
 
 # 2. Already the right binary on the PATH.
-other=""
 if found="$(command -v specs 2>/dev/null)" && [ -n "$found" ]; then
   reported="$("$found" --version 2>/dev/null | awk '$1 == "version:" { print $2; exit }')"
   if [ "$reported" = "v$version" ]; then
@@ -144,6 +151,8 @@ if ! { [ -f "$dest" ] && [ -x "$dest" ]; }; then
     fail "the Spec CLI v$version was not installed: cannot create $tmp" "make $data writable"
 
   # get <name>: download one release asset into $tmp, or fail naming it.
+  # Two of these at --max-time 90 stay inside hooks.json's 240s timeout, so
+  # a slow download fails here, with its one line, before the hook is killed.
   get() {
     status="$(curl -sS -L --connect-timeout 30 --max-time 90 -o "$tmp/$1" \
       -w '%{http_code}' "$base/$1" 2>/dev/null)" ||
@@ -172,9 +181,20 @@ if ! { [ -f "$dest" ] && [ -x "$dest" ]; }; then
       "retry; a repeated mismatch is a corrupted release to report"
   fi
 
+  # GNU tar, the one Git Bash and MSYS2 put first, cannot read a zip; unzip
+  # and the bsdtar Windows ships as tar.exe can, and so can PowerShell.
+  unpack_zip() {
+    if command -v unzip >/dev/null 2>&1 && unzip -q -o "$1" -d "$2"; then
+      return 0
+    fi
+    tar -xf "$1" -C "$2" 2>/dev/null && [ -f "$2/$exe" ] && return 0
+    command -v powershell.exe >/dev/null 2>&1 &&
+      powershell.exe -NoProfile -NonInteractive -Command \
+        "Expand-Archive -Force -LiteralPath '$(cygpath -w "$1" 2>/dev/null || printf '%s' "$1")' -DestinationPath '$(cygpath -w "$2" 2>/dev/null || printf '%s' "$2")'"
+  }
   mkdir -p "$tmp/x" &&
     if [ "$ext" = zip ]; then
-      tar -xf "$tmp/$archive" -C "$tmp/x"
+      unpack_zip "$tmp/$archive" "$tmp/x"
     else
       tar -xzf "$tmp/$archive" -C "$tmp/x"
     fi >/dev/null 2>&1 ||
