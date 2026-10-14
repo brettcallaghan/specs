@@ -110,8 +110,9 @@ The skills call the `specs` CLI to check documents, number them, and
 trace references. The plugin installs it for you: when a session starts,
 a hook puts the CLI release that matches the plugin's version first on
 the session's PATH, downloading and checksum-verifying it the first time.
-If a different version of `specs` is already installed, it stays as it is
-and is shadowed for the session only. To use your own `specs` instead,
+If a different version of `specs` is already installed on your machine,
+it stays as it is and is shadowed for the session only. In a Claude Code
+cloud session, the plugin's version also replaces `/usr/local/bin/specs`. To use your own `specs` instead,
 set `SPECS_CLI_PROVISION=off`.
 
 If the CLI isn't available, the skills check documents by hand and say

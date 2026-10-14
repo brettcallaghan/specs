@@ -58,8 +58,8 @@ skill runs:
    the session's PATH through `CLAUDE_ENV_FILE`. A version already kept
    there is not downloaded again.
 
-**A different `specs` on the PATH is shadowed, never replaced.** On a
-user's machine it stays installed and in use everywhere outside the
+**On a user's machine a different `specs` on the PATH is shadowed, never
+replaced.** It stays installed and in use everywhere outside the
 session; the hook adds one line to the session's context naming it, its
 version, and the opt-out. In a cloud session (`CLAUDE_CODE_REMOTE=true`)
 the container is disposable and the pinned binary is the only right
@@ -73,6 +73,15 @@ When another `specs` is still first on the PATH, that line names it and
 says not to run it, since its commands are not the ones the skills cite;
 the skills then take the hand-checking fallback.
 
+**The checksum detects a corrupted download; it does not authenticate the
+binary.** `SHA256SUMS` comes from the same release as the archive, so
+anyone who can replace one can replace both. That is write access to this
+repository, which is also where the plugin, and so the hook itself, is
+served from: such a person could equally change the hook. The trust root
+is the repository, as it is for every skill the plugin ships, and a
+signature verified by a key or verifier the plugin carries would rest on
+the same root.
+
 Skills call `specs` directly, in a single code path. They do not branch on
 whether it is installed. The fallback is stated once, where the checks
 are defined (`document-readiness-checklist.md`): every check remains
@@ -85,7 +94,7 @@ only the first can be re-run by a reviewer.
 
 | Option | Pros | Cons | Why rejected |
 |--------|------|------|--------------|
-| Hook provisions the pinned release; another version is shadowed for the session (selected) | The skills meet the binary they were written against, with no install step; the user's own install is never modified | The plugin downloads and runs a binary at session start, a trust surface a markdown plugin otherwise lacks — bounded by fetching only the release that the plugin's own version names, checksum-verified | N/A — selected |
+| Hook provisions the pinned release; another version is shadowed for the session (selected) | The skills meet the binary they were written against, with no install step; a user's own install is never modified outside a cloud container | The plugin downloads and runs a binary at session start, a trust surface a markdown plugin otherwise lacks — bounded by fetching only the release that the plugin's own version names, from the repository that serves the plugin | N/A — selected |
 | Prerequisite installed by the user; skills single-path | Plugin stays markdown only | A consumer who skips the install gets degraded checking on every document, and nothing fails loudly; version skew between plugin and binary is unmanaged | Every skill instruction assumes a binary that nothing provides |
 | Install on demand, when a skill first needs it | Nothing runs for a session that never touches a document | Every skill has to carry the provisioning step before its first command, and the first command of a session pays the download | The skills call `specs` in nearly every procedure; up front is simpler and makes the binary an invariant rather than a step |
 | Use whatever `specs` is on the PATH, and warn on a mismatch | Respects a deliberate local install | A mismatched binary fails at the point of use, mid-procedure, on a subcommand or output shape the skill assumed | The opt-out covers a deliberate choice; the default should be the version the skills were written against |
@@ -111,6 +120,8 @@ only the first can be re-run by a reviewer.
   release workflow is what keeps the two in step.
 - The hook runs `specs --version` on whatever `specs` is first on the
   PATH, to decide whether it is already the pinned one.
+- Nothing authenticates the binary independently of the repository that
+  serves the plugin; the checksum only rejects a corrupted download.
 
 ## References
 

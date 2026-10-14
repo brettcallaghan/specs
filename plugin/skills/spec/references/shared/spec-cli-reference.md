@@ -727,13 +727,15 @@ each check with who decides it.
 
 The specs plugin installs the CLI when a session starts: it pins the
 release whose version equals the plugin's own, and puts it first on the
-session's PATH. A `specs` of another version already on the PATH stays
-installed and is shadowed for the session only. When provisioning fails,
-the session's context carries one line beginning `specs plugin:` naming
-the cause. If that line also says not to run another `specs` left on the
-PATH, don't: it is not the version these skills are written against, so
-check by hand as below. When a user has set `SPECS_CLI_PROVISION=off`,
-the `specs` on their PATH is the one that runs, whatever its version.
+session's PATH. On a user's machine a `specs` of another version already
+on the PATH stays installed and is shadowed for the session only; in a
+cloud session the pinned binary also replaces `/usr/local/bin/specs`.
+When provisioning fails, the session's context carries one line
+beginning `specs plugin:` naming the cause. If that line also says not
+to run another `specs` left on the PATH, don't: it is not the version
+these skills are written against, so check by hand as below. When a user
+has set `SPECS_CLI_PROVISION=off`, the `specs` on their PATH is the one
+that runs, whatever its version.
 
 Without the binary, say so and name the cause and the install, rather
 than reading the corpus by hand and reporting a result you cannot show
