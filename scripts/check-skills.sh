@@ -53,6 +53,11 @@ def is_generated(p):
     # it twice would double-report and could look like a duplicate skill.
     if os.path.islink(os.path.dirname(p)):
         return True
+    # A skill vendored verbatim from another repository (sync-humanizer.sh)
+    # carries an UPSTREAM file. Its SKILL.md must open with frontmatter, so it
+    # cannot carry the GENERATED COPY header below.
+    if os.path.exists(os.path.join(os.path.dirname(p), 'UPSTREAM')):
+        return True
     # Vendored references (sync-shared-references.sh, sync-strata-docs.sh) all
     # open with this header. Checking the header rather than a path pattern
     # keeps this correct as vendoring destinations grow — and a file whose
