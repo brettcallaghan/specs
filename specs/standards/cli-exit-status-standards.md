@@ -9,25 +9,25 @@ type: standards
 status: draft
 ---
 
-# Spec CLI Exit Status Standards
+# Spec CLI exit status standards
 
 These standards govern the exit status of every command
-[[container-spec-cli]] exposes, present and future. They are the
-companion to [[cli-output-standards]]: that document governs what a
-command prints, this one governs the one value a caller reads before
-reading anything printed.
+[[container-spec-cli]] exposes, present and future. They're the companion
+to [[cli-output-standards]]. That document governs what a command prints,
+and this one governs the one value a caller reads before reading anything
+printed.
 
-**The reader is a caller deciding what to do next** — an agent, a hook, a
-CI step — that has the status and may not have looked at the output yet.
-The status exists to answer one question: *who has to act?* The corpus
-author, the caller, the repository's maintainer, or this tool's
+The reader is a caller deciding what to do next: an agent, a hook, or a CI
+step that has the status and may not have looked at the output yet. The
+status exists to answer one question: who has to act? The answer is the
+corpus author, the caller, the repository's maintainer, or this tool's
 maintainer. Each answer is a different status, because each sends the
-caller somewhere different. Today every failure exits 1, so a hook cannot
-tell "the document you wrote is broken" from "you invoked me wrong".
+caller somewhere different. Today every failure exits 1, so a hook can't
+tell "the document you wrote is broken" from "you invoked me wrong."
 
 ---
 
-## Outcome Classes
+## Outcome classes
 
 ### The five statuses
 
@@ -36,18 +36,18 @@ exit with any other status of its own choosing.
 
 | Status | Class | Who acts | Meaning |
 |---|---|---|---|
-| `0` | success | nobody | The command did what was asked. A query answered; a gate passed |
+| `0` | success | nobody | The command did what was asked. A query answered, or a gate passed |
 | `1` | gate failed | the corpus author | A gate ran to completion and the corpus failed it |
-| `2` | invocation error | the caller | The command could not run as invoked: an unknown command or flag, a missing or surplus argument, a value outside a registered set, an operand the command cannot act on |
-| `3` | environment error | the repository's maintainer | The command was invoked correctly but its surroundings prevent it: no `specs.toml`, an invalid configuration, an unknown profile, an unreadable spec root, an output path it cannot write |
-| `4` | internal error | this tool's maintainer | The CLI reached a state it does not handle: a panic, an encoder refusing a value the model holds, an invariant broken |
+| `2` | invocation error | the caller | The command couldn't run as invoked: an unknown command or flag, a missing or surplus argument, a value outside a registered set, or an operand the command can't act on |
+| `3` | environment error | the repository's maintainer | The command was invoked correctly but its surroundings prevent it: no `specs.toml`, an invalid configuration, an unknown profile, an unreadable spec root, or an output path it can't write |
+| `4` | internal error | this tool's maintainer | The CLI reached a state it doesn't handle: a panic, an encoder refusing a value the model holds, or a broken invariant |
 
-**Rationale:** four failure classes, because there are four parties a
-caller can hand a failure to, and anything finer is a distinction no
-caller acts on differently. `1` keeps the meaning it has in `grep`,
-`diff` and every linter — "ran fine, the answer is no" — so a CI step
-written for any of them reads this one correctly. Statuses above `125`
-are left alone because the shell owns them for signals.
+**Rationale:** there are four failure classes because a caller can hand a
+failure to four parties. Anything finer is a distinction no caller acts on
+differently. `1` keeps the meaning it has in `grep`, `diff`, and every
+linter ("ran fine, the answer is no"), so a CI step written for any of
+them reads this one correctly. The shell owns statuses above `125` for
+signals, so these standards leave them alone.
 
 ---
 
@@ -56,10 +56,10 @@ are left alone because the shell owns them for signals.
 The CLI SHALL recover a panic in any command and exit `4`, writing the
 panic's message to standard error.
 
-**Rationale:** an unrecovered Go panic exits `2`, which this standard
-assigns to invocation errors. Without recovery a crash reads as "you
-called me wrong", and the caller retries a correct invocation instead of
-reporting a bug. This is the trap the obvious numbering walks into.
+**Rationale:** an unrecovered Go panic exits `2`, which these standards
+assign to invocation errors. Without recovery, a crash reads as "you
+called me wrong," and the caller retries a correct invocation instead of
+reporting a bug. The obvious numbering walks into this trap.
 
 ---
 
@@ -68,10 +68,10 @@ reporting a bug. This is the trap the obvious numbering walks into.
 IF a run meets the conditions of more than one non-zero class, the CLI
 SHALL exit with the class highest in the order `4`, `3`, `2`, `1`.
 
-**Rationale:** the higher class makes the lower one unreliable. Findings
-from a run that also hit an environment error were produced against a
-corpus the CLI could not fully read, so reporting `1` would send the
-author to fix documents that may not be broken.
+**Rationale:** the higher class makes the lower one unreliable. A run that
+also hit an environment error produced its findings against a corpus the
+CLI couldn't fully read. Reporting `1` would send the author to fix
+documents that may not be broken.
 
 ---
 
@@ -86,30 +86,31 @@ depends on whether the cache was warm is a defect.
 
 ---
 
-## Queries and Gates
+## Queries and gates
 
-Every command is a **query** (it answers a question about the corpus) or
-a **gate** (it decides whether the corpus meets a bar). The two read the
-same facts and must report them through the status differently.
+Every command is a query (it answers a question about the corpus) or a gate
+(it decides whether the corpus meets a bar). The two read the same facts
+and must report them through the status differently. The following table
+lists each kind and the commands of that kind today.
 
 | Kind | Commands today |
 |---|---|
 | gate | `check` |
 | query | `list`, `refs`, `headings`, `feature`, `criterion`, `next-id`, `slug-exists`, `c4` |
-| producer | `index`, `links`, `feature --emit`, `headings --emit` — a query whose answer is an artifact |
+| producer | `index`, `links`, `feature --emit`, `headings --emit` (a query whose answer is an artifact) |
 
 ### A query never answers through its status
 
 A query SHALL exit `0` whenever it produced an answer, whatever the
 answer is.
 
-**Rationale:** "no document declares this slug", "nothing references
-this heading" and "no criterion changed" are facts about the corpus,
-and [[cli-output-standards]] already requires them rendered as answers.
+**Rationale:** "no document declares this slug," "nothing references this
+heading," and "no criterion changed" are facts about the corpus.
+[[cli-output-standards]] already requires them rendered as answers.
 Encoding them in the status as well would make a caller branch on the
-shape of the world rather than on whether the command worked, and would
-make every query a gate nobody asked for. A caller that wants a
-yes-or-no reads the answer's property — `declared: false` — not the
+shape of the world rather than on whether the command worked. It would
+also make every query a gate nobody asked for. A caller that wants a
+yes-or-no answer reads the answer's property (`declared: false`), not the
 status.
 
 ---
@@ -121,10 +122,10 @@ slug, a feature or criterion identifier, a feature code, a heading — the
 CLI SHALL render the empty answer with a property stating that the
 subject is not declared, and SHALL exit `0`.
 
-**Rationale:** whether `AC-SPEC-099.1` exists is a fact about this
-corpus today; it will exist once someone writes it. That is the same
-kind of fact as an empty search, and it gets the same status. This is
-what moves `criterion <id>` and `c4 --root <slug>` from `1` to `0`.
+**Rationale:** whether `AC-SPEC-099.1` exists is a fact about this corpus
+today. It will exist once someone writes it. That's the same kind of fact
+as an empty search, and it gets the same status. This rule moves
+`criterion <id>` and `c4 --root <slug>` from `1` to `0`.
 
 ---
 
@@ -138,15 +139,16 @@ registered name on standard error and SHALL exit `2`.
 WHERE the same value is named by the configuration file rather than by
 an argument, the CLI SHALL exit `3`.
 
-**Rationale:** the line between this rule and the previous one is
-whether the corpus could ever make the value valid. No document an
-author writes turns `adrx` into a document type; a configuration change
-does. So a misspelt type is a mistake in the question, and answering it
-with an empty list would make a typo indistinguishable from "none
-exist" — the gate passing `check --only reference/unresolvd` forever
-is the cost. The caller cannot fix a value written in `specs.toml`, so
-the same unknown name there — `[profile] name`, for one — is the
-repository maintainer's, which is why an unknown profile is listed under
+**Rationale:** the line between this rule and the previous one is whether
+the corpus could ever make the value valid. No document an author writes
+turns `adrx` into a document type, but a configuration change does. So a
+misspelled type is a mistake in the question. Answering it with an empty
+list would make a typo indistinguishable from "none exist." The cost would
+be a gate that passes `check --only reference/unresolvd` forever.
+
+The caller can't fix a value written in `specs.toml`, so the same unknown
+name there (`[profile] name`, for example) belongs to the repository's
+maintainer. That's why the status table lists an unknown profile under
 `3`.
 
 ---
@@ -158,10 +160,9 @@ corpus member, a rule it cannot run — the CLI SHALL exit `2`, and SHALL
 NOT exit `0`.
 
 **Rationale:** the asymmetry with queries is deliberate. A query that
-cannot find its subject has still answered. A gate that cannot inspect
-its subject has decided nothing, and a `0` from it would be read as a
-pass: a write-time hook handed a mistyped path would approve every
-edit.
+can't find its subject has still answered. A gate that can't inspect its
+subject has decided nothing, and a caller would read a `0` from it as a
+pass. A write-time hook handed a mistyped path would approve every edit.
 
 ---
 
@@ -170,13 +171,13 @@ edit.
 A gate SHALL exit `1` WHEN it raises at least one finding at a severity
 its bar fails, and SHALL exit `0` otherwise.
 
-Without `--strict` the bar is `error`. Under `--strict` the bar is every
-severity, `warning` and `unverified` included.
+Without `--strict`, the bar is `error`. Under `--strict`, the bar is every
+severity, including `warning` and `unverified`.
 
-**Rationale:** an `unverified` finding records a check that could not
-look, and is the reason `--strict` exists: in CI, "could not tell" must
-block; in an editing loop it must not. Folding it into the default bar
-would make every unverifiable diagram fail every hook.
+**Rationale:** an `unverified` finding records a check that couldn't look,
+and it's the reason `--strict` exists. In CI, "could not tell" must block.
+In an editing loop, it must not. Folding it into the default bar would
+make every unverifiable diagram fail every hook.
 
 ---
 
@@ -189,11 +190,11 @@ A producer SHALL exit `3` WHEN it cannot write its artifact to the
 destination named, and SHALL exit `4` WHEN it cannot encode the artifact
 from the corpus it read.
 
-**Rationale:** an index of a corpus with broken links is a correct
-index, and AC-SPEC-002.5 already requires it to exit zero; judging the
-corpus is the gate's job. Failing to encode, by contrast, is never the
-corpus's fault: a corpus missing a required property is a finding for
-`check`, and an encoder that refuses it is a bug in this tool.
+**Rationale:** an index of a corpus with broken links is a correct index,
+and AC-SPEC-002.5 already requires it to exit zero. Judging the corpus is
+the gate's job. By contrast, failing to encode is never the corpus's
+fault. A corpus missing a required property is a finding for `check`, and
+an encoder that refuses it is a bug in this tool.
 
 ---
 
@@ -219,8 +220,8 @@ IF a run exits `2`, `3` or `4`, the CLI SHALL write nothing to standard
 output, and SHALL write the reason to standard error.
 
 **Rationale:** a caller that captures standard output and parses it must
-never parse half an answer. The exception is status `1`, whose findings
-*are* the answer and are written to standard output as
+never parse half an answer. The exception is status `1`. Its findings are
+the answer, and the CLI writes them to standard output as
 [[cli-output-standards]] requires.
 
 ---
@@ -231,43 +232,50 @@ WHEN the CLI exits non-zero, the message on standard error SHALL begin
 with the offending value or condition, and SHOULD say what the caller
 can change.
 
-**Rationale:** the status says who acts; the message says what to do.
-"no specs.toml found at specs.toml" tells the maintainer the file is
-missing, but not that the CLI searched only the working directory.
+**Rationale:** the status says who acts, and the message says what to do.
+The message "no specs.toml found at specs.toml" tells the maintainer that
+the file is missing, but not that the CLI searched only the working
+directory.
 
 ---
 
-## Guidance for Callers
+## Guidance for callers
 
-Stated here because the status is only as good as the way it is read.
+The status is only as good as the way a caller reads it, so these
+standards also say how to read it:
 
-- **Read the status directly, never through a pipe.** `specs check | tail`
+- Read the status directly, never through a pipe. `specs check | tail`
   reports `tail`'s status, so a failing gate reads as a pass. Redirect to a
   file and read `$?`, or capture the output in a variable.
-- **Branch on the class, not on non-zero.** `1` means fix the documents;
-  `2` means fix the command; `3` means fix the repository; `4` means file
-  a bug. A retry is correct for none of them.
-- **Read a query's answer, not its status**, for any yes-or-no question
-  about the corpus.
+- Branch on the class, not on any non-zero status. `1` means fix the
+  documents, `2` means fix the command, `3` means fix the repository, and
+  `4` means file a bug. A retry is correct for none of them.
+- For any yes-or-no question about the corpus, read a query's answer, not
+  its status.
 
 ---
 
 ## Current conformance
 
-Measured with a binary built from `main` at `31b3079`, run against this
-repository's corpus; the `headings` row at `12b2eda`. The
-`headings … --emit` row was re-measured on the change that refuses a
-selection matching more than one heading: exit `2`, nothing on standard
-output, both matches named on standard error. The four not-declared and
-qualifier rows were re-measured on the change that answers an undeclared
-subject: each as its "today" cell reads, nothing on standard error for
-the `0` rows. The last row was
-re-measured on the change that moved `criterion --changed` onto a git
-base, in a directory outside any repository: exit `3`, nothing on
-standard output. The missing-enum row was re-measured on the change that
-omits an undeclared enum from the index, over `index-default`'s corpus
-with an ADR's `status` deleted: `index --out -` and `list --json` each
-exit `0` with the answer written.
+These measurements use a binary built from `main` at `31b3079`, run
+against this repository's corpus. The `headings` row was measured at
+`12b2eda`. Later changes re-measured these rows:
+
+- The `headings … --emit` row, on the change that refuses a selection
+  matching more than one heading: exit `2`, nothing on standard output,
+  and both matches named on standard error.
+- The four not-declared and qualifier rows, on the change that answers an
+  undeclared subject: each as its "today" cell reads, with nothing on
+  standard error for the `0` rows.
+- The last row, on the change that moved `criterion --changed` onto a git
+  base, in a directory outside any repository: exit `3`, and nothing on
+  standard output.
+- The missing-enum row, on the change that omits an undeclared enum from
+  the index, over `index-default`'s corpus with an ADR's `status` deleted:
+  `index --out -` and `list --json` each exit `0` with the answer written.
+
+The following table compares each invocation's status today with its
+status under these standards.
 
 | invocation | today | under these standards |
 |---|---|---|
@@ -278,7 +286,7 @@ exit `0` with the answer written.
 | `--config nope.toml list` | `1` | `3` |
 | `criterion AC-X-1` | `0`, `declared: false` | `0`, with the subject marked not declared |
 | `c4 --root zzz` | `0`, `root_declared: false` | `0`, with the subject marked not declared |
-| `criterion --tag zzz` | `2`, the value and every registered qualifier on standard error | `2` — qualifiers are a registered set |
+| `criterion --tag zzz` | `2`, the value and every registered qualifier on standard error | `2`, because qualifiers are a registered set |
 | `slug-exists zzz`, `feature --code ZZ`, `headings 'zzz#q'` | `0`, `declared: false` | `0`, with the subject marked not declared |
 | `list --json` or `index` on a document missing a required enum | `0`, the artifact written | `0` and the artifact written |
 | a panic | `2` (Go's default) | `4` |
@@ -289,9 +297,9 @@ exit `0` with the answer written.
 
 ## References
 
-- [[cli-output-standards]] — what a command prints; this document governs
-  only the status beside it
-- [[container-spec-cli]] — the container whose command surface these
-  standards govern
-- [[frd-spec-index]] — AC-SPEC-002.5, AC-SPEC-006.7 and AC-SPEC-009.7,
-  which these standards generalize
+- [[cli-output-standards]]: what a command prints. This document governs
+  only the status beside it.
+- [[container-spec-cli]]: the container whose command surface these
+  standards govern.
+- [[frd-spec-index]]: AC-SPEC-002.5, AC-SPEC-006.7, and AC-SPEC-009.7,
+  which these standards generalize.

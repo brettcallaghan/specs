@@ -10,44 +10,43 @@ delivery: single-pr
 frd: frd-spec-list
 ---
 
-# Corpus Listing
+# Corpus listing
 
 **FRD:** [[frd-spec-list]]
 
-Every value this feature reports is already in the index. The design is
-therefore a query, not a new artifact: Document Core gains a summary
-query over the entries it already holds, and the Command Surface gains a
-subcommand that turns flags into that query's options and hands the
-result to the YAML renderer two other subcommands already use. Nothing
-parses a document, nothing writes a file, and the index's shape does not
-change.
+Every value this feature reports is already in the index, so the design
+adds a query and no new artifact. Document Core gains a summary query over
+the entries it already holds. The Command Surface gains a subcommand that
+turns flags into that query's options and hands the result to the YAML
+renderer that two other subcommands already use. Nothing parses a
+document, nothing writes a file, and the index's shape doesn't change.
 
-The layering is the whole of the design. [[container-spec-cli]]'s Change
-Guidance forbids a capability living in the command surface, so the
-filtering and the summary shape are Document Core's, and `cli/cmd` only
-declares flags and selects a rendering. Two profile-registered tables —
-the document types and the lifecycle's retired statuses — are what let
-that filtering live in Document Core without it learning any framework
-vocabulary.
+The whole design is in the layering. [[container-spec-cli]]'s Change
+Guidance forbids putting a capability in the Command Surface. The
+filtering and the summary shape therefore belong to Document Core, and
+`cli/cmd` only declares flags and selects a rendering. Two tables that the
+profile registers, the document types and the lifecycle's retired
+statuses, let that filtering live in Document Core without it learning any
+framework vocabulary.
 
-Delta blocks in dependency order: CORE, then FILT, then CMD, with DOC
-independent of all three.
+The delta blocks appear in dependency order: CORE, then FILT, then CMD.
+DOC is independent of all three.
 
-## Element Deltas
+## Element deltas
 
 ### `Corpus` in [[module-document-core]] (modified — summary query)
 
-**Intent:** The listing needs one query returning a summary per corpus
-member. It belongs beside `Features` and `Criteria` in the same query
-surface, for the same reason those do: the Command Surface may hold no
-domain logic, and a future API or MCP wrapper needs the same answer
+**Intent:** The listing needs one query that returns a summary for each
+corpus member. It belongs beside `Features` and `Criteria` in the same
+query surface, for the same reason they do. The Command Surface may hold
+no domain logic, and a future API or MCP wrapper needs the same answer
 without going through cobra.
 
-The summary is a projection of `IndexEntry`, not a new record. It reads
-the entry's path and its parsed frontmatter envelope and carries nothing
-else, so no index shape changes and `schema_version` stays `1.0` — the
-Change Guidance rule about the emitted index is not triggered by this
-feature.
+The summary is a projection of `IndexEntry` and adds no new record. It
+reads the entry's path and its parsed frontmatter envelope and carries
+nothing else. The index shape doesn't change, `schema_version` stays
+`1.0`, and this feature doesn't trigger the Change Guidance rule about the
+emitted index.
 
 **Behavior:**
 - The query SHALL return one summary per corpus member, carrying the
@@ -68,25 +67,23 @@ feature.
   relative to the repository root, with forward slashes.
 
 **Anchors:** `cli/core/corpus/query.go`, beside `Corpus.Features` and
-`Corpus.CriteriaOf`; the entry shape is
-`cli/core/specmodel`'s `IndexEntry`, generated from
-`schemas/index.strata`.
+`Corpus.CriteriaOf`. The entry shape is `cli/core/specmodel`'s
+`IndexEntry`, generated from `schemas/index.strata`.
 
 ### `Corpus` in [[module-document-core]] (modified — listing filters)
 
-**Intent:** Filtering is what keeps the answer proportionate as a corpus
-grows, so it belongs in the query rather than in a caller that discards
-rows after receiving them — a caller-side filter would make every
-consumer reimplement it, and would make the command surface hold the
-policy.
+**Intent:** Filtering keeps the answer proportionate as a corpus grows,
+so it belongs in the query and not in a caller that discards rows after
+receiving them. A caller-side filter would make every consumer
+reimplement it, and would put the policy in the Command Surface.
 
-Both filters resolve against tables the profile registers, which is what
-keeps this in Document Core without importing framework vocabulary. The
-type filter validates against `Profile.DocumentTypes`; the retired
-filter reads `LifecycleRules.RetiredStatuses` rather than testing for the
+Both filters resolve against tables the profile registers, which keeps
+the filtering in Document Core without importing framework vocabulary.
+The type filter validates against `Profile.DocumentTypes`. The retired
+filter reads `LifecycleRules.RetiredStatuses` instead of testing for the
 literal string `retired`, so a profile whose documents are `current` and
-`sunset` gets the same behavior. Hard-coding the spelling here is the
-one change that would violate the module's own dependency rule.
+`sunset` gets the same behavior. Hard-coding the spelling here is the one
+change that would violate the module's own dependency rule.
 
 **Behavior:**
 - WHERE the caller names one or more types, the query SHALL return only
@@ -108,20 +105,20 @@ one change that would violate the module's own dependency rule.
 - WHERE a filter matches no member, the query SHALL return an empty
   collection rather than reporting a failure.
 
-**Anchors:** `cli/core/corpus/query.go` for the filtering;
+**Anchors:** `cli/core/corpus/query.go` for the filtering, and
 `cli/core/corpus/profile.go` for `Profile.DocumentTypes` and
-`LifecycleRules.RetiredStatuses`, both of which already exist and are
-relied upon unchanged.
+`LifecycleRules.RetiredStatuses`. Both already exist, and the filters rely
+on them unchanged.
 
 ### `Command Surface` in [[container-spec-cli]] (modified — `list`)
 
-**Intent:** A tenth subcommand, wired like the nine before it: flags in,
-one Document Core call, one rendering out. It decides nothing about what
-a summary is or which members qualify.
+**Intent:** `list` is a tenth subcommand, wired like the nine before it:
+flags in, one Document Core call, one rendering out. It decides nothing
+about what a summary is or which members qualify.
 
 `list` opens the corpus warm through the shared `openCorpus` helper
-rather than building fresh, for the reason `check` does — a listing is a
-query, and the persisted index at the default location answers it
+instead of building it fresh, for the same reason `check` does. A listing
+is a query, and the persisted index at the default location answers it
 without re-walking the corpus.
 
 **Behavior:**
@@ -144,16 +141,18 @@ without re-walking the corpus.
 - Every flag's `--help` text SHALL come from the flag declaration
   itself, per the container's Change Guidance.
 
-**Anchors:** a new `cli/cmd/list.go` beside `cli/cmd/headings.go`, which
-is the first subcommand written against [[cli-output-standards]] and is
-the shape to follow; registration in `newRootCmd` in `cli/cmd/root.go`;
-snapshot cases under `cli/testdata/cases/`.
+**Anchors:** a new `cli/cmd/list.go` beside `cli/cmd/headings.go`,
+registration in `newRootCmd` in `cli/cmd/root.go`, and snapshot cases
+under `cli/testdata/cases/`. `cli/cmd/headings.go` holds the first
+subcommand written against [[cli-output-standards]], and it's the shape
+to follow.
 
 ### Documentation guidance (modified)
 
-**Intent:** `description` acquires a second audience the day this command
-ships. Both documents that tell an author what to write in it, and a
-reader what the CLI offers, are stale until they say so.
+**Intent:** `description` gains a second audience the day this command
+ships. Two documents are stale until they say so: the one that tells an
+author what to write in `description`, and the one that tells a reader
+what the CLI offers.
 
 **Behavior:**
 - [[frontmatter-standards]]' guidance on `description` SHALL state that
@@ -163,7 +162,7 @@ reader what the CLI offers, are stale until they say so.
   filters, and the fields a summary carries.
 
 **Anchors:** `specs/standards/frontmatter-standards.md` (the required
-properties table and the prose beneath it);
+properties table and the prose beneath it) and
 `specs/guides/spec-cli-reference.md`. Both are vendored into the `spec`
 skill by `scripts/sync-shared-references.sh`, which SHALL be re-run so
 the generated copies under `plugin/skills/*/references/shared/` do not
@@ -171,46 +170,45 @@ drift.
 
 ### Relied-upon elements (unchanged)
 
-- [[cli-output-standards]] — the rendering rules the CMD delta conforms
-  to rather than restates; `renderYAML` in `cli/cmd/yaml.go` already
+- [[cli-output-standards]]: the rendering rules the CMD delta conforms to
+  instead of restating them. `renderYAML` in `cli/cmd/yaml.go` already
   implements the YAML style rules, including the double-quoting that
   AC-SPECLIST-004.4 depends on.
-- [[frd-spec-index]] — the index this feature reads. Its entry order,
-  its repository-relative forward-slash paths, and its recording of
-  parse failures and exclusions are all relied upon and none change.
+- [[frd-spec-index]]: the index this feature reads. This feature relies on
+  its entry order, its repository-relative forward-slash paths, and its
+  recording of parse failures and exclusions, and none of them change.
 - `Profile.DocumentTypes` and `LifecycleRules.RetiredStatuses` in
-  `cli/core/corpus/profile.go` — the registered tables both filters
+  `cli/core/corpus/profile.go`: the registered tables both filters
   resolve against.
-- [[module-spec-profile]] — supplies those tables for this repository's
-  profile; unchanged, since it already registers every document type and
-  the retired status.
-- `openCorpus` in `cli/cmd/root.go` — the warm-open helper the
-  subcommand uses.
+- [[module-spec-profile]]: supplies those tables for this repository's
+  profile. It's unchanged, since it already registers every document type
+  and the retired status.
+- `openCorpus` in `cli/cmd/root.go`: the warm-open helper the subcommand
+  uses.
 
 ## Contracts
 
 None. This feature reads the index and introduces no interface of its
-own. The index's shape is unchanged, so the deferred question of
-promoting it to a contract document is untouched.
+own. The index's shape doesn't change, so this feature doesn't affect the
+deferred question of promoting the index to a contract document.
 
-## Tracker Reconciliation
+## Tracker reconciliation
 
-- Out-of-scope: index entries carry only the
-  `DocumentFrontmatter` envelope, losing per-type properties. Every
-  field a summary carries is on that envelope, so this feature neither
-  depends on that issue nor is blocked by it. The boundary: `list` SHALL
-  NOT be extended to report per-type properties as part of this feature.
-- Out-of-scope: a feature blueprint for the spec
-  CLI as a whole, against `frd-spec-validation-cli`. This blueprint
-  realizes `frd-spec-list` only and must not absorb that scope.
-- Out-of-scope: the index schema and versioning
-  ADR. This feature makes no index shape change, so it neither advances
-  nor blocks that decision.
-- An earlier issue for this capability — subsumed by this feature's
-  upstream FRD, and already closed.
+- Out-of-scope: index entries carry only the `DocumentFrontmatter`
+  envelope and lose per-type properties. Every field a summary carries is
+  on that envelope, so this feature doesn't depend on that issue and isn't
+  blocked by it. The boundary: `list` SHALL NOT be extended to report
+  per-type properties as part of this feature.
+- Out-of-scope: a feature blueprint for the spec CLI as a whole, against
+  `frd-spec-validation-cli`. This blueprint realizes `frd-spec-list` only
+  and must not absorb that scope.
+- Out-of-scope: the index schema and versioning ADR. This feature doesn't
+  change the index shape, so it doesn't advance or block that decision.
+- An earlier issue for this capability, subsumed by this feature's
+  upstream FRD and already closed.
 
 
-## Sequencing Constraints
+## Sequencing constraints
 
 - The CORE delta SHALL land before the FILT delta, which extends the
   query CORE introduces.
@@ -225,7 +223,7 @@ promoting it to a contract document is untouched.
   `scripts/regenerate-cli-snapshots.sh` and every resulting diff reviewed
   before commit, per the container's verification gates.
 
-## AC Coverage
+## AC coverage
 
 Legend: CORE = `Corpus` summary-query delta; FILT = `Corpus`
 listing-filters delta; CMD = `Command Surface` `list` subcommand delta;
@@ -252,27 +250,27 @@ DOC = documentation guidance delta.
 | AC-SPECLIST-004.1 | **CMD (proves)** | e2e |
 | AC-SPECLIST-004.2 | **CMD (proves)** | e2e |
 | AC-SPECLIST-004.3 | CORE, **CMD (proves)** | e2e |
-| AC-SPECLIST-004.4 | **CMD (proves)** — via relied-upon `renderYAML` | e2e |
+| AC-SPECLIST-004.4 | **CMD (proves)**, via relied-upon `renderYAML` | e2e |
 | AC-SPECLIST-004.5 | **CMD (proves)** | e2e |
 | AC-SPECLIST-005.1 | **DOC (proves)** | manual |
 | AC-SPECLIST-005.2 | **DOC (proves)** | manual |
 
-## Key Decisions
+## Key decisions
 
-None. Every choice this design makes is either dictated by an existing
-approved document — the layering rule and verification gates in
-[[container-spec-cli]]'s Change Guidance, the rendering rules in
-[[cli-output-standards]] — or is a behavior pinned in a delta above.
-Nothing here has alternatives whose trade-offs outlive the feature, so
-nothing warrants an ADR of its own.
+None. Each choice this design makes either comes from an existing approved
+document or is a behavior that a delta above pins. The approved documents
+are [[container-spec-cli]]'s Change Guidance, for the layering rule and
+the verification gates, and [[cli-output-standards]], for the rendering
+rules. Nothing here has alternatives whose trade-offs outlive the
+feature, so nothing needs an ADR of its own.
 
-## Definition of Done
+## Definition of done
 
 - [x] Every delta above is folded into its owning blueprint:
-  - [x] [[container-spec-cli]] — the Command Surface component's
+  - [x] [[container-spec-cli]]: the Command Surface component's
         subcommand vocabulary grows by `list`, with its flags and the
         Document Core call it makes
-  - [x] [[module-document-core]] — the query surface gains the summary
+  - [x] [[module-document-core]]: the query surface gains the summary
         query and its filters
 - [x] [[frontmatter-standards]] states `description`'s second audience,
       and `scripts/sync-shared-references.sh` has been re-run so the
@@ -283,37 +281,35 @@ nothing warrants an ADR of its own.
       `manual` rows are exempt from the citation obligation
 - [x] `scripts/coverage.sh` has been run from the repository root and the
       README diff committed with the change, since `cli/**` changed
-- [x] Every issue listed as subsumed in Tracker Reconciliation is closed
-      or re-scoped
-- [x] This blueprint's status → retired
+- [x] Every issue listed as subsumed under tracker reconciliation is
+      closed or re-scoped
+- [x] This blueprint's status moves to retired
 
-**Verification note (recorded at retirement).** Every entry above was
-verified, with one declared-level deviation. AC-SPECLIST-004.3 is
-declared `e2e` in the AC Coverage table, but the snapshot harness
-replays each case once and cannot express a two-run comparison; it is
-verified instead by a Go test in `cli/cmd/list_test.go`. Citation is
-satisfied and the level obligation is a SHOULD in
-[[ac-traceability-standards]], so this is a permitted deviation rather
-than a gap — recorded here.
+At retirement, every entry above was verified, with one deviation from a
+declared level. The AC coverage table declares AC-SPECLIST-004.3 as
+`e2e`, but the snapshot harness replays each case once and can't express
+a two-run comparison. A Go test in `cli/cmd/list_test.go` verifies it
+instead. The citation obligation is met, and [[ac-traceability-standards]]
+makes the level obligation a SHOULD, so this deviation is permitted and
+isn't a gap.
 
 Citations for the 21 non-`@manual` criteria live on two surfaces: `// AC:`
 comments under `cli/` for 11 of them, and the `cites` key of the snapshot
 manifests under `cli/testdata/cases/` for the other 10. A grep for the
 comment form alone reports half the coverage that exists.
 
-## Open Questions
+## Open questions
 
 None.
 
 ## References
 
-- `c4-guide.md` — the container, module and component definitions the
-  delta blocks are written against
-- [[frd-spec-list]] — the requirements this blueprint realizes
-- [[container-spec-cli]] — the container whose Change Guidance binds
-  every delta above
-- [[module-document-core]] — the module the query lives in
-- [[cli-output-standards]] — the rendering rules the CMD delta conforms
-  to
-- [[ac-traceability-standards]] — the citation obligations the coverage
+- `c4-guide.md`: the container, module, and component definitions that
+  the delta blocks are written against
+- [[frd-spec-list]]: the requirements this blueprint realizes
+- [[container-spec-cli]]: the container whose Change Guidance binds every
+  delta above
+- [[module-document-core]]: the module the query lives in
+- [[cli-output-standards]]: the rendering rules the CMD delta conforms to
+- [[ac-traceability-standards]]: the citation obligations the coverage
   table feeds
