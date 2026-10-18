@@ -47,11 +47,12 @@ the document doesn't count.
   - API, function, flag, and setting names
   - Error messages and log output quoted verbatim
   - Version numbers, dates, and numeric limits
-  - Requirement statements in specs (EARS, Gherkin, "the system shall"), including whole Gherkin blocks
+  - Requirement statements in specs (EARS, Gherkin, "the system shall"), including whole Gherkin blocks. Their punctuation is part of their wording, dashes included.
   - RFC 2119 keywords (MUST, SHOULD, MAY) and their exact meaning
   - Wikilinks (`[[slug]]`, `[[slug#heading]]`) and identifiers such as AC and FEAT ids
   - Element record blocks
-  - The words of a heading, because other documents link to it. Change a heading's case freely when links match headings without regard to case, as they do in the specs corpus. Reword a heading only at section depth, and update every link to it in the same pass.
+  - The words and punctuation of a heading, because other documents link to it. Change a heading's case freely when links match headings without regard to case, as they do in the specs corpus. Punctuation is part of the anchor, so a dash in a heading stays. Reword a heading only at section depth, and update every link to it in the same pass.
+  - Labels and separators the document's template requires, such as **Status:**, **Rationale:**, or a `---` rule between requirements. They are structure, not decoration. Apply the rules to the text that follows them.
 - Citation lists are exempt from T5's sentence length: runs of AC ids, wikilinks, ADR numbers, or references.
 - HTML comments are not exempt. In templates they are instructions to the agent, so apply this skill to their prose. Keep any name, path, or token they cite.
 - Content is fixed and wording is not. Never add or remove a fact, requirement, decision, example, or caveat, but apply every style rule to how each one is worded.
@@ -89,7 +90,8 @@ habits are easy to mistake for house style, and they are not:
 - The serial comma: "code, tests, and docs."
 - Contractions, as Tone says.
 - No dashes, as Dashes says.
-- No emphasis by capitals or bold. "Do NOT" becomes "Don't," and a bold lead-in sentence becomes a plain sentence or a heading. RFC 2119 keywords keep their capitals.
+- No emphasis by capitals or bold. "Do NOT" becomes "Don't," and a bold lead-in sentence becomes a plain sentence or a heading. RFC 2119 keywords keep their capitals. Use italics for emphasis rarely, only where the sentence misreads without it.
+- When prose names a heading, write it in the heading's case. Once headings are in sentence case, so are the references to them.
 - Capitalized EARS keywords (WHEN, WHILE, IF, WHERE) belong only in requirement statements. In other prose, write them as ordinary words.
 - Present tense for what is true now (T6).
 - Name the reader early: say who the document is for and what they decide or do with it, when the source makes that clear.
