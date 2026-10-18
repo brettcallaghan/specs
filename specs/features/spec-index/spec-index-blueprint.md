@@ -17,20 +17,26 @@ frd: frd-spec-index
 
 **FRD:** [[frd-spec-index]]
 
-Today the design is complete but almost none of the code exists: the
+Today the design is complete but almost none of the code exists. The
 Strata sources under `schemas/` generate the frontmatter, configuration
 and profile-registration models, and three approved blueprints
 ([[container-spec-cli]], [[module-document-core]], [[module-spec-profile]])
-describe the steady state — but the Go packages those blueprints name
-(`cli/core/*`, `cli/profile`, `cli/cmd`) are unwritten. This feature
-builds the first working vertical slice: enough of [[module-document-core]]
-to discover a corpus and validate frontmatter, enough of
-[[module-spec-profile]] to supply this framework's profile — one union
-schema plus a thin type table — the command surface that wraps them and
-selects a profile from a registry, and — new — the **index model** in
-Strata that the emitted `specs.json` conforms to. Reference and structure
-checks are deferred to later features; the packages built here are the
-ones those features extend.
+describe the steady state. The Go packages those blueprints name
+(`cli/core/*`, `cli/profile`, `cli/cmd`) are unwritten.
+
+This feature builds the first working vertical slice:
+
+- enough of [[module-document-core]] to discover a corpus and validate
+  frontmatter
+- enough of [[module-spec-profile]] to supply this framework's profile:
+  one union schema plus a thin type table
+- the command surface that wraps them and selects a profile from a
+  registry
+- a new **index model** in Strata that the emitted `specs.json` conforms
+  to
+
+Reference and structure checks are deferred to later features; the
+packages built here are the ones those features extend.
 
 The delta blocks in dependency order: **IDX** (index model in Strata)
 → **SP** (Spans) → **FIND** (Findings) → **FM** (Frontmatter) → **SR**
@@ -45,7 +51,7 @@ distribution).
 ### `SpecIndex` index model in Strata (added) — IDX
 
 **Intent:** The emitted index (`specs.json`, AC-SPEC-010.1) has no data
-model yet — the Strata sources cover frontmatter, config and profile
+model yet: the Strata sources cover frontmatter, config and profile
 registration but not the artifact the CLI *writes*. Because the index is
 consumed across a boundary (the Architecture Catalogue) and must carry a
 versioned schema (AC-SPEC-002.2), its shape is defined once in Strata
@@ -105,7 +111,7 @@ e.g. `cli/core/span`).
 **Intent:** One finding model and one severity vocabulary carry every
 check's output, so the command surface renders one shape and later
 features add checks without changing it. The finding JSON is a published
-interface surface — an agent parses it — so its shape is defined in
+interface surface (an agent parses it), so its shape is defined in
 Strata alongside the index model and generated, not hand-rolled in Go.
 Establishing this early is what makes the AC-SPEC-006.1
 self-contained-diagnostic guarantee uniform.
@@ -170,7 +176,7 @@ schema the active profile supplies, dispatching by the document's `type`
 to the matching branch of that union, and report every violation in one
 pass. Document Core stays framework-agnostic: it compiles one schema from
 whichever profile is active and never knows a `type` by name. There is no
-per-type schema registration — a profile has one schema, not a registry
+per-type schema registration: a profile has one schema, not a registry
 of them.
 
 **Behavior:**
@@ -199,11 +205,12 @@ bundle `scripts/generate-schemas.sh` emits
 **Intent:** Supply this framework's vocabulary as one pluggable profile,
 not a per-type registry. The profile carries a single union schema
 covering every document type (the Strata bundle), a thin type table
-giving — per type — its slug pattern and whether it is numbered, and the
+giving each type's slug pattern and whether it is numbered, and the
 convention defaults; and it exposes itself through Document Core's
 `Profile` extension point. A different taxonomy is a different profile,
-selected by name from the profile registry (CFG delta) — the
-customization path v1 supports, without any per-type schema plumbing.
+selected by name from the profile registry (CFG delta). That is the
+customization path v1 supports, and it needs no per-type schema
+plumbing.
 Element records, required sections, reference properties and lifecycle
 rules are added by later features; this delta supplies only what the
 sprint's checks consume.
@@ -230,7 +237,8 @@ maps onto the existing `slug_pattern` and `numbered` fields of
 `DocumentTypeRegistration` in `cli/core/specmodel`; that struct's
 `schema` field is unused in v1, since one union schema serves every type.
 This collapses [[module-spec-profile]]'s separate Document Types "type
-registry" component — reconciled at retirement (see Definition of Done).
+registry" component, which was reconciled at retirement (see Definition
+of Done).
 
 ### #Corpus in [[module-document-core]] (added) — CO
 
@@ -328,8 +336,8 @@ into the module blueprint at retirement.
 from a **profile registry**, and report configuration defects through the
 same finding machinery as corpus defects. The profile registry is the
 customization seam: it maps `[profile].name` to a `Profile`, holds
-`specs` as the built-in, and is where a second taxonomy is
-wired in — a registry of profiles, each carrying its own single schema.
+`specs` as the built-in, and is where a second taxonomy is wired in.
+Each profile in the registry carries its own single schema.
 Configuration is checked, not merely loaded: a malformed config is the
 first thing an adopter gets wrong.
 
@@ -362,8 +370,8 @@ registry into which the PROF delta's `specs` profile registers.
 
 **Intent:** Present the engine as the four-subcommand surface FEAT-SPEC-011
 fixes, converting between the module's finding and index models and the
-process's stdout and exit status. Holds no domain logic — a check that
-lived here would be unavailable to a future API or MCP wrapper.
+process's stdout and exit status. It holds no domain logic: a check
+that lived here would be unavailable to a future API or MCP wrapper.
 
 **Behavior:**
 - The command surface SHALL expose the subcommands `index`, `check`,
@@ -436,11 +444,11 @@ the repository currently has no CI (see Tracker Reconciliation).
 - **v1 deliberately does not promote the emitted index to a contract
   document.** It crosses a boundary (the Architecture Catalogue) and IDX
   pins its shape in Strata, which by this framework's filing rule argues
-  for a contract — but no consumer or catalogue exists yet, and the same
+  for a contract. But no consumer or catalogue exists yet, and the same
   filing rule promotes a schema to a Contract only when a second,
   independently-built consumer appears. The shape is additive and the
-  generated JSON Schema is the interim machine-readable spec, so promotion
-  — with a formal `schema_version` policy — is deferred to the
+  generated JSON Schema is the interim machine-readable spec, so promotion,
+  with a formal `schema_version` policy, is deferred to the
   index-schema ADR, to land with the first consumer. This is a scope
   decision, not an open question, and it does not block grooming or
   implementation.
@@ -473,27 +481,30 @@ the repository currently has no CI (see Tracker Reconciliation).
   is not valid YAML. Its file
   (`plugin/skills/spec/references/work-order-template.md`) sits outside
   `specs/`, the corpus root this feature's self-application gate scans,
-  so the gate cannot surface it as
-  scoped — a stale assumption from before the `specs/` reorg, corrected
-  here. The CO parse-failure path would still record the defect if pointed
-  at a root that included this file; this feature does not fix the
-  document or widen the gate's root, and that issue's own acceptance criteria
-  already call for a separate, generic regression check to cover it.
-- Out-of-scope: dangling wikilinks and unpopulated `contracts_consumed` are reference-feature and
-  corpus-data concerns this feature neither resolves nor regresses.
+  so the gate cannot surface it as scoped. That scoping was a stale
+  assumption from before the `specs/` reorg, corrected here. The CO
+  parse-failure path would still record the defect if pointed at a root
+  that included this file; this feature does not fix the document or
+  widen the gate's root, and that issue's own acceptance criteria already
+  call for a separate, generic regression check to cover it.
+- Out-of-scope: dangling wikilinks and unpopulated `contracts_consumed`
+  are reference-feature and corpus-data concerns this feature neither
+  resolves nor regresses.
 
 **Reconciled at retirement (2026-08-05).**
 
-- The index-vs-manifest naming issue — **closed.** The artifact is named *index*:
-  `SpecIndex` in `schemas/index.strata`, emitted as `specs.json`.
-- The cache-invalidation issue — **closed**, taking the blueprint's stated default
-  of recording the choice rather than authoring an ADR. Staleness is a
-  content hash of the corpus inputs (`input_hash`, a `sha256:` digest
-  carried in the emitted index); mtime was rejected because a fresh CI
-  checkout carries new mtimes over identical content, which would cold-
-  build every CI run and break the FEAT-SPEC-009.1 budget the decision
-  exists to protect. No second alternative was in contention, so the ADR
-  would have recorded one rejected option and no open trade-off.
+- The index-vs-manifest naming issue — **closed.** The artifact is named
+  *index*: `SpecIndex` in `schemas/index.strata`, emitted as
+  `specs.json`.
+- The cache-invalidation issue — **closed**, taking the blueprint's
+  stated default of recording the choice rather than authoring an ADR.
+  Staleness is a content hash of the corpus inputs (`input_hash`, a
+  `sha256:` digest carried in the emitted index); mtime was rejected
+  because a fresh CI checkout carries new mtimes over identical content,
+  which would cold-build every CI run and break the FEAT-SPEC-009.1
+  budget the decision exists to protect. No second alternative was in
+  contention, so the ADR would have recorded one rejected option and no
+  open trade-off.
 - The parent, the index-schema ADR, the [[adr-016]] issue, the
   edge-collection issue, the `work-order-template.md` issue and the
   dangling-wikilinks issue — remain open and out-of-scope; each was
@@ -509,7 +520,7 @@ the repository currently has no CI (see Tracker Reconciliation).
   pre-empted three of its five questions by shipping the answer: the
   platform/arch matrix, cross-compilation from one source, and GitHub
   Releases as the channel. What that ADR still owns is the part BUILD did
-  not decide — how an agent session obtains the binary given that this
+  not decide: how an agent session obtains the binary given that this
   repository is distributed by clone, and whether checksums or signing
   apply. It is a distribution-policy decision, not a gap in this feature,
   and it blocks nothing here. Its sibling (`spec --version` and version
@@ -631,11 +642,11 @@ binary and distribution.
   component is removed) and is recorded here for folding into that
   blueprint at retirement; a standalone ADR is warranted only if a second
   profile reopens the question (its `kind: pattern` Open Question).
-- Cache invalidation is decided — **content hash**,
-  pinned in the CACHE delta. The index-schema contract and its versioning
-  policy are deferred until a consumer exists and do
-  not block this feature; if the index is promoted to a contract later,
-  that decision is authored as an ADR then.
+- Cache invalidation is decided: **content hash**, pinned in the CACHE
+  delta. The index-schema contract and its versioning policy are
+  deferred until a consumer exists and do not block this feature; if the
+  index is promoted to a contract later, that decision is authored as an
+  ADR then.
 
 ## Definition of Done
 
@@ -687,11 +698,11 @@ Verified 2026-08-05.
 
 None. Three questions raised during authoring are resolved or scoped out:
 the corpus artifact is named **index** (`SpecIndex`, `specs.json`);
-cache staleness is detected by **content hash**; and promoting the emitted index to a **contract
-document** with a formal versioning policy is **deferred** until a
-consumer exists — a scope decision
- recorded in
-Contracts and Tracker Reconciliation, not a plannability gap.
+cache staleness is detected by **content hash**; and promoting the
+emitted index to a **contract document** with a formal versioning policy
+is **deferred** until a consumer exists. That deferral is a scope
+decision recorded in Contracts and Tracker Reconciliation, not a
+plannability gap.
 
 ## References
 

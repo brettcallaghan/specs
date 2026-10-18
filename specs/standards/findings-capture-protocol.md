@@ -20,8 +20,7 @@ capture or harvest findings vendor it into their own
 `references/shared/` and point at that copy; they do not restate it.
 Do not copy it into a target project, and do not restate it per work
 order or per issue — an item carries only the short standing
-instruction its grooming skill stamps, which is self-sufficient on its
-own.
+instruction its grooming skill stamps, which is self-sufficient.
 
 ## The finding
 

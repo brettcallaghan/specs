@@ -37,9 +37,9 @@ parsing. Every capability it needs — frontmatter extraction, schema
 validation, reference resolution, span queries — comes from Document
 Core, and this module's job is to register vocabulary and rules into
 that host through the extension point Document Core defines. The
-dependency runs one way, and the value of that is concrete rather than
-aesthetic: an enterprise with a different taxonomy writes a different
-profile and reuses the whole engine.
+dependency runs one way, which has a concrete benefit: an enterprise with
+a different taxonomy writes a different profile and reuses the whole
+engine.
 
 Most of this module is configuration rather than code, and as built it is
 configuration almost exclusively: the vocabulary is one generated union
@@ -47,10 +47,10 @@ schema, the reference and lifecycle registrations derived from it, and a
 table of slug patterns and numbered flags — all supplied by a handful of
 Go files with no engine among them. The one rule left that cannot be
 expressed as data is the element-record invariant, not yet implemented.
-Lifecycle integrity looked like a second such rule; it turned out to be
-relational rather than an invariant on this module's own data, so its
-checks belong in Document Core instead (see Components, below) and this
-module's part of it is the registration alone.
+Lifecycle integrity is not a second such rule: it is relational rather
+than an invariant on this module's own data, so its checks belong in
+Document Core instead (see Components, below) and this module's part of
+it is the registration alone.
 
 - **Role:** supply this framework's document vocabulary and its
   non-schema-expressible rules to Document Core.

@@ -15,33 +15,33 @@ sources: []
 
 An agent arriving at a specification corpus has to decide which documents
 to read. Today it has two routes and both are bad. It can list paths,
-which costs almost nothing and tells it almost nothing — a filename is a
-guess at a document's subject, and a corpus whose filenames happen to be
-descriptive is a corpus that got lucky. Or it can read the documents,
+which costs almost nothing and tells it almost nothing: a filename is a
+guess at a document's subject, and nothing makes a corpus's filenames
+descriptive. Or it can read the documents,
 which is authoritative and unaffordable: this repository's 57 members are
 888,869 bytes, and the decision the agent is trying to make is *which of
 them to spend context on*.
 
 The index does not close the gap. `specs.json` carries every span,
 heading and reference in the corpus, and at 936,833 bytes it is larger
-than the corpus it describes — so the artifact built for machine
-consumption is the most expensive way to ask what a corpus contains.
+than the corpus it describes. The artifact built for machine consumption
+is therefore the most expensive way to ask what a corpus contains.
 
 This feature adds the missing surface. Every member already declares a
-`description` — a one- to two-sentence summary, required by
-[[frontmatter-standards]] on every document type — and nothing reads it
-back. `specs list` returns that summary, with the fields needed to act on
-it, for every member at once. The measured payload for this corpus is
-about 21 KB against 889 KB of documents, but the size is not the point:
-the point is that one invocation returns a complete, typed, filterable
-answer that no combination of shell tools returns reliably, and that the
-agent's next step — opening the right document — is a path it was handed
-rather than one it inferred.
+`description`, a one- to two-sentence summary that
+[[frontmatter-standards]] requires on every document type, and nothing
+reads it back. `specs list` returns that summary, with the fields needed
+to act on it, for every member at once. The measured payload for this
+corpus is about 21 KB against 889 KB of documents. The size matters less
+than the shape of the answer: one invocation returns a complete, typed,
+filterable answer that no combination of shell tools returns reliably,
+and the agent's next step, opening the right document, uses a path it
+was handed rather than one it inferred.
 
 The feature also gives `description` a consumer. A property that is
-required, written once and never read back is a property that decays;
-making it the payload of a command is what turns it into an interface
-whose quality an author has a reason to care about.
+required, written once and never read back decays. As the payload of a
+command, `description` becomes an interface whose quality an author has
+a reason to care about.
 
 ## Terminology
 
@@ -131,9 +131,9 @@ declares a type the profile does not define, is not a member and has no
 summary to give; reporting it here would put a conformance judgement in a
 query. `specs check` owns that judgement and reports it as a finding.
 
-An undescribable member is different, and AC-SPECLIST-001.5 treats it
-differently for a reason: the index recorded it *as a member*, so
-omitting it would make the answer disagree with the corpus. An agent
+AC-SPECLIST-001.5 treats an undescribable member differently because the
+index recorded it *as a member*, so omitting it would make the answer
+disagree with the corpus. An agent
 reading a list that silently skipped it would conclude the document does
 not exist.
 
@@ -198,9 +198,9 @@ AC-SPECLIST-002.4 is the one place this feature departs from
 [[cli-output-standards]]' rule that a query matching nothing is an
 answer. That rule is about the *world*: a corpus with no contracts in it
 is a fact, and reporting it as a failure would make a caller branch on
-the shape of the corpus. A type the profile does not define is not a fact
-about the corpus — it is a malformed question, and answering it with an
-empty collection would render a typo indistinguishable from an empty
+the shape of the corpus. A type the profile does not define is a
+malformed question, not a fact about the corpus. Answering it with an
+empty collection would make a typo indistinguishable from an empty
 category. The active profile already reports an unregistered
 `[profile].name` by naming the registered alternatives rather than by
 failing the lookup bare; this is that behaviour, one level down.

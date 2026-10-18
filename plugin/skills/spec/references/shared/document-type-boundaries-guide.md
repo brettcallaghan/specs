@@ -49,7 +49,7 @@ the obvious answer is the wrong one.
 - A private schema (a container and the database only it uses) is a
   contract, but not a Contract document — it is documented in the
   container blueprint's Data section, and promoted to a Contract only
-  when a second independently-built consumer appears.
+  when a second independently built consumer appears.
 - Blueprints restate a decision in one line and reference the ADR; the
   trade-off analysis lives only in the ADR. Blueprints in draft may
   carry an Open Questions section; resolved questions become ADRs or

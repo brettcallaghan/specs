@@ -53,7 +53,7 @@ earlier draft of this ADR.
 
 **Bun does not survive compilation.** Its resident startup is
 near-native, which initially made TypeScript look viable. Compiling to
-the standalone executable FEAT-SPEC-009.4 actually requires costs that
+the standalone executable FEAT-SPEC-009.4 actually requires gives that
 back entirely — 32.29 ms, thirteen times the resident figure, because
 the embedded runtime still bootstraps. A 50 ms p95 budget with 32 ms of
 fixed overhead leaves 18 ms for the work, in a 95 MB artifact. Python

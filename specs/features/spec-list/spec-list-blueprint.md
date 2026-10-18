@@ -25,9 +25,9 @@ change.
 The layering is the whole of the design. [[container-spec-cli]]'s Change
 Guidance forbids a capability living in the command surface, so the
 filtering and the summary shape are Document Core's, and `cli/cmd` only
-declares flags and selects a rendering. Two profile-registered tables —
-the document types and the lifecycle's retired statuses — are what let
-that filtering live in Document Core without it learning any framework
+declares flags and selects a rendering. Two profile-registered tables,
+the document types and the lifecycle's retired statuses, let that
+filtering live in Document Core without it learning any framework
 vocabulary.
 
 Delta blocks in dependency order: CORE, then FILT, then CMD, with DOC
@@ -45,9 +45,9 @@ without going through cobra.
 
 The summary is a projection of `IndexEntry`, not a new record. It reads
 the entry's path and its parsed frontmatter envelope and carries nothing
-else, so no index shape changes and `schema_version` stays `1.0` — the
-Change Guidance rule about the emitted index is not triggered by this
-feature.
+else, so no index shape changes and `schema_version` stays `1.0`. This
+feature does not trigger the Change Guidance rule about the emitted
+index.
 
 **Behavior:**
 - The query SHALL return one summary per corpus member, carrying the
@@ -76,7 +76,7 @@ feature.
 
 **Intent:** Filtering is what keeps the answer proportionate as a corpus
 grows, so it belongs in the query rather than in a caller that discards
-rows after receiving them — a caller-side filter would make every
+rows after receiving them. A caller-side filter would make every
 consumer reimplement it, and would make the command surface hold the
 policy.
 
@@ -120,7 +120,7 @@ one Document Core call, one rendering out. It decides nothing about what
 a summary is or which members qualify.
 
 `list` opens the corpus warm through the shared `openCorpus` helper
-rather than building fresh, for the reason `check` does — a listing is a
+rather than building fresh, for the reason `check` does: a listing is a
 query, and the persisted index at the default location answers it
 without re-walking the corpus.
 
@@ -294,7 +294,7 @@ replays each case once and cannot express a two-run comparison; it is
 verified instead by a Go test in `cli/cmd/list_test.go`. Citation is
 satisfied and the level obligation is a SHOULD in
 [[ac-traceability-standards]], so this is a permitted deviation rather
-than a gap — recorded here.
+than a gap.
 
 Citations for the 21 non-`@manual` criteria live on two surfaces: `// AC:`
 comments under `cli/` for 11 of them, and the `cites` key of the snapshot

@@ -42,8 +42,8 @@ check maps onto is `work-order-template.md`.
 ## The checks
 
 ### 1. Self-contained Problem statement (the fresh-agent test)
-Read the `## Problem` section as if you just woke up in the repo with no chat
-history. Can you act on it? It SHALL name concrete anchors — file paths,
+Read the `## Problem` section as a fresh agent would, with no chat history.
+Can you act on it? It SHALL name concrete anchors — file paths,
 function/class names, endpoints, tables, user-facing behavior — not point at a
 conversation.
 

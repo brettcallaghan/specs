@@ -172,7 +172,7 @@ SHALL confirm the difference was intended before committing it.
 
 **Rationale:** a snapshot suite's whole value is that an unintended
 behavior change shows up as a diff. Regenerating without reading the
-diff converts the suite from a safety net into a rubber stamp.
+diff turns the suite into an approval of whatever the code now does.
 
 ---
 
@@ -199,7 +199,8 @@ host names, durations, or any other value that varies between runs.
 
 **Rationale:** a non-deterministic artifact produces a diff on every run,
 which trains reviewers to regenerate without reading — defeating the
-requirement two above.
+requirement that the author confirm a regenerated difference was
+intended.
 
 ---
 

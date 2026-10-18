@@ -35,11 +35,11 @@ requirements in this project — functional requirements, non-functional
 requirements, system invariants, policies and constraints, in any document
 that expresses them ([[adr-002]]).
 
-**Acceptance criteria are the exception, and features with them.** Those
-are written in Gherkin ([[adr-021]]); [[gherkin-guide]] is how. Nothing
-below applies to an FRD's `Feature` blocks. Everything below applies to
-every other normative statement, including the ones in an FRD's prose and
-in the standards, contracts and blueprints an FRD cites.
+**Acceptance criteria, and the features that hold them, are the
+exception.** Those are written in Gherkin ([[adr-021]]); [[gherkin-guide]]
+is how. Nothing below applies to an FRD's `Feature` blocks. Everything
+below applies to every other normative statement, including the ones in an
+FRD's prose and in the standards, contracts and blueprints an FRD cites.
 
 EARS is a writing convention, not a document type. Any document may contain
 EARS requirements; this guide defines how to write them.

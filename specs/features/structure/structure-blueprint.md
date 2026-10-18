@@ -20,10 +20,10 @@ frd: frd-spec-structure
 position through `Spans`; its heading tree is the half that was never
 built. This design builds it, gives `IndexEntry` somewhere to carry the
 result, and adds the command that answers a heading query. Record blocks
-ride the same tree — a parsed block attaches to the heading whose
-section contains it — but they need a tag vocabulary no profile
-registers yet, so the extension point for one is part of this design and
-the registration that fills it is not.
+use the same tree: a parsed block attaches to the heading whose section
+contains it. They need a tag vocabulary that no profile registers yet,
+so this design includes the extension point for one but not the
+registration that fills it.
 
 Nothing here checks anything. No finding is raised and no exit status
 changes, which is what lets a consumer depend on this feature without

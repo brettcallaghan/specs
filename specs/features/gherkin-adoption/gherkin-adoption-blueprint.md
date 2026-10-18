@@ -19,12 +19,13 @@ frd: frd-gherkin-adoption
 
 [[adr-021]] settles the notation and the parser; nothing reads either.
 [[module-document-core]] declares a **Markdown Structure** component and
-records that it is not built — there is no `cli/core/markdown` package
-and no fenced block is extracted anywhere — so a ` ```gherkin ` block is
-inert text that the References component actively masks. This feature
-builds the fenced-block half of that component, adds a **Gherkin**
-component beside it, and turns what the two produce into records the
-index carries, checks the run reports, and queries an agent can ask.
+records that it is not built: there is no `cli/core/markdown` package
+and no fenced block is extracted anywhere. A ` ```gherkin ` block is
+therefore inert text that the References component actively masks. This
+feature builds the fenced-block half of that component, adds a
+**Gherkin** component beside it, and turns what the two produce into
+records the index carries, checks the run reports, and queries an agent
+can ask.
 
 The split that governs every delta below is the module boundary already
 in force. Parsing Gherkin is general — an Obsidian vault with `.feature`
@@ -846,9 +847,8 @@ retirement rather than dying with this document.
       retirement.
 - [x] Every issue listed as subsumed in Tracker Reconciliation is closed
       or re-scoped: the MODEL, DISC and EMIT issues closed; the VTAG
-      issue re-scoped to
- the criterion-number sequence check alone, which no
-      criterion in [[frd-gherkin-adoption]] requires and this feature
+      issue re-scoped to the criterion-number sequence check alone,
+      which no criterion in [[frd-gherkin-adoption]] requires and this feature
       does not deliver.
 - [x] This blueprint's status → retired.
 

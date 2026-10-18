@@ -168,8 +168,8 @@ and SHALL exit `0`, as [[cli-exit-status-standards]] requires of every
 query that answered.
 
 **Rationale:** nothing found is a fact about the corpus, not a failure of
-the invocation. Exiting non-zero would make a caller branch on the shape
-of the world rather than on whether the command worked.
+the invocation. Exiting non-zero would make a caller branch on what the
+corpus holds rather than on whether the command worked.
 
 ### A malformed question is not an empty answer
 

@@ -60,7 +60,7 @@ status: draft
 ---
 ```
 
-**Rationale:** YAML frontmatter is a widely-adopted convention (Jekyll, Hugo, 
+**Rationale:** YAML frontmatter is a widely adopted convention (Jekyll, Hugo, 
 Obsidian) that provides machine-parseable metadata separate from content.
 
 ### Required Properties
@@ -176,10 +176,10 @@ and tracked in its `plan`, not mirrored into frontmatter.
 **Rationale:** Relationship properties enable traceability, dependency
 management, and impact analysis across documents — but only where the graph
 derived from prose citations cannot already answer the question. A parent's
-membership roster is derivable — from the child's own declaration where a
+membership roster is derivable: from the child's own declaration where a
 child may have several parents, and otherwise from the parent's roster
-section, which links each promoted child by `[[slug]]` anyway — and a change
-set is tracked to completion by the plan, so neither is carried here.
+section, which links each promoted child by `[[slug]]` anyway. A change set
+is tracked to completion by the plan. Neither is carried here.
 
 ### Optional Properties
 

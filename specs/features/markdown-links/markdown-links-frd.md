@@ -13,7 +13,7 @@ sources: [adr-018, frd-spec-reference-integrity]
 
 ## Overview
 
-Specification documents cite each other by slug — `[[frd-checkout]]` —
+Specification documents cite each other by slug (`[[frd-checkout]]`),
 and that citation resolves through the corpus index. The index is built
 by walking a spec root, so a slug only means something to a reader
 holding the corpus.
@@ -23,15 +23,15 @@ framework ships standards and guides inside its plugin: a copy is
 written into a skill's reference directory, travels to an adopting
 repository, and is read there by a human or an agent that has no index
 and no spec root. A corpus published as a browsable set of pages has the
-same problem from the other direction — every file is present, but a
+same problem from the other direction: every file is present, but a
 slug is not something a markdown renderer can follow. Either way the
 wikilink travels and the thing it resolves against does not. The reader
-sees a citation that points nowhere, and nothing reports it — `spec
+sees a citation that points nowhere, and nothing reports it: `spec
 check` never sees the copy, because the copy is outside the corpus by
 construction.
 
-This is not hypothetical. The shipped copy of `frontmatter-standards.md`
-cites `[[document-relationship-standards]]` twice. That document is a
+The shipped copy of `frontmatter-standards.md` already has this problem.
+It cites `[[document-relationship-standards]]` twice. That document is a
 corpus member under `specs/standards/` and is not among the copies the
 plugin ships, so every adopting repository already holds two citations
 that resolve to nothing.
@@ -39,7 +39,7 @@ that resolve to nothing.
 This feature gives the Spec CLI one capability: rewrite a document's
 wikilinks into markdown links. Where those links point is settled one of
 two ways. Given a link map, the CLI substitutes the path the caller
-supplies for each slug and derives nothing — whoever performs the copy
+supplies for each slug and derives nothing. Whoever performs the copy
 knows where things land, and a CLI that guessed would encode one
 layout's assumptions into everyone's. Given no map, the corpus keeps its
 own shape: each link is the cited document's path relative to the citing
@@ -81,12 +81,11 @@ meant to preserve.
 
 ## Requirements
 
-A note on the blocks below. A wikilink written anywhere in a Gherkin
-source is recorded as a reference ([[adr-021]] constraint 14), so this
-feature — whose whole subject is wikilink syntax — writes its
-illustrations in backticked markdown beside each block rather than in a
-step, where a literal citation would enter the index as a reference this
-document never made.
+A wikilink written anywhere in a Gherkin source is recorded as a
+reference ([[adr-021]] constraint 14). This feature's whole subject is
+wikilink syntax, so it writes its illustrations in backticked markdown
+beside each block rather than in a step, where a literal citation would
+enter the index as a reference this document never made.
 
 ### FEAT-SPECMD-001: Rewrite wikilinks to markdown links
 
@@ -170,7 +169,7 @@ Feature: Rewrite wikilinks to markdown links
 `container-api#Request Router` as its visible text (AC-SPECMD-001.2) and
 targets `container-api.md#request-router`, the identifier of the heading
 that anchor resolves to rather than one derived from the anchor's own
-text — the two agree wherever an anchor names a heading in full, and the
+text. The two agree wherever an anchor names a heading in full, and the
 resolved heading is what the copy has to reach when they do not
 (AC-SPECMD-001.3). A citation whose anchor reaches no heading is still
 rewritten, on a fragment derived from what the author wrote, leaving the
@@ -178,10 +177,10 @@ copy no worse than the source that names a section which is not there
 (AC-SPECMD-001.7). `` `[[#Decision]]` `` in a document carrying a
 `## Decision` heading becomes `[#Decision](#decision)`: the target is
 inside the document being rewritten, so there is no path in front of the
-fragment and no link-map entry that could name one — an empty slug names
-no corpus document to map (AC-SPECMD-001.8). A guide
-explaining citation syntax writes `` `[[document-slug]]` `` as an
-illustration, and the rewrite leaves it alone (AC-SPECMD-001.4).
+fragment and no link-map entry that could name one: an empty slug names
+no corpus document to map (AC-SPECMD-001.8). A guide explaining citation
+syntax writes `` `[[document-slug]]` `` as an illustration, and the
+rewrite leaves it alone (AC-SPECMD-001.4).
 
 *Note:* a `gherkin` fence is a fenced code block for AC-SPECMD-001.4,
 although a wikilink inside it is still a reference to the index and the
@@ -271,7 +270,7 @@ reports both citations as errors (AC-SPECMD-002.1). `c4-guide` writes
 element records, and each is reported as a warning (AC-SPECMD-002.4).
 
 *Note:* AC-SPECMD-002.1 is the reason a given map is never completed by
-derivation — see AC-SPECMD-006.3.
+derivation (see AC-SPECMD-006.3).
 
 *Note:* AC-SPECMD-001.8 is the one citation that reaches its target
 without naming a corpus document, so neither rule above applies to it

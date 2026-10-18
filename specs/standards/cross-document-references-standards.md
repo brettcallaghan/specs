@@ -27,11 +27,11 @@ These conventions are mechanically checked. `specs check` resolves every
 property against the corpus, and reports the ones that resolve to
 nothing; `specs refs <slug>` answers who cites a document before you
 change it. `spec-cli.md` states what each rule reports and the three
-reference cases that are still yours. The rules below are what those
-checks enforce — which is also why the exceptions are worth knowing:
-a `[[slug]]` inside backticks or a fenced block is an illustration and
-is deliberately not treated as a reference, so this document can name
-the notation without citing documents that do not exist.
+reference cases that are still yours. Those checks enforce the rules
+below, so their exceptions are worth knowing: a `[[slug]]` inside
+backticks or a fenced block is an illustration and is deliberately not
+treated as a reference. That is how this document can name the notation
+without citing documents that do not exist.
 
 ## Cross-Document References
 

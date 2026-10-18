@@ -106,8 +106,8 @@ answer is.
 **Rationale:** "no document declares this slug", "nothing references
 this heading" and "no criterion changed" are facts about the corpus,
 and [[cli-output-standards]] already requires them rendered as answers.
-Encoding them in the status as well would make a caller branch on the
-shape of the world rather than on whether the command worked, and would
+Encoding them in the status as well would make a caller branch on what
+the corpus holds rather than on whether the command worked, and would
 make every query a gate nobody asked for. A caller that wants a
 yes-or-no reads the answer's property — `declared: false` — not the
 status.
@@ -143,8 +143,8 @@ whether the corpus could ever make the value valid. No document an
 author writes turns `adrx` into a document type; a configuration change
 does. So a misspelt type is a mistake in the question, and answering it
 with an empty list would make a typo indistinguishable from "none
-exist" — the gate passing `check --only reference/unresolvd` forever
-is the cost. The caller cannot fix a value written in `specs.toml`, so
+exist", and a gate running `check --only reference/unresolvd` would
+pass forever. The caller cannot fix a value written in `specs.toml`, so
 the same unknown name there — `[profile] name`, for one — is the
 repository maintainer's, which is why an unknown profile is listed under
 `3`.

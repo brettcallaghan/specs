@@ -26,10 +26,10 @@ by hand, and gets a different answer each time the corpus changes.
 This feature adds `specs c4`, which emits that model as one structured
 artifact: elements nested by containment, modules held apart because they
 may be composed into several containers, and relationships as a flat edge
-list carrying the document and line each was drawn at. It is a
-projection of the index: the index says which documents are
+list carrying the document and line each was drawn at. The model is a
+projection of the index. The index says which documents are
 architecture blueprints and where each record block sits, and the
-command reads back only what the index points at — each record block
+command reads back only what the index points at: each record block
 through its span, decoded into the element record's Go type, and the
 Mermaid C4 diagrams, parsed per [[adr-029]].
 

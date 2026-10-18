@@ -61,14 +61,14 @@ prevent — an EARS sentence inside a `gherkin` block does not parse, and a
 
 ## Who decides
 
-Run `specs check <path>` first. It settles checks 1–3 and 8 outright, and
-the machine-checkable half of check 9: it
-parses the frontmatter, validates every property against the schema for
-the document's `type`, matches the slug against that type's registered
-pattern, reports a slug already claimed elsewhere in the corpus, and
-resolves every `[[slug]]` reference — in the body and in the frontmatter
-properties that hold slugs — against the corpus. Read its findings; each
-names the rule, the span, and the value that violated it.
+Run `specs check <path>` first. It settles checks 1–3 and 8 outright,
+and the machine-checkable half of check 9. It parses the frontmatter,
+validates every property against the schema for the document's `type`,
+matches the slug against that type's registered pattern, and reports a
+slug already claimed elsewhere in the corpus. It also resolves every
+`[[slug]]` reference against the corpus, both in the body and in the
+frontmatter properties that hold slugs. Read its findings; each names
+the rule, the span, and the value that violated it.
 
 **A single-document check covers that document only.**
 `specs check <path>` resolves that document's own references against the
@@ -79,8 +79,8 @@ located in another document, including a reference held elsewhere that
 your edit left pointing at nothing.
 
 So before you rename, retire or re-type a document, run
-`specs refs <slug>`: it names every document citing it, which is the
-blast radius of the change. After the change, a corpus-wide `specs check`
+`specs refs <slug>`: it names every document citing it, which is every
+document the change can break. After the change, a corpus-wide `specs check`
 reports what is broken anywhere.
 
 **Check the path you got back.** `specs check` on a path that names no

@@ -311,7 +311,7 @@ a 412-character step, and this framework exempts fenced blocks from
 margin**: compressing "no runtime installed *beyond the CLI itself*"
 into "no runtime installed" inverts the criterion, and no reviewer
 diffing the file will see it. Decompose into more steps where that
-genuinely reads better; otherwise write the long line.
+reads better; otherwise write the long line.
 
 **Prefer `Scenario Outline` where a criterion varies over data.** Three
 prose clauses about `.md`, `.json` and `.rst` become one legible table.

@@ -32,9 +32,9 @@ document states invariants rather than scenarios ([[adr-002]]).
 
 The durable traceability pair is the **FRD** and the **annotated test
 suite**. A feature blueprint's AC Coverage table declares intent at
-design time and is reconciled at merge time (its Definition of Done),
-but the blueprint retires; long-term coverage verification is a function
-of active FRDs and test citations only. AC identifiers are never reused
+design time and is reconciled at merge time (its Definition of Done).
+The blueprint then retires, so long-term coverage verification depends
+only on active FRDs and test citations. AC identifiers are never reused
 (see `frd-template.md` ID conventions), which is what makes this
 sound.
 
@@ -111,8 +111,8 @@ Every acceptance criterion of an FRD SHALL be cited by at least one
 test before the implementing change merges.
 
 **Rationale:** This is the merge-time reconciliation of the feature
-blueprint's AC Coverage table — the point where declared intent becomes
-verifiable reality.
+blueprint's AC Coverage table: the point where the coverage it declared
+must be backed by test citations.
 
 ---
 

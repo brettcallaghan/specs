@@ -25,7 +25,7 @@ reach review looking finished.
 This feature judges documents against the structure
 [[frd-spec-structure]] records. It reports documents that omit a
 required section, exceed the configured line width, or retain
-placeholder or scaffolding text, and it declares the vocabulary those
+placeholder or scaffolding text. It also declares the vocabulary those
 checks read: the required headings of each document type, the
 record-block tags, the placeholder patterns and the width limit. Like
 [[frd-spec-reference-integrity]], it introduces no new artifact or

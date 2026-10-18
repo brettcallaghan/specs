@@ -18,10 +18,10 @@ frd: frd-spec-anchor-references
 
 The anchor half of a reference is already extracted and carried in the
 index; what is missing is everything downstream of it. This design adds
-one derivation — the heading identifier a markdown renderer computes —
-and makes it the single thing both the matcher and the link rewriter
-use, so an anchor the checks call resolved is an anchor an exported copy
-can target. On top of it, `References` gains anchor resolution, `Corpus`
+one derivation, the heading identifier a markdown renderer computes. The
+matcher and the link rewriter both use that derivation and no other, so
+an anchor the checks call resolved is an anchor an exported copy can
+target. On top of it, `References` gains anchor resolution, `Corpus`
 gains two checks, and the command surface gains an anchor-qualified
 `refs` query. The frontmatter schema is widened so a citation may carry
 an anchor where a document's own slug may not, and the finding union
@@ -35,8 +35,8 @@ Delta blocks in dependency order: FIND, SREF, AEX, MDL, ARES, CHK, CMD.
 
 **Intent:** The two anchor checks report defects the existing finding
 variants cannot carry: an anchor that named no heading, and one that
-named several. Both are structured — the reader's next step is to open a
-heading — so each gets a variant rather than a message string, in
+named several. Both are structured (the reader's next step is to open a
+heading), so each gets a variant rather than a message string, in
 `schemas/finding.strata` alongside every other model.
 
 **Behavior:**
@@ -59,7 +59,7 @@ the constructors in `cli/core/finding`.
 today, and the slug pattern admits no `#`, so a citation carrying an
 anchor fails schema validation before anything resolves it. The
 identity a document declares and a citation of someone else's identity
-are two different types wearing one name; this delta separates them.
+are two different types sharing one name; this delta separates them.
 
 **Behavior:**
 - The profile's frontmatter schema SHALL declare a citation type that
@@ -145,8 +145,8 @@ and matching a heading is a corpus question.
 
 **Intent:** The checks are what makes an anchor's breakage visible. They
 report at the document a reader must open, which for a reference is the
-referring document, and they add nothing where the slug already failed —
-one mistake, one finding.
+referring document, and they add nothing where the slug already failed,
+so one mistake produces one finding.
 
 **Behavior:**
 - WHEN an anchor matches no heading of a target whose headings are
@@ -172,7 +172,7 @@ one mistake, one finding.
 ### Command Surface in [[container-spec-cli]] (modified) — CMD
 
 **Intent:** `refs` answers what cites a document; the rename question an
-anchor creates is narrower — what cites this heading. The argument
+anchor creates is narrower: what cites this heading. The argument
 already has a place to put the anchor, since a reference's own notation
 carries one.
 
@@ -244,8 +244,8 @@ cases under `cli/testdata/cases/`.
     exit status becomes sensitive to anchors for the first time.
 - The heading tree in `Markdown Structure` SHALL be built before the
   ARES and CHK deltas land. It does not exist today:
-  [[frd-spec-structure]] specifies it, and AC-SPECSTR-001.1 — a heading
-  recorded with the span of the content beneath it — is the whole of
+  [[frd-spec-structure]] specifies it, and AC-SPECSTR-001.1 (a heading
+  recorded with the span of the content beneath it) is the whole of
   what this feature needs from it. Stage 2 lands after that criterion
   does. Shipping stage 2 first would report `unverified` for every
   anchored reference in the corpus, and this repository's own gates run
@@ -356,13 +356,14 @@ checks in `Corpus`; CMD = Command Surface in [[container-spec-cli]].
   (003.1), `check-path-anchor-elsewhere` (003.2), `refs-anchor-no-match`
   (003.3), `refs-anchor-ambiguous` (003.4)
 - [x] Every issue listed as subsumed in Tracker Reconciliation is closed
-  or re-scoped (none; the prerequisite closed as such, and the
-  retired-document exemption question — deferred — and the template slug
-  rule — open — remain out-of-scope, neither touched by this feature)
+  or re-scoped (none. The prerequisite closed as such. The
+  retired-document exemption question, which is deferred, and the
+  template slug rule, which is open, remain out-of-scope, and this
+  feature touches neither)
 
 - [x] [[frd-spec-markdown-links]]'s revised fragment criteria are
   verified by the MDL delta's tests, since this feature is what makes
-  them true — AC-SPECMD-001.3 by
+  them true: AC-SPECMD-001.3 by
   `TestAResolvedAnchorTakesItsFragmentFromTheResolvedHeading` and
   `TestAMappedTargetCarriesTheResolvedHeadingsFragmentToo` in
   `cli/core/mdlinks/mdlinks_test.go`, AC-SPECMD-001.7 by the
@@ -375,9 +376,9 @@ checks in `Corpus`; CMD = Command Surface in [[container-spec-cli]].
 - [x] `specs check --strict` reports no findings over this repository's
   corpus, with `reference/unresolved-anchor` and
   `reference/ambiguous-anchor` both listed `passed`. Eleven references
-  in this corpus carry an anchor — six into
+  in this corpus carry an anchor (six into
   `container-spec-cli#Command Surface`, five into component rosters of
-  [[module-document-core]] — and every one resolves
+  [[module-document-core]]), and every one resolves
 - [x] This blueprint's status → retired
 
 ## Open Questions

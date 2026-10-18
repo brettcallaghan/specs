@@ -96,7 +96,7 @@ Examples header: [type slug pattern]
 ```
 
 The parameterised steps are the governing general statement; the rows
-are the illustrative instances. The split not only survives — it becomes
+are the illustrative instances. The split survives and becomes
 **queryable**, where today an example is an unparseable sentence.
 
 ### Measured: the compiled form is the fact table
@@ -261,10 +261,9 @@ Binding constraints:
    genuine business rule groups several criteria — it names an
    assertion, not a topic. Because a Gherkin document holds exactly one
    `Feature`, this means one fenced block — or one `.feature` file —
-   per requirement. That
-   description carries the user story, and MAY carry a design note and a
-   scope fence; it SHALL NOT use `#`, which Gherkin reads as a comment,
-   and no line in it may begin with a Gherkin keyword.
+   per requirement. That description carries the user story, and MAY
+   carry a design note and a scope fence; it SHALL NOT use `#`, which Gherkin
+   reads as a comment, and no line in it may begin with a Gherkin keyword.
 2. Every `Scenario` SHALL carry exactly one tag matching
    `^@AC-[A-Z0-9]+-[0-9]{3}\.[0-9]+$`; the CLI SHALL report a finding
    otherwise.
@@ -412,7 +411,9 @@ generate.
   the scenario rather than each `Examples` block collapses several
   criteria into one, in a document that parses, whose every scenario is
   tagged, and against which no check fires. Constraint 7 and its
-  conformance check are the only defence.
+  conformance check are the only defence. TODO(author): constraint 3
+  governs `Examples`-level tagging; confirm whether 7 is the intended
+  number.
 - **The Requirements section grows about 54%** — measured 410 to 633
   lines, 7.9 to 12.2 lines per criterion. Two causes: 25 of 52 criteria
   need a `Scenario Outline` to hold a single example row, and the

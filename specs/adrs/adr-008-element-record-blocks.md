@@ -14,13 +14,12 @@ status: active
 ## Context
 
 The framework aims to let structured frontmatter become a queryable database of
-architectural elements. But under the promotion model
-([[adr-007]]), an un-promoted unit has no
-document — and therefore no frontmatter record — so the database would be blind
-to every unit that has not graduated. Lowering the promotion threshold to give
-everything a document would reintroduce the per-trivial-unit maintenance tax
-the promotion model exists to avoid. We needed database completeness without
-coupling it to graduation.
+architectural elements. Under the promotion model ([[adr-007]]), however, an
+un-promoted unit has no document and therefore no frontmatter record, so the
+database would be blind to every unit that has not graduated. Lowering the
+promotion threshold to give everything a document would reintroduce the
+per-trivial-unit maintenance tax the promotion model exists to avoid. We needed
+database completeness without coupling it to graduation.
 
 ## Decision
 

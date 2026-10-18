@@ -48,9 +48,9 @@ Two things, both cheap to confirm:
 - **A `specs.toml`**, declaring `[workspace].root` (the corpus
   directory), `[workspace].name`, and `[profile].name`. Every command
   resolves the corpus through it. The CLI reads the nearest `specs.toml`
-  in the working directory or a directory above it, searching up to the
-  repository root — or up to `/` when the working directory is not in a
-  repository — so a command run from a subdirectory finds the same file.
+  in the working directory or a directory above it. The search stops at
+  the repository root, or at `/` when the working directory is not in a
+  repository, so a command run from a subdirectory finds the same file.
   `--config <file>` names one instead and overrides the search. Its
   absence is not a default to infer: the CLI names every directory it
   searched and exits 3, the message beginning `no specs.toml found in`
@@ -131,16 +131,16 @@ modified: false
 **`specs check`** validates every document's frontmatter against the
 active profile's schema and slug patterns, reports duplicate slugs, and
 applies the reference, C4, Gherkin and metadata rules in the sections
-below. Its answer leads with a `summary` — the counts of `errors`,
-`warnings` and `unverified` findings, all three always present — and then
-the `findings` (each with its rule, severity, path, span and message), so
-the head of a failing run's output is its findings. `--json` writes the
+below. Its answer leads with a `summary`: the counts of `errors`,
+`warnings` and `unverified` findings, all three always present. The
+`findings` follow (each with its rule, severity, path, span and message),
+so the head of a failing run's output is its findings. `--json` writes the
 same values in the same order. `--strict` makes warning and unverified
 findings fail too. `--verbose` adds `checks` after the findings: every
 rule the run was asked for, each `passed`, `failed` or `unverified`. The
-answer's shape never changes the exit status. `--only <rule>` narrows to
-named rules — repeatable or comma-separated — and the summary then counts
-only their findings, and `checks` lists only those:
+answer's shape never changes the exit status. `--only <rule>` narrows the
+run to the named rules, and is repeatable or comma-separated. The summary
+then counts only their findings, and `checks` lists only those rules:
 
 ```
 $ specs check
@@ -166,20 +166,22 @@ the references elsewhere that your change to it broke.** It resolves
 the document's references against the whole corpus and reports every
 finding that sits in it — an unresolved reference or anchor, a retired
 target, a type mismatch, a slug or identifier it shares with another
-document — at its own line. It also reports, each at its line in the
-citing document, every reference elsewhere that cites a slug the
-document declared at git HEAD and no longer declares — an uncommitted
-rename — and every anchor elsewhere into the document that no longer
-names a heading of it. Nothing else located in another document is
-reported: an unrelated broken link elsewhere stays out. Outside a git
-work tree (or without git) there is no HEAD to compare with, so the
-check writes one `note:` line to standard error saying the references
-elsewhere were not checked and answers with the document's own findings.
-A changed `type` or a retirement is not reported elsewhere, because the
-citing reference still resolves. Before you rename a slug, retire a
-document or change its `type`, run `specs refs <slug>`: it names every
-document citing it, which is the blast radius of the change. After it, a
-whole-corpus `specs check` reports what is broken anywhere.
+document — at its own line. It also reports two kinds of breakage in
+other documents, each at its line in the citing document: every reference
+that cites a slug the document declared at git HEAD and no longer
+declares (an uncommitted rename), and every anchor into the document that
+no longer names one of its headings. Nothing else located in another
+document is reported: an unrelated broken link elsewhere stays out.
+Outside a git work tree (or without git) there is no HEAD to compare with,
+so the check writes one `note:` line to standard error saying the
+references elsewhere were not checked and answers with the document's own
+findings. A changed `type` or a retirement is not reported elsewhere,
+because the citing reference still resolves.
+
+Before you rename a slug, retire a document or change its `type`, run
+`specs refs <slug>`: it names every document citing it, which is the
+blast radius of the change. After the change, a whole-corpus
+`specs check` reports what is broken anywhere.
 
 **A path that names no corpus member is a refusal, not a pass.** Where
 the file exists but was excluded, the message names the reason
@@ -220,11 +222,11 @@ slug: adr-032
 ```
 
 **`specs slug-exists <slug>`** answers whether any document declares that
-slug, and where. Case-insensitive, because a case-insensitive filesystem
-cannot hold two files that differ only in case. The slug is written as the
-document declares it where one does, so `ADR-012` answers `adr-012`; where no
-document declares it, the slug is written as given. It exits 0 either way.
-Run it before claiming a slug.
+slug, and where. The match is case-insensitive, because a
+case-insensitive filesystem cannot hold two files that differ only in
+case. The slug is written as the document declares it where one does, so
+`ADR-012` answers `adr-012`; where no document declares it, the slug is
+written as given. It exits 0 either way. Run it before claiming a slug.
 
 ```
 $ specs slug-exists adr-012
@@ -316,11 +318,12 @@ failure.
 
 Two kinds of file are treated differently, and the difference is what the
 index recorded. A member the index recorded with a **parse error** is
-reported as an entry naming its path and the failure, carrying no slug,
-type, status, title or description — it is a member, so omitting it would
-make the listing disagree with the corpus, and a null value would assert
-the document declares none, which is not known, so the fields are absent
-rather than null. Under a `--type` filter it is not reported at all,
+reported as an entry naming its path and the failure. The entry carries
+no slug, type, status, title or description. It is reported because it is
+a member, and omitting it would make the listing disagree with the corpus.
+Its fields are absent rather than null, because a null value would assert
+that the document declares none, which is not known. Under a `--type`
+filter it is not reported at all,
 because it declares no type for a filter to match. A file the index
 recorded as an **exclusion** is never reported: it is not a member, and
 whether it should be one is `specs check`'s judgement rather than this
@@ -423,7 +426,7 @@ Without `--full` the same match is `anchor`, `ref`, `level: 3` and the
 **`--emit`** writes the section's content as itself instead — the
 cheapest way to read one part of a long document. It requires the
 selection to match exactly one heading. A selection matching several is
-refused (exit 2), naming each match by its `ref` that selects it
+refused (exit 2), naming each match by the `ref` that selects it
 alone, which you paste back (`ref` is the declared slug, `#`, and the
 `anchor`; a member declaring no slug is named by its path in place of
 the slug):
@@ -457,9 +460,9 @@ Identifiers and codes match regardless of letter case. The answer is a
 `features` list in every case, preceded by `declared` where the
 arguments name a subject. `feature <id> --emit` writes the feature as a
 standalone Gherkin `.feature` file — tags, description and criteria — to
-standard output, or to the path `--out` names; an unknown id there is
-refused (exit 2), since there is nothing to write, and `--full` there is
-refused too.
+standard output, or to the path `--out` names. Under `--emit`, an unknown
+id is refused (exit 2), since there is nothing to write, and so is
+`--full`.
 
 ```
 $ specs feature FEAT-SPEC-010 --emit
@@ -489,18 +492,18 @@ repository's default branch, or of `HEAD` and the branch, tag or commit
 `--since` names, and the current side includes uncommitted edits. The
 default branch is the first that exists of `origin/HEAD`'s target,
 `origin/main`, `origin/master`, `main` and `master`, so a stale local
-`main` never wins over `origin/main`; when a local branch of the same
+`main` never wins over `origin/main`. When a local branch of the same
 name is behind the one chosen, standard error carries `warning: local
 main (<short>) is behind origin/main (<short>); comparing against
-origin/main` and standard output is unchanged. The
-answer holds `base` (the revision and the merge-base commit) and then
-`criteria`, each carrying `id`, `name` (omitted where the criterion has
-none; the base's name for a removed one), `classification` and `path`.
-**`--full`** adds `record` (the criterion exactly as `specs criterion
-<id>` lists it) for an added or changed criterion and `base_record` (the
-same taken from the base) for a changed or removed one; `--full` without
-`--changed` exits 2. It exits 0 whatever it lists; `--exit-code` makes a
-non-empty list exit 1, for a gate. It needs `git` on `PATH`.
+origin/main` and standard output is unchanged. The answer holds `base`
+(the revision and the merge-base commit) and then `criteria`, each
+carrying `id`, `name` (omitted where the criterion has none; the base's
+name for a removed one), `classification` and `path`. **`--full`** adds
+`record` (the criterion exactly as `specs criterion <id>` lists it) for an
+added or changed criterion and `base_record` (the same taken from the
+base) for a changed or removed one; `--full` without `--changed` exits 2.
+It exits 0 whatever it lists; `--exit-code` makes a non-empty list exit 1,
+for a gate. It needs `git` on `PATH`.
 
 ```
 $ specs criterion --changed
@@ -587,8 +590,8 @@ Which frontmatter properties are reference-bearing is **derived from the
 profile's schema**, not a hand-kept list: every property typed as a
 document slug is one, except `slug` itself, which names its own document.
 `superseded_by`, `sources`, `frd`, `system`, `modules`, `provider` and
-`contracts_consumed` are all reference-bearing
-for that reason, and a slug-typed property added to the vocabulary
+`contracts_consumed` are all reference-bearing for that reason, and a
+slug-typed property added to the vocabulary
 becomes one the moment it is declared. This framework's own profile
 registers **no** pairing, so `reference/pairing-incomplete` is inert
 against its own corpus by design — it exists for adopting profiles whose

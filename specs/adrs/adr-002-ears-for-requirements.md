@@ -49,8 +49,8 @@ document:
 The split runs along a real boundary. Acceptance criteria are
 scenario-shaped, externally consumed, and destined to leave the repository
 for product and QA tooling. Standards documents, contracts and blueprints
-are invariant-shaped, internally consumed, and stay — and their modality
-genuinely varies, where an acceptance criterion's does not.
+are invariant-shaped, internally consumed, and stay in the repository.
+Their modality also varies, where an acceptance criterion's does not.
 
 ## Alternatives Considered
 

@@ -44,7 +44,7 @@ record-block half does need the tag registration
 [[frd-spec-structure-conformance]] specifies, and waits for it.
 
 **Out of scope for this feature.** Each of these is deferred
-deliberately, not overlooked:
+deliberately:
 
 - **Required sections, hygiene and line width.** Specified in
   [[frd-spec-structure-conformance]], which checks documents against the
@@ -250,11 +250,11 @@ Feature: Structure Queries
 components declared beneath a `Components` heading — without the caller
 knowing how many there are or what they are called. AC-SPECSTR-003.5 is
 what keeps the index free of section content: the span is recorded, and
-the text is read back through it on demand. It is written raw, because
-the caller asked for the document's own words, and raw text has no place
-to say where one section ends and the next begins, which is why
+the text is read back through it on demand. The text is written raw,
+because the caller asked for the document's own words. Raw text has no
+place to say where one section ends and the next begins, so
 AC-SPECSTR-003.7 refuses a selection matching several headings rather
-than joining them; the full answer already lists every match, each with
+than joining them. The full answer already lists every match, each with
 its ref and span.
 
 The same absence of an envelope is why AC-SPECSTR-003.13 refuses an
@@ -266,24 +266,25 @@ is absent, a document that is undeclared and a section that is empty.
 The emit form's contract is exactly one heading, so zero is refused as
 several is, and the message says which of the two causes it was.
 
-A match's ref selects its heading alone except where its anchor is one
-segment another heading of the document shares — a top-level heading of
-a document with no H1 — or two siblings share text all the way up; such
-a heading's content is read through the span the full answer returns,
-and the refusal lists it apart from the refs that do name one heading
-alone. The ref leads with the document's declared slug rather than its
-anchor's first segment, which is the H1's identifier and not the slug,
-so it is the form a nested wikilink anchor takes under
-[[cross-document-references]]: a ref copied from an answer or a refusal
-works as a selection, as a reference query's argument and as a citation
-without editing (AC-SPECSTR-003.12). A member that declares no slug is
-reached only by its path, so its ref leads with the path. A single
-segment remains a valid selection. A full heading path takes precedence
-over a deeper heading it is also a subsequence of, which is what lets a
-pasted `document-core#references` name the top-level `References` alone
-though `document-core#components#references` satisfies it too
-(AC-SPECSTR-003.11); the precedence applies to a selection of more than
-one segment only, so a one-segment selection is matched on its
+A match's ref selects its heading alone, with two exceptions: its anchor
+is one segment that another heading of the document shares (a top-level
+heading of a document with no H1), or two siblings share text all the
+way up. Such a heading's content is read through the span the full
+answer returns, and the refusal lists it apart from the refs that do
+name one heading alone. The ref leads with the document's declared slug
+rather than its anchor's first segment, which is the H1's identifier and
+not the slug. That makes it the form a nested wikilink anchor takes
+under [[cross-document-references]]: a ref copied from an answer or a
+refusal works as a selection, as a reference query's argument and as a
+citation without editing (AC-SPECSTR-003.12). A member that declares no
+slug is reached only by its path, so its ref leads with the path.
+
+A single segment remains a valid selection. A full heading path takes
+precedence over a deeper heading it is also a subsequence of. That
+precedence lets a pasted `document-core#references` name the top-level
+`References` alone, though `document-core#components#references`
+satisfies it too (AC-SPECSTR-003.11). It applies to a selection of more
+than one segment only, so a one-segment selection is matched on its
 identifier against every heading and names a top-level heading alone
 only where no other heading shares its identifier.
 

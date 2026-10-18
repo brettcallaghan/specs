@@ -39,8 +39,8 @@ Delta blocks in dependency order: BASE, then DIFF.
 
 ### Revisions in [[module-document-core]] (added) — BASE
 
-**Intent:** give Document Core the one capability the comparison lacks,
-which is reading the spec root as a commit holds it. The capability is
+**Intent:** give Document Core the one capability the comparison lacks:
+reading the spec root as a commit holds it. The capability is
 framework-agnostic, since it knows git and directories and no document
 type, so it belongs in the module rather than in the command surface
 ([[container-spec-cli]]'s Change Guidance). It returns a directory

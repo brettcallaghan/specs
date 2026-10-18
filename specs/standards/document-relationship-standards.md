@@ -18,16 +18,16 @@ child it composes, a document it supersedes. They apply to anyone
 authoring or reviewing a specification document, and to anyone adding,
 removing, or configuring a reference-bearing frontmatter property.
 
-Their authority is a capability the framework now has and did not when the
+They rest on a capability the framework did not have when the
 vocabulary was designed: the reference-integrity feature parses every
 `[[slug]]` link from a document's body and records the graph in the index
 **in both directions**, deriving each document's inbound edges from every
 other document's outbound ones ([[frd-spec-reference-integrity]],
 AC-SPECREF-001.1 and AC-SPECREF-001.3), and exposes both directions to a
-query (AC-SPECREF-003). Once the reverse of every relationship is computed
-for free, a second copy of it — mirrored into a counterpart document's
-frontmatter — is not redundancy the tool needs. It is drift surface an
-author maintains by hand.
+query (AC-SPECREF-003). Because the index computes the reverse of every
+relationship, a second copy of it, mirrored into a counterpart
+document's frontmatter, gives the tool nothing it lacks. It is drift
+surface an author maintains by hand.
 
 ---
 
@@ -88,7 +88,7 @@ A frontmatter property that only mirrors a document's `## References`
 prose links SHALL NOT be introduced, and an existing one SHOULD be removed.
 
 **Rationale:** If every value of the property already appears in the body
-as a `[[slug]]` — which the index now records outbound and inbound — the
+as a `[[slug]]` — which the index records outbound and inbound — the
 property is a hand-maintained copy of a derived fact. It cannot be more
 correct than the graph and can be less.
 

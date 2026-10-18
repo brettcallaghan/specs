@@ -32,9 +32,9 @@ fill the fields well.
 
 ## The three text fields (keep them distinct)
 
-Agents habitually collapse these into one blob. Keeping them separate is most
-of the quality battle, because each answers a different question for the
-isolated agent.
+Agents habitually collapse these into one blob. Keeping them separate does
+most of the work of a good order, because each answers a different question
+for the isolated agent.
 
 | Section | Question | Mutability | Contents |
 |---------|----------|------------|----------|
@@ -155,8 +155,8 @@ they run in one direction:
   for silently, on every run, forever.
 
 So treat a *zero*-escalation run across a large queue as a signal worth
-examining, not as a clean bill of health. It is consistent with perfect
-calibration and equally consistent with routing everything too high.
+examining, not as proof that routing is correct. It is consistent with
+perfect calibration and equally consistent with routing everything too high.
 `retro-spec` and `retro-skill` both take escalation counts as input.
 
 ## A note on estimates vs. tiers

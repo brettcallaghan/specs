@@ -18,8 +18,7 @@ version: "1.1"
 
 This contract governs how a repository tells the Spec CLI what its
 specification corpus is and which rules apply to it. It has two
-surfaces at different tiers, described together because they are two
-views of one vocabulary.
+surfaces at different tiers.
 
 The **public surface** is `specs.toml`, a file an adopting repository
 authors at its root. It crosses a boundary of independent change: teams
@@ -93,7 +92,7 @@ reachable from `specs.toml` in v1.** A profile supplies, for each
 document type it registers: the type name, the JSON Schema its
 frontmatter satisfies, the slug pattern, whether the type is numbered,
 the section hierarchy it requires, and the named section sets a span
-query can select. It additionally supplies the fenced block tags to
+query can select. It also supplies the fenced block tags to
 extract and any rule that cannot be expressed as data — the
 agreement of an element's declarations and supersession integrity are
 the two current examples.
@@ -165,11 +164,12 @@ type PropertyPairing struct {
 
 A profile separately supplies one **lifecycle registration** for the
 whole of its document vocabulary, not per type, since status is a
-property of the shared document envelope rather than of any one type:
-the full status vocabulary its documents may declare, which of those
-statuses a document is in effect at (live) and which it is no longer in
-effect at (retired), and the frontmatter property in which a document
-at a retired status names its replacement. A profile MAY register no
+property of the shared document envelope rather than of any one type.
+The registration names the full status vocabulary its documents may
+declare, the statuses at which a document is in effect (live), the
+statuses at which it is no longer in effect (retired), and the
+frontmatter property in which a document at a retired status names its
+replacement. A profile MAY register no
 lifecycle — the zero value — describing a corpus whose documents have
 none; the checks that read the registration do not run for it.
 
@@ -257,9 +257,9 @@ a defect in this contract rather than in either module.
 
 `version` stays `"1.0"` for the whole of the internal surface described
 above, including the reference-bearing, typed-reference, pairing,
-lifecycle, tag-vocabulary and record-block tag registrations: the Versioning and Change
-Policy section below
-exempts the internal registration surface from versioning while
+lifecycle, tag-vocabulary and record-block tag registrations. The
+Versioning and Change Policy section below exempts the internal
+registration surface from versioning while
 [[module-document-core]] and [[module-spec-profile]] are both
 `visibility: internal`, which they are, and this vocabulary is additive
 to that internal half only. The public `specs.toml` surface above is

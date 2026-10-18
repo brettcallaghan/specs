@@ -14,26 +14,25 @@ sources:
 
 ## Overview
 
-Specification documents cross-reference one another — `[[slug]]` links
-in prose, and frontmatter properties that name related documents. When a
+Specification documents cross-reference one another through `[[slug]]`
+links in prose and frontmatter properties that name related documents. When a
 target is renamed, retired, or never existed, the link silently stops
 resolving and a reader follows it into nothing. A prototype over this
 repository's own corpus found 26 such broken references that no reviewer
 had noticed.
 
-Those 26 are gone: the slug migration [[adr-012]] decided repaired them,
-and a scan of the same corpus on 2026-08-06 — 29 documents, 256 body
-references once backticked illustrations are excluded — finds none
-unresolved. That is the argument for this
-feature rather than against it. The 26 were repaired by a one-off
-prototype and a hand migration, and nothing now stands between the
-corpus and the next such drift; a corpus that is clean exactly once, at
-the moment someone looked, is the state this feature exists to end. The
-same scan also shows how little of the relationship graph has ever been
-examined: no anchor has ever been resolved against a heading, no retired
-document's successor has been resolved, and no paired relationship has
-been checked from both ends. Those are not passing checks. They are
-checks that have never run.
+Those 26 are gone. The slug migration that [[adr-012]] decided repaired
+them, and a scan of the same corpus on 2026-08-06 (29 documents, 256 body
+references once backticked illustrations are excluded) finds none
+unresolved. That result argues for this feature, not against it. A
+one-off prototype and a hand migration repaired the 26, and nothing now
+stands between the corpus and the next such drift. A corpus that is
+clean exactly once, at the moment someone looked, is the state this
+feature exists to end. The same scan also shows how little of the
+relationship graph has ever been examined: no anchor has ever been
+resolved against a heading, no retired document's successor has been
+resolved, and no paired relationship has been checked from both ends.
+None of those checks has passed, because none has ever run.
 
 This feature adds reference awareness to the tool established by
 [[frd-spec-index]]. It reads each document's body and
@@ -63,8 +62,8 @@ deliberately, not overlooked:
   sub-feature of this one. The split is deliberate: anchor resolution
   needs heading data this feature does not have, from
   [[frd-spec-structure]], and every anchor reference in the
-  corpus resolves on its slug half — so shipping slug resolution first
-  costs the corpus nothing and unblocks it sooner.
+  corpus resolves on its slug half. Shipping slug resolution first
+  therefore costs the corpus nothing and unblocks it sooner.
 - **Heading extraction and section spans.** Specified in
   [[frd-spec-structure]]. Nothing in this feature reads a
   document's headings.
@@ -98,7 +97,7 @@ deliberately, not overlooked:
   first team that tries it to discover.
 - **Reporting an unreferenced document.** Inbound edges make an orphan
   free to detect, but whether a document *should* be reachable is a
-  judgment about the corpus, not a conformance rule — a draft is
+  judgment about the corpus, not a conformance rule: a draft is
   expected to be uncited, and a warning on every new document is a
   warning nobody reads. AC-SPECREF-003.5 answers the question on
   demand; no check reports it.
@@ -248,8 +247,8 @@ is listed among none, because it reaches no heading to break
 applied to the two places a reference is written about rather than
 written: a backticked example, and a frontmatter value describing the
 notation. Both were observed in this corpus, and both are false
-positives a reader would have to dismiss by hand — the failure mode that
-makes a checker get ignored. AC-SPECREF-001.6 restates FEAT-SPEC-002's
+positives a reader would have to dismiss by hand, which is the failure
+mode that makes a checker get ignored. AC-SPECREF-001.6 restates FEAT-SPEC-002's
 ordering for this feature specifically, because a reference graph is the
 part of the index most likely to tempt an implementer into failing the
 build from the indexer.
@@ -260,14 +259,14 @@ are in the index: AC-SPECREF-002.3 checks them, AC-SPECREF-003.1 answers
 for them, AC-SPECREF-002.5 compares a pairing across two documents, and
 AC-SPECREN-001.4 rewrites them from their recorded spans. Left implicit,
 the reasonable reading of FEAT-SPECREF-001 is that the index holds prose
-links only — which passes every criterion in this requirement and
+links only. That reading passes every criterion in this requirement and
 silently drops the half of the graph a catalogue reads first.
 
 AC-SPECREF-001.8 says what AC-SPECREF-001.3's "all other corpus members"
 leaves open, for the one reference whose target is the document holding
 it. The anchor-only form AC-SPECANCH-002.6 resolves against the
-containing document is a reference like any other — AC-SPECREF-002.12
-already refuses to call it broken — so a query that omitted it would
+containing document is a reference like any other (AC-SPECREF-002.12
+already refuses to call it broken), so a query that omitted it would
 answer "nothing references this heading" about a document that visibly
 does. That answer is wrong rather than failing, and no check sees it,
 which is why the criterion is stated here rather than left to the
@@ -401,8 +400,8 @@ approved blueprint citing a retired ADR reports
 adr-013"` (AC-SPECREF-002.6). A reference to a file with no
 frontmatter reports "target exists but is not a corpus member: excluded:
 no-frontmatter", and a reference to a document whose frontmatter does not
-parse reports nothing against the citing document — the parse failure is
-reported once, against the document that has it (AC-SPECREF-002.7,
+parse reports nothing against the citing document, because the parse
+failure is reported once, against the document that has it (AC-SPECREF-002.7,
 AC-SPEC-003.8). `` `[[ADR-012]]` ``
 resolves to the document declaring `slug: adr-012` (AC-SPECREF-002.8). An
 agent changes an ADR's slug and the write-time check on that one file
@@ -423,19 +422,19 @@ unresolved reference and as an unresolved anchor (AC-SPECREF-002.12).
 *Rationale:* Severity is assigned here rather than left to
 implementation because it is what the exit status of a build depends on.
 AC-SPECREF-002.6 is a `warning` because a reference to a retired
-document still resolves — the reader reaches a real document that tells
-them it has been replaced — so failing a build on it would punish a
-corpus for retiring anything. It is also the first check in this tool to
+document still resolves: the reader reaches a real document that tells
+them it has been replaced. Failing a build on it would punish a corpus
+for retiring anything. It is also the first check in this tool to
 emit `warning` at all: AC-SPEC-006.7's `--strict` boundary has until now
 been unreachable end to end, because every registered check emitted
 `error`.
 
-AC-SPECREF-002.2 is a scoping rule wearing a parser's clothes. Deferring
-anchors to [[frd-spec-anchor-references]] does not let this feature
-ignore that anchors exist: a reference that carries one is still a
-reference to a document, and reading `container-spec-cli#Element
+AC-SPECREF-002.2 reads like a parsing rule but is a scoping rule.
+Deferring anchors to [[frd-spec-anchor-references]] does not let this
+feature ignore that anchors exist: a reference that carries one is still
+a reference to a document, and reading `container-spec-cli#Element
 Registry` as a slug would report every anchored reference in a corpus as
-broken — the false-positive failure mode AC-SPECREF-001.2 and
+broken. That is the false-positive failure mode AC-SPECREF-001.2 and
 AC-SPECREF-001.4 exist to prevent, arriving by a different route. The
 criterion states the minimum this feature must know about a convention
 it otherwise leaves alone. No check here emits `unverified`; that
@@ -449,13 +448,13 @@ breakage the author did not cause. What it does report from elsewhere is
 exactly what this author's edit caused: a reference citing a slug the
 document gave up, or an anchor into the document that no longer names a
 heading (AC-SPECREF-002.11). Excluding those too, because the author
-cannot fix them in the file in front of them, is the tempting
-simplification and the wrong one: the commonest cause is an uncommitted
-rename, whose fix is to revert it or to edit the citing documents, and
-an author told nothing at write time learns of the breakage only from a
-later corpus check — or not at all, where nothing runs one. The former
+cannot fix them in the file in front of them, looks like a
+simplification but is wrong. The commonest cause is an uncommitted
+rename, whose fix is to revert it or to edit the citing documents. An
+author told nothing at write time learns of the breakage only from a
+later corpus check, or not at all where nothing runs one. The former
 slug is read from git HEAD because that is the version every citation
-was written against and an uncommitted rename is the common case; where
+was written against and an uncommitted rename is the common case. Where
 there is no git work tree there is no HEAD to read, so the check reports
 what it can and says on standard error what it skipped
 (AC-SPECREF-002.13), rather than refusing a check whose own findings are
@@ -467,8 +466,9 @@ question asked before the change.
 AC-SPECREF-002.11 is also the positive half for the document's own
 findings, stated for every reference rule rather than unresolved
 references alone: narrowing a check to one document narrows the
-documents it reports on, never the rules it runs over that document. Under AC-SPEC-006.8's accounting
-`reference/retired-target passed` means "ran, found nothing", so a
+documents it reports on, never the rules it runs over that document.
+Under AC-SPEC-006.8's accounting `reference/retired-target passed`
+means "ran, found nothing", so a
 narrowed check that skipped a rule would report as passed a rule whose
 findings a check of the corpus raises in the same document.
 
@@ -476,8 +476,8 @@ AC-SPECREF-002.12 is what makes the slug-less anchor form [[adr-012]]
 mandates for a section of the referring document usable in a corpus that
 gates on `--strict`. That form carries no slug, so the slug half matches
 nothing and this feature's own AC-SPECREF-002.1 calls it broken in the
-same run the sub-feature's AC-SPECANCH-002.6 resolves it — two rules
-disagreeing about one reference. The exemption is conjunctive rather
+same run the sub-feature's AC-SPECANCH-002.6 resolves it, so two rules
+would disagree about one reference. The exemption is conjunctive rather
 than a blanket skip of slug-less references: a reference whose anchor
 names no heading of its own document reaches nothing and is still an
 error, so the only thing waved through is a reference that resolves.
@@ -563,8 +563,8 @@ into a rewrite, opening only the lines that carry the reference rather
 than each citing document; it passes `--full` for the spans
 (AC-SPECREF-003.3).
 `specs refs frd-spec-reference-integrity` returning nothing is the answer
-that a document is unreferenced, not a failure — the same contract
-`slug-exists` sets in AC-SPEC-007.2 (AC-SPECREF-003.5).
+that a document is unreferenced, not a failure. That is the same
+contract `slug-exists` sets in AC-SPEC-007.2 (AC-SPECREF-003.5).
 `specs refs frd-spec-index` answers with one entry per citing document,
 each reference reduced to the line it starts on and its text
 (AC-SPECREF-003.6). `specs refs adr-012 --outbound` answers with one
@@ -578,7 +578,7 @@ A compact answer drops properties, never references (AC-SPECREF-003.8).
 renaming or repurposing any of its four subcommands, which is the growth
 that requirement anticipated. Both directions are exposed because the
 index carries both (AC-SPECREF-001.3) and the two questions are asked at
-different moments — "what breaks if I retire this" before a change,
+different moments: "what breaks if I retire this" before a change, and
 "what does this depend on" before an edit. Answering either by reading
 the corpus is the behavior the tool exists to replace.
 
@@ -589,7 +589,7 @@ resolved to — and spends most of its lines on span offsets. The compact
 form is therefore the default, and `--full` is for the caller that
 rewrites by offset. An outbound query's citing document is the
 document queried, so grouping by it would give one group and drop the
-one property an outbound query is for — where to read each dependency;
+one property an outbound query is for: where to read each dependency.
 AC-SPECREF-003.9 therefore groups the outbound compact answer by the
 slug cited and keeps its resolved path. Either compact answer is a
 named view rather than a change of depth, which
@@ -632,20 +632,21 @@ Feature: Reference Configuration
 *Examples:* `reference_properties` and `pairings` are already declared
 per document type in [[contract-specs-configuration]] and in
 `schemas/profile.strata`; this feature is the first consumer of
-properties the configuration schema already carries, and it adds one —
+properties the configuration schema already carries, and it adds one:
 `typed_reference_properties`, mapping a reference-bearing property to the
 document `type` its target must declare (AC-SPECREF-004.1, and
 AC-SPECREF-002.10). The shipped configuration marks `superseded_by`,
 `sources`, `frd`, `system`, `modules`, `provider` and
 `contracts_consumed` as reference-bearing, and registers **no**
-pairing — every relationship this framework declares has its reverse
-derived from inbound edges, and [[document-relationship-standards]]
+pairing, because every relationship this framework declares has its
+reverse derived from inbound edges, and [[document-relationship-standards]]
 reserves a pairing for the case that does not. It registers one typed
 reference: a feature blueprint's `frd` must resolve to a document of type
 `frd` (AC-SPECREF-004.2). A pairing of `children` with `parent` where
 only `parent_slug` is registered names the key and line, rather than
-silently checking nothing — the vacuous-success failure this project has
-now observed in three independently built tools (AC-SPECREF-004.3).
+silently checking nothing. This project has now observed that
+vacuous-success failure in three independently built tools
+(AC-SPECREF-004.3).
 While the active profile is compiled in and unreachable from
 `specs.toml` ([[contract-specs-configuration]]), the only file position
 such a registration has is the `[profile].name` value that selected it,

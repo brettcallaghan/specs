@@ -34,10 +34,9 @@ whether a capability belongs here is the one
 `docs/plans/spec-validation-cli-brief.md` states: could an Obsidian
 vault with nothing to do with C4 use it?
 
-That boundary is not tidiness for its own sake. It is what allows the
-module to be wrapped in an HTTP API or an MCP server later without first
-being extracted from a CLI, and what lets an enterprise with a different
-document taxonomy reuse the engine.
+The boundary lets the module be wrapped in an HTTP API or an MCP server
+later without first being extracted from a CLI, and lets an enterprise
+with a different document taxonomy reuse the engine.
 
 - **Role:** parse, index and check a corpus of frontmatter-bearing
   markdown documents, driven entirely by registered configuration.
@@ -334,21 +333,19 @@ C4Component
 Thirteen of the fourteen are built and carry a **Built** paragraph naming
 the package that realizes them: Spans, Frontmatter, Gherkin, C4 Diagrams,
 C4 Elements, C4 Model, References, Schema Registry, Corpus, Numbering,
-Findings, Markdown Links and Revisions. The
-emitted index carries the resolved reference graph, and the corpus checks
-read it: a broken link, a live document citing a retired one, a
-half-declared pairing and a typed reference landing on the wrong
-document type are each reported against the document a reader must
-open. **Markdown Structure is built for two of its three capabilities.**
-`cli/core/markdown` locates fenced blocks by info string and builds the
-heading tree with each heading's section span; comment-block location
-remains not yet built, and the diagram edge that would carry it is still
-the intended shape rather than an exercised one. Both edges from Corpus
-into Markdown Structure and Gherkin are exercised: the walk extracts a
-fenced Gherkin block
-through `markdown.Fenced` and parses every feature source through
-`gherkin.Parse`, and the `gherkin/` checks recompute from the same two
-packages.
+Findings, Markdown Links and Revisions. The emitted index carries the
+resolved reference graph, and the corpus checks read it. A broken link, a
+live document citing a retired one, a half-declared pairing and a typed
+reference landing on the wrong document type are each reported against
+the document a reader must open. **Markdown Structure is built for two of
+its three capabilities.** `cli/core/markdown` locates fenced blocks by
+info string and builds the heading tree with each heading's section span.
+Comment-block location is not yet built, and the diagram edge that would
+carry it is still the intended shape rather than an exercised one. Both
+edges from Corpus into Markdown Structure and Gherkin are exercised: the
+walk extracts a fenced Gherkin block through `markdown.Fenced` and parses
+every feature source through `gherkin.Parse`, and the `gherkin/` checks
+recompute from the same two packages.
 
 ### Spans
 
@@ -536,12 +533,12 @@ particular sections and reads only those.
 **Built — headings and fenced blocks.** `cli/core/markdown`. Its
 fenced-block surface is `Fenced`, which takes a document body and a set
 of registered tags and returns every fenced block whose info string
-matches one of them, in
-document order, as a `Block`: `Content` — the bytes between the fences —
-and `Text` — the content lines as the parser reads them, container
-prefixes such as a blockquote's `> ` removed, so unlike `Content` it is
-not a slice of the document — alongside `Outer`, over the whole construct including both fence lines
-in full, and `Inner`, over the content alone. Fence recognition comes
+matches one of them, in document order, as a `Block`. `Content` is the
+bytes between the fences. `Text` is the content lines as the parser reads
+them, with container prefixes such as a blockquote's `> ` removed, so
+unlike `Content` it is not a slice of the document. `Outer` covers the
+whole construct including both fence lines in full, and `Inner` covers
+the content alone. Fence recognition comes
 from `goldmark` — [[adr-015]]'s choice, already a module dependency via
 References — rather than from a hand-rolled scan, because where a fence
 ends depends on the fence character, its run length and its info string.
@@ -550,22 +547,22 @@ position is comparable to a frontmatter or reference position. An
 unterminated fence — content running to the end of the document with no
 closing line — yields no block, matching the Spans scanner's refusal to
 guess at a dangling delimiter. `Fenced` locates and returns bytes only.
-`FencedFrom` is its offset-taking form, mirroring `HeadingsFrom`: it searches from a byte offset and
-reports every span in whole-file coordinates, and `Fenced` is
-`FencedFrom` at offset 0.
+`FencedFrom` is its offset-taking form, mirroring `HeadingsFrom`: it
+searches from a byte offset and reports every span in whole-file
+coordinates, and `Fenced` is `FencedFrom` at offset 0.
 
-**Built — record-block recording.** Corpus calls `FencedFrom`, from the
-start of the body so a fence inside frontmatter YAML is never a record,
-with the tags the
-active profile registers through `RecordBlocks` and records each
-block as a `RecordBlock` of tag and `Outer` span, fences included, never
-its content. A record attaches to the innermost heading whose section
-span contains it, and to the entry's own `record_blocks` where no
-heading's does; each appears exactly once, and an entry with no
-registered tag carries `[]` throughout. A block is recorded whether or
-not its content is valid: indexing raises no finding about a record.
-`DecodeRecordBlock` reads a recorded block's content back through its
-span: it re-locates the block from the body through `FencedFrom`, the same search that recorded it, matching on `Outer`, and
+**Built — record-block recording.** Corpus calls `FencedFrom` with the
+tags the active profile registers through `RecordBlocks`, searching from
+the start of the body so that a fence inside frontmatter YAML is never a
+record. It records each block as a `RecordBlock` of tag and `Outer` span,
+fences included, never its content. A record attaches to the innermost
+heading whose section span contains it, and to the entry's own
+`record_blocks` where no heading's does; each appears exactly once, and
+an entry with no registered tag carries `[]` throughout. A block is
+recorded whether or not its content is valid: indexing raises no finding
+about a record. `DecodeRecordBlock` reads a recorded block's content back
+through its span. It re-locates the block from the body through
+`FencedFrom`, the same search that recorded it, matching on `Outer`, and
 decodes the block's `Text` as YAML into a caller-supplied Go value, so a
 record inside a blockquote decodes like any other and a span that covers
 no fenced block of the tag is an error. Every command and check decodes
@@ -1068,7 +1065,8 @@ Five further semantics are pinned by the resolution half:
   collections in.
 
 Five more are pinned by the anchor half, added once the corpus began
-recording headings ([[frd-spec-structure]]):
+recording headings ([[frd-spec-structure]]). TODO(author): six bullets
+follow; confirm the count.
 
 - **An anchor is matched against a heading by deriving a heading
   identifier from each and comparing them** (AC-SPECANCH-002.2), the
@@ -1108,7 +1106,8 @@ recording headings ([[frd-spec-structure]]):
   no index entry; the tool did not get to look, which is a different
   claim from having looked and found nothing (AC-SPECANCH-002.4).
 
-Nine semantics are pinned by the extraction half:
+Nine semantics are pinned by the extraction half. TODO(author): ten
+bullets follow; confirm the count.
 
 - **The body is what follows the frontmatter block,** so a frontmatter
   value describing the notation — `description: References use [[slug]]
@@ -1566,12 +1565,11 @@ it: the block's extent is the Frontmatter component's rule, and a second
 derivation here — closing the block at a bare `---` — would end it inside
 a value that contains one and hand the rest of the envelope to the
 heading search, which is the level-2 heading the offset exists to avoid.
-This is the
-one respect in which the heading search differs from the fenced-block
-search beside it, which is offered the whole file precisely so that its
-spans need no second arithmetic — heading spans are in document
-coordinates for the same reason, computed against the whole file rather
-than against the body slice.
+This is the one respect in which the heading search differs from the
+fenced-block search beside it, which is offered the whole file
+precisely so that its spans need no second arithmetic — heading spans are
+in document coordinates for the same reason, computed against the whole
+file rather than against the body slice.
 
 A warm corpus answers for headings from the index it opened, reading no
 document off disk: the headings are in the persisted index like every
@@ -1815,8 +1813,8 @@ path the corpus already knows is a member with fully-decoded
 frontmatter, the same condition `classifyDocument` gates it on at build
 time — consulted from the already-built index rather than re-derived, so
 this walk is never a second, divergeable notion of corpus membership.
-This is a real, unavoidable cost: every `Check` and `CheckFor` call re-
-parses every Gherkin source in the corpus, proportional to the corpus
+This is a real, unavoidable cost: every `Check` and `CheckFor` call
+re-parses every Gherkin source in the corpus, proportional to the corpus
 rather than to the one file a single-document check names, wider than
 the AC-SPEC-009.2 budget the rest of this component holds itself to. A
 recompute confined to what only fires cold would report nothing in the
@@ -1985,7 +1983,8 @@ with nothing parsed at all, which is what keeps a reference query and the
 inbound half of a single-document check inside the AC-SPEC-009.1 and
 AC-SPEC-009.2 budgets (AC-SPECREF-003.4).
 
-Eight semantics are pinned by the implementation:
+Eight semantics are pinned by the implementation. TODO(author): nine
+bullets follow; confirm the count.
 
 - **Every read passes through one choke point, and that choke point
   normalizes line endings.** A candidate's bytes are read through the
@@ -2201,8 +2200,10 @@ only `--strict` fails on it.
 
 The unverified mechanism is built and no check registers against it yet;
 the diagram validation AC-SPEC-006.3 illustrates is a structure-feature
-concern. A later check adds a variant to the union without changing the
-envelope that carries it.
+concern. TODO(author): `reference/unresolved-anchor` and `c4/parse`
+report at `unverified`; confirm "no check registers against it yet".
+A later check adds a variant to the union without changing the envelope
+that carries it.
 
 **The c4 rules are declared and not yet raised.** Ten identifiers check
 the Mermaid C4 diagrams in architecture blueprints for
@@ -2221,7 +2222,9 @@ aliases; and a tag-separator defect with the tags argument as written.
 `c4/parse` reports at `error` and at `unverified` under one identifier,
 as `reference/unresolved-anchor` does. None is in the command surface's check list
 until the check that raises it lands — a rule listed there reads as
-passed whenever it is requested.
+passed whenever it is requested. TODO(author): Corpus says
+`c4NodeFindings` and `c4RelationshipFindings` raise these rules; confirm
+whether "not yet raised" is still current.
 
 ### Markdown Links
 
@@ -2379,6 +2382,9 @@ The relationships below are stated for the module's whole component set.
 The Corpus → Markdown Structure edge is still the intended shape rather
 than an existing one: nothing in Corpus calls `cli/core/markdown` yet.
 Markdown Structure → Spans is now real for the fenced-block half.
+TODO(author): this contradicts Components and Corpus, which say Corpus
+calls `markdown.Fenced`, `FencedFrom` and `HeadingsFrom`; confirm which
+is current.
 
 **Corpus → Frontmatter, Markdown Structure, References.** Corpus is the
 orchestrator: it walks files and delegates every act of parsing. A
@@ -2497,8 +2503,7 @@ This module SHALL comply with:
       and the persisted index is itself the cache, so there is no second
       on-disk location to place or ignore. The full argument is recorded
       under Corpus above. Recording this as an ADR remains open; it is no
-      longer
- the question of what to build.
+      longer the question of what to build.
 - [ ] Whether Findings should adopt `samber/oops` for structured error
       context, as raised in [[adr-015]]. Deferred to implementation; it
       affects this component's API shape. The implementation shipped

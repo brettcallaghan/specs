@@ -16,8 +16,8 @@ status: active
 In large projects run as orchestrated bead waves, running the full test suite
 for every work item does not scale — it slows a parallel sprint run to a crawl.
 
-Agents have been given the agency to choose which tests to run for a change, but
-that judgment is unanchored: nothing tells an isolated agent, with zero session
+Agents choose which tests to run for a change, but that judgment is
+unanchored: nothing tells an isolated agent, with zero session
 context, which tests actually gate a change to a given architectural element.
 The result is inconsistent selection — some agents over-run (slow), others
 under-test (risky).

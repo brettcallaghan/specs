@@ -27,12 +27,11 @@ deriving a work-item graph. The checks are defined only here — the
 skills reference this document rather than restating it, so authoring
 and grooming can never disagree about what "groomable" means.
 
-What happens on failure differs by consumer and is defined in each
-skill, not here: at authoring time a failed check is simply unfinished
-work; at groom time a failed readiness check stops grooming without
-modifying any document, and a failed content check bounces the gap
-into the blueprint's Open Questions and demotes the blueprint to
-`draft`.
+Each skill, not this document, defines what happens on failure. At
+authoring time, a failed check is unfinished work. At groom time, a
+failed readiness check stops grooming without modifying any document,
+and a failed content check bounces the gap into the blueprint's Open
+Questions and demotes the blueprint to `draft`.
 
 ---
 

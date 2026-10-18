@@ -20,11 +20,10 @@ frontmatter and location, and the criteria inside it are prose to
 everything downstream.
 
 This feature makes features and criteria first-class records. The CLI
-parses Gherkin wherever the framework admits it, validates what the
-Gherkin parser cannot — that every criterion is identified, uniquely,
-and says something — extracts each feature and criterion into the
-index as a typed record, and answers direct questions about them by
-tag.
+parses Gherkin wherever the framework admits it and validates what the
+Gherkin parser cannot: that every criterion is identified, uniquely,
+and says something. It extracts each feature and criterion into the
+index as a typed record and answers direct questions about them by tag.
 
 The payoff is addressability. An agent implementing a work order asks
 for one criterion instead of reading an FRD. A reviewer asks which
@@ -601,9 +600,9 @@ Feature: Validation and Diagnostics
 Every Gherkin rule is an error but one: a tag outside the vocabulary is
 a warning (AC-GHK-002.8), because a project may use tags of its own. A
 Feature with no description and a criterion with no `@level-*` tag are
-not findings at all: the description is the author's to write or omit,
-and [[gherkin-guide]] makes the level tag optional, so a warning on
-either would fire on most of the corpus and teach readers to ignore the
+not findings at all. The description is the author's to write or omit,
+and [[gherkin-guide]] makes the level tag optional. A warning on either
+would fire on most of the corpus and teach readers to ignore the
 severity.
 
 ### FEAT-GHK-007: Queries by Tag
@@ -932,8 +931,8 @@ Feature: Local Change Detection
 
 *Rationale for AC-GHK-008.10, AC-GHK-008.14 and AC-GHK-008.15:* a local
 branch is only as current as the last time someone updated it, and a
-cloud session or a CI checkout typically never does, while its
-remote-tracking branch is refreshed by every fetch. A base taken from a
+cloud session or a CI checkout typically never does. Its remote-tracking
+branch is refreshed by every fetch. A base taken from a
 stale local `main` silently attributes every change merged since to the
 branch under review, so the remote-tracking branch is preferred and the
 local one is used only where no remote-tracking candidate exists. The

@@ -17,9 +17,9 @@ sources:
 A wikilink can name a place inside a document as well as the document
 itself: `[[container-spec-cli#Element Registry]]` points at one heading,
 not at the whole blueprint. [[adr-012]] mandates that form for every
-un-promoted component — an element with no blueprint of its own is
-referenced by a heading anchor into its parent's roster — so anchors are
-how a whole class of architectural element is addressed.
+un-promoted component: an element with no blueprint of its own is
+referenced by a heading anchor into its parent's roster. Anchors are
+therefore how a whole class of architectural element is addressed.
 
 [[frd-spec-reference-integrity]] resolves the slug half of a reference
 and stops there, splitting on the first `#` and ignoring what follows
@@ -28,17 +28,16 @@ own document because the two halves need different data: slug
 resolution needs only the index, anchor resolution needs the headings
 [[frd-spec-structure]] records.
 
-Eleven references in the corpus name an anchor — six into
+Eleven references in the corpus name an anchor: six into
 `container-spec-cli#Command Surface`, five into component rosters of
 [[module-document-core]]. Each names one heading in full, each reaches a
 heading that exists, and until this feature nothing verified either
-fact. That is the case
-for settling the rules now: few enough that any rule chosen here costs
-nothing to adopt, established enough that the next author will copy one
-of them.
+fact. That is the case for settling the rules now: the references are
+few enough that any rule chosen here costs nothing to adopt, and
+established enough that the next author will copy one of them.
 
 A reference should behave the same way in both environments this corpus
-is read in — Obsidian, which [[adr-012]] chose the notation to survive,
+is read in: Obsidian, which [[adr-012]] chose the notation to survive,
 and a rendered markdown copy, which is how the corpus travels into
 skills and repositories that do not hold it. Deriving a heading
 identifier the way a renderer does is what keeps a resolved reference
@@ -139,7 +138,7 @@ Feature: Anchor Extraction in the Index
 
 *Examples:* `` `[[container-spec-cli#Element Registry]]` `` records slug
 `container-spec-cli` and anchor `Element Registry` on one reference
-entry, at one span — not two references (AC-SPECANCH-001.1).
+entry at one span, not as two references (AC-SPECANCH-001.1).
 `#Element  Registry` keeps its double space, because the index has to
 report the text a fix will edit (AC-SPECANCH-001.2).
 `` `[[container-spec-cli#Element Registry|the registry]]` `` records the
@@ -149,13 +148,13 @@ records an anchor exactly as a body citation of the same target does: a
 citation names a section wherever it is written (AC-SPECANCH-001.6).
 
 *Rationale:* AC-SPECANCH-001.2 keeps the index a record of what the
-author wrote — the parent feature records a reference's text and span
+author wrote. The parent feature records a reference's text and span
 before anything resolves it (AC-SPECREF-001.1), and every question about
 what an anchor matches is answered later, against corpus knowledge the
 index does not hold. AC-SPECANCH-001.5 covers the one half an alias can
 reach: a vertical bar is not a slug character, so `` `[[adr-012|label]]` ``
 names no document whatever this feature says, while an anchor is free
-text — and splitting one on a bar would quietly legalize a notation
+text, and splitting one on a bar would quietly legalize a notation
 [[cross-document-references]] forbids.
 
 ### FEAT-SPECANCH-002: Anchor Resolution Checks
@@ -245,12 +244,12 @@ correction, per the parent feature's rule (AC-SPECANCH-002.1).
 `#element registry` matches `### Element Registry` because both yield
 `element-registry`, which is also the fragment an exported copy targets
 (AC-SPECANCH-002.2). Headings are unavailable where the index carries no
-entry for the target path at all — a standalone `.feature` source is the
-concrete case, since its references are recorded against its own path
-though the file is no corpus member — so a `` `[[#Heading]]` `` written
-there reports `unverified` per AC-SPEC-006.3 and AC-SPEC-006.4 rather
-than as resolved or as broken: the tool says it could not look, which is
-not the same claim as looking and finding nothing (AC-SPECANCH-002.4).
+entry for the target path at all. A standalone `.feature` source is the
+concrete case: its references are recorded against its own path though
+the file is no corpus member, so a `` `[[#Heading]]` `` written there
+reports `unverified` per AC-SPEC-006.3 and AC-SPEC-006.4 rather than as
+resolved or as broken. The tool says it could not look, which is not the
+same claim as looking and finding nothing (AC-SPECANCH-002.4).
 An entry that exists and records no matching heading is not this case;
 it looked, so it reports an error.
 [[module-document-core]] declares two `References` headings, so
@@ -281,8 +280,8 @@ guarantees into one: an anchor this feature resolves is an anchor
 the same rule.
 
 AC-SPECANCH-002.5 offers no notation for selecting one of several
-identical headings. A renderer disambiguates by position — the second
-`References` becomes `references-1` — and a citation written that way
+identical headings. A renderer disambiguates by position (the second
+`References` becomes `references-1`), and a citation written that way
 says nothing about which section was meant, breaks when a heading is
 inserted above it, and obliges the author to count sections. Reporting
 the ambiguity puts the fix where it lasts, in the heading.
@@ -294,9 +293,8 @@ caller can select it.
 One consequence constrains this framework's most likely use of anchors:
 a reference to a requirement names its heading in full, and the terser
 `#FEAT-SPECREF-002` resolves to nothing. IF the terse form is wanted,
-THEN the fix is to change what the heading says — a template decision
-for [[frd-spec-structure-conformance]]'s required headings — rather
-than
+THEN the fix is to change what the heading says (a template decision
+for [[frd-spec-structure-conformance]]'s required headings) rather than
 a resolver only this tool understands, which would fail the moment an
 author clicked the link in Obsidian.
 
@@ -350,13 +348,14 @@ Feature: Anchor Impact Queries
 ```
 
 *Examples:* `specs refs 'container-spec-cli#Element Registry'` lists the
-documents that would break if that heading were renamed — the question
-[[adr-012]] created by making anchors the address of every un-promoted
-component (AC-SPECANCH-003.1). An agent renames a `### Element Registry`
-heading to `### Registry`; the query asked before the rename is what
-names the four documents whose anchors would point at nothing
-(AC-SPECANCH-003.2), and the write-time check on that one file reports
-them after it, located in the documents holding them (AC-SPECREF-002.11). An empty answer is an answer, not a failure,
+documents that would break if that heading were renamed. That is the
+question [[adr-012]] created by making anchors the address of every
+un-promoted component (AC-SPECANCH-003.1). An agent renames a
+`### Element Registry` heading to `### Registry`; the query asked before
+the rename is what names the four documents whose anchors would point at
+nothing (AC-SPECANCH-003.2), and the write-time check on that one file
+reports them after it, located in the documents holding them
+(AC-SPECREF-002.11). An empty answer is an answer, not a failure,
 consistent with AC-SPECREF-003.5 and AC-SPEC-007.2 (AC-SPECANCH-003.3).
 An ambiguous reference resolves to no heading, and the author renaming
 one of the headings it matches is exactly the reader who has to see it,
@@ -366,8 +365,8 @@ the outbound direction asks what the given document cites, so
 `specs refs 'adr-012#Decision' --outbound` names no set and is refused
 with status `2`, the invocation error of [[cli-exit-status-standards]]
 (AC-SPECANCH-003.5). `specs refs 'adr-012#Decison'` answers with no
-references and states that the anchor is not declared — as
-`anchor_declared: false`, for instance — where an uncited heading of
+references and states that the anchor is not declared (as
+`anchor_declared: false`, for instance), where an uncited heading of
 `adr-012` answers with no references and states that it is; both exit
 `0`, because a subject the corpus does not hold is an answer
 (AC-SPECANCH-003.6).
@@ -375,8 +374,8 @@ references and states that the anchor is not declared — as
 *Rationale:* AC-SPECANCH-003.1 is what makes anchors safe to adopt at
 all. A heading rename is the edit a single-document check cannot see:
 the breakage lives entirely in files the author did not touch. The
-write-time check on the renamed document reports exactly that breakage —
-references into it that no longer resolve — and AC-SPECANCH-003.2 keeps
+write-time check on the renamed document reports exactly that breakage:
+the references into it that no longer resolve. AC-SPECANCH-003.2 keeps
 every other anchor finding elsewhere out of it, as the parent feature
 does for slugs, so a write-time hook never fails on breakage the author
 did not cause. The query asked before the rename is where the blast

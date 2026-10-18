@@ -151,10 +151,10 @@ A SKILL.md body SHOULD NOT exceed roughly 40,000 characters.
 
 **Rationale:** The published guidance states this budget as 500 lines,
 which is a proxy for context cost at conventional line lengths. Stating it
-in characters makes it robust: *Observed*, reflowing one skill's prose to
-80 columns raised its line count by 75% while changing zero tokens, so the
-line metric reported a regression where the actual context cost had fallen
-28%. Measure the thing that costs, not its formatting.
+in characters makes it immune to reflow: *Observed*, reflowing one skill's
+prose to 80 columns raised its line count by 75% while changing zero tokens,
+so the line metric reported a regression where the actual context cost had
+fallen 28%. Measure the thing that costs, not its formatting.
 
 ---
 

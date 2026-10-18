@@ -15,8 +15,8 @@ sources: []
 ## Overview
 
 Specification documents in this framework carry machine-checkable
-structure — frontmatter properties, typed slugs, `[[slug]]` references,
-fenced record blocks, required sections — and nothing checks it. The
+structure (frontmatter properties, typed slugs, `[[slug]]` references,
+fenced record blocks, required sections), and nothing checks it. The
 rules are enforced by agents reading documents and reporting what they
 found. That is expensive, and it is unverifiable: an agent that claims a
 readiness checklist passed produces the same output as one that ran it.
@@ -32,17 +32,18 @@ already defines. It is the first increment of a larger tool: later
 features add document **structure** (headings, section spans, record
 blocks, hygiene) and cross-document **references** to the same index and
 the same finding engine. This sprint's design is chosen to accommodate
-that growth — the index schema is versioned and additive, the finding
+that growth: the index schema is versioned and additive, the finding
 record is uniform across every check, and the corpus walk established
 here is the one those later checks reuse.
+
 It serves three audiences from one engine. A team adopting the framework
 points it at their spec root and gets a failing build when documents
 drift. An agent runs one command instead of reading forty files, and
 cites the output instead of asserting a result. An organization pushes
-the index to a central service and sees its whole architecture — the
-payoff of modeling systems, containers, and components rigorously in the
-first place, which is felt at enterprise scale rather than in a single
-application.
+the index to a central service and sees its whole architecture. That
+view is the payoff of modeling systems, containers, and components
+rigorously in the first place, and it is felt at enterprise scale rather
+than in a single application.
 
 The index is the primary artifact, not a by-product. Every check in this
 document is a query over it, and consumers outside this framework
@@ -64,14 +65,14 @@ deliberately, not overlooked:
   feature. This FRD does not walk a document's headings or body
   structure.
 - **Modifying documents.** This feature only reads and reports.
-- **Acceptance-criteria and feature-definition validation.** Out of
-  scope for this feature. [[adr-021]] settles the notation and assigns
+- **Acceptance-criteria and feature-definition validation.**
+  [[adr-021]] settles the notation and assigns
   the extraction to a follow-on feature; the technology decision this
   feature defers to an ADR had to preserve the ability to parse and
   validate structured feature definitions later, and does.
-- **Requirement quality judgment.** Whether a requirement is testable,
-  whether a qualifier is vague, whether a design carries enough intent —
-  these stay with a reviewing agent. This feature extracts the spans an
+- **Requirement quality judgment.** A reviewing agent judges whether a
+  requirement is testable, whether a qualifier is vague, and whether a
+  design carries enough intent. This feature extracts the spans an
   agent must read; it does not judge them.
 - **Rendering or diagram generation**, and export to any third-party
   architecture format.
@@ -107,7 +108,7 @@ deliberately, not overlooked:
   and byte length as its authoritative extent, plus the line and column
   of its start and end for readability. Byte offsets are required
   because spans address regions *within* a line as well as whole
-  sections — a malformed `slug` value occupies part of a line, not the
+  sections: a malformed `slug` value occupies part of a line, not the
   line itself.
 - **Warm index** — a persisted index whose inputs are unchanged since it
   was built, so a query or single-document check can be answered without
@@ -331,8 +332,9 @@ Feature: Metadata Conformance
 produces one finding naming the missing property (AC-SPEC-003.1).
 A property the schema types as a date-time, written `2026-07-29`, fails an
 RFC 3339 date-time check, even though a YAML parser would coerce it to a
-valid timestamp before any check could see it (AC-SPEC-003.2). Two documents both declaring `slug: adr-012` each
-produce a finding citing the other's file path (AC-SPEC-003.3).
+valid timestamp before any check could see it (AC-SPEC-003.2). Two
+documents both declaring `slug: adr-012` each produce a finding citing
+the other's file path (AC-SPEC-003.3).
 `frd-checkout` and `FRD-Checkout` are reported as duplicates, because a
 case-insensitive filesystem cannot hold both as distinct files
 (AC-SPEC-003.4). `slug: adr-011-targeted-verification-gates` under a
@@ -357,7 +359,7 @@ to a person and the parsed value is silently shorter; every query that
 shows the value shows the truncated text faithfully. Only a comment
 trailing a value can cut one short, so a comment on a line of its own is
 an author's note and draws nothing. It is a warning rather than an
-error because the comment may be intended — and quoting the value is a
+error because the comment may be intended, and quoting the value is a
 fix either way.
 
 *Rationale for AC-SPEC-003.7 and AC-SPEC-003.8:* one mistyped value
@@ -369,7 +371,7 @@ defect that lives in one line of another.
 *Rationale for AC-SPEC-003.6:* every other criterion in this requirement
 presupposes parsed frontmatter, so before this was written the worst-formed
 document in a corpus was the one the checker was guaranteed to be silent
-about — the severity of a defect and the tool's willingness to mention it
+about. The severity of a defect and the tool's willingness to mention it
 ran in opposite directions. FEAT-SPEC-002's rationale already assigned this
 work: an index containing parse failures exits zero because "a build
 failure is the checker's job, not the indexer's". This is the criterion
@@ -383,7 +385,7 @@ did and got the claim wrong.
 follow-on features. Their numbers are intentionally left unused here
 rather than reassigned: the retained requirements FEAT-SPEC-006, -008,
 and -009 are cited by ADRs and keep their numbers, so renumbering around
-the gap would break those citations. The gap is deliberate.
+the gap would break those citations.
 
 ### FEAT-SPEC-006: Findings, Severities, and Diagnostics
 
@@ -466,8 +468,8 @@ Feature: Findings, Severities, and Diagnostics
 *Examples:* `slug/pattern-mismatch  error
 docs/adrs/ADR-011-targeted-verification-gates.md:4:7`
 "'adr-011-targeted-verification-gates' does not match pattern
-'^adr-[0-9]{3}$'" — self-contained, so the fixing agent needs no further
-lookup (AC-SPEC-006.1). Asked to validate mermaid diagrams with no
+'^adr-[0-9]{3}$'" is self-contained, so the fixing agent needs no
+further lookup (AC-SPEC-006.1). Asked to validate mermaid diagrams with no
 diagram validator available, the CLI emits one `unverified` finding per
 diagram naming the missing dependency (AC-SPEC-006.3). An agent running
 `check --only slug-uniqueness` gets a report covering that check alone
@@ -486,8 +488,8 @@ uniqueness passed" and "frontmatter schema was not checked" are told
 apart.
 
 *Rationale for AC-SPEC-006.11 and AC-SPEC-006.12:* the summary's counts
-are properties the run established — how many findings of each severity
-it raised — not a restatement of the answer, and they are what a reader
+are properties the run established (how many findings of each severity
+it raised), not a restatement of the answer, and they are what a reader
 scanning the head of the output needs first. The per-check outcomes are
 the run's accounting rather than its result: a failed check is already
 visible as its findings, and the checks not run are the ones the caller
@@ -702,10 +704,11 @@ write-time hook checking one file. They are targets rather than gates
 code measures 13.7 ms on Linux, 69.1 ms on macOS and 123.6 ms on
 Windows: the dominant cost on the warm path is one `stat` per document,
 so a shared runner's number measures the runner. Gated, they also make
-any change that costs milliseconds for correctness' sake — a decoder
-that must distinguish an absent required property from a zero value, for
-one — indistinguishable from a defect, and the margin a stated hardware
-class would preserve is a few milliseconds wide. The targets stay
+any change that costs milliseconds for correctness' sake
+indistinguishable from a defect; a decoder that must distinguish an
+absent required property from a zero value is one such change. The
+margin a stated hardware class would preserve is a few milliseconds
+wide. The targets stay
 stated, measured and reported, so a real slowdown is still visible in
 any run's log. AC-SPEC-009.5 exists because the common
 packaging pattern of downloading a binary during install fails in
@@ -796,8 +799,8 @@ answers and exits as it would in a writable one; it only stays cold
 
 *Rationale:* The index artifact and the check report are different
 outputs: FEAT-SPEC-006.5 writes the *findings* of a check run to standard
-output, while this requirement governs where the *index* — the primary
-artifact of FEAT-SPEC-002 — is persisted. One file serves both of the
+output, while this requirement governs where the *index* (the primary
+artifact of FEAT-SPEC-002) is persisted. One file serves both of the
 index's roles: the deliverable a CI job publishes to a catalogue, and
 the warm cache that satisfies the latency budgets of FEAT-SPEC-009.
 Placing `specs.json` inside the spec root keeps the artifact beside the
@@ -872,15 +875,15 @@ streams it to standard output (AC-SPEC-011.1). `check` validates the
 whole corpus, while
 `check docs/adrs/ADR-004-module-blueprint-and-atomic-component.md --json`
 validates one document and emits JSON (AC-SPEC-011.2).
-`slug-exists frd-checkout` (AC-SPEC-011.3). `next-id adr` answers the
-mapping of AC-SPEC-007.1 (AC-SPEC-011.4). Bare invocation prints the
-four subcommands above with a one-line synopsis of each
-(AC-SPEC-011.5). `check docs/adrs/ADR-04.md`, a path no corpus member
-has, exits `2` and reports nothing, because a gate that could not
-inspect its subject has decided nothing (AC-SPEC-011.6). `--version`
-from a local build in a git checkout answers `version: (devel)` and the
-checkout's commit as `revision`, which is what a bug report needs
-(AC-SPEC-011.7).
+`slug-exists frd-checkout` answers the slug query (AC-SPEC-011.3).
+`next-id adr` answers the mapping of AC-SPEC-007.1 (AC-SPEC-011.4).
+Bare invocation prints the four subcommands above with a one-line
+synopsis of each (AC-SPEC-011.5). `check docs/adrs/ADR-04.md`, a path
+no corpus member has, exits `2` and reports nothing, because a gate that
+could not inspect its subject has decided nothing (AC-SPEC-011.6).
+`--version` from a local build in a git checkout answers
+`version: (devel)` and the checkout's commit as `revision`, which is
+what a bug report needs (AC-SPEC-011.7).
 
 *Rationale:* The subcommand vocabulary is the tool's public interface,
 so it is fixed here rather than left to implementation. Later features

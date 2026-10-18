@@ -13,10 +13,10 @@ status: active
 
 ## Context
 
-Having decided to split the component and module types
-([[adr-004]]), we needed a crisp, durable
-test for which is which. An initial cut used composite-ness — does the unit have
-internal components? — as the boundary. But the concern that actually changes
+Having decided to split the component and module types ([[adr-004]]), we
+needed a crisp, durable test for which is which. An initial cut used
+composite-ness (does the unit have internal components?) as the boundary. But
+the concern that actually changes
 how an agent behaves when it touches a unit (whether it must preserve backwards
 compatibility, version carefully, and record change history) is not triggered by
 having sub-parts. It is triggered by being shared or published to consumers who

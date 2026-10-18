@@ -33,14 +33,13 @@ status: draft
 - References
 
 This guide defines how this framework uses the [C4 model](https://c4model.com)
-in its architecture document types — system blueprint,
-container blueprint, module blueprint, component blueprint, and
-contract. The framework
-is used across many projects and enterprises; the rules here are
-conventions of the framework, not of any one codebase. It exists to answer one
-question quickly: **"where does this thing go?"** — which C4 level a
-concrete element maps to, which document describes it, and whether it
-belongs on a diagram at all.
+in its architecture document types: system blueprint, container
+blueprint, module blueprint, component blueprint, and contract. The
+framework is used across many projects and enterprises, so the rules
+here are conventions of the framework, not of any one codebase. The
+guide answers one question quickly: **"where does this thing go?"**
+That is, which C4 level a concrete element maps to, which document
+describes it, and whether it belongs on a diagram at all.
 
 Diagrams are **views of a model**. The model is the set of elements and
 relationships declared across the blueprint documents; every diagram is a
@@ -286,8 +285,8 @@ acronym on a box is a decode step they cannot perform.
 
 ### Relationship Direction
 
-A relationship (arrow) tells a story about the most important
-dependencies or data flow, and points in **one** direction.
+A relationship (arrow) shows one of the most important dependencies
+or data flows, and points in **one** direction.
 
 - `<source-title> -> <target-title>` SHALL read like a sentence: "My Web
   App requests widgets from My Headless API."
@@ -301,8 +300,8 @@ dependencies or data flow, and points in **one** direction.
 - A message bus (broker, queue, topic) SHALL NOT appear as an element
   UNLESS the bus itself is the subject of the diagram.
   - RATIONALE: a diagram where many containers point at one centralized
-    bus is incomprehensible — the bus becomes a hub that hides the
-    actual dependencies rather than revealing them.
+    bus is incomprehensible: the bus becomes a hub that hides the
+    actual dependencies.
 - Instead, draw the relationship from the **consumer to the producer**
   (consumer -> publisher, per the dependency rule above), as if the bus
   were not there.
@@ -482,9 +481,9 @@ or teams evolving against it on their own schedules. A private schema is
 still a contract, but its two sides change in lockstep in one codebase,
 so it is documented where it lives.
 
-The same three-tier spectrum classifies composed units, not just
-contracts — the framework applies one rule of independent change across
-both:
+The same three-tier spectrum also classifies composed units, because
+the framework applies one rule of independent change to contracts and
+composed units alike:
 
 | Tier | Contract | Composed unit |
 |------|----------|---------------|

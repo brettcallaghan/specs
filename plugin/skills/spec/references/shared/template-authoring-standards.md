@@ -46,7 +46,7 @@ The width of any line SHALL NOT exceed 80 characters.
 WHEN a line contains a URL, code block content, or table cell data, the line 
 MAY exceed 80 characters IF line breaks would break functionality.
 
-**Rationale:** Ensures readability in terminals, code review tools, and 
+**Rationale:** Keeps lines readable in terminals, code review tools, and 
 side-by-side diff views without horizontal scrolling.
 
 ### Title and H1
