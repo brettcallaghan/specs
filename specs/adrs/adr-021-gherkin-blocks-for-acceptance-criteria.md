@@ -411,9 +411,7 @@ generate.
   the scenario rather than each `Examples` block collapses several
   criteria into one, in a document that parses, whose every scenario is
   tagged, and against which no check fires. Constraint 7 and its
-  conformance check are the only defence. TODO(author): constraint 3
-  governs `Examples`-level tagging; confirm whether 7 is the intended
-  number.
+  conformance check are the only defence.
 - **The Requirements section grows about 54%** — measured 410 to 633
   lines, 7.9 to 12.2 lines per criterion. Two causes: 25 of 52 criteria
   need a `Scenario Outline` to hold a single example row, and the

@@ -1065,8 +1065,7 @@ Five further semantics are pinned by the resolution half:
   collections in.
 
 Five more are pinned by the anchor half, added once the corpus began
-recording headings ([[frd-spec-structure]]). TODO(author): six bullets
-follow; confirm the count.
+recording headings ([[frd-spec-structure]]).
 
 - **An anchor is matched against a heading by deriving a heading
   identifier from each and comparing them** (AC-SPECANCH-002.2), the
@@ -1106,8 +1105,7 @@ follow; confirm the count.
   no index entry; the tool did not get to look, which is a different
   claim from having looked and found nothing (AC-SPECANCH-002.4).
 
-Nine semantics are pinned by the extraction half. TODO(author): ten
-bullets follow; confirm the count.
+Nine semantics are pinned by the extraction half.
 
 - **The body is what follows the frontmatter block,** so a frontmatter
   value describing the notation — `description: References use [[slug]]
@@ -1983,8 +1981,7 @@ with nothing parsed at all, which is what keeps a reference query and the
 inbound half of a single-document check inside the AC-SPEC-009.1 and
 AC-SPEC-009.2 budgets (AC-SPECREF-003.4).
 
-Eight semantics are pinned by the implementation. TODO(author): nine
-bullets follow; confirm the count.
+Eight semantics are pinned by the implementation.
 
 - **Every read passes through one choke point, and that choke point
   normalizes line endings.** A candidate's bytes are read through the
@@ -2200,8 +2197,7 @@ only `--strict` fails on it.
 
 The unverified mechanism is built and no check registers against it yet;
 the diagram validation AC-SPEC-006.3 illustrates is a structure-feature
-concern. TODO(author): `reference/unresolved-anchor` and `c4/parse`
-report at `unverified`; confirm "no check registers against it yet".
+concern.
 A later check adds a variant to the union without changing the envelope
 that carries it.
 
@@ -2222,9 +2218,7 @@ aliases; and a tag-separator defect with the tags argument as written.
 `c4/parse` reports at `error` and at `unverified` under one identifier,
 as `reference/unresolved-anchor` does. None is in the command surface's check list
 until the check that raises it lands — a rule listed there reads as
-passed whenever it is requested. TODO(author): Corpus says
-`c4NodeFindings` and `c4RelationshipFindings` raise these rules; confirm
-whether "not yet raised" is still current.
+passed whenever it is requested.
 
 ### Markdown Links
 
@@ -2382,9 +2376,6 @@ The relationships below are stated for the module's whole component set.
 The Corpus → Markdown Structure edge is still the intended shape rather
 than an existing one: nothing in Corpus calls `cli/core/markdown` yet.
 Markdown Structure → Spans is now real for the fenced-block half.
-TODO(author): this contradicts Components and Corpus, which say Corpus
-calls `markdown.Fenced`, `FencedFrom` and `HeadingsFrom`; confirm which
-is current.
 
 **Corpus → Frontmatter, Markdown Structure, References.** Corpus is the
 orchestrator: it walks files and delegates every act of parsing. A
