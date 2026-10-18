@@ -34,8 +34,12 @@ general.
   - API, function, flag, and setting names
   - Error messages and log output quoted verbatim
   - Version numbers, dates, and numeric limits
-  - Requirement statements in specs (EARS, Gherkin, "the system shall")
+  - Requirement statements in specs (EARS, Gherkin, "the system shall"), including whole Gherkin blocks
   - RFC 2119 keywords (MUST, SHOULD, MAY) and their exact meaning
+  - Wikilinks (`[[slug]]`, `[[slug#heading]]`) and identifiers such as AC and FEAT ids
+  - Element record blocks
+  - Heading text, because other documents link to it. Change a heading only when you also update every link to it in the same pass.
+- HTML comments are not exempt. In templates they are instructions to the agent, so apply this skill to their prose. Keep any name, path, or token they cite.
 - Voice for these doc types is neutral and plain, as humanizer already says for technical text. Do not add opinions, reactions, or asides, except in a README intro or a blog-style release announcement, and only if the user's sample voice does that.
 
 ## Where the two skills meet
