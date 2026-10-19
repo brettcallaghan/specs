@@ -11,66 +11,60 @@ sources:
   - "frd-spec-index"
 ---
 
-# Spec Corpus Structure Extraction
+# Spec corpus structure extraction
 
 ## Overview
 
-A document's structure is data: its headings, the span of content
-beneath each, and the record blocks that declare elements inside it.
-Nothing extracts any of it today, so every capability that needs to
-address a place inside a document — rather than the document as a
-whole — has nothing to address it with.
+A document's structure is data: its headings, the span of content beneath each,
+and the record blocks that declare elements inside it. Nothing extracts any of
+it today. A capability that needs to address a place inside a document, rather
+than the whole document, has nothing to address it with.
 
-This feature produces that data. It walks each corpus member, records
-its headings with their section spans and its parsed record blocks in
-the index [[frd-spec-index]] defines, and answers a query for the spans
-of headings matching a selection. It introduces no new artifact and no
-new engine, and it judges nothing: whether a document omits a required
-section, exceeds a line width or still carries its template's
-scaffolding is [[frd-spec-structure-conformance]]'s question, asked of
-the data this feature records.
+This feature produces that data. It walks each corpus member and records the
+member's headings, with their section spans, and its parsed record blocks in the
+index that [[frd-spec-index]] defines. It also answers a query for the spans of
+headings that match a selection. It introduces no new artifact and no new
+engine, and it judges nothing. Whether a document omits a required section,
+exceeds a line width, or still carries its template's scaffolding is a question
+for [[frd-spec-structure-conformance]], which asks it of the data this feature
+records.
 
-That division is what lets the two ship apart, and it matters now
-because a consumer is waiting. [[frd-spec-anchor-references]] resolves
-the anchor half of a wikilink against a target document's headings, and
-the corpus already carries nine such references that nothing can check
-until the headings exist. Anchor resolution needs the data and none of
-the judgment, so binding it to the conformance checks would make a
-reference check wait on a line-width rule.
+That division lets the two features ship separately, and a consumer is waiting
+for this one. [[frd-spec-anchor-references]] resolves the anchor half of a
+wikilink against a target document's headings. The corpus already carries nine
+such references, and nothing can check them until the headings exist. Anchor
+resolution needs the data and none of the judgment. Binding it to the
+conformance checks would make a reference check wait on a line-width rule.
 
-The heading half of this feature needs no configuration, which is why it
-can land first: a heading is markdown, not a registered vocabulary. The
-record-block half does need the tag registration
+The heading half of this feature needs no configuration, because a heading is
+Markdown and needs no registered vocabulary. That's why it can land first. The
+record-block half needs the tag registration that
 [[frd-spec-structure-conformance]] specifies, and waits for it.
 
-**Out of scope for this feature.** Each of these is deferred
-deliberately, not overlooked:
+This feature leaves the following out of scope on purpose:
 
-- **Required sections, hygiene and line width.** Specified in
-  [[frd-spec-structure-conformance]], which checks documents against the
-  structure this feature records.
-- **The structure vocabulary a project configures.** Required headings,
-  record-block tags, placeholder patterns and the line-width limit are
-  declared through the configuration [[frd-spec-structure-conformance]]
-  specifies.
-- **Resolving an anchor against a heading.** Specified in
-  [[frd-spec-anchor-references]], which consumes what this feature
+- Required sections, hygiene, and line width. [[frd-spec-structure-conformance]]
+  specifies them and checks documents against the structure this feature
   records.
-- **Judging what a section says.** Whether a requirement is testable or
-  a design carries enough intent stays with a reviewing agent. This
-  feature extracts the spans that agent reads.
+- The structure vocabulary a project configures. A project declares required
+  headings, record-block tags, placeholder patterns, and the line-width limit
+  through the configuration that [[frd-spec-structure-conformance]] specifies.
+- Resolving an anchor against a heading. [[frd-spec-anchor-references]]
+  specifies it and consumes what this feature records.
+- Judging what a section says. Whether a requirement is testable or a design
+  carries enough intent stays with a reviewing agent. This feature extracts the
+  spans that agent reads.
 
 ## Terminology
 
-- **Section span** — the span of the content beneath a heading, from the
-  end of the heading line to the start of the next heading of the same
-  or higher level.
-- **Record block** — a fenced code block carrying structured data about
-  an element declared inside a document, per [[adr-008]].
+- **Section span**: the span of the content beneath a heading, from the end of
+  the heading line to the start of the next heading of the same or higher level.
+- **Record block**: a fenced code block carrying structured data about an
+  element declared inside a document, per [[adr-008]].
 
 ## Requirements
 
-### FEAT-SPECSTR-001: Structure Extraction in the Index
+### FEAT-SPECSTR-001: Structure extraction in the index
 
 **Acceptance Criteria:**
 
@@ -100,15 +94,15 @@ Feature: Structure Extraction in the Index
     And the index does not carry the block's content
 ```
 
-*Note:* AC-SPECSTR-001.1 stands alone — a heading is markdown, and its
-span is computed from the document. AC-SPECSTR-001.2 waits on the
-record-block tag registration [[frd-spec-structure-conformance]]
-specifies, because a block is only a record block where the active
-profile says its info string is one. The index records where a record
-is, not what it says: a command that needs the record decodes it through
-the span, and [[frd-spec-structure-conformance]] checks that it is valid.
+*Note:* AC-SPECSTR-001.1 stands alone, because a heading is Markdown and its
+span is computed from the document. AC-SPECSTR-001.2 waits on the record-block
+tag registration that [[frd-spec-structure-conformance]] specifies. A block is a
+record block only where the active profile says its info string is one. The
+index records where a record is and not what it says. A command that needs the
+record decodes it through the span, and [[frd-spec-structure-conformance]]
+checks that it's valid.
 
-### FEAT-SPECSTR-003: Structure Queries
+### FEAT-SPECSTR-003: Structure queries
 
 **Acceptance Criteria:**
 
@@ -246,80 +240,81 @@ Feature: Structure Queries
     And the CLI exits with the invocation-error status
 ```
 
-*Note:* AC-SPECSTR-003.4 is what answers a roster question — the
-components declared beneath a `Components` heading — without the caller
-knowing how many there are or what they are called. AC-SPECSTR-003.5 is
-what keeps the index free of section content: the span is recorded, and
-the text is read back through it on demand. It is written raw, because
-the caller asked for the document's own words, and raw text has no place
-to say where one section ends and the next begins, which is why
-AC-SPECSTR-003.7 refuses a selection matching several headings rather
-than joining them; the full answer already lists every match, each with
-its ref and span.
+*Note:* AC-SPECSTR-003.4 answers a roster question, such as which components are
+declared beneath a `Components` heading, without the caller knowing how many
+there are or what they're called. AC-SPECSTR-003.5 keeps the index free of
+section content: the index records the span, and the text is read back through
+it on demand. The CLI writes that text raw, because the caller asked for the
+document's own words. Raw text has no place to say where one section ends and
+the next begins. That's why AC-SPECSTR-003.7 refuses a selection that matches
+several headings rather than joining them. The full answer already lists every
+match, each with its ref and span.
 
-The same absence of an envelope is why AC-SPECSTR-003.13 refuses an
-emit that matches nothing. AC-SPECSTR-003.6 and AC-SPECSTR-003.8 make
-zero matches an answer because a structured answer can say so — an empty
-`matches` and, for a document half, `declared: false`. Emitted text can
-say neither: an empty standard output reads the same for a heading that
-is absent, a document that is undeclared and a section that is empty.
-The emit form's contract is exactly one heading, so zero is refused as
-several is, and the message says which of the two causes it was.
+The same absence of an envelope is why AC-SPECSTR-003.13 refuses an emit that
+matches nothing. AC-SPECSTR-003.6 and AC-SPECSTR-003.8 make zero matches an
+answer, because a structured answer can say so with an empty `matches` and, for
+a document half, `declared: false`. Emitted text can say neither. An empty
+standard output reads the same for an absent heading, an undeclared document,
+and an empty section. The emit form's contract is exactly one heading, so the
+CLI refuses zero matches as it refuses several, and the message says which of
+the two causes applies.
 
-A match's ref selects its heading alone except where its anchor is one
-segment another heading of the document shares — a top-level heading of
-a document with no H1 — or two siblings share text all the way up; such
-a heading's content is read through the span the full answer returns,
-and the refusal lists it apart from the refs that do name one heading
-alone. The ref leads with the document's declared slug rather than its
-anchor's first segment, which is the H1's identifier and not the slug,
-so it is the form a nested wikilink anchor takes under
-[[cross-document-references]]: a ref copied from an answer or a refusal
-works as a selection, as a reference query's argument and as a citation
-without editing (AC-SPECSTR-003.12). A member that declares no slug is
-reached only by its path, so its ref leads with the path. A single
-segment remains a valid selection. A full heading path takes precedence
-over a deeper heading it is also a subsequence of, which is what lets a
-pasted `document-core#references` name the top-level `References` alone
-though `document-core#components#references` satisfies it too
-(AC-SPECSTR-003.11); the precedence applies to a selection of more than
-one segment only, so a one-segment selection is matched on its
-identifier against every heading and names a top-level heading alone
-only where no other heading shares its identifier.
+A match's ref selects its heading alone, with two exceptions. The first is a
+heading whose anchor is one segment that another heading of the document shares,
+such as a top-level heading of a document with no H1. The second is where two
+siblings share text all the way up. Such a heading's content is read through the
+span that the full answer returns, and the refusal lists it apart from the refs
+that do name one heading alone.
 
-AC-SPECSTR-003.14 applies the rule the list query follows: a member at a
-status no longer in effect is withheld unless the caller asks for every
-status, so a question about the live corpus is not answered mostly from
-retired blueprints. AC-SPECSTR-003.15 is its limit — a caller who names
-a retired document asked for it, and withholding it would answer a
-question nobody put.
+The ref leads with the document's declared slug rather than its anchor's first
+segment, which is the H1's identifier and not the slug. The ref therefore takes
+the form that a nested wikilink anchor takes under
+[[cross-document-references]]. A ref copied from an answer or a refusal works
+without editing as a selection, as a reference query's argument, and as a
+citation (AC-SPECSTR-003.12). A member that declares no slug is reached only by
+its path, so its ref leads with the path.
 
-AC-SPECSTR-003.16 makes the compact view the default for the same
-reason the reference query's is: the common question is "which headings,
-and where", and most of a full match is section-span offsets. It is a
-named view as [[cli-output-standards]] defines one — every match stays,
-every kept value is whole — and the full option returns every field.
-The emit form writes a section rather than an answer, so neither view
-applies to it and AC-SPECSTR-003.17 refuses the combination rather than
-ignoring one of the two options. The statuses in AC-SPECSTR-003.7,
-AC-SPECSTR-003.8, AC-SPECSTR-003.13 and AC-SPECSTR-003.17 are those
-[[cli-exit-status-standards]] assigns to an operand the command cannot
-act on and to a subject the corpus does not hold.
+A single segment remains a valid selection. A full heading path takes precedence
+over a deeper heading that it's also a subsequence of. That precedence lets a
+pasted `document-core#references` name the top-level `References` alone, though
+`document-core#components#references` satisfies it too (AC-SPECSTR-003.11). The
+precedence applies only to a selection of more than one segment. The CLI matches
+a one-segment selection on its identifier against every heading, so the
+selection names a top-level heading alone only where no other heading shares its
+identifier.
+
+AC-SPECSTR-003.14 applies the rule that the list query follows. A member at a
+status no longer in effect is withheld unless the caller asks for every status,
+so a question about the live corpus isn't answered mostly from retired
+blueprints. AC-SPECSTR-003.15 sets the limit of that rule. A caller who names a
+retired document asked for it, and withholding it would answer a question nobody
+asked.
+
+AC-SPECSTR-003.16 makes the compact view the default for the same reason that
+the reference query does. Callers most often ask which headings match and where
+they are, and most of a full match is section-span offsets. The compact view is
+a named view as [[cli-output-standards]] defines one: every match stays, and
+every kept value is whole. The full option returns every field. The emit form
+writes a section rather than an answer, so neither view applies to it.
+AC-SPECSTR-003.17 therefore refuses the combination rather than ignoring one of
+the two options. The statuses in AC-SPECSTR-003.7, AC-SPECSTR-003.8,
+AC-SPECSTR-003.13, and AC-SPECSTR-003.17 are the ones that
+[[cli-exit-status-standards]] assigns to an operand the command can't act on and
+to a subject the corpus doesn't hold.
 
 ## References
 
-- [[frd-spec-index]] — the index, finding engine, corpus discovery and
-  configuration this feature extends
-- [[frd-spec-structure-conformance]] — checks documents against the
-  structure this feature records, and registers the record-block tag
-  vocabulary AC-SPECSTR-001.2 parses against
-- [[frd-spec-anchor-references]] — resolves an anchor against the
-  headings this feature records
-- [[adr-008]] — the element record blocks this feature extracts
-- [[cli-exit-status-standards]] — the exit statuses the structure query
-  reports
-- [[cli-output-standards]] — the named view the structure query's
-  compact answer is
-- [[adr-021]] — Gherkin, the notation these features and acceptance
-  criteria are written in
-- [[gherkin-guide]] — how to write them
+- [[frd-spec-index]]: the index, finding engine, corpus discovery, and
+  configuration that this feature extends
+- [[frd-spec-structure-conformance]]: checks documents against the structure
+  this feature records, and registers the record-block tag vocabulary that
+  AC-SPECSTR-001.2 parses against
+- [[frd-spec-anchor-references]]: resolves an anchor against the headings this
+  feature records
+- [[adr-008]]: the element record blocks this feature extracts
+- [[cli-exit-status-standards]]: the exit statuses the structure query reports
+- [[cli-output-standards]]: the named view that the structure query's compact
+  answer is
+- [[adr-021]]: Gherkin, the notation that these features and acceptance criteria
+  are written in
+- [[gherkin-guide]]: how to write them

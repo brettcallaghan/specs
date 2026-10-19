@@ -10,35 +10,34 @@ delivery: staged
 frd: frd-spec-structure
 ---
 
-# Spec Corpus Structure Extraction
+# Spec corpus structure extraction
 
 **FRD:** [[frd-spec-structure]]
 
 ## Overview
 
-`Markdown Structure` already locates fenced blocks and computes every
-position through `Spans`; its heading tree is the half that was never
-built. This design builds it, gives `IndexEntry` somewhere to carry the
-result, and adds the command that answers a heading query. Record blocks
-ride the same tree — a parsed block attaches to the heading whose
-section contains it — but they need a tag vocabulary no profile
-registers yet, so the extension point for one is part of this design and
-the registration that fills it is not.
+`Markdown Structure` already locates fenced blocks and computes every position
+through `Spans`, but its heading tree was never built. This design builds the
+heading tree, gives `IndexEntry` a place to carry the result, and adds the
+command that answers a heading query. Record blocks use the same tree: a parsed
+block attaches to the heading whose section contains it. Record blocks need a
+tag vocabulary that no profile registers yet. This design therefore includes the
+extension point for that vocabulary, but not the registration that fills it.
 
-Nothing here checks anything. No finding is raised and no exit status
-changes, which is what lets a consumer depend on this feature without
-inheriting a build gate.
+Nothing in this design checks anything. It raises no finding and changes no exit
+status, so a consumer can depend on this feature without inheriting a build
+gate.
 
 Delta blocks in dependency order: MODEL, HEAD, IDX, CMD, XPT, REC.
 
-## Element Deltas
+## Element deltas
 
 ### Structure in the index model (added) — MODEL
 
-**Intent:** `IndexEntry` carries a path, a frontmatter envelope and a
-parse error. Headings and record blocks have nowhere to go. The index
-crosses a boundary, so the shape is declared in Strata and transpiled
-like every other model rather than assembled in the emitter.
+**Intent:** `IndexEntry` carries a path, a frontmatter envelope, and a parse
+error. Headings and record blocks have nowhere to go. The index crosses a
+boundary, so the shape is declared in Strata and transpiled like every other
+model rather than assembled in the emitter.
 
 **Behavior:**
 - `IndexEntry` SHALL carry the document's headings in document order.
@@ -67,13 +66,13 @@ like every other model rather than assembled in the emitter.
 
 ### Headings in [[module-document-core]] (added) — HEAD
 
-**Intent:** The component's own blueprint records the heading tree as
-not yet built. This delta builds it: every heading with the span of the
-content beneath it, and the identifier a markdown renderer would derive
-from it. The identifier lives here because it is a property of a
-heading, and because the first thing to need it is this feature's own
-query; [[frd-spec-anchor-references]] then matches against the same
-derivation rather than a second one.
+**Intent:** The component's own blueprint records the heading tree as not yet
+built. This delta builds it: every heading with the span of the content beneath
+it, and the identifier that a Markdown renderer would derive from it. The
+identifier lives here because it's a property of a heading, and because this
+feature's own query is the first thing that needs it.
+[[frd-spec-anchor-references]] then matches against the same derivation rather
+than a second one.
 
 **Behavior:**
 - The component SHALL return every heading of a document body in
@@ -99,10 +98,9 @@ heading recognition, as `Fenced` already uses it for fences; `Of` in
 
 ### Corpus in [[module-document-core]] (modified) — IDX
 
-**Intent:** `Corpus` orchestrates the parsing components and holds no
-parsing logic of its own. This delta calls the heading extraction during
-the walk and populates the entries, keeping the emitted index
-byte-identical across platforms.
+**Intent:** `Corpus` orchestrates the parsing components and holds no parsing
+logic of its own. This delta calls the heading extraction during the walk and
+populates the entries. The emitted index stays byte-identical across platforms.
 
 **Behavior:**
 - WHEN the corpus is built, `Corpus` SHALL populate each member's
@@ -120,10 +118,10 @@ byte-identical across platforms.
 
 ### Command Surface in [[container-spec-cli]] (modified) — CMD
 
-**Intent:** The query is what makes agent review auditable: two runs
-given the same selection read the same spans. It follows the surface's
-existing discipline — open warm, convert flags into one core call, and
-carry the result back out with no domain logic in the command.
+**Intent:** The query makes agent review auditable: two runs given the same
+selection read the same spans. It follows the surface's existing discipline. The
+command opens the corpus warm, converts flags into one core call, and carries
+the result back out, with no domain logic in the command.
 
 **Behavior:**
 - The CLI SHALL expose a `headings` command answering a heading
@@ -159,11 +157,11 @@ carry the result back out with no domain logic in the command.
 
 ### Profile extension point in [[module-document-core]] (modified) — XPT
 
-**Intent:** A fenced block is a record block only where the active
-profile says its info string is one. The host must learn that without
-learning what a `component` block means, so the `Profile` interface
-gains a registration and nothing else: the vocabulary that fills it is
-[[frd-spec-structure-conformance]]'s.
+**Intent:** A fenced block is a record block only where the active profile says
+its info string is one. The host must learn that without learning what a
+`component` block means. So the `Profile` interface gains a registration and
+nothing else, and [[frd-spec-structure-conformance]] owns the vocabulary that
+fills it.
 
 **Behavior:**
 - The `Profile` interface SHALL let a profile register record-block
@@ -181,10 +179,10 @@ gains a registration and nothing else: the vocabulary that fills it is
 
 ### Record blocks in [[module-document-core]] (added) — REC
 
-**Intent:** `Fenced` already returns the blocks whose info string
-matches a registered tag. What is missing is recording each one where a
-reader would look for it — the heading whose section contains it — and
-a way to read its record back.
+**Intent:** `Fenced` already returns the blocks whose info string matches a
+registered tag. What's missing is a way to record each block where a reader
+would look for it, in the heading whose section contains it, and a way to read
+its record back.
 
 **Behavior:**
 - The component SHALL record a registered block's tag and span, and
@@ -203,49 +201,47 @@ in `cli/core/finding`.
 
 ### Relied-upon elements (unchanged)
 
-- `Spans` in [[module-document-core]] — every position this feature
-  records, heading and block alike.
-- `Frontmatter` in [[module-document-core]] — the body offset a heading
+- `Spans` in [[module-document-core]]: every position this feature records,
+  heading and block alike.
+- `Frontmatter` in [[module-document-core]]: the body offset that a heading
   search starts from.
-- [[container-spec-cli#Command Surface]] — the warm corpus open and the
-  flags-to-one-core-call discipline CMD follows.
-- [[contract-specs-configuration]] — the configuration surface; this
-  feature adds no key to it.
-- [[frd-spec-structure-conformance]] — registers the record-block tag
-  vocabulary XPT makes registrable.
+- [[container-spec-cli#Command Surface]]: the warm corpus open and the
+  flags-to-one-core-call discipline that CMD follows.
+- [[contract-specs-configuration]]: the configuration surface. This feature adds
+  no key to it.
+- [[frd-spec-structure-conformance]]: registers the record-block tag vocabulary
+  that XPT makes registrable.
 
 ## Contracts
 
-- No new contract document. The index gains properties under the
-  additive rule [[container-spec-cli]] states for `schema_version`,
-  which anticipates exactly this: later features attaching headings and
-  extracted record blocks.
-- [[contract-specs-configuration]] (revised, drafted in place) — the
-  contract's description of the internal registration surface enumerates
-  what a profile supplies and does not yet mention record-block tags.
-  The revision is additive and to the internal half only, which that
-  contract's change policy exempts WHILE both modules are
-  `visibility: internal`.
+- No new contract document. The index gains properties under the additive rule
+  that [[container-spec-cli]] states for `schema_version`. That rule anticipates
+  exactly this case: later features attaching headings and extracted record
+  blocks.
+- [[contract-specs-configuration]] (revised, drafted in place): the contract's
+  description of the internal registration surface lists what a profile
+  supplies, and doesn't yet mention record-block tags. The revision is additive
+  and touches only the internal half, which that contract's change policy
+  exempts while both modules are `visibility: internal`.
 
-## Tracker Reconciliation
+## Tracker reconciliation
 
-- Out-of-scope: `IndexEntry.frontmatter` carries
-  the shared envelope, so per-type properties are lost. MODEL adds
-  properties beside `frontmatter` and must neither change how it is
-  carried nor be read as fixing it.
-- Out-of-scope: the index schema and versioning
-  ADR. MODEL relies on the additive-at-1.0 rule
-  [[container-spec-cli]] already states and adds no policy of its own.
+- Out-of-scope: `IndexEntry.frontmatter` carries the shared envelope, so
+  per-type properties are lost. MODEL adds properties beside `frontmatter` and
+  must neither change how it's carried nor be read as fixing it.
+- Out-of-scope: the index schema and versioning ADR. MODEL relies on the
+  additive-at-1.0 rule that [[container-spec-cli]] already states, and adds no
+  policy of its own.
 
-## Sequencing Constraints
+## Sequencing constraints
 
 - `delivery: staged`. Two stages, each a reviewable increment:
-  - **Stage 1 — headings:** MODEL, HEAD, IDX, CMD. The index carries
-    every document's headings with their section spans and the query
-    answers. This is the whole of what [[frd-spec-anchor-references]]
-    needs, and it depends on no configuration.
-  - **Stage 2 — record blocks:** XPT, REC. Blocks are parsed and
-    attached once a profile registers a tag.
+  - Stage 1 (headings) delivers MODEL, HEAD, IDX, and CMD. The index carries
+    every document's headings with their section spans, and the query answers.
+    This stage is all that [[frd-spec-anchor-references]] needs, and it depends
+    on no configuration.
+  - Stage 2 (record blocks) delivers XPT and REC. Blocks are parsed and attached
+    once a profile registers a tag.
 - The MODEL delta SHALL land before HEAD, IDX, CMD and REC, all of which
   populate or read the properties it declares.
 - The HEAD delta SHALL land before IDX and CMD, which carry and answer
@@ -255,34 +251,33 @@ in `cli/core/finding`.
 - Stage 2 SHALL land after the record-block tag registration
   [[frd-spec-structure-conformance]] specifies in FEAT-SPECSTR-004,
   because a registration point no profile fills leaves REC inert.
-- **Lockstep rules spanning delta blocks, and how they are satisfied:**
-  - [[module-document-core]] requires the schema version and the emitted
-    index to change together when the index model changes shape. Both
-    are MODEL's, and the version is deliberately not bumped: every
-    property is an addition under the additive-at-1.0 rule, so the
-    satisfying act is the recorded no-bump rather than an omission.
-  - [[module-document-core]] requires a new parsing capability to be
-    built on the Spans delimiter scanner, narrowed for a capability that
-    needs to know which regions are not to be scanned. HEAD takes
-    heading recognition from `goldmark` for that reason — a heading
-    inside a fence is not a heading — and computes every position
-    through `Spans`.
-  - [[container-spec-cli]] requires the snapshot regeneration script to
-    be run and every diff reviewed when observable output changes. CMD
-    adds a command and IDX changes the emitted index; each lands with
-    its regenerated snapshots in the same change.
+- Lockstep rules that span delta blocks, and how each is satisfied:
+  - [[module-document-core]] requires the schema version and the emitted index
+    to change together when the index model changes shape. Both belong to MODEL,
+    and MODEL deliberately doesn't bump the version. Every property is an
+    addition under the additive-at-1.0 rule, so the recorded no-bump satisfies
+    the rule and isn't an omission.
+  - [[module-document-core]] requires a new parsing capability to be built on
+    the Spans delimiter scanner, narrowed for a capability that needs to know
+    which regions not to scan. HEAD takes heading recognition from `goldmark`
+    for that reason: a heading inside a fence isn't a heading. HEAD computes
+    every position through `Spans`.
+  - [[container-spec-cli]] requires the snapshot regeneration script to be run
+    and every diff reviewed when observable output changes. CMD adds a command
+    and IDX changes the emitted index, so each lands with its regenerated
+    snapshots in the same change.
 - No backward-compatibility window applies. [[module-document-core]] and
   [[module-spec-profile]] are both `visibility: internal` and evolve in
   lockstep with their only consumer.
 
-## AC Coverage
+## AC coverage
 
 Legend: MODEL = the structure properties on the index model; HEAD =
-`Markdown Structure` (headings, section spans and identifiers); IDX = `Corpus`
+`Markdown Structure` (headings, section spans, and identifiers); IDX = `Corpus`
 population of those properties; CMD = Command Surface in
 [[container-spec-cli]]; XPT = the record-block tag registration on the
-`Profile` extension point; REC = `Markdown Structure` (record-block
-parsing and attachment).
+`Profile` extension point; REC = `Markdown Structure` (record-block parsing and
+attachment).
 
 | AC | Satisfied by | Verified by |
 |----|--------------|-------------|
@@ -295,49 +290,46 @@ parsing and attachment).
 | AC-SPECSTR-003.5 | **CMD (proves)**, HEAD | integration |
 | AC-SPECSTR-003.6 | **CMD (proves)** | integration |
 
-## Key Decisions
+## Key decisions
 
-- [[adr-016]] — Strata is the single source for generated models, which
-  is why MODEL is a schema delta rather than a hand edit to Go.
-- [[adr-008]] — element record blocks are the structured declarations
-  REC parses and attaches.
-- [[adr-015]] — Go and `goldmark`, which HEAD uses for heading
-  recognition as `Fenced` already uses it for fences.
+- [[adr-016]]: Strata is the single source for generated models, which is why
+  MODEL is a schema delta rather than a hand edit to Go.
+- [[adr-008]]: element record blocks are the structured declarations that REC
+  parses and attaches.
+- [[adr-015]]: Go and `goldmark`. HEAD uses `goldmark` for heading recognition,
+  as `Fenced` already uses it for fences.
 
-## Definition of Done
+## Definition of done
 
 - [x] Every delta above is folded into its owning blueprint:
-  - [x] [[module-document-core]] — Markdown Structure, Corpus and the
-    Profile extension point updated, and the index model's vocabulary
-    extended
-  - [x] [[container-spec-cli]] — Command Surface updated for the heading
-    query
+  - [x] [[module-document-core]]: Markdown Structure, Corpus, and the Profile
+    extension point updated, and the index model's vocabulary extended
+  - [x] [[container-spec-cli]]: Command Surface updated for the heading query
 - [x] [[contract-specs-configuration]]'s internal registration surface
   names the record-block tag registration
-- [x] New ADRs are referenced from the owning blueprints' Key Decisions
+- [x] New ADRs are referenced from the owning blueprints' Key decisions
   (none authored by this feature)
 - [x] Every AC in the coverage table is verified at its declared level
   and cited from its tests per [[ac-traceability-standards]]
-- [x] Every issue listed as subsumed in Tracker Reconciliation is closed
-  or re-scoped (none; both listed issues are out-of-scope)
+- [x] Every issue listed as subsumed in Tracker reconciliation is closed or
+  re-scoped (none; both listed issues are out-of-scope)
 - [x] This blueprint's status → retired
 
-## Open Questions
+## Open questions
 
 None.
 
 ## References
 
-- [[frd-spec-structure]] — the FRD this blueprint realizes
-- [[frd-spec-structure-conformance]] — registers the record-block tags
-  XPT makes registrable, and checks documents against what this feature
-  records
-- [[frd-spec-anchor-references]] — the consumer stage 1 unblocks
-- [[frd-spec-index]] — the index, corpus discovery and warm cache this
+- [[frd-spec-structure]]: the FRD this blueprint realizes
+- [[frd-spec-structure-conformance]]: registers the record-block tags that XPT
+  makes registrable, and checks documents against what this feature records
+- [[frd-spec-anchor-references]]: the consumer that stage 1 unblocks
+- [[frd-spec-index]]: the index, corpus discovery, and warm cache that this
   feature extends
-- [[c4-standards]] — the container, module and component definitions the
+- [[c4-standards]]: the container, module, and component definitions that the
   delta blocks are written against
-- [[cli-output-standards]] — what the heading query prints, and in
-  which rendering
-- [[ac-traceability-standards]] — the citation obligation the coverage
-  table feeds
+- [[cli-output-standards]]: what the heading query prints, and in which
+  rendering
+- [[ac-traceability-standards]]: the citation obligation that the coverage table
+  feeds

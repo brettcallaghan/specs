@@ -12,39 +12,42 @@ delivery: staged
 frd: frd-spec-c4-diagrams
 ---
 
-# C4 Diagram Conformance
+# C4 diagram conformance
 
 ## Overview
 
 **FRD:** [[frd-spec-c4-diagrams]]
 
-The feature is a parser, a resolver and a family of checks, all in
-[[module-document-core]], with the vocabulary they need arriving from
-[[module-spec-profile]] per [[adr-030]]. A new **C4 Diagrams** component
+The feature is a parser, a resolver, and a family of checks, all in
+[[module-document-core]]. The vocabulary they need comes from
+[[module-spec-profile]], per [[adr-030]]. A new C4 Diagrams component
 parses each C4 diagram in an architecture blueprint into statements with
-spans and knows nothing about the corpus. A new **C4 Elements** component
+spans, and knows nothing about the corpus. A new C4 Elements component
 builds the corpus's element set from blueprints and roster record
-blocks, computes each drawing document's scope, resolves a node to the
-elements its label names, and resolves each relationship statement to a
-drawing of one relationship. Corpus runs the `c4/*` rules over both, and
-Findings carries their identifiers. Nothing here changes the index's
-shape or adds a command: the rules are reached through `specs check` and
-`--only` as every other rule is. [[frd-spec-c4]] builds its model on the
-ELEM and DRAW deltas below.
+blocks, and computes each drawing document's scope. It resolves a node
+to the elements its label names, and each relationship statement to a
+drawing of one relationship.
 
-Delta blocks in dependency order: PARSE and FIND, which depend on
-nothing; then XPT, PREG, ELEM, DRAW, CHKN and CHKR in that order; DOC
-alongside CHKR.
+Corpus runs the `c4/*` rules over both, and Findings carries their
+identifiers. Nothing here changes the index's shape or adds a command.
+You reach the rules through `specs check` and `--only`, like every other
+rule. [[frd-spec-c4]] builds its model on the ELEM and DRAW deltas
+below.
 
-## Element Deltas
+The delta blocks, in dependency order, are PARSE and FIND, which depend
+on nothing; then XPT, PREG, ELEM, DRAW, CHKN, and CHKR, in that order;
+and DOC, alongside CHKR. The legend in AC coverage names the delta each
+abbreviation stands for.
+
+## Element deltas
 
 ### Profile extension point in [[module-document-core]] (modified — C4)
 
 **Intent:** Document Core must find elements without naming a document
-type, a property or a heading, so the `Profile` interface gains one
-member carrying that vocabulary, the way `FeatureTags()` carries the
-Gherkin vocabulary ([[adr-030]]). The host learns where to look; the
-profile says what is there.
+type, a property, or a heading. The `Profile` interface therefore gains
+one member that carries that vocabulary, the way `FeatureTags()` carries
+the Gherkin vocabulary ([[adr-030]]). The host learns where to look, and
+the profile says what's there.
 
 **Behavior:**
 - The `Profile` interface SHALL let a profile register an architecture
@@ -79,10 +82,10 @@ as the precedent); `cli/core/corpus/registration.go`
 
 ### Profile Registration in [[module-spec-profile]] (modified — C4)
 
-**Intent:** This framework's architecture vocabulary is already stated
-by `schemas/frontmatter.strata` and by [[c4-standards]]; the profile
-transcribes it into the new member, and a drift test holds the two
-together, as the reference registration's test does.
+**Intent:** `schemas/frontmatter.strata` and [[c4-standards]] already
+state this framework's architecture vocabulary. The profile transcribes
+it into the new member, and a drift test holds the two together, as the
+reference registration's test does.
 
 **Behavior:**
 - The profile SHALL register `system-blueprint`, `container-blueprint`,
@@ -107,19 +110,19 @@ drift-test precedent.
 ### C4 Diagrams in [[module-document-core]] (added)
 
 **Intent:** [[adr-029]] gives the CLI its own parser, because the one Go
-library measured fails on this corpus's own diagrams. It reads exactly
-the statement subset the FRD's terminology lists and turns everything
-else into a parse error, so the subset grows deliberately. It is pure
-notation: a block of text in, statements with spans out. It neither
-reads the corpus nor resolves a node.
+library measured fails on this corpus's own diagrams. The parser reads
+exactly the statement subset that the FRD's terminology lists. It turns
+everything else into a parse error, so the subset grows deliberately.
+It's pure notation: a block of text in, statements with spans out. It
+doesn't read the corpus or resolve a node.
 
 **New components** (declared in module vocabulary):
-- **C4 Diagrams** (Go package) — Parses Mermaid C4 diagram blocks into
-  located statements. Reads the C4Context, C4Container and C4Component
-  diagram types; reports every other Mermaid diagram type by name
-  without parsing it; and yields, per statement, its kind, its macro,
-  its arguments and its span, with relationship tags split into reserved
-  and unreserved.
+- **C4 Diagrams** (Go package): Parses Mermaid C4 diagram blocks into
+  located statements. It reads the C4Context, C4Container, and
+  C4Component diagram types, and reports every other Mermaid diagram
+  type by name without parsing it. For each statement, it yields the
+  kind, macro, arguments, and span, with relationship tags split into
+  reserved and unreserved.
 
   ```component
   entity_name: C4 Diagrams
@@ -178,16 +181,16 @@ reads the corpus nor resolves a node.
   returned as a relationship flagged bidirectional.
 
 **Anchors:** a new package under `cli/core`; `cli/core/span` (`Of`) for
-every position; `cli/core/markdown` (`Fenced`) is the caller's way to
-the blocks and is not called from here.
+every position; and `cli/core/markdown` (`Fenced`), which the caller
+uses to reach the blocks and which this component doesn't call.
 
 ### Findings in [[module-document-core]] (modified — c4 rules)
 
 **Intent:** The rules are a published surface: `--only` selects them by
 identifier, and the report accounts for each one by identifier whether
 it ran or not. Each rule's detail is a variant of the generated
-`FindingDetail` union, so a JSON consumer reads the alias, label or tag
-the finding concerns without parsing a message.
+`FindingDetail` union, so a JSON consumer reads the alias, label, or
+tag the finding concerns without parsing a message.
 
 **Behavior:**
 - The module SHALL declare these rule identifiers: `c4/parse`,
@@ -216,16 +219,16 @@ compiler.
 ### C4 Elements in [[module-document-core]] (added — node resolution)
 
 **Intent:** A node is valid only if it names a declared element, and
-which elements it may name depends on where it is drawn. This component
-owns that judgement once, so the checks here and the model in
-[[frd-spec-c4]] cannot disagree about what a node is.
+the elements it may name depend on where it's drawn. This component owns
+that judgment once, so the checks here and the model in [[frd-spec-c4]]
+can't disagree about what a node is.
 
 **New components** (declared in module vocabulary):
-- **C4 Elements** (Go package) — The corpus's architectural elements,
+- **C4 Elements** (Go package): The corpus's architectural elements,
   each drawing document's scope, and the resolution of diagram nodes and
-  relationship statements to elements. Reads the index and the
-  architecture vocabulary the profile registers; names no document type
-  of its own.
+  relationship statements to elements. It reads the index and the
+  architecture vocabulary that the profile registers, and names no
+  document type of its own.
 
   ```component
   entity_name: C4 Elements
@@ -305,8 +308,8 @@ Diagrams package for statements.
 
 ### Corpus in [[module-document-core]] (modified — parse and node checks)
 
-**Intent:** The first half of the rule family: everything that can be
-judged from one statement and the scope it was drawn in.
+**Intent:** The first half of the rule family covers everything that
+can be judged from one statement and the scope it was drawn in.
 
 **Behavior:**
 - WHEN a C4 diagram in an architecture blueprint holds a statement the
@@ -337,8 +340,9 @@ every existing `check` snapshot records.
 
 ### Corpus in [[module-document-core]] (modified — relationship checks)
 
-**Intent:** The second half: every rule about an arrow and the tags on
-it, including the one rule that compares drawings across documents.
+**Intent:** The second half covers every rule about an arrow and the
+tags on it, including the one rule that compares drawings across
+documents.
 
 **Behavior:**
 - WHEN a C4 diagram holds a `BiRel` statement, the check SHALL report
@@ -380,9 +384,9 @@ it, including the one rule that compares drawings across documents.
 
 ### Documentation (modified — diagram rules)
 
-**Intent:** The checks enforce rules [[c4-standards]] does not yet
-state, and the templates do not show the `technology` property the
-checks' sibling feature reads. Authors cannot be held to rules nobody
+**Intent:** The checks enforce rules that [[c4-standards]] doesn't yet
+state, and the templates don't show the `technology` property that the
+checks' sibling feature reads. Authors can't be held to rules nobody
 wrote down, so the documents change with the checks.
 
 **Behavior:**
@@ -407,10 +411,10 @@ SHALL be re-run so the vendored copies follow.
 
 ### Relied-upon elements (unchanged)
 
-- [[module-document-core#Markdown Structure]] — `Fenced` to locate
+- [[module-document-core#Markdown Structure]]: `Fenced` to locate
   `mermaid` blocks, `Identifier` to match the roster heading.
-- [[module-document-core#Spans]] — every position the parser reports.
-- The References component of [[module-document-core]] — the resolved
+- [[module-document-core#Spans]]: every position the parser reports.
+- The References component of [[module-document-core]]: the resolved
   body references that place a roster's component blueprint link under
   its roster heading.
 - The index's per-type frontmatter, which carries `entity_name`,
@@ -418,42 +422,39 @@ SHALL be re-run so the vendored copies follow.
   `specs index` on this repository emits `container-spec-cli` with
   `entity_name: Spec CLI` and both `modules`).
 - The structure feature's record-block recording and its decoding
-  function — not yet built; see Sequencing Constraints.
+  function, which aren't built yet (see Sequencing constraints).
 - `finding.NewReport` and the `--only` machinery in `cli/cmd/check.go`,
   which select and account for any rule `checkRules` declares. The only
-  Command Surface change is the two `checkRules` additions the CHKN and
-  CHKR deltas make.
+  Command Surface change is the two `checkRules` additions that the CHKN
+  and CHKR deltas make.
 
 ## Contracts
 
 None. The rules and their detail variants extend the finding JSON, which
-is generated from `schemas/finding.strata` and is not yet a contract
+is generated from `schemas/finding.strata` and isn't yet a contract
 document.
 
-## Tracker Reconciliation
+## Tracker reconciliation
 
-- Prerequisite: the record-block tag
-  registration point. XPT validates the roster tag against the
-  registered tags and ELEM reads roster blocks by one; neither can land
-  before this does.
-- Prerequisite: recording record blocks against
-  their heading, and the decoding function ELEM uses. Without it no
-  un-promoted component is an element, and every component node on this
-  repository's diagrams is undeclared.
-- Subsumed by the DOC delta, which amends
-  [[c4-standards]] and the four templates exactly as that issue
-  describes.
-- Prerequisite, already met: the index carries
-  per-type frontmatter. It blocks nothing; this feature does not close
-  it.
+- Prerequisite: the record-block tag registration point. XPT validates
+  the roster tag against the registered tags, and ELEM reads roster
+  blocks by one. Neither can land before this does.
+- Prerequisite: recording record blocks against their heading, and the
+  decoding function ELEM uses. Without it, no un-promoted component is
+  an element, and every component node on this repository's diagrams is
+  undeclared.
+- Subsumed by the DOC delta, which amends [[c4-standards]] and the four
+  templates exactly as that issue describes.
+- Prerequisite, already met: the index carries per-type frontmatter. It
+  blocks nothing, and this feature doesn't close it.
 - Out-of-scope: stale `c4-guide.md` paths under
   `specs/features/`. This feature adds no such path and fixes none.
 
-## Sequencing Constraints
+## Sequencing constraints
 
 - Delivery is staged. Stage 1 is PARSE and FIND, which depend on
-  nothing outside this blueprint, add no rule to `checkRules` and change
-  no output. Stage 2 is XPT, PREG, ELEM, DRAW, CHKN, CHKR and DOC.
+  nothing outside this blueprint, add no rule to `checkRules`, and change
+  no output. Stage 2 is XPT, PREG, ELEM, DRAW, CHKN, CHKR, and DOC.
 - Stage 2 SHALL NOT begin until the record-block tag registration
   point, heading-scoped record blocks, and the registration of the `component`
   record-block tag that FEAT-SPECSTR-004 of
@@ -482,7 +483,7 @@ document.
 - Each delta SHALL be folded into its owning blueprint in the same work
   order that implements it.
 
-## AC Coverage
+## AC coverage
 
 Legend: XPT = Profile extension point delta; PREG = Profile Registration
 delta; PARSE = C4 Diagrams delta; FIND = Findings delta; ELEM = C4
@@ -510,52 +511,52 @@ Corpus delta (relationship and tag checks); DOC = Documentation delta.
 | AC-C4-DIAG-004.4 | XPT, PREG, DRAW, **CHKR (proves)** | integration |
 | AC-C4-DIAG-004.5 | PARSE, FIND, **CHKR (proves)** | integration |
 
-## Key Decisions
+## Key decisions
 
-- [[adr-029]] — relationships are read from blueprint diagrams by a
+- [[adr-029]]: relationships are read from blueprint diagrams by a
   parser this CLI owns, with reserved relationship tags.
-- [[adr-030]] — the parser and the resolver live in Document Core, and
+- [[adr-030]]: the parser and the resolver live in Document Core, and
   the architecture vocabulary arrives as a profile registration.
 
-## Definition of Done
+## Definition of done
 
 - [x] Every delta above is folded into its owning blueprint:
-  - [x] [[module-document-core]] — C4 Diagrams and C4 Elements added to
+  - [x] [[module-document-core]]: C4 Diagrams and C4 Elements added to
         the Components roster and diagram with their record blocks; the
         extension point's seventh member and its defects in Interface;
         Corpus's check list and Findings' rule list updated
-  - [x] [[module-spec-profile]] — Profile Registration's member table
+  - [x] [[module-spec-profile]]: Profile Registration's member table
         gains the architecture vocabulary
-  - [x] [[container-spec-cli]] — the Command Surface's account of `check`
+  - [x] [[container-spec-cli]]: the Command Surface's account of `check`
         paragraph names the `c4/*` rules
-- [x] [[c4-standards]], the four architecture blueprint templates and
+- [x] [[c4-standards]], the four architecture blueprint templates, and
       [[spec-cli-reference]] updated, and
       `scripts/sync-shared-references.sh --check` passes
 - [x] [[adr-029]] and [[adr-030]] are referenced from
-      [[module-document-core]]'s Key Decisions
+      [[module-document-core]]'s Key decisions
 - [x] Every AC in the coverage table is verified at its declared level
       and cited from its tests per [[ac-traceability-standards]]
 - [x] `scripts/coverage.sh` has been run from the repository root and
       the README diff committed, since `cli/**` changed
 - [x] The issue subsumed by the DOC delta is closed
 
-- [x] This blueprint's status → retired
+- [x] This blueprint's status set to retired
 
-## Open Questions
+## Open questions
 
 None.
 
 ## References
 
-- [[c4-standards]] — the diagram conventions these rules enforce, and
+- [[c4-standards]]: the diagram conventions these rules enforce, and
   the element definitions the deltas are written against
-- [[frd-spec-c4-diagrams]] — the requirements this blueprint realizes
-- [[frd-spec-c4]] — the model built on the ELEM and DRAW deltas
-- [[container-spec-cli]] — the container whose Change Guidance binds
+- [[frd-spec-c4-diagrams]]: the requirements this blueprint realizes
+- [[frd-spec-c4]]: the model built on the ELEM and DRAW deltas
+- [[container-spec-cli]]: the container whose Change guidance binds
   every delta
-- [[module-document-core]] and [[module-spec-profile]] — the modules
+- [[module-document-core]] and [[module-spec-profile]]: the modules
   the deltas change
-- [[frd-spec-structure]] and [[frd-spec-structure-conformance]] — record
+- [[frd-spec-structure]] and [[frd-spec-structure-conformance]]: record
   block recording and registration, which stage 2 waits on
-- [[ac-traceability-standards]] — the citation obligations the coverage
+- [[ac-traceability-standards]]: the citation obligations the coverage
   table feeds

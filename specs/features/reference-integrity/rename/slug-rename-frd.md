@@ -10,90 +10,88 @@ sources:
   - "frd-spec-reference-integrity"
 ---
 
-# Spec Corpus Slug Rename
+# Spec corpus slug rename
 
 ## Overview
 
-Every broken reference this project has actually observed came from one
-event. When [[adr-012]] moved ADR slugs to the number-only form, the
-declaring documents were edited and the 26 references to their old names
-were not. Nobody noticed for weeks. The repair was a one-off prototype
-and a hand migration.
+Every broken reference this project has observed came from one event.
+When [[adr-012]] moved ADR slugs to the number-only form, the declaring
+documents were edited, but the 26 references to their old names weren't.
+Nobody noticed for weeks. The repair was a one-off prototype and a hand
+migration.
 
 [[frd-spec-reference-integrity]] makes that failure visible: after it
-ships, the same rename reports 26 errors instead of silently resolving
-to nothing. This feature makes the failure *not happen*. A rename is a
-single command that edits the declaring document's `slug` and every
-reference to it together, so the corpus is never in the intermediate
-state where the two disagree.
+ships, the same rename reports 26 errors instead of silently resolving to
+nothing. This feature prevents the failure. A rename is a single command
+that edits the declaring document's `slug` and every reference to it
+together. The corpus is never in the intermediate state where the two
+disagree.
 
-The alternative considered was an alias — a `former_slugs` property
-listing a document's previous names, so old references keep resolving
-with a warning. It is rejected as the primary mechanism for a reason
-worth recording: an alias is permanent state. It leaves the corpus with
-two live names for one document, every citation of the old name keeps
-working so nothing forces it to be updated, and the alias list grows
-with every rename and can never safely be pruned. A rename command has
-no residue. After it runs there is exactly one name for the document and
-nothing to remember.
+The alternative considered was an alias: a `former_slugs` property that
+lists a document's previous names, so old references keep resolving with a
+warning. This feature rejects the alias as the primary mechanism because an
+alias is permanent state. It leaves the corpus with two live names for one
+document. Every citation of the old name keeps working, so nothing forces
+it to be updated. The alias list grows with every rename and can never
+safely be pruned. A rename command has no residue. After it runs, the
+document has exactly one name and there's nothing to remember.
 
 This is the first command in the tool that writes to a document.
 Everything specified before it reads and reports, and
-[[frd-spec-reference-integrity]] states that boundary explicitly. The
-boundary is not weakened here, because it was always about the *checker*
-not guessing: a check that repairs what it thinks is wrong is a check
-that acts on an inference. A rename acts on an instruction. The author
-says what the new name is; the tool does not deduce it.
+[[frd-spec-reference-integrity]] states that boundary explicitly. This
+feature doesn't weaken the boundary, because the boundary was always about
+the checker not guessing. A check that repairs what it thinks is wrong acts
+on an inference. A rename acts on an instruction: the author says what the
+new name is, and the tool doesn't deduce it.
 
-**Out of scope for this feature.** Each of these is deferred
+The following are out of scope for this feature. Each is deferred
 deliberately, not overlooked:
 
-- **Renaming a slug in another workspace.** A rename rewrites the
-  corpus it is run against. IF another repository cites this one's
-  slugs, THEN this command cannot reach those references, and they break
-  exactly as they do today. This is the one case an alias would solve
-  and a rename cannot, and it is the reason `former_slugs` is recorded
-  here as rejected-for-now rather than rejected: when the merged graph
-  of AC-SPEC-002.3 is real, the question should be reopened.
-- **Renaming the file on disk.** A slug is location-independent by
-  [[adr-012]] — a reference resolves against frontmatter, never a path —
-  so a slug rename implies nothing about the filename. Keeping the two
-  independent is what makes this command safe to run without touching
-  git history.
-- **Repairing a reference the tool did not break.** A reference that
-  resolves to nothing for any reason other than the rename being
-  performed is reported by [[frd-spec-reference-integrity]] and left
-  alone here.
-- **Merging two documents, or splitting one.** A rename maps one slug to
-  one slug. Anything else is an editorial act.
-- **Rewriting anchors.** A heading rename breaks anchors the way a slug
-  rename breaks links; the same argument applies and the same solution
-  would work, but it depends on the heading data
-  [[frd-spec-anchor-references]] consumes and is specified there IF it
-  is specified at all.
+- Renaming a slug in another workspace. A rename rewrites the corpus it
+  runs against. If another repository cites this one's slugs, this command
+  can't reach those references, and they break exactly as they do today.
+  This is the one case an alias would solve and a rename can't. It's the
+  reason this document records `former_slugs` as rejected for now rather
+  than rejected. When the merged graph of AC-SPEC-002.3 is real, the
+  question should be reopened.
+- Renaming the file on disk. Under [[adr-012]], a slug is
+  location-independent: a reference resolves against frontmatter, never a
+  path. A slug rename therefore implies nothing about the filename.
+  Keeping the two independent makes this command safe to run without
+  touching git history.
+- Repairing a reference the tool didn't break.
+  [[frd-spec-reference-integrity]] reports a reference that resolves to
+  nothing for any reason other than the rename being performed, and this
+  feature leaves it alone.
+- Merging two documents, or splitting one. A rename maps one slug to one
+  slug. Anything else is an editorial act.
+- Rewriting anchors. A heading rename breaks anchors the way a slug rename
+  breaks links. The same argument applies and the same solution would
+  work. But that solution depends on the heading data
+  [[frd-spec-anchor-references]] consumes, and it's specified there if
+  it's specified at all.
 
 ## Terminology
 
-- **Declaring document** — the corpus member whose frontmatter `slug`
+- **Declaring document**: The corpus member whose frontmatter `slug`
   holds the slug being renamed.
-- **Referring document** — any corpus member holding a reference to the
+- **Referring document**: Any corpus member holding a reference to the
   slug being renamed, in its body or in a reference-bearing frontmatter
   property.
-- **Preview** — the report of every edit a rename would make, produced
+- **Preview**: The report of every edit a rename would make, produced
   without modifying any file.
-- **Rewrite span** — a span the index recorded as a reference, and
+- **Rewrite span**: A span the index recorded as a reference, and
   therefore the only text a rename may edit.
 
 ## Requirements
 
-A note on the blocks below. A wikilink written anywhere in a Gherkin
-source is recorded as a reference ([[adr-021]] constraint 14), so this
-feature — whose subject is rewriting wikilinks — writes its notation
-illustrations in backticked markdown beside each block rather than in a
-step, where a literal one would enter the index as a citation this
-document never made.
+A wikilink written anywhere in a Gherkin source is recorded as a reference
+([[adr-021]] constraint 14). This feature's subject is rewriting
+wikilinks, so it writes its notation illustrations in backticked Markdown
+beside each block rather than in a step. A literal wikilink in a step
+would enter the index as a citation this document never made.
 
-### FEAT-SPECREN-001: Rename a Slug and Its References
+### FEAT-SPECREN-001: Rename a slug and its references
 
 **Acceptance Criteria:**
 
@@ -144,40 +142,44 @@ Feature: Rename a Slug and Its References
     Then the CLI renames, moves and deletes no file
 ```
 
-*Examples:* `specs rename adr-011-targeted-verification-gates adr-011`
-edits one ADR's frontmatter and the 26 references across 9 other
-documents — the exact migration that was performed by hand and left 26
-broken links behind (AC-SPECREN-001.1). [[adr-012]] contains
-`` `[[container-<name>#Display Name]]` `` and other backticked
-illustrations of the notation; a rename driven by text search corrupts
-the document that defines the convention, and a rename driven by the
-recorded spans of AC-SPECREF-001.1 cannot, because AC-SPECREF-001.2
-never recorded those as references (AC-SPECREN-001.2).
-`` `[[old-slug#Element Registry|the registry]]` `` becomes
-`` `[[new-slug#Element Registry|the registry]]` `` — only the slug half
-is the tool's business (AC-SPECREN-001.3). A document's
-`related: ["adr-011-targeted-verification-gates"]` and a retired
-document's `superseded_by` are both rewritten, per the properties
-AC-SPECREF-004.2 registers; a rename that swept only body links would
-leave the relational graph pointing at the old name
-(AC-SPECREN-001.4). `` `[[ADR-011]]` `` and `` `[[adr-011]]` `` both
-become `` `[[adr-012]]` `` when renamed to `adr-012` — resolution is
-case-insensitive per AC-SPEC-003.4, so both were valid before, and
-leaving them divergent preserves a difference that means nothing and
-greps badly (AC-SPECREN-001.5). Renaming the slug of
-`specs/adrs/adr-011-targeted-verification-gates.md` leaves the path
-untouched (AC-SPECREN-001.6).
+*Examples:*
+
+- `specs rename adr-011-targeted-verification-gates adr-011` edits one
+  ADR's frontmatter and the 26 references across nine other documents.
+  That's the exact migration that was performed by hand and left 26 broken
+  links behind (AC-SPECREN-001.1).
+- [[adr-012]] contains `` `[[container-<name>#Display Name]]` `` and other
+  backticked illustrations of the notation. A rename driven by text search
+  corrupts the document that defines the convention. A rename driven by
+  the recorded spans of AC-SPECREF-001.1 can't, because AC-SPECREF-001.2
+  never recorded those as references (AC-SPECREN-001.2).
+- `` `[[old-slug#Element Registry|the registry]]` `` becomes
+  `` `[[new-slug#Element Registry|the registry]]` ``. Only the slug half
+  is the tool's business (AC-SPECREN-001.3).
+- A document's `related: ["adr-011-targeted-verification-gates"]` and a
+  retired document's `superseded_by` are both rewritten, per the
+  properties AC-SPECREF-004.2 registers. A rename that swept only body
+  links would leave the relational graph pointing at the old name
+  (AC-SPECREN-001.4).
+- `` `[[ADR-011]]` `` and `` `[[adr-011]]` `` both become
+  `` `[[adr-012]]` `` when renamed to `adr-012`. Resolution is
+  case-insensitive per AC-SPEC-003.4, so both were valid before. Leaving
+  them divergent preserves a difference that means nothing and greps
+  badly (AC-SPECREN-001.5).
+- Renaming the slug of
+  `specs/adrs/adr-011-targeted-verification-gates.md` leaves the path
+  untouched (AC-SPECREN-001.6).
 
 *Rationale:* AC-SPECREN-001.2 is the criterion this whole feature turns
-on. Renaming references is a five-minute job with `sed` and a permanent
-hazard: the documents most likely to contain the literal text of a slug
-in a non-reference position are the ones that define the conventions,
-and they are the worst documents in the corpus to silently corrupt. The
-reason this command belongs in this tool rather than in a shell script
-is that this tool already knows which occurrences are references — it
-had to, to check them — and a script never can.
+on. Renaming references with `sed` is a five-minute job and a permanent
+hazard. The documents most likely to contain the literal text of a slug
+in a non-reference position are the ones that define the conventions, and
+they're the worst documents in the corpus to silently corrupt. This
+command belongs in this tool rather than in a shell script because the
+tool already knows which occurrences are references. It had to know them
+to check them, and a script never can.
 
-### FEAT-SPECREN-002: Preflight and Preview
+### FEAT-SPECREN-002: Preflight and preview
 
 **Acceptance Criteria:**
 
@@ -221,28 +223,31 @@ Feature: Preflight and Preview
     And the CLI reports which write failed
 ```
 
-*Examples:* `specs rename old new` reports "1 declaration, 26 references
-in 9 documents" with each file and span, and changes nothing; the same
-command with the write instruction performs it (AC-SPECREN-002.1).
-Renaming `adr-011` to `adr-012` where `adr-012` exists reports the
-collision and names the document holding it, rather than producing the
-duplicate slug AC-SPEC-003.4 forbids and leaving every reference to
-either one ambiguous (AC-SPECREN-002.2). A transposed argument order is
-caught rather than rewriting the corpus toward a name nothing declares
-(AC-SPECREN-002.3). A read-only file in the corpus aborts the rename with
-nothing changed, rather than leaving the declaring document renamed and
-eleven of twenty-six references still citing the old name — a state
-strictly worse than not having run the command, because the corpus now
-disagrees with itself in a way no single check explains
-(AC-SPECREN-002.4).
+*Examples:*
+
+- `specs rename old new` reports "1 declaration, 26 references in 9
+  documents" with each file and span, and changes nothing. The same
+  command with the write instruction performs the rename
+  (AC-SPECREN-002.1).
+- Renaming `adr-011` to `adr-012` where `adr-012` exists reports the
+  collision and names the document holding it. The CLI doesn't produce
+  the duplicate slug AC-SPEC-003.4 forbids, which would leave every
+  reference to either one ambiguous (AC-SPECREN-002.2).
+- The CLI catches a transposed argument order rather than rewriting the
+  corpus toward a name nothing declares (AC-SPECREN-002.3).
+- A read-only file in the corpus aborts the rename with nothing changed.
+  Otherwise, the declaring document would be renamed and 11 of 26
+  references would still cite the old name. That state is strictly worse
+  than not having run the command, because the corpus now disagrees with
+  itself in a way no single check explains (AC-SPECREN-002.4).
 
 *Rationale:* Every criterion here exists because this command's failure
 modes are worse than its success is valuable. A rename that half
-completes, or that renames toward a name already taken, produces a
-corpus that is harder to repair than the one the author started with.
-Preview-by-default (AC-SPECREN-002.1) is the same argument as the
-ordering [[frd-spec-index]] sets between indexing and checking:
-the destructive step is always the one you opt into.
+completes, or that renames toward a name already taken, produces a corpus
+that is harder to repair than the one the author started with. Preview by
+default (AC-SPECREN-002.1) follows the same argument as the ordering
+[[frd-spec-index]] sets between indexing and checking. The destructive
+step is always the one you opt into.
 
 ### FEAT-SPECREN-003: Outcome
 
@@ -274,22 +279,26 @@ Feature: Outcome
     And the CLI exits zero
 ```
 
-*Examples:* nine documents listed with their counts, summing to 26 — the
-artifact a reviewer reads against the diff (AC-SPECREN-003.1). A check
-run immediately after the rename reports no `reference/unresolved`
-finding naming either the old or the new slug (AC-SPECREN-003.2).
-Renaming a slug to itself, or renaming a document no other document
-references, is a successful no-op — consistent with AC-SPECREF-003.5 and
-AC-SPEC-007.2, where an empty answer is an answer (AC-SPECREN-003.3).
+*Examples:*
+
+- Nine documents listed with their counts, summing to 26. A reviewer
+  reads this list against the diff (AC-SPECREN-003.1).
+- A check run immediately after the rename reports no
+  `reference/unresolved` finding naming either the old or the new slug
+  (AC-SPECREN-003.2).
+- Renaming a slug to itself, or renaming a document no other document
+  references, is a successful no-op. This is consistent with
+  AC-SPECREF-003.5 and AC-SPEC-007.2, where an empty answer is an answer
+  (AC-SPECREN-003.3).
 
 *Rationale:* AC-SPECREN-003.2 is deliberately written as a property of
-the corpus rather than as a description of the tool's behavior. It is
-the criterion a test can assert without knowing how the rename was
-implemented, and it is the one an author actually cares about — the
-others describe how the command behaves, this one says the thing it was
-built to guarantee is true.
+the corpus rather than as a description of the tool's behavior. A test
+can assert it without knowing how the rename was implemented. It's also
+the criterion an author cares about. The others describe how the command
+behaves, and this one says that what the command was built to guarantee
+is true.
 
-### FEAT-SPECREN-004: Command Surface and Skill Adoption
+### FEAT-SPECREN-004: Command surface and skill adoption
 
 **Acceptance Criteria:**
 
@@ -317,51 +326,53 @@ Feature: Command Surface and Skill Adoption
     Then the shipped skill states that renaming a slug is what this command is for, so that an agent prefers it over editing references directly
 ```
 
-*Examples:* `specs rename adr-011-targeted-verification-gates adr-011`
-previews, and the same command with the write flag performs it; the
-subcommand vocabulary AC-SPEC-011.5 lists gains a fifth entry, and the
-four established there are neither renamed nor repurposed
-(AC-SPECREN-004.1). The command table in `spec-cli.md` gains a
-`specs rename <current-slug> <new-slug>` row reading "Rename a slug and
-every reference to it" (AC-SPECREN-004.2). The guidance sits with the
-existing instruction to prefer the CLI for anything it decides — "its
-answer is verifiable by whoever reviews the work, where yours is an
-assertion" — which applies unchanged to an edit the tool can make
-correctly and a hand sweep frequently cannot (AC-SPECREN-004.3, and
-AC-SPECREN-001.2).
+*Examples:*
 
-*Rationale:* This requirement advertises the command; it does not gate
-anything. No checkpoint is added to any workflow and no agent is
-required to run it before a rename, because a rename performed by hand
-and then caught by the parent feature's checks is a recoverable
-outcome — noisy, but not silent, which was the original defect.
+- `specs rename adr-011-targeted-verification-gates adr-011` previews, and
+  the same command with the write flag performs the rename. The
+  subcommand vocabulary AC-SPEC-011.5 lists gains a fifth entry, and the
+  four established there are neither renamed nor repurposed
+  (AC-SPECREN-004.1).
+- The command table in `spec-cli.md` gains a
+  `specs rename <current-slug> <new-slug>` row reading "Rename a slug and
+  every reference to it" (AC-SPECREN-004.2).
+- The guidance sits with the existing instruction to prefer the CLI for
+  anything it decides: "its answer is verifiable by whoever reviews the
+  work, where yours is an assertion." That instruction applies unchanged
+  to an edit the tool can make correctly and a hand sweep frequently
+  can't (AC-SPECREN-004.3, and AC-SPECREN-001.2).
 
-The reason advertisement is specified here at all, rather than left to
-implementation, is that the tool has already produced one capability
-nobody invoked. A command that exists and is not named in the surface an
-agent reads is indistinguishable, in practice, from a command that was
-never built. Naming it in an acceptance criterion is what stops it being
-dropped as polish once the interesting part is working.
+*Rationale:* This requirement advertises the command and gates nothing.
+It adds no checkpoint to any workflow and requires no agent to run the
+command before a rename. That's safe because a rename performed by hand
+and then caught by the parent feature's checks is a recoverable outcome.
+It's noisy, but not silent, and silence was the original defect.
 
-The skill's command surface is documentation of a real binary, so
-AC-SPECREN-004.2 lands when the subcommand does. Advertising a `rename`
-that does not yet exist would send an agent to a command that fails, and
-the skill currently describes exactly four subcommands because exactly
-four are built.
+Advertisement is specified here, rather than left to implementation,
+because the tool has already produced one capability nobody invoked. A
+command that exists and isn't named in the surface an agent reads is, in
+practice, indistinguishable from a command that was never built. Naming
+the command in an acceptance criterion stops it from being dropped as
+polish once the interesting part works.
+
+The skill's command surface documents a real binary, so AC-SPECREN-004.2
+lands when the subcommand does. Advertising a `rename` that doesn't exist
+yet would send an agent to a command that fails. The skill currently
+describes exactly four subcommands because exactly four are built.
 
 ## References
 
-- [[frd-spec-reference-integrity]] — the parent feature, whose recorded
+- [[frd-spec-reference-integrity]]: the parent feature, whose recorded
   reference spans this command rewrites and whose checks verify the
   result
-- [[frd-spec-index]] — the index, corpus discovery, and command
+- [[frd-spec-index]]: the index, corpus discovery, and command
   surface this feature extends
-- [[frd-spec-anchor-references]] — the anchor half of a reference, whose
+- [[frd-spec-anchor-references]]: the anchor half of a reference, whose
   preservation AC-SPECREN-001.3 requires
-- [[contract-specs-configuration]] — declares the reference-bearing
+- [[contract-specs-configuration]]: declares the reference-bearing
   properties AC-SPECREN-001.4 rewrites
-- [[adr-012]] — the `[[slug]]` convention, and the decision that slugs
+- [[adr-012]]: the `[[slug]]` convention, and the decision that slugs
   are location-independent
-- [[adr-021]] — Gherkin, the notation these features and acceptance
+- [[adr-021]]: Gherkin, the notation these features and acceptance
   criteria are written in
-- [[gherkin-guide]] — how to write them
+- [[gherkin-guide]]: how to write them

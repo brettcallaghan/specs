@@ -10,43 +10,43 @@ delivery: single-pr
 frd: frd-spec-markdown-links
 ---
 
-# Spec Corpus Markdown Links
+# Spec corpus Markdown links
 
 ## Overview
 
 **FRD:** [[frd-spec-markdown-links]]
 
-A new **Markdown Links** component in [[module-document-core]] takes a
-document's bytes and the references the existing References component
-already extracted from them, and emits the same bytes with each
-targetable wikilink replaced by a markdown link. It reuses extraction
-rather than rescanning, which is what makes the code-region exclusion
-AC-SPECMD-001.4 requires a property of the input rather than a rule this
-component has to get right a second time.
+A new Markdown Links component in [[module-document-core]] takes a
+document's bytes and the references that the existing References component
+already extracted from them. It emits the same bytes with each targetable
+wikilink replaced by a markdown link. It reuses that extraction instead of
+rescanning the document. As a result, the code-region exclusion that
+AC-SPECMD-001.4 requires is a property of the input, and this component
+doesn't have to get it right a second time.
 
-Two things sit either side of it. Deciding *where a link points* is a
-separate judgement — a caller's map entry, or the cited document's path
-relative to the citing one — and it is the judgement that produces the
-two reachability findings, so it carries its own delta and its own
-finding variants. Reading the caller's map is a file-format concern the
-[[container-spec-cli#Command Surface]] already owns for `specs.toml`,
-and it is read the same way, through the same `finding.Report`.
+Two concerns sit on either side of it. Deciding where a link points is a
+separate judgment: the target is either a caller's map entry or the cited
+document's path relative to the citing one. That judgment produces the two
+reachability findings, so it has its own delta and its own finding variants.
+Reading the caller's map is a file-format concern, which the
+[[container-spec-cli#Command Surface]] already owns for `specs.toml`. The map
+is read the same way, through the same `finding.Report`.
 
-Delta blocks in dependency order: **FND** (finding variants), **TGT**
-(target resolution), **MDL** (link substitution), **MAP** (link-map
-input), **CMD** (the `links` subcommand).
+The delta blocks, in dependency order, are FND (finding variants), TGT
+(target resolution), MDL (link substitution), MAP (link-map input), and CMD
+(the `links` subcommand).
 
-## Element Deltas
+## Element deltas
 
 ### Findings in [[module-document-core]] (modified — variants) — FND
 
-**Intent:** The two ways a citation fails to reach its target are
+**Intent:** A citation can fail to reach its target in two ways. They're
 distinct defects with distinct fixes, and AC-SPECMD-002.4 requires a
 consumer to tell them apart. `FindingDetail` is a closed union generated
-from `schemas/finding.strata`, so each gets its own variant rather than
-borrowing one that nearly fits — borrowing is the existing defect
-where a `corpus/empty` finding reports
-`detail.kind` as `frontmatter-parse` and misleads every JSON consumer.
+from `schemas/finding.strata`, so each defect gets its own variant instead
+of borrowing one that nearly fits. Borrowing is the existing defect in
+which a `corpus/empty` finding reports `detail.kind` as `frontmatter-parse`
+and misleads every JSON consumer.
 
 **Behavior:**
 - The module SHALL carry a `FindingDetail` variant for a citation whose
@@ -65,20 +65,20 @@ rewrites from scratch on every run.
 
 ### Markdown Links in [[module-document-core]] (added — targets) — TGT
 
-**Intent:** One judgement decides, per citation, what a link points at
-or why it cannot. Keeping it apart from substitution is what lets the
-two modes FEAT-SPECMD-005 and FEAT-SPECMD-006 describe share one
-substitution path, and it puts both reachability findings in one place
-rather than spread across the rewrite.
+**Intent:** For each citation, one judgment decides what a link points at,
+or why it can't point anywhere. Keeping that judgment apart from
+substitution lets the two modes that FEAT-SPECMD-005 and FEAT-SPECMD-006
+describe share one substitution path. It also puts both reachability
+findings in one place instead of spreading them across the rewrite.
 
 **New components** (declared in [[module-document-core]]'s vocabulary):
 
-- **Markdown Links** (Go package) — Wikilink-to-markdown-link
+- **Markdown Links** (Go package): Wikilink-to-markdown-link
   substitution over an already-extracted reference set, and the target
-  resolution that decides what each link points at. Consumes the
-  References component's output rather than rescanning a document, so
-  code-region exclusion and anchor splitting are properties of the
-  input. Writes nothing.
+  resolution that decides what each link points at. It consumes the
+  References component's output instead of rescanning a document, so
+  code-region exclusion and anchor splitting are properties of the input.
+  It writes nothing.
 
   ```component
   title: Markdown Links
@@ -126,11 +126,11 @@ raises findings through.
 
 ### Markdown Links in [[module-document-core]] (added — rewrite) — MDL
 
-**Intent:** Producing the rewritten bytes. Every guarantee here is about
-what is *not* touched: substitution replaces the exact extent each
-reference occupies and copies everything else through, which is what
-makes AC-SPECMD-001.5's "alters nothing else" and AC-SPECMD-004.1's
-idempotence the same property rather than two.
+**Intent:** This delta produces the rewritten bytes. Every guarantee here
+is about what isn't touched. Substitution replaces the exact extent that
+each reference occupies and copies everything else through. That makes
+AC-SPECMD-001.5's "alters nothing else" and AC-SPECMD-004.1's idempotence
+one property instead of two.
 
 **Behavior:**
 - WHEN a reference has a resolved target, the component SHALL replace
@@ -149,17 +149,17 @@ idempotence the same property rather than two.
 - The component SHALL NOT read or write any file.
 
 **Anchors:** `cli/core/mdlinks`; `cli/core/span` for the extents it
-replaces — a reference's `Position` covers the text between the
-brackets, so the construct's extent is derived from it rather than
-rescanned.
+replaces. A reference's `Position` covers the text between the brackets,
+so the component derives the construct's extent from it instead of
+rescanning.
 
 ### Command Surface in [[container-spec-cli]] (modified — map) — MAP
 
-**Intent:** The link map is caller-supplied file input, which is the
-[[container-spec-cli#Command Surface]]'s concern and not a module's, on
-the same rule that puts `specs.toml` there. It is read the same way —
-every defect reported through `finding.Report` in one run, never
-defaulted around — so a malformed map reads like every other
+**Intent:** The link map is caller-supplied file input. That makes it the
+[[container-spec-cli#Command Surface]]'s concern and not a module's, by
+the same rule that puts `specs.toml` there. The map is read the same way:
+every defect is reported through `finding.Report` in one run and never
+defaulted around. A malformed map therefore reads like every other
 configuration defect.
 
 **Behavior:**
@@ -186,10 +186,10 @@ already carries; `goccy/go-yaml`, already a module dependency
 
 ### Command Surface in [[container-spec-cli]] (modified — links) — CMD
 
-**Intent:** Wiring only. Per [[container-spec-cli]]'s Change Guidance no
-judgement lands here: the subcommand converts flags into one call
-against Markdown Links and its result into two streams and an exit
-status.
+**Intent:** This delta is wiring only. Under [[container-spec-cli]]'s
+Change guidance, no judgment lands here. The subcommand converts flags
+into one call against Markdown Links, and converts that call's result into
+two streams and an exit status.
 
 **Behavior:**
 - The command surface SHALL expose a `links` subcommand taking exactly
@@ -235,58 +235,55 @@ status.
 
 ### Relied-upon elements (unchanged)
 
-- [[module-document-core]] References — supplies every reference with
-  its span, its slug and anchor halves, and its resolution, and excludes
+- [[module-document-core]] References: supplies every reference with its
+  span, its slug and anchor halves, and its resolution. It also excludes
   code regions. AC-SPECMD-001.4 is satisfied entirely by relying on it.
-- [[module-document-core]] Corpus — supplies the warm index the
+- [[module-document-core]] Corpus: supplies the warm index that the
   resolution state is read from, and each member's repository-relative
   path.
-- [[module-document-core]] Spans — supplies the extents substitution
-  replaces; no position is computed in the new component.
-- [[module-document-core]] Findings — supplies the report, the severity
-  vocabulary and the ordering both new rules report through.
-- [[container-spec-cli]] Command Surface — supplies configuration
-  discovery, profile activation and the rendering the new subcommand
-  reuses rather than reimplements.
-- [[contract-specs-configuration]] — unchanged; the link map is a
+- [[module-document-core]] Spans: supplies the extents that substitution
+  replaces. The new component computes no position.
+- [[module-document-core]] Findings: supplies the report, the severity
+  vocabulary, and the ordering that both new rules report through.
+- [[container-spec-cli]] Command Surface: supplies configuration
+  discovery, profile activation, and the rendering that the new
+  subcommand reuses instead of reimplementing.
+- [[contract-specs-configuration]]: unchanged. The link map is a
   per-invocation input, not configuration, and adds no key to
   `specs.toml`.
 
 ## Contracts
 
-None. The link map is read from a path the caller names per invocation
-rather than published for another codebase to build against, and no
-existing contract changes. WHEN a second producer or an independent
-consumer of the link map appears, that judgement is revisited under this
-framework's filing rule.
+None. The caller names the link map's path per invocation, and the map
+isn't published for another codebase to build against. No existing
+contract changes. When a second producer or an independent consumer of the
+link map appears, that judgment is revisited under this framework's filing
+rule.
 
-## Tracker Reconciliation
+## Tracker reconciliation
 
-- Out-of-scope: the work that backticks the ~50
-  illustrative wikilinks in the documents bound for `specs/`. This
-  feature must not edit anyone's prose; it reports each one as a
-  `links/unresolved` warning, which is the evidence that work acts on.
-  The two are complementary and neither blocks the other.
-- Out-of-scope: the work that moves the 8 shipped standards
-  into `specs/standards` and inverts the sync direction. That is what
-  makes this repository's own documents worth rewriting; it is not what
-  the capability is built against, and this feature is tested on
-  fixtures rather than on the move.
-- Out-of-scope: the work that verifies that a committed
-  markdown link lands on a co-located file. This feature checks
-  reachability at rewrite time, which cannot guard what is already
-  committed. Boundary: that work reads the rewritten copies; it does not
+- Out-of-scope: the work that backticks the about 50 illustrative
+  wikilinks in the documents bound for `specs/`. This feature must not
+  edit anyone's prose. It reports each one as a `links/unresolved`
+  warning, which is the evidence that work acts on. The two complement
+  each other, and neither blocks the other.
+- Out-of-scope: the work that moves the eight shipped standards into
+  `specs/standards` and inverts the sync direction. That move is what
+  makes this repository's own documents worth rewriting. The capability
+  isn't built against it, and this feature is tested on fixtures instead
+  of on the move.
+- Out-of-scope: the work that verifies that a committed markdown link
+  lands on a co-located file. This feature checks reachability at rewrite
+  time, which can't guard what is already committed. Boundary: that work
+  reads the rewritten copies and doesn't reimplement resolution.
+- Out-of-scope: an existing finding reuses an ill-fitting `FindingDetail`
+  variant. The FND delta adds its own two variants instead of repeating
+  that, and it doesn't fix `corpus/empty`.
+- Out-of-scope: `scripts/generate-schemas.sh` rewrites `cli/core/specmodel`
+  from scratch, so the FND delta places no hand-written file there. It
+  works within the constraint instead of lifting it.
 
-  reimplement resolution.
-- Out-of-scope: an existing finding reuses an
-  ill-fitting `FindingDetail` variant. The FND delta adds its own two
-  variants rather than repeating that; it does not fix `corpus/empty`.
-- Out-of-scope: `scripts/generate-schemas.sh`
-  rewrites `cli/core/specmodel` from scratch, so the FND delta places no
-  hand-written file there. It works within the constraint rather than
-  lifting it.
-
-## Sequencing Constraints
+## Sequencing constraints
 
 - The FND delta SHALL land before the TGT delta and before the MAP
   delta, because both raise findings through variants FND introduces.
@@ -294,12 +291,13 @@ framework's filing rule.
   replaces only references target resolution resolved.
 - The MAP delta SHALL land before the CMD delta, because the subcommand
   passes a resolved map into the module.
-- Delivery is `single-pr`: all five deltas land in one change, which is
-  how [[container-spec-cli]]'s Change Guidance rule that a new command's
-  `--help` derive from its own declaration is satisfied across the CMD
-  delta and the snapshot cases the same delta regenerates.
+- Delivery is `single-pr`: all five deltas land in one change.
+  [[container-spec-cli]]'s Change guidance requires a new command's
+  `--help` to derive from its own declaration. Landing in one change
+  satisfies that rule across the CMD delta and the snapshot cases that the
+  same delta regenerates.
 
-## AC Coverage
+## AC coverage
 
 Legend: FND = Findings delta (variants); TGT = Markdown Links delta
 (targets); MDL = Markdown Links delta (rewrite); MAP = Command Surface
@@ -310,7 +308,7 @@ delta (map); CMD = Command Surface delta (links).
 | AC-SPECMD-001.1 | TGT, **MDL (proves)** | unit |
 | AC-SPECMD-001.2 | **MDL (proves)** | unit |
 | AC-SPECMD-001.3 | **TGT (proves)**, MDL | unit |
-| AC-SPECMD-001.4 | **MDL (proves)** — via relied-upon References | unit |
+| AC-SPECMD-001.4 | **MDL (proves)**, via relied-upon References | unit |
 | AC-SPECMD-001.5 | **MDL (proves)** | unit |
 | AC-SPECMD-001.6 | **MDL (proves)** | unit |
 | AC-SPECMD-002.1 | FND, **TGT (proves)** | unit |
@@ -339,62 +337,63 @@ delta (map); CMD = Command Surface delta (links).
 | AC-SPECMD-006.2 | **TGT (proves)** | unit |
 | AC-SPECMD-006.3 | **TGT (proves)** | unit |
 
-## Key Decisions
+## Key decisions
 
 None. Every choice made while authoring this blueprint is a behavior
-pinned in a delta above rather than a decision with live alternatives:
-the anchor derivation follows a named external rule, the command name
-and the two rule ids are naming, and the module-versus-command-surface
-split is [[container-spec-cli]]'s existing Change Guidance applied
-rather than a new decision.
+pinned in a delta above, not a decision with live alternatives. The anchor
+derivation follows a named external rule. The command name and the two
+rule ids are naming. The module-versus-command-surface split applies
+[[container-spec-cli]]'s existing Change guidance and isn't a new
+decision.
 
-## Definition of Done
+## Definition of done
 
 - [x] Every delta above is folded into its owning blueprint:
-  - [x] [[module-document-core]] — Components roster gains the Markdown
-    Links record block and its **Built** paragraph; the component
-    diagram gains its edges to References, Spans and Findings; the
-    Findings section's `FindingDetail` vocabulary gains both variants
-  - [x] [[container-spec-cli]] — the Command Surface component's
-    command-tree paragraph names `links` as a sixth subcommand, and the
-    Container Context's read-only statement is re-affirmed against
-    AC-SPECMD-005.3
+  - [x] [[module-document-core]]: the Components roster gains the
+    Markdown Links record block and its **Built** paragraph. The component
+    diagram gains its edges to References, Spans, and Findings. The
+    Findings section's `FindingDetail` vocabulary gains both variants.
+  - [x] [[container-spec-cli]]: the Command Surface component's
+    command-tree paragraph names `links` as a sixth subcommand. The
+    Container context section's read-only statement is reaffirmed against
+    AC-SPECMD-005.3.
 - [x] Every AC in the coverage table is verified at its declared level
-  and cited from its tests per [[ac-traceability-standards]] — all 31
-  carry a citation: 22 from a `// AC:` comment on a unit test, 9 from a
-  snapshot case manifest's `cites`, which [[testing-standards]]
-  Acceptance-Criteria Traceability accepts equally. One exception:
-  AC-SPECMD-005.3 is declared `integration` and is cited by
+  and cited from its tests per [[ac-traceability-standards]]. All 31
+  carry a citation: 22 from a `// AC:` comment on a unit test, and 9 from
+  a snapshot case manifest's `cites`, which the Acceptance-criteria
+  traceability section of [[testing-standards]] accepts equally. One
+  exception: AC-SPECMD-005.3 is declared `integration` and is cited by
   `cli/cmd/links_test.go`'s `TestLinksCreatesModifiesAndDeletesNoFile`
-  rather than by a snapshot case, because a case is pure data and
-  cannot assert that no file appeared.
+  instead of by a snapshot case. A case is pure data and can't assert
+  that no file appeared.
 - [x] Snapshot cases under `cli/testdata/cases/` cover the `links`
-  subcommand, regenerated by `scripts/regenerate-cli-snapshots.sh` with
-  every resulting diff reviewed — nine of them: `links-no-map`,
-  `links-map`, `links-map-empty`, `links-map-incomplete`,
-  `links-unresolved-warning`, `links-unreadable-map`,
-  `links-unreadable-operand`, `links-no-strict-flag`, `help-links`
+  subcommand. They're regenerated by
+  `scripts/regenerate-cli-snapshots.sh`, and every resulting diff is
+  reviewed. The nine cases are `links-no-map`, `links-map`,
+  `links-map-empty`, `links-map-incomplete`, `links-unresolved-warning`,
+  `links-unreadable-map`, `links-unreadable-operand`,
+  `links-no-strict-flag`, and `help-links`.
 - [x] `go test ./core/...` and `go test ./cmd/...` pass, and the profile
   self-application gate in `cli/profile` still runs clean
 - [x] `specs check --strict` exits 0 over this repository's corpus
-- [x] This blueprint's status → retired
+- [x] This blueprint's status is set to retired
 
-## Open Questions
+## Open questions
 
 None.
 
 ## References
 
-- `plugin/skills/spec/references/c4-guide.md` — the component and module
-  definitions the delta blocks and component references are written
+- `plugin/skills/spec/references/c4-guide.md`: the component and module
+  definitions that the delta blocks and component references are written
   against
-- [[frd-spec-markdown-links]] — the requirements this design realizes
-- [[container-spec-cli]] — the owning container, whose Change Guidance
+- [[frd-spec-markdown-links]]: the requirements this design realizes
+- [[container-spec-cli]]: the owning container, whose Change guidance
   places the capability in a module and the wiring in the command
   surface
-- [[module-document-core]] — the module the new component joins, and the
+- [[module-document-core]]: the module the new component joins, and the
   boundary rule that keeps framework vocabulary out of it
-- [[frd-spec-reference-integrity]] — the extraction and resolution this
-  feature consumes rather than reimplements
-- [[adr-018]] — references as one edge collection, which is what makes a
+- [[frd-spec-reference-integrity]]: the extraction and resolution that
+  this feature consumes instead of reimplementing
+- [[adr-018]]: references as one edge collection, which makes a
   reference's resolution available without re-reading a document

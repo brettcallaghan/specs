@@ -11,50 +11,50 @@ delivery: single-pr
 frd: frd-gherkin-adoption
 ---
 
-# Criterion Change Detection Against Git
+# Criterion change detection against Git
 
 ## Overview
 
 **FRD:** [[frd-gherkin-adoption]]
 
 This blueprint covers FEAT-GHK-008 only, as rewritten on 2026-10-08. The
-rest of the FRD was built under `feature-gherkin-adoption`, now
-retired, and its other changes of that date are carried as standalone
-work orders (see Tracker Reconciliation).
+rest of the FRD was built under `feature-gherkin-adoption`, now retired.
+Standalone work orders carry its other changes of that date (see Tracker
+reconciliation).
 
 Today `criterion --changed` compares the working tree against
 `specs.json`, an artifact every query may rewrite, so its baseline is
 whatever the last query left behind. The comparison moves to a git
-revision. A new **Revisions** component in [[module-document-core]]
-resolves the base commit and copies the spec root as that commit holds
-it into a temporary directory, through the `git` executable
-([[adr-031]]). The Corpus build already used for the working tree builds
-that copy unchanged, and Command Surface compares the two builds' criteria
-by identifier and content hash, as it does now. The persisted index takes
+revision. A new Revisions component in [[module-document-core]] resolves
+the base commit. Through the `git` executable ([[adr-031]]), it copies
+the spec root, as that commit holds it, into a temporary directory. The
+Corpus build already used for the working tree builds that copy
+unchanged. Command Surface compares the two builds' criteria by
+identifier and content hash, as it does now. The persisted index takes
 no part.
 
-Delta blocks in dependency order: BASE, then DIFF.
+The delta blocks appear in dependency order: BASE, then DIFF.
 
-## Element Deltas
+## Element deltas
 
 ### Revisions in [[module-document-core]] (added) — BASE
 
 **Intent:** give Document Core the one capability the comparison lacks,
 which is reading the spec root as a commit holds it. The capability is
-framework-agnostic, since it knows git and directories and no document
-type, so it belongs in the module rather than in the command surface
-([[container-spec-cli]]'s Change Guidance). It returns a directory
+framework-agnostic: it knows git and directories, and no document type.
+It therefore belongs in the module rather than in the command surface,
+per [[container-spec-cli]]'s Change guidance. It returns a directory
 rather than a parsed corpus so that the base and the working tree pass
 through one build.
 
 **New components:**
-- **Revisions** (Go package) — Resolves a git revision to a commit and
+- **Revisions** (Go package): Resolves a git revision to a commit and
   materializes a directory's tracked files at that commit. Runs the
   `git` executable as a subprocess: `rev-parse` to locate the repository
   and resolve revisions, `merge-base` for the base, `ls-tree` to list a
   path's tracked files, and `cat-file --batch` to read their blobs.
   Writes only into a temporary directory it creates and removes. It
-  knows nothing of documents, criteria or the index.
+  knows nothing of documents, criteria, or the index.
 
   ```component
   entity_name: Revisions
@@ -110,7 +110,7 @@ throwaway repositories with `git init` in `t.TempDir()`, the way
 **Intent:** point `criterion --changed` at a git base and give it the
 answer and the statuses [[cli-output-standards]] and
 [[cli-exit-status-standards]] require of a query. The comparison itself
-does not change: identifier and content hash only, never position.
+doesn't change: it uses identifier and content hash only, never position.
 
 **Behavior:**
 - WHEN `criterion --changed` runs, the command SHALL build the current
@@ -149,55 +149,55 @@ does not change: identifier and content hash only, never position.
 - The "no persisted index" message and the `corpus.Load` read of the
   baseline SHALL be removed.
 
-**Anchors:** `runCriterionChanged`, `changedCriteria`, `criterionHashes`
-and `renderCriterionChanges` in `cli/cmd/criterion.go`; `corpusOptions`
-in `cli/cmd/root.go`. The snapshot cases `criterion-changed`,
-`criterion-changed-none` and `criterion-changed-no-index` under
-`cli/testdata/cases/` depend on a persisted index as their baseline, and
-a snapshot case's input cannot hold a git repository. They are replaced
-by end-to-end tests that build their repository at test time.
+**Anchors:** `runCriterionChanged`, `changedCriteria`, `criterionHashes`,
+and `renderCriterionChanges` in `cli/cmd/criterion.go`, and
+`corpusOptions` in `cli/cmd/root.go`. The snapshot cases
+`criterion-changed`, `criterion-changed-none`, and
+`criterion-changed-no-index` under `cli/testdata/cases/` depend on a
+persisted index as their baseline. A snapshot case's input can't hold a
+git repository, so end-to-end tests that build their repository at test
+time replace those cases.
 
 ### Relied-upon elements (unchanged)
 
-- [[module-document-core#Corpus]] — `corpus.Build`, which builds both
+- [[module-document-core#Corpus]]: `corpus.Build`, which builds both
   sides, and the CRLF normalization on its read path that makes a blob's
   bytes hash the same as the checked-out file's.
-- [[module-document-core#Gherkin]] — the criterion content hash that
+- [[module-document-core#Gherkin]]: the criterion content hash that
   ignores position, which AC-GHK-008.2 rests on.
-- [[module-spec-profile]] — the feature tag registration that decides
+- [[module-spec-profile]]: the feature tag registration that decides
   which blocks hold criteria, the same on both sides.
 
 ## Contracts
 
-None. The answer's shape is fixed in the DIFF delta and reaches callers
-only through the command surface.
+None. The DIFF delta fixes the answer's shape, and the answer reaches
+callers only through the command surface.
 
-## Tracker Reconciliation
+## Tracker reconciliation
 
 - Subsumed by DIFF, with BASE: "criterion --changed
   compares against a git ref instead of the persisted index." Grooming
-  blocks that issue on DIFF, and the Definition of Done closes it.
+  blocks that issue on DIFF, and the Definition of done closes it.
 - Prerequisite: the work order that implements the exit-status classes,
   including the environment status `3` that BASE's errors and the
   `--since` invocation error depend on.
-- Out-of-scope: the work that renders `feature` and `criterion`
-  queries as YAML lists. DIFF renders the change listing itself, and
-  shares that work's YAML renderer without depending on its record
-  shape.
-- Out-of-scope: whether queries may write `specs.json`.
-  DIFF stops `--changed` reading it, whatever that decides.
+- Out-of-scope: the work that renders `feature` and `criterion` queries
+  as YAML lists. DIFF renders the change listing itself and shares that
+  work's YAML renderer without depending on its record shape.
+- Out-of-scope: whether queries may write `specs.json`. DIFF stops
+  `--changed` from reading it, whatever that decides.
 
-## Sequencing Constraints
+## Sequencing constraints
 
 - `delivery: single-pr`. BASE and DIFF land in the same change, with
-  the documentation updates the Definition of Done lists.
+  the documentation updates that the Definition of done lists.
 - The BASE delta SHALL land before the DIFF delta.
 - The exit-status work order SHALL land before the DIFF delta.
 
-## AC Coverage
+## AC coverage
 
-Legend: BASE = Revisions delta in [[module-document-core]];
-DIFF = change listing delta in [[container-spec-cli]].
+Legend: BASE = Revisions delta in [[module-document-core]], and DIFF =
+change listing delta in [[container-spec-cli]].
 
 | AC | Satisfied by | Verified by |
 |----|--------------|-------------|
@@ -211,47 +211,49 @@ DIFF = change listing delta in [[container-spec-cli]].
 | AC-GHK-008.8 | **DIFF (proves)** | e2e |
 | AC-GHK-008.9 | BASE, **DIFF (proves)** | e2e |
 
-## Key Decisions
+## Key decisions
 
-- [[adr-031]] — base revisions are read through the `git` executable,
+- [[adr-031]]: base revisions are read through the `git` executable,
   with tracked blobs copied into a temporary directory.
 
-## Definition of Done
+## Definition of done
 
 - [x] Every delta above is folded into its owning blueprint:
-  - [x] [[module-document-core]] — Revisions added to the Components
-    roster, the diagram and its record block
-  - [x] [[container-spec-cli]] — the `criterion --changed` paragraph of
-    Command Surface rewritten for the git base, `--since` and
+  - [x] [[module-document-core]]: Revisions added to the Components
+    roster, the diagram, and its record block
+  - [x] [[container-spec-cli]]: the `criterion --changed` paragraph of
+    Command Surface rewritten for the git base, `--since`, and
     `--exit-code`
-- [x] [[adr-031]] status: draft → approved, and referenced from the Key
-  Decisions of [[module-document-core]] and [[container-spec-cli]]
+- [x] [[adr-031]] status moves from draft to approved, and the Key
+  decisions of [[module-document-core]] and [[container-spec-cli]]
+  reference it
 - [x] Every AC in the coverage table is verified at its declared level
   and cited from its tests per [[ac-traceability-standards]]
-- [x] Every behaviour this blueprint decided that no FRD criterion asks
-  for (the default-branch order, the answer's shape, `--since` without
-  `--changed`, a spec root outside the work tree) is lifted into
-  [[frd-gherkin-adoption]] as a criterion and cited from its test
+- [x] Every behavior this blueprint decided that no FRD criterion asks
+  for is lifted into [[frd-gherkin-adoption]] as a criterion and cited
+  from its test: the default-branch order, the answer's shape, `--since`
+  without `--changed`, and a spec root outside the work tree
 - [x] The subsumed `criterion --changed` issue is closed
 
 - [x] No live document references this blueprint (`specs refs
   feature-gherkin-change-detection` names no live document), per
   [[document-relationship-standards]]
-- [x] This blueprint's status → retired
+- [x] This blueprint's status moves to retired
 - [x] With this blueprint already retired, `specs check --strict` over
   the corpus is green
 
-## Open Questions
+## Open questions
 
 None.
 
 ## References
 
-- [[c4-standards]] — the component and module definitions the delta
+- [[c4-standards]]: the component and module definitions that the delta
   blocks are written against
-- `feature-gherkin-adoption` — the retired blueprint that built the
-  rest of this FRD, including the index-based comparison this replaces
-- [[adr-020]] — FRDs evolve in place, and deltas between versions are
+- `feature-gherkin-adoption`: the retired blueprint that built the rest
+  of this FRD, including the index-based comparison this blueprint
+  replaces
+- [[adr-020]]: FRDs evolve in place, and deltas between versions are
   keyed on AC identifiers, which is the comparison this command performs
-- [[cli-exit-status-standards]] — the classes BASE's errors map to
-- [[cli-output-standards]] — the shape of DIFF's answer
+- [[cli-exit-status-standards]]: the classes BASE's errors map to
+- [[cli-output-standards]]: the shape of DIFF's answer

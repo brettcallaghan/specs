@@ -11,52 +11,55 @@ sources:
   - "frd-spec-structure"
 ---
 
-# Spec Corpus Structure and Hygiene Conformance
+# Spec corpus structure and hygiene conformance
 
 ## Overview
 
 Specification templates prescribe a document's structure: required
 sections, structured record blocks describing declared elements, a line
 width, and no leftover authoring scaffolding once a document is
-finished. None of that is checked mechanically today, so a document that
-skipped a section or still carries its template's instruction blocks can
-reach review looking finished.
+finished. Nothing checks any of that mechanically today, so a document
+that skipped a section or still carries its template's instruction
+blocks can reach review looking finished.
 
 This feature judges documents against the structure
 [[frd-spec-structure]] records. It reports documents that omit a
 required section, exceed the configured line width, or retain
-placeholder or scaffolding text, and it declares the vocabulary those
+placeholder or scaffolding text. It also declares the vocabulary those
 checks read: the required headings of each document type, the
-record-block tags, the placeholder patterns and the width limit. Like
-[[frd-spec-reference-integrity]], it introduces no new artifact or
-engine: it reads the structure properties of the index defined in
-FEAT-SPEC-002 and emits findings through the engine defined in
-FEAT-SPEC-006. Corpus discovery, membership, output location, and the
-warm index are inherited unchanged and are not restated here.
+record-block tags, the placeholder patterns, and the width limit.
 
-**Out of scope for this feature.** Extracting the headings, section
-spans and record blocks these checks read is specified in
-[[frd-spec-structure]], which is a separate feature because the data has
-a consumer that needs none of the judgment here: anchor resolution, in
-[[frd-spec-anchor-references]]. Judging whether a section says the right
-thing — whether a requirement is testable, whether a design carries
-enough intent — stays with a reviewing agent; this feature checks that
-the sections exist, not what they contain. Reference resolution is
-specified in [[frd-spec-reference-integrity]].
+Like [[frd-spec-reference-integrity]], this feature introduces no new
+artifact or engine. It reads the structure properties of the index
+defined in FEAT-SPEC-002 and emits findings through the engine defined
+in FEAT-SPEC-006. It inherits corpus discovery, membership, output
+location, and the warm index unchanged, and doesn't restate them.
+
+These concerns are out of scope for this feature:
+
+- Extracting the headings, section spans, and record blocks these checks
+  read. [[frd-spec-structure]] specifies it as a separate feature because
+  the data has a consumer that needs none of the judgment here: anchor
+  resolution, in [[frd-spec-anchor-references]].
+- Judging whether a section says the right thing, such as whether a
+  requirement is testable or whether a design carries enough intent.
+  That stays with a reviewing agent. This feature checks that the
+  sections exist, not what they contain.
+- Reference resolution, which [[frd-spec-reference-integrity]] specifies.
 
 ## Terminology
 
-- **Record block** — a fenced code block whose info string the active
-  profile registers, carrying a YAML mapping about an element declared
+- **Record block**: a fenced code block whose info string the active
+  profile registers. It carries a YAML mapping about an element declared
   inside a document, per [[adr-008]]. The registration may name a JSON
   Schema the mapping must satisfy.
-- **Placeholder pattern** — a configured textual pattern that marks
-  unfilled template content (for example `<Feature Name>`), expected to
-  be absent once a document reaches a finished status.
+- **Placeholder pattern**: a configured textual pattern that marks
+  unfilled template content (for example, `<Feature Name>`). It's
+  expected to be absent once a document reaches a finished status.
 
 ## Requirements
 
-### FEAT-SPECSTR-002: Required Sections and Hygiene
+### FEAT-SPECSTR-002: Required sections and hygiene
 
 **Acceptance Criteria:**
 
@@ -156,10 +159,10 @@ Feature: Required Sections and Hygiene
 ```
 
 *Note:* AC-SPECSTR-002.6 reports the placeholder only at a finished
-status — the same `<Feature Name>` text in a `draft` document is
-unfinished work rather than a defect.
+status. The same `<Feature Name>` text in a `draft` document is
+unfinished work, not a defect.
 
-### FEAT-SPECSTR-004: Structure Configuration
+### FEAT-SPECSTR-004: Structure configuration
 
 **Acceptance Criteria:**
 
@@ -185,21 +188,23 @@ Feature: Structure Configuration
 
 ## References
 
-- [[frd-spec-structure]] — records the headings, section spans and
+- [[frd-spec-structure]]: records the headings, section spans, and
   record blocks these checks read
-- [[frd-spec-index]] — the index, finding engine, corpus
-  discovery, and configuration this feature extends
-- [[frd-spec-anchor-references]] — resolves anchors against the headings
+- [[frd-spec-index]]: the index, finding engine, corpus discovery, and
+  configuration this feature extends
+- [[frd-spec-anchor-references]]: resolves anchors against the headings
   [[frd-spec-structure]] records
-- [[frd-spec-reference-integrity]] — resolves the slug half of a
-  reference, and defers the anchor half to that sub-feature
-- [[adr-008]] — the element record blocks this feature extracts and
+- [[frd-spec-reference-integrity]]: resolves the slug half of a
+  reference, and defers the anchor half to the anchor-references
+  sub-feature
+- [[adr-008]]: the element record blocks this feature extracts and
   validates
-- [[adr-021]] — Gherkin, the notation these features and acceptance
+- [[adr-021]]: Gherkin, the notation these features and acceptance
   criteria are written in
-- [[gherkin-guide]] — how to write them
-- `plugin/skills/spec/references/template-authoring-standards.md` —
+- [[gherkin-guide]]: how to write Gherkin features and acceptance
+  criteria
+- `plugin/skills/spec/references/template-authoring-standards.md`:
   frontmatter properties, slug conventions, line width, and required
   sections
-- `plugin/skills/spec/references/document-readiness-checklist.md` — the
+- `plugin/skills/spec/references/document-readiness-checklist.md`: the
   structure checks whose mechanical subset this feature absorbs

@@ -9,89 +9,83 @@ status: approved
 sources: []
 ---
 
-# Gherkin Features and Acceptance Criteria
+# Gherkin features and acceptance criteria
 
 ## Overview
 
-[[adr-021]] adopts Gherkin as the notation for features and acceptance
-criteria. Nothing implements it. Today an acceptance criterion is a
-markdown bullet that no tool reads: the CLI indexes a document's
-frontmatter and location, and the criteria inside it are prose to
-everything downstream.
+[[adr-021]] adopts Gherkin as the notation for features and acceptance criteria.
+Nothing implements it. Today an acceptance criterion is a Markdown bullet that
+no tool reads. The CLI indexes a document's frontmatter and location, and to
+everything downstream, the criteria inside it are prose.
 
-This feature makes features and criteria first-class records. The CLI
-parses Gherkin wherever the framework admits it, validates what the
-Gherkin parser cannot — that every criterion is identified, uniquely,
-and says something — extracts each feature and criterion into the
-index as a typed record, and answers direct questions about them by
-tag.
+This feature makes features and criteria first-class records. The CLI parses
+Gherkin wherever the framework admits it. It validates what the Gherkin parser
+can't: that every criterion is identified, that its identifier is unique, and
+that it says something. It extracts each feature and criterion into the index as
+a typed record, and it answers direct questions about them by tag.
 
-The payoff is addressability. An agent implementing a work order asks
-for one criterion instead of reading an FRD. A reviewer asks which
-criteria a branch changes instead of reading a diff. An
-organization publishes the index to a central store and gets features
-and criteria as rows rather than paragraphs — the reason [[adr-021]]
-chose a parsed notation over prose.
+The payoff is addressability. An agent implementing a work order asks for one
+criterion instead of reading an FRD. A reviewer asks which criteria a branch
+changes instead of reading a diff. An organization publishes the index to a
+central store and gets features and criteria as rows instead of paragraphs.
+That's the reason [[adr-021]] chose a parsed notation over prose.
 
-**Out of scope for this feature.** Each is deferred deliberately:
+The following are out of scope for this feature, each deferred deliberately:
 
-- **Executing scenarios.** Nothing here runs a scenario against a
-  system under test. These are specification records; no runner is
-  adopted, and the `@level-*` tag records intent rather than driving
-  execution.
-- **Migrating existing criteria.** Rewriting the prose criteria in the
-  three existing FRDs is separate work, tracked on its own. It is a
-  translation, not a compatibility problem: extraction reads Gherkin
-  only ([[adr-021]] constraint 9), so until a document is translated it
-  contributes no feature records rather than being read a second way.
-- **Reading prose criteria.** No extractor recognises a prose
-  criterion. An earlier revision required one, and it was withdrawn:
-  a second reader is transitional machinery for a transition of three
-  documents, and it would outlive the transition in the model and in
-  every consumer.
-- **Judging criterion quality.** Whether a criterion is atomic,
-  testable, or well-phrased stays with a reviewing agent. This feature
-  reports structural defects only.
-- **Metadata on a standalone `.feature` file.** A feature file carries
-  none: it is a feature source, and its metadata is its owning
-  document's. Whether it should ever be a document in its own right,
-  with a status of its own, is a later question — nothing here
-  depends on the answer.
-- **Rendering or diagram generation** from feature records.
-- **Test-to-criterion coverage reconciliation.** Enumerating criteria is
-  the prerequisite and is delivered here; comparing them against test
+- Executing scenarios. Nothing here runs a scenario against a system under test.
+  These are specification records. No runner is adopted, and the `@level-*` tag
+  records intent instead of driving execution.
+- Migrating existing criteria. Rewriting the prose criteria in the three
+  existing FRDs is separate work, tracked on its own. It's a translation, not a
+  compatibility problem. Extraction reads Gherkin only ([[adr-021]] constraint
+  9), so until a document is translated, it contributes no feature records
+  instead of being read a second way.
+- Reading prose criteria. No extractor recognizes a prose criterion. An earlier
+  revision required one, and it was withdrawn. A second reader is transitional
+  machinery for a transition of three documents, and it would outlive the
+  transition in the model and in every consumer.
+- Judging criterion quality. Whether a criterion is atomic, testable, or well
+  phrased stays with a reviewing agent. This feature reports structural defects
+  only.
+- Metadata on a standalone `.feature` file. A feature file carries none. It's a
+  feature source, and its metadata is its owning document's. Whether it should
+  ever be a document in its own right, with a status of its own, is a later
+  question, and nothing here depends on the answer.
+- Rendering or diagram generation from feature records.
+- Test-to-criterion coverage reconciliation. Enumerating criteria is the
+  prerequisite, and this feature delivers it. Comparing them against test
   citations is a follow-on feature.
 
 ## Terminology
 
-- **Gherkin source** — a region of text the CLI parses as Gherkin:
-  either a fenced ` ```gherkin ` block inside a markdown document, or a
-  standalone `.feature` file.
-- **Feature record** — the extracted representation of one Gherkin
-  `Feature`: its identifier, name, description, owning document, source
+- **Gherkin source**: a region of text the CLI parses as Gherkin, either a
+  fenced ` ```gherkin ` block inside a Markdown document or a standalone
+  `.feature` file.
+- **Feature record**: the extracted representation of one Gherkin `Feature`. It
+  holds the feature's identifier, name, description, owning document, source
   span, and the criteria beneath it.
-- **Criterion record** — the extracted representation of one acceptance
-  criterion: a `Scenario`, a `Scenario Outline`, or one tagged
+- **Criterion record**: the extracted representation of one acceptance
+  criterion, which is a `Scenario`, a `Scenario Outline`, or one tagged
   `Examples` block of an outline.
-- **Tag vocabulary** — the set of tags the framework assigns meaning to,
-  as distinct from tags a project adds for its own purposes.
-- **Content hash** — a digest over a criterion's name and text, used to
-  detect that a criterion changed rather than moved.
-- **Feature source** — a `.feature` file, which holds features but is not
-  itself a document: it carries no frontmatter, and its owning document
-  is the one its `@frd-<slug>` tag names.
-- **Owning document** — the document a feature belongs to. For a fenced
-  block it is the document the block is written in; a feature file, being
-  no document, names its owner with a tag.
-- **Feature code** — the short uppercase code that groups features by
-  topic, domain or capability. Features share a code; a code and a number
-  together identify one.
-- **Feature identifier** — a feature's durable address, composed of a
-  prefix, its group code and its number: `FEAT-GHK-001`.
+- **Tag vocabulary**: the set of tags the framework assigns meaning to, as
+  distinct from tags a project adds for its own purposes.
+- **Content hash**: a digest over a criterion's name and text, used to detect
+  that a criterion changed rather than moved.
+- **Feature source**: a `.feature` file, which holds features but isn't itself a
+  document. It carries no frontmatter, and its owning document is the one its
+  `@frd-<slug>` tag names.
+- **Owning document**: the document a feature belongs to. For a fenced block,
+  it's the document the block is written in. A feature file isn't a document, so
+  it names its owner with a tag.
+- **Feature code**: the short uppercase code that groups features by topic,
+  domain, or capability. Features share a code, and a code and a number together
+  identify one feature.
+- **Feature identifier**: a feature's durable address, composed of a prefix, its
+  group code, and its number: `FEAT-GHK-001`.
 
 ## Requirements
 
-### FEAT-GHK-001: Admissible Gherkin Sources
+### FEAT-GHK-001: Admissible Gherkin sources
 
 **Acceptance Criteria:**
 
@@ -167,14 +161,13 @@ Feature: Admissible Gherkin Sources
     And the CLI requires no tag on them to say so
 ```
 
-*Note:* AC-GHK-001.2 requires a change to [[frd-spec-index]],
-whose AC-SPEC-001.6 admits only files ending in `.md` as corpus
-candidates. A `.feature` file is not a corpus member — it carries no
-frontmatter and is not a document — so what that criterion needs is a
-second discovery pass for feature sources, not an exception to corpus
-membership.
+*Note:* AC-GHK-001.2 requires a change to [[frd-spec-index]], whose
+AC-SPEC-001.6 admits only files ending in `.md` as corpus candidates. A
+`.feature` file isn't a corpus member, because it carries no frontmatter and
+isn't a document. What that criterion needs is a second discovery pass for
+feature sources, not an exception to corpus membership.
 
-### FEAT-GHK-002: Tag Vocabulary
+### FEAT-GHK-002: Tag vocabulary
 
 **Acceptance Criteria:**
 
@@ -291,18 +284,17 @@ Feature: Tag Vocabulary
     Then the CLI reports a finding naming that tag with severity "warning"
 ```
 
-*Rationale for AC-GHK-002.7 and AC-GHK-002.9:* the dangerous case is an
-author who means several criteria and tags only the scenario, so all but
-the first cease to exist in a document that parses cleanly. That intent
-is not machine-detectable: several `Examples` blocks under one
-identifier are equally a single criterion presented in named groups,
-which this document itself uses. So the check is **partial** tagging,
-which is unambiguous, and the authoring rule lives in the Gherkin guide
-where a human or agent can apply judgment. An earlier draft made the
-multi-block case itself an error, and this document would have failed
+*Rationale for AC-GHK-002.7 and AC-GHK-002.9:* the dangerous case is an author
+who means several criteria and tags only the scenario, so all but the first
+cease to exist in a document that parses cleanly. A machine can't detect that
+intent. Several `Examples` blocks under one identifier are equally a single
+criterion presented in named groups, which this document itself uses. So the
+check is partial tagging, which is unambiguous, and the authoring rule lives in
+the Gherkin guide, where a human or agent can apply judgment. An earlier draft
+made the multi-block case itself an error, and this document would have failed
 it.
 
-### FEAT-GHK-003: Feature Identity and Grouping
+### FEAT-GHK-003: Feature identity and grouping
 
 **Acceptance Criteria:**
 
@@ -362,15 +354,14 @@ Feature: Feature Identity and Grouping
     Then the CLI requires the identifier's code and number to be that feature's
 ```
 
-*Rationale:* an earlier draft of this requirement made a feature's code
-unique and gave the feature a separate slug. Both were wrong, and the
-corpus says so: `AC-SPEC-001.1` through `AC-SPEC-011.5` share the code
-`SPEC` across eleven requirements. A code groups; a code and a number
-together identify. The separate slug is dropped because the identifier
-already is the durable address, and a second one would be a second thing
-to keep in step.
+*Rationale:* an earlier draft of this requirement made a feature's code unique
+and gave the feature a separate slug. Both were wrong, and the corpus says so:
+`AC-SPEC-001.1` through `AC-SPEC-011.5` share the code `SPEC` across eleven
+requirements. A code groups, and a code and a number together identify. The
+separate slug is dropped because the identifier already is the durable address,
+and a second one would be a second thing to keep in step.
 
-### FEAT-GHK-004: References Inside Gherkin
+### FEAT-GHK-004: References inside Gherkin
 
 **Acceptance Criteria:**
 
@@ -422,12 +413,12 @@ Feature: References Inside Gherkin
     And the CLI does not attempt to resolve the anchor against a Feature, Rule or Scenario name
 ```
 
-*Rationale for AC-GHK-004.4:* a scenario name is not a heading, and
-anchors resolve against headings. Recording the anchor without resolving
-it keeps this feature from silently inventing a second anchor namespace
-that [[frd-spec-reference-integrity]] does not define.
+*Rationale for AC-GHK-004.4:* a scenario name isn't a heading, and anchors
+resolve against headings. Recording the anchor without resolving it keeps this
+feature from silently inventing a second anchor namespace that
+[[frd-spec-reference-integrity]] doesn't define.
 
-### FEAT-GHK-005: Feature and Criterion Records
+### FEAT-GHK-005: Feature and criterion records
 
 **Acceptance Criteria:**
 
@@ -507,16 +498,16 @@ Feature: Feature and Criterion Records
     Then feature records are present in the index under its schema version
 ```
 
-*Rationale:* an earlier draft of this requirement decomposed a criterion
-into typed steps and keyed example rows, on the argument that a parsed
-notation yields fields where prose yields one string. It does — but no
-requirement in this document consumes those fields, and they are fillable
-from Gherkin alone. Carrying them would put a Gherkin-shaped model at the
-centre of a framework that treats the notation as replaceable. The index
-schema is additive, so decomposition can be introduced when a consumer
-needs it; withdrawing it later could not be.
+*Rationale:* an earlier draft of this requirement decomposed a criterion into
+typed steps and keyed example rows, on the argument that a parsed notation
+yields fields where prose yields one string. It does, but no requirement in this
+document consumes those fields, and they can be filled from Gherkin alone.
+Carrying them would put a Gherkin-shaped model at the center of a framework that
+treats the notation as replaceable. The index schema is additive, so
+decomposition can be introduced when a consumer needs it, but it couldn't be
+withdrawn later.
 
-### FEAT-GHK-006: Validation and Diagnostics
+### FEAT-GHK-006: Validation and diagnostics
 
 **Acceptance Criteria:**
 
@@ -598,15 +589,14 @@ Feature: Validation and Diagnostics
     And the CLI resolves identifier uniqueness against the whole corpus
 ```
 
-Every Gherkin rule is an error but one: a tag outside the vocabulary is
-a warning (AC-GHK-002.8), because a project may use tags of its own. A
-Feature with no description and a criterion with no `@level-*` tag are
-not findings at all: the description is the author's to write or omit,
-and [[gherkin-guide]] makes the level tag optional, so a warning on
-either would fire on most of the corpus and teach readers to ignore the
-severity.
+Every Gherkin rule is an error but one. A tag outside the vocabulary is a
+warning (AC-GHK-002.8), because a project may use tags of its own. A Feature
+with no description and a criterion with no `@level-*` tag aren't findings at
+all. The description is the author's to write or omit, and [[gherkin-guide]]
+makes the level tag optional. A warning on either would fire on most of the
+corpus and teach readers to ignore the severity.
 
-### FEAT-GHK-007: Queries by Tag
+### FEAT-GHK-007: Queries by tag
 
 **Acceptance Criteria:**
 
@@ -716,31 +706,31 @@ Feature: Queries by Tag
     And the CLI exits 2
 ```
 
-*Rationale:* AC-GHK-007.6 binds these queries to the warm-index
-behaviour [[frd-spec-index]] already specifies, rather than
-restating a latency budget this feature does not own.
+*Rationale:* AC-GHK-007.6 binds these queries to the warm-index behavior
+[[frd-spec-index]] already specifies, instead of restating a latency budget this
+feature doesn't own.
 
-*Rationale for AC-GHK-007.10 to AC-GHK-007.12:* a feature record
-carries its description and every criterion's text, so listing every
-feature in full answers "which features exist?" with most of the corpus's
-normative text. The compact view is the default for the reason the
-reference query's is, and is a named view as [[cli-output-standards]]
-defines one: every feature stays and every kept value is whole.
-`criteria_count` is derived — the full record carries the criteria
-themselves, not their count — and is named apart from the full view's
-`criteria` so one key never holds two types. An emitted feature file is a
-document payload rather than an answer, so neither view applies to it,
-and the combination is refused rather than one option ignored.
+*Rationale for AC-GHK-007.10 to AC-GHK-007.12:* a feature record carries its
+description and every criterion's text. So listing every feature in full answers
+"which features exist?" with most of the corpus's normative text. The compact
+view is the default for the same reason the reference query's is. It's a named
+view as [[cli-output-standards]] defines one: every feature stays, and every
+kept value is whole.
 
-*Rationale for AC-GHK-007.4 and AC-GHK-007.8:* an identifier or a code
-is a fact about the corpus, which an author may write tomorrow; a
-qualifier is drawn from a registered set no document can extend. So an
-undeclared identifier is an answer and an unregistered qualifier is a
-mistake in the question, as [[cli-exit-status-standards]] draws the line.
-The registered qualifiers are those AC-GHK-002.1 lists: `negative`,
-`manual` and `level-*`.
+`criteria_count` is derived, because the full record carries the criteria
+themselves, not their count. It's named apart from the full view's `criteria` so
+that one key never holds two types. An emitted feature file is a document
+payload, not an answer, so neither view applies to it. The CLI refuses the
+combination instead of ignoring one of the options.
 
-### FEAT-GHK-008: Local Change Detection
+*Rationale for AC-GHK-007.4 and AC-GHK-007.8:* an identifier or a code is a fact
+about the corpus, which an author may write tomorrow. A qualifier is drawn from
+a registered set that no document can extend. So an undeclared identifier is an
+answer, and an unregistered qualifier is a mistake in the question, as
+[[cli-exit-status-standards]] draws the line. The registered qualifiers are the
+ones AC-GHK-002.1 lists: `negative`, `manual`, and `level-*`.
+
+### FEAT-GHK-008: Local change detection
 
 **Acceptance Criteria:**
 
@@ -930,25 +920,26 @@ Feature: Local Change Detection
       | removed        | base_record            |
 ```
 
-*Rationale for AC-GHK-008.10, AC-GHK-008.14 and AC-GHK-008.15:* a local
-branch is only as current as the last time someone updated it, and a
-cloud session or a CI checkout typically never does, while its
-remote-tracking branch is refreshed by every fetch. A base taken from a
-stale local `main` silently attributes every change merged since to the
-branch under review, so the remote-tracking branch is preferred and the
-local one is used only where no remote-tracking candidate exists. The
-warning names the stale local branch because the caller who reads it may
-be relying on that branch elsewhere; it goes to standard error so the
-answer a caller parses is the same whether or not it fires. A local
-branch that is ahead of or diverged from its remote-tracking branch is
-not "behind", so it draws no warning.
+*Rationale for AC-GHK-008.10, AC-GHK-008.14, and AC-GHK-008.15:* a local branch
+is only as current as the last time someone updated it. A cloud session or a CI
+checkout typically never updates it, while every fetch refreshes its
+remote-tracking branch. A base taken from a stale local `main` silently
+attributes every change merged since then to the branch under review. So the CLI
+prefers the remote-tracking branch and uses the local one only where no
+remote-tracking candidate exists.
 
-*Rationale for AC-GHK-008.11 and AC-GHK-008.16:* a reviewer reading a
-change listing needs to know what each listed criterion is about without
-one further query per identifier, so every entry carries its name. The
-full option carries the records themselves — both sides of a change, so
-the reviewer can compare them — and is valid only with a change listing,
-since a criterion query already returns the whole record.
+The warning names the stale local branch because the caller who reads it may be
+relying on that branch elsewhere. It goes to standard error so that the answer a
+caller parses is the same whether or not it fires. A local branch that's ahead
+of or diverged from its remote-tracking branch isn't "behind," so it draws no
+warning.
+
+*Rationale for AC-GHK-008.11 and AC-GHK-008.16:* a reviewer reading a change
+listing needs to know what each listed criterion is about without one more query
+per identifier, so every entry carries its name. The full option carries the
+records themselves, both sides of a change, so that the reviewer can compare
+them. It's valid only with a change listing, because a criterion query already
+returns the whole record.
 
 ### FEAT-GHK-009: Publication
 
@@ -989,26 +980,25 @@ Feature: Publication
 
 ## References
 
-- [[adr-021]] — the decision this feature implements, and the fourteen
+- [[adr-021]]: the decision this feature implements, and the fourteen
   constraints its requirements realize
-- [[adr-002]] — EARS, which continues to govern every normative
-  statement that is not a feature or an acceptance criterion
-- [[frd-spec-index]] — the index, the finding record, the warm
-  index these queries answer from, and AC-SPEC-001.6, whose `.md`-only
-  corpus membership FEAT-GHK-001 leaves standing
-- [[cli-exit-status-standards]] — the query and gate statuses these
-  queries and the change listing follow
-- [[cli-output-standards]] — the shape their answers take
-- [[frd-spec-reference-integrity]] — the reference extraction that
-  FEAT-GHK-004 extends over Gherkin sources
-- `schemas/feature.strata` — the `Feature` and `Criterion` record shapes
+- [[adr-002]]: EARS, which continues to govern every normative statement that
+  isn't a feature or an acceptance criterion
+- [[frd-spec-index]]: the index, the finding record, the warm index these
+  queries answer from, and AC-SPEC-001.6, whose `.md`-only corpus membership
+  FEAT-GHK-001 leaves standing
+- [[cli-exit-status-standards]]: the query and gate statuses these queries and
+  the change listing follow
+- [[cli-output-standards]]: the shape their answers take
+- [[frd-spec-reference-integrity]]: the reference extraction that FEAT-GHK-004
+  extends over Gherkin sources
+- `schemas/feature.strata`: the `Feature` and `Criterion` record shapes
   FEAT-GHK-005 specifies, and the `features` collection they occupy on
-  `SpecIndex`. The Strata definition is the contract; the JSON Schema, Go
-  types and generated documentation are transpiled from it
-- [[gherkin-guide]] — how to write
-  conforming Gherkin; the authoring counterpart to this document's rules
-- `plugin/skills/spec/references/ac-traceability-standards.md` — the
-  citation format that consumes these identifiers
-- `docs/research/gherkin/extraction-findings.md` — the measurements
-  behind the comment header, the absence of block comments, and the
-  content hash
+  `SpecIndex`. The Strata definition is the contract. The JSON Schema, Go types,
+  and generated documentation are transpiled from it
+- [[gherkin-guide]]: how to write conforming Gherkin, the authoring counterpart
+  to this document's rules
+- `plugin/skills/spec/references/ac-traceability-standards.md`: the citation
+  format that consumes these identifiers
+- `docs/research/gherkin/extraction-findings.md`: the measurements behind the
+  comment header, the absence of block comments, and the content hash

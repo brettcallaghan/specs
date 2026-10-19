@@ -12,7 +12,7 @@ specs:
 version: "1.1"
 ---
 
-# Specs Configuration
+# Specs configuration
 
 ## Overview
 
@@ -21,27 +21,27 @@ specification corpus is and which rules apply to it. It has two
 surfaces at different tiers, described together because they are two
 views of one vocabulary.
 
-The **public surface** is `specs.toml`, a file an adopting repository
+The public surface is `specs.toml`, a file that an adopting repository
 authors at its root. It crosses a boundary of independent change: teams
 outside this one write it, and their files must keep working as the CLI
-evolves. The **internal surface** is the in-process registration
-structure a profile hands to Document Core, which crosses the module
-boundary between [[module-spec-profile]] and [[module-document-core]]
-inside one process.
+evolves. The internal surface is the in-process registration structure
+that a profile hands to Document Core. It crosses the module boundary
+between [[module-spec-profile]] and [[module-document-core]] inside one
+process.
 
-**In v1 the public surface selects a profile; it does not modify one.**
-An adopting repository says which repository it is, where its documents
+In v1, the public surface selects a profile and doesn't modify one. An
+adopting repository says which repository it is, where its documents
 live, which profile is active, and a small number of house conventions.
-Everything about a document type — its schema, its slug pattern, the
-sections it requires — is supplied by the active profile and is not
-overridable from `specs.toml`. The vocabulary below therefore appears
-once, in the internal surface, and the public surface names it rather
-than redefining it.
+The active profile supplies everything about a document type, such as
+its schema, its slug pattern, and the sections it requires, and
+`specs.toml` can't override any of it. The vocabulary below therefore
+appears once, in the internal surface, and the public surface names it
+rather than redefining it.
 
-The two surfaces are one contract because they are one vocabulary seen
-from two sides, and because the boundary between them is the thing most
-likely to move: a key promoted from internal to public in a later
-version is a change to both halves at once, and this document is where
+The two surfaces are one contract for two reasons. They're one
+vocabulary seen from two sides, and the boundary between them is the
+part most likely to move. A key promoted from internal to public in a
+later version changes both halves at once, and this document is where
 that promotion is decided.
 
 Provided by [[container-spec-cli]]. Visibility: public, on the strength
@@ -74,39 +74,44 @@ name = "specs" # which document vocabulary to activate
 line_width = 80          # measured in Unicode codepoints
 ```
 
-That is the whole of it in v1. `[workspace].name`, `[workspace].root`
-and `[profile].name` are required; `[conventions]` keys resolve from the
-active profile when absent.
+In v1, the file has no other keys. `[workspace].name`,
+`[workspace].root`, and `[profile].name` are required. When a
+`[conventions]` key is absent, it resolves from the active profile.
 
-There is deliberately no way to override a document type, add one,
-register a fenced block tag, or supply a schema. Those are the internal
-surface, and holding them back is what keeps v1's compatibility promise
-cheap: a key that was never public cannot be broken by changing it, and
-the framework's vocabulary is still moving. Promotion is one-way and
-additive — a repository that never wrote a key it could not write is
-unaffected by a later version that lets it.
+By design, the file can't override a document type, add one, register a fenced
+block tag, or supply a schema. Those belong to the internal surface. Holding
+them back keeps v1's compatibility promise cheap, because changing a key that
+was never public can't break anything, and the framework's vocabulary is still
+moving. Promotion is one-way and additive. A repository that never wrote a key
+it couldn't write is unaffected by a later version that allows it.
 
 ### The internal surface: profile registration
 
-**Internal — not an extension point outside this repository, and not
-reachable from `specs.toml` in v1.** A profile supplies, for each
-document type it registers: the type name, the JSON Schema its
-frontmatter satisfies, the slug pattern, whether the type is numbered,
-the section hierarchy it requires, and the named section sets a span
-query can select. It additionally supplies the fenced block tags to
-extract and any rule that cannot be expressed as data — the
-agreement of an element's declarations and supersession integrity are
-the two current examples.
+This surface is internal. It isn't an extension point outside this
+repository, and `specs.toml` can't reach it in v1. For each document
+type it registers, a profile supplies:
 
-Required sections are a **hierarchy, not a flat list.** A document's
-headings nest, and the rules worth enforcing are about that nesting: a
+- the type name
+- the JSON Schema its frontmatter satisfies
+- the slug pattern
+- whether the type is numbered
+- the section hierarchy it requires
+- the named section sets a span query can select
+
+A profile also supplies the fenced block tags to extract, and any rule
+that can't be expressed as data. The two current examples of such rules
+are the agreement of an element's declarations and supersession
+integrity.
+
+Required sections form a hierarchy, not a flat list. A document's
+headings nest, and the rules worth enforcing are about that nesting. A
 missing `## Consequences` and a `### Consequences` misplaced under
-`## Decision` are different defects, and a flat list cannot tell them
-apart. It also cannot say that `## Alternatives Considered` holds one
-subsection per alternative — the shape most likely to be got wrong. The
-registered form is therefore a tree, each node naming a heading, its
-level relative to its parent, whether it is required, and its own
-children:
+`## Decision` are different defects, and a flat list can't tell them
+apart. A flat list also can't say that `## Alternatives Considered`
+holds one subsection per alternative, which is the shape most likely to
+be gotten wrong. The registered form is therefore a tree. Each node
+names a heading, its level relative to its parent, whether it's
+required, and its own children:
 
 ```go
 type Section struct {
@@ -117,33 +122,34 @@ type Section struct {
 }
 ```
 
-`Repeated` is what distinguishes a heading that appears exactly once
-from one whose count is determined by content. Without it a tree can
-only express fixed documents, and the templates this profile mirrors are
-not all fixed.
+`Repeated` distinguishes a heading that appears exactly once from one
+whose count depends on content. Without it, a tree can express only
+fixed documents, and not all the templates this profile mirrors are
+fixed.
 
-A profile also supplies, per document type, which of its frontmatter
+For each document type, a profile also supplies which of its frontmatter
 properties are reference-bearing, which of those are typed, and which
-are paired — three facts a JSON Schema cannot express, because what a
+are paired. A JSON Schema can't express these three facts. What a
 slug-shaped value resolves to, and what its target must be, are
-questions about the corpus rather than about the value itself:
+questions about the corpus rather than about the value itself. The
+three registrations are:
 
 - **Reference-bearing properties** are the frontmatter properties of the
   type whose value is a document slug. A value in a property absent
-  from this list contributes no reference however slug-shaped it looks:
-  what is a reference is registered, never inferred from a value's
-  shape.
+  from this list contributes no reference, however slug-shaped it looks.
+  Whether a property holds references is registered, never inferred
+  from a value's shape.
 - **Typed reference properties** narrow a reference-bearing property
-  further, to the one document type its target must declare — a
-  feature blueprint's `frd` property must resolve to a document of type
-  `frd`, for example. Registered as a mapping from the property's name
-  to the required type; every key also names a reference-bearing
-  property, since a typed property that is not reference-bearing has no
-  target to check the type of.
+  further, to the one document type its target must declare. For
+  example, a feature blueprint's `frd` property must resolve to a
+  document of type `frd`. The profile registers them as a mapping from
+  the property's name to the required type. Every key also names a
+  reference-bearing property, because a typed property that isn't
+  reference-bearing has no target whose type can be checked.
 - **Pairings** are the reference-bearing properties that must be
-  declared from both ends: a document naming a counterpart in one of
-  them, where the target declares nothing in return, is a half-built
-  edge. Each pairing names the property on this type and the
+  declared from both ends. If a document names a counterpart in one of
+  them and the target declares nothing in return, the edge is half
+  built. Each pairing names the property on this type and the
   counterpart property the target must declare in return. A profile MAY
   register none — a vocabulary whose relationships are all recoverable
   by querying inbound references, rather than by requiring a reverse
@@ -163,15 +169,20 @@ type PropertyPairing struct {
 }
 ```
 
-A profile separately supplies one **lifecycle registration** for the
-whole of its document vocabulary, not per type, since status is a
-property of the shared document envelope rather than of any one type:
-the full status vocabulary its documents may declare, which of those
-statuses a document is in effect at (live) and which it is no longer in
-effect at (retired), and the frontmatter property in which a document
-at a retired status names its replacement. A profile MAY register no
-lifecycle — the zero value — describing a corpus whose documents have
-none; the checks that read the registration do not run for it.
+A profile separately supplies one lifecycle registration for its whole
+document vocabulary, not one per type, because status is a property of
+the shared document envelope rather than of any one type. The
+registration names:
+
+- the full status vocabulary its documents may declare
+- the statuses at which a document is in effect (live)
+- the statuses at which a document is no longer in effect (retired)
+- the frontmatter property in which a document at a retired status
+  names its replacement
+
+A profile MAY register no lifecycle — the zero value — describing a
+corpus whose documents have none; the checks that read the registration
+do not run for it.
 
 ```go
 type LifecycleRules struct {
@@ -182,34 +193,40 @@ type LifecycleRules struct {
 }
 ```
 
-A profile separately supplies one **tag vocabulary** for the whole of
-its documents, again not per type, because a feature is not a document
-type: it is written inside a document of any type, or in a file that is
-no document at all, and the tags identifying it are the same in both. It
-states the pattern a feature identifier matches, the pattern a criterion
-identifier matches, the prefix carried by the tag in which a feature
-written outside any document names its owner, the capture groups a
-criterion identifier shares with its feature's, and the tags that
-qualify a criterion together with what each of them means. Neither
-pattern includes the leading marker that makes an identifier a tag: the
-identifier is the value, and the tag is only how it is written down.
+A profile separately supplies one tag vocabulary for all its documents,
+again not one per type, because a feature isn't a document type. A
+feature is written inside a document of any type, or in a file that
+isn't a document at all, and the tags that identify it are the same in
+both places. The vocabulary states:
+
+- the pattern a feature identifier matches
+- the pattern a criterion identifier matches
+- the prefix of the tag in which a feature written outside any document
+  names its owner
+- the capture groups a criterion identifier shares with its feature's
+  identifier
+- the tags that qualify a criterion, and what each one means
+
+Neither pattern includes the leading marker that makes an identifier a
+tag. The identifier is the value, and the tag is only how it's written
+down.
 
 `SharedCaptures` is the derivation rule, stated as data. A criterion
-identifier is derived from its feature's, and the engine checks that
-derivation by compiling both patterns, capturing both identifiers, and
-comparing only the groups named here — so it knows nothing of either
-pattern's internal structure. Every name must be a capture group both
-patterns define; one that is not is reported rather than defaulted,
-because a comparison of two values nothing captured passes.
+identifier is derived from its feature's identifier. The engine checks
+that derivation by compiling both patterns, capturing both identifiers,
+and comparing only the groups named here, so it knows nothing of either
+pattern's internal structure. Every name must be a capture group
+that both patterns define. A name that isn't is reported rather than
+defaulted, because a comparison of two values that nothing captured
+passes.
 
 A qualifier's meaning is drawn from a fixed set rather than invented by
-the profile, since a qualifier can only mean one of the things a
-criterion record has somewhere to put: that the criterion states a
-prohibition, that it can only be verified by hand, or that it records
-the level it is intended to be verified at. What a profile chooses is
-each tag's spelling and which of those meanings it carries. A tag
-matching neither pattern and named by no qualifier is carried on the
-record and reported by nothing.
+the profile. A qualifier can mean only one of the things a criterion record
+has a place for: the criterion states a prohibition, it can be verified
+only by hand, or it records the level at which it's intended to be
+verified. A profile chooses each tag's spelling and which of those
+meanings it carries. A tag that matches neither pattern and that no
+qualifier names is carried on the record, and nothing reports it.
 
 Every member is independent and a profile MAY register none of them —
 the zero value describes a corpus with no tagged features, and the
@@ -231,15 +248,15 @@ type QualifierTag struct {
 }
 ```
 
-A profile separately registers **record-block tags**: the fenced-block
-info strings that mark a block as a record. A record is YAML, so a tag
-carries no content format; it carries an optional JSON Pointer fragment
-(for example `#/definitions/Name`) addressing the definition in the
-profile's own union schema that the record is validated against. A
+A profile separately registers record-block tags: the fenced-block info
+strings that mark a block as a record. A record is YAML, so a tag
+carries no content format. Instead, it carries an optional JSON Pointer
+fragment, such as `#/definitions/Name`, that addresses the definition in
+the profile's own union schema that the record is validated against. A
 profile MAY register none, describing documents with no record blocks.
-A pointer that resolves to nothing in the profile's schema is reported
-by registration validation rather than skipped; a tag with no pointer is
-valid and its records are not schema-validated.
+Registration validation reports a pointer that resolves to nothing in
+the profile's schema instead of skipping it. A tag with no pointer is
+valid, and its records aren't schema-validated.
 
 ```go
 type RecordBlockTag struct {
@@ -248,23 +265,22 @@ type RecordBlockTag struct {
 }
 ```
 
-Because the public surface no longer overlaps the internal one, the
-relationship binding them into a single contract is naming rather than
-override: `[profile].name` selects one of these registrations, and
-`[conventions]` supplies values a registration reads. A profile whose
-name no adopter can select, or a convention no registration consumes, is
-a defect in this contract rather than in either module.
+The public surface doesn't overlap the internal one, so what binds them
+into one contract is naming, not override. `[profile].name` selects one
+of these registrations, and `[conventions]` supplies values that a
+registration reads. A profile whose name no adopter can select, or a
+convention that no registration consumes, is a defect in this contract
+rather than in either module.
 
-`version` stays `"1.0"` for the whole of the internal surface described
-above, including the reference-bearing, typed-reference, pairing,
-lifecycle, tag-vocabulary and record-block tag registrations: the Versioning and Change
-Policy section below
-exempts the internal registration surface from versioning while
-[[module-document-core]] and [[module-spec-profile]] are both
-`visibility: internal`, which they are, and this vocabulary is additive
-to that internal half only. The public `specs.toml` surface above is
-unchanged, so no adopting repository's file changes meaning under this
-version.
+`version` stays `"1.0"` for the whole internal surface described above,
+including the reference-bearing, typed-reference, pairing, lifecycle,
+tag-vocabulary, and record-block tag registrations. The "Versioning and
+change policy" section below exempts the internal registration surface
+from versioning while [[module-document-core]] and
+[[module-spec-profile]] are both `visibility: internal`. Both are, and
+this vocabulary adds only to that internal half. The public `specs.toml`
+surface above is unchanged, so no adopting repository's file changes
+meaning under this version.
 
 ## Guarantees
 
@@ -287,11 +303,11 @@ version.
 
 ### Checking the configuration
 
-**Validating `specs.toml` is a check the CLI performs, not an
-error path it falls down.** A malformed configuration file is the first
-thing an adopting repository will get wrong and the thing it has least
-help with, so it is reported through the same machinery as every other
-defect rather than as a bare startup failure.
+The CLI validates `specs.toml` as a check. A malformed configuration
+file is the first thing an adopting repository will get wrong, and the
+thing it has the least help with. The CLI therefore reports it through
+the same machinery as every other defect, rather than as a bare startup
+failure.
 
 - WHEN the CLI validates `specs.toml`, it SHALL emit findings carrying
   the rule identifier, severity, path and span that AC-SPEC-006.1 of
@@ -303,9 +319,9 @@ defect rather than as a bare startup failure.
   everything that needs fixing.
 - IF `specs.toml` contains a key this contract does not define, THEN the
   CLI SHALL report a finding naming the key and its span. A misspelled
-  key is far more common than a key from the future, and silently
-  ignoring it would let a repository believe it had configured something
-  it had not.
+  key is far more common than a key from the future. Silently ignoring
+  it would let a repository believe it had configured something it
+  hadn't.
 - IF a value fails the configuration schema, THEN the CLI SHALL report a
   finding naming the offending key and its span, and SHALL NOT fall back
   to a default for that key.
@@ -320,32 +336,32 @@ defect rather than as a bare startup failure.
   SHALL read that file and search for no other.
 - WHEN `specs.toml` is absent, the CLI SHALL report every directory it
   searched — or, for a file `--config` named, that path — and exit with
-  the environment-error status, and SHALL NOT infer a spec root. This is the
-  one configuration failure that is not a finding, because there is no
-  file to carry a span into.
+  the environment-error status, and SHALL NOT infer a spec root. It's
+  the one configuration failure that isn't a finding, because there's
+  no file to carry a span into.
 - The configuration checks SHALL be exercised by snapshot cases under
   [[testing-standards]] on the same terms as corpus checks, since each
   input corpus already carries its own `specs.toml`.
 
-## Operational Expectations
+## Operational expectations
 
 This is a file-format contract rather than a service interface, so
-availability, latency, rate limits and authentication do not apply. What
-does:
+availability, latency, rate limits, and authentication don't apply.
+These expectations do:
 
 - **Consumer obligations:** an adopting repository SHALL commit
   `specs.toml` to version control, so that a check run in CI and a check
   run locally resolve the same configuration.
 - **Consumer obligations:** a repository needing a document vocabulary
   the active profile does not define SHALL raise it as a change to the
-  profile rather than expect a local override. In v1 there is no
-  override, by design — the alternative is a fork of the vocabulary,
-  which is what this framework exists to prevent.
+  profile rather than expect a local override. In v1, there's no
+  override, by design. The alternative is a fork of the vocabulary,
+  which this framework exists to prevent.
 - **Provider obligations:** the CLI SHALL report configuration problems
   before any corpus work begins, so a misconfigured repository fails
   fast rather than producing a report derived from wrong settings.
 
-## Versioning and Change Policy
+## Versioning and change policy
 
 - **Versioning scheme:** semantic versioning on this contract, tracked
   in the `version` frontmatter property and mirrored in the
@@ -354,9 +370,9 @@ does:
   document type to a profile, promote an internal key to the public
   surface, and relax a value constraint without a major version change.
   An existing `specs.toml` SHALL continue to resolve unchanged across a
-  minor version. Promotion is compatible in this direction only: a key
-  no repository could previously write cannot be written wrongly by an
-  existing file, which is the reason v1 holds the type vocabulary back.
+  minor version. Promotion is compatible in this direction only. An
+  existing file can't write a key wrongly if no repository could write
+  that key before, and that's why v1 holds the type vocabulary back.
 - **Breaking changes:** WHEN a key is removed or renamed, or a value
   constraint is tightened, the provider SHALL bump the major version.
 - **Deprecation:** WHEN a key is deprecated, it SHALL continue to
@@ -368,44 +384,44 @@ does:
   WHEN either is published, the registration surface becomes subject to
   the same policy as the public surface.
 
-## Key Decisions
+## Key decisions
 
-- [[adr-015]] — Go, and the in-process module composition that makes the
+- [[adr-015]]: Go, and the in-process module composition that makes the
   internal surface an interface rather than a wire format.
 
-## Open Questions
+## Open questions
 
 - [ ] Whether the two surfaces should be split into separate contract
-      documents. Now that v1's public surface does not overlap the
-      internal one, the case for splitting is stronger than it was —
-      what holds them together is the promotion path rather than a
+      documents. Now that v1's public surface doesn't overlap the
+      internal one, the case for splitting is stronger than it was.
+      What holds them together is the promotion path rather than a
       shared key set. The split becomes right if the registration
       surface is ever published on its own.
 - [ ] Which internal keys are promoted first, and on what evidence. The
-      honest answer is "whichever an adopting repository is blocked on",
+      honest answer is "whichever an adopting repository is blocked on,"
       and no adopting repository exists yet. Deciding before then would
       be guessing at demand.
-- [ ] Whether a repository may activate more than one profile — for
+- [ ] Whether a repository may activate more than one profile, for
       example a base framework profile plus a house-rules profile. The
-      guarantee above says exactly one, which is the simple answer;
-      composition is the more useful one and has not been designed. It
-      is also the shape a house-rules override would take if promotion
+      guarantee above says exactly one, which is the simple answer.
+      Composition is the more useful answer and hasn't been designed.
+      It's also the shape a house-rules override would take if promotion
       is ever asked for, so the two questions resolve together.
 - [ ] Whether the required-section hierarchy expresses ordering. The
       tree above captures nesting and repetition but says nothing about
       whether `## Decision` must precede `## Consequences`. Templates
-      imply an order; whether that order is normative has not been
-      decided, and enforcing it prematurely would reject documents that
+      imply an order, but nobody has decided whether that order is
+      normative. Enforcing it prematurely would reject documents that
       are merely unconventional.
 
 ## References
 
-- `c4-guide.md` — C4 mapping rules and contract visibility tiers
-- [[container-spec-cli]] — the provider's blueprint
-- [[module-document-core]] — the host the internal surface registers into
-- [[module-spec-profile]] — the profile that populates it
-- [[frd-spec-index]] — FEAT-SPEC-008, the requirements this
-  contract realizes, and AC-SPEC-006.1, the finding shape configuration
+- `c4-guide.md`: C4 mapping rules and contract visibility tiers
+- [[container-spec-cli]]: the provider's blueprint
+- [[module-document-core]]: the host the internal surface registers into
+- [[module-spec-profile]]: the profile that populates it
+- [[frd-spec-index]]: FEAT-SPEC-008, the requirements this contract
+  realizes, and AC-SPEC-006.1, the finding shape that configuration
   checks emit
-- [[testing-standards]] — the snapshot cases that exercise the
+- [[testing-standards]]: the snapshot cases that exercise the
   configuration checks

@@ -22,7 +22,7 @@ renderer that two other subcommands already use. Nothing parses a
 document, nothing writes a file, and the index's shape doesn't change.
 
 The whole design is in the layering. [[container-spec-cli]]'s Change
-Guidance forbids putting a capability in the Command Surface. The
+guidance forbids putting a capability in the Command Surface. The
 filtering and the summary shape therefore belong to Document Core, and
 `cli/cmd` only declares flags and selects a rendering. Two tables that the
 profile registers, the document types and the lifecycle's retired
@@ -45,7 +45,7 @@ without going through cobra.
 The summary is a projection of `IndexEntry` and adds no new record. It
 reads the entry's path and its parsed frontmatter envelope and carries
 nothing else. The index shape doesn't change, `schema_version` stays
-`1.0`, and this feature doesn't trigger the Change Guidance rule about the
+`1.0`, and this feature doesn't trigger the Change guidance rule about the
 emitted index.
 
 **Behavior:**
@@ -259,7 +259,7 @@ DOC = documentation guidance delta.
 
 None. Each choice this design makes either comes from an existing approved
 document or is a behavior that a delta above pins. The approved documents
-are [[container-spec-cli]]'s Change Guidance, for the layering rule and
+are [[container-spec-cli]]'s Change guidance, for the layering rule and
 the verification gates, and [[cli-output-standards]], for the rendering
 rules. Nothing here has alternatives whose trade-offs outlive the
 feature, so nothing needs an ADR of its own.
@@ -307,7 +307,7 @@ None.
 - `c4-guide.md`: the container, module, and component definitions that
   the delta blocks are written against
 - [[frd-spec-list]]: the requirements this blueprint realizes
-- [[container-spec-cli]]: the container whose Change Guidance binds every
+- [[container-spec-cli]]: the container whose Change guidance binds every
   delta above
 - [[module-document-core]]: the module the query lives in
 - [[cli-output-standards]]: the rendering rules the CMD delta conforms to

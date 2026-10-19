@@ -11,54 +11,53 @@ delivery: staged
 frd: frd-gherkin-adoption
 ---
 
-# Gherkin Features and Acceptance Criteria
+# Gherkin features and acceptance criteria
 
 ## Overview
 
 **FRD:** [[frd-gherkin-adoption]]
 
-[[adr-021]] settles the notation and the parser; nothing reads either.
-[[module-document-core]] declares a **Markdown Structure** component and
-records that it is not built — there is no `cli/core/markdown` package
-and no fenced block is extracted anywhere — so a ` ```gherkin ` block is
-inert text that the References component actively masks. This feature
-builds the fenced-block half of that component, adds a **Gherkin**
-component beside it, and turns what the two produce into records the
-index carries, checks the run reports, and queries an agent can ask.
+[[adr-021]] settles the notation and the parser, but nothing reads either.
+[[module-document-core]] declares a Markdown Structure component and records
+that it isn't built: there's no `cli/core/markdown` package, and nothing
+extracts a fenced block anywhere. So a ` ```gherkin ` block is inert text,
+and the References component actively masks it. This feature builds the
+fenced-block half of that component and adds a Gherkin component beside it.
+It then turns what the two produce into records the index carries, checks
+the run reports, and queries an agent can ask.
 
-The split that governs every delta below is the module boundary already
-in force. Parsing Gherkin is general — an Obsidian vault with `.feature`
-files could use it — so it lives in [[module-document-core]] and knows
-tags only as strings. Which tag is an identifier, what shape it must
-take, and which qualifiers mean anything are this framework's vocabulary
-and arrive through the profile extension point, which this feature
-widens for the second time. No `@AC-` literal appears in the host.
+The module boundary already in force governs every delta below. Parsing
+Gherkin is general (an Obsidian vault with `.feature` files could use it),
+so it lives in [[module-document-core]] and knows tags only as strings.
+Which tag is an identifier, what shape it must take, and which qualifiers
+mean anything are this framework's vocabulary. That vocabulary arrives
+through the profile extension point, which this feature widens for the
+second time. No `@AC-` literal appears in the host.
 
-Two forms of source produce one shape of record. A `.feature` file is
-discovered by a second pass beside the corpus walk rather than admitted
-as a corpus member — AC-SPEC-001.6 stands unamended — and a fenced block
-is found inside a member the walk already read.
+Two forms of source produce one shape of record. A second pass beside the
+corpus walk discovers a `.feature` file without admitting it as a corpus
+member, so AC-SPEC-001.6 stands unamended. A fenced block is found inside a
+member the walk already read.
 
-The delta blocks in dependency order: **MODEL** (feature, criterion and
-finding models in Strata) → **XPT** (the widened `Profile` extension
-point) → **MDS** (fenced-block extraction) → **GHK** (the Gherkin
-component) → **DISC** (discovery, ownership and the index collection) →
-**PREG** (this framework's tag registrations) → **VTAG** (identity
-checks) → **VCON** (content and diagnostic checks) → **GREF**
-(references inside Gherkin) → **QRY** (feature and criterion queries) →
-**EMIT** (feature file emission) → **CHG** (local change detection).
+The delta blocks, in dependency order, are MODEL (feature, criterion, and
+finding models in Strata) → XPT (the widened `Profile` extension point) →
+MDS (fenced-block extraction) → GHK (the Gherkin component) → DISC
+(discovery, ownership, and the index collection) → PREG (this framework's
+tag registrations) → VTAG (identity checks) → VCON (content and diagnostic
+checks) → GREF (references inside Gherkin) → QRY (feature and criterion
+queries) → EMIT (feature file emission) → CHG (local change detection).
 
-## Element Deltas
+## Element deltas
 
 ### Feature, criterion and finding models in Strata (added) — MODEL
 
-**Intent:** Every other delta consumes generated types, so the models
-grow first and at their source, per [[adr-016]]. The index gains
-somewhere to put a feature and the criteria beneath it, and the finding
-model gains the variants that make a Gherkin defect self-contained.
-`schemas/feature.strata` is already authored on this feature's branch
-and has never been compiled — compiling it, and fixing what the
-transpiler reports, is the first act of this block.
+**Intent:** Every other delta consumes generated types, so the models grow
+first and at their source, per [[adr-016]]. The index gains somewhere to put
+a feature and the criteria beneath it, and the finding model gains the
+variants that make a Gherkin defect self-contained.
+`schemas/feature.strata` is already authored on this feature's branch and
+has never been compiled. This block starts by compiling it and fixing what
+the transpiler reports.
 
 **Data (Strata sources, `schemas/`):**
 
@@ -68,25 +67,26 @@ transpiler reports, is the first act of this block.
   `FeatureSourceBlock` and `FeatureSourceFile`), `Criterion` and
   `Feature`.
 - `index.strata` gains one top-level `features` list on `SpecIndex`.
-  Criteria are **nested** on `Feature` rather than held as a sibling
-  collection — deliberately not the shape [[adr-018]] fixes for
-  references, because a reference's attributes describe an edge while a
-  criterion is a node belonging to exactly one feature, and its
-  identifier already names which.
-- `finding.strata` gains `FindingDetail` variants, each carrying enough
-  to act on without reopening the document: a Gherkin grammar error with
-  the parser's expectation; an untagged or malformed identifier with the
-  offending text and the pattern it must match (AC-GHK-006.5); a
-  duplicate identifier with the other occurrence's path and span; a
-  partially tagged outline with the untagged blocks' spans; and an
-  owning-document defect with the tag's slug and the containing
-  document's.
+  Criteria are nested on `Feature` instead of held as a sibling collection.
+  This deliberately departs from the shape [[adr-018]] fixes for
+  references: a reference's attributes describe an edge, while a criterion
+  is a node belonging to exactly one feature, and its identifier already
+  names which.
+- `finding.strata` gains `FindingDetail` variants, each carrying enough to
+  act on without reopening the document:
+  - a Gherkin grammar error, with the parser's expectation
+  - an untagged or malformed identifier, with the offending text and the
+    pattern it must match (AC-GHK-006.5)
+  - a duplicate identifier, with the other occurrence's path and span
+  - a partially tagged outline, with the untagged blocks' spans
+  - an owning-document defect, with the tag's slug and the containing
+    document's
 - Behavior: `schema_version` SHALL remain `"1.0"`. The `features`
   collection is an addition alongside the existing shape, which
-  [[container-spec-cli]]'s additive-at-1.0 rule permits, and the model
-  and the emitted index change in one change as
-  [[module-document-core]]'s lockstep rule requires. The satisfying act
-  is the recorded no-bump, not an omission.
+  [[container-spec-cli]]'s additive-at-1.0 rule permits. The model and the
+  emitted index change in one change, as [[module-document-core]]'s
+  lockstep rule requires. The recorded no-bump is the satisfying act, not
+  an omission.
 - Behavior: `features` SHALL be a list whose order the emitter fixes —
   by the path a feature occurs in, then by its position within that
   file — so AC-SPEC-009.7's byte-identical output is a property of how
@@ -96,20 +96,20 @@ transpiler reports, is the first act of this block.
   and nothing else (AC-GHK-005.5).
 
 **Anchors:** `schemas/feature.strata`, `schemas/index.strata`,
-`schemas/finding.strata`; `scripts/generate-schemas.sh`, which
-regenerates `cli/core/specmodel/`, `cli/core/schema/` and the plugin
-markdown. Regeneration is the whole risk in this block — three
-unverified constructs are named under Tracker Reconciliation.
+`schemas/finding.strata`; `scripts/generate-schemas.sh`, which regenerates
+`cli/core/specmodel/`, `cli/core/schema/`, and the plugin Markdown.
+Regeneration is the whole risk in this block. Tracker reconciliation names
+the three unverified constructs.
 
 ### Profile extension point in [[module-document-core]] (modified) — XPT
 
-**Intent:** Which tag identifies a feature, which identifies a
-criterion, and which qualifiers carry meaning are facts about a document
-vocabulary, not about Gherkin. The host must hold none of them, exactly
-as it holds no status and no reference-bearing property name today. This
-is that widening, reviewed on its own merits as
-[[module-spec-profile]]'s Change Guidance requires, and framed so any
-profile can express a tag vocabulary rather than so this one can.
+**Intent:** Which tag identifies a feature, which identifies a criterion,
+and which qualifiers carry meaning are facts about a document vocabulary,
+not about Gherkin. The host must hold none of them, exactly as it holds no
+status and no reference-bearing property name today. This delta is that
+widening. It's reviewed on its own merits, as [[module-spec-profile]]'s
+Change guidance requires, and framed so that any profile can express a tag
+vocabulary, not only this one.
 
 **Behavior:**
 
@@ -147,8 +147,8 @@ MODEL extends.
 needs one of its three capabilities: locate every fenced block whose
 info string matches a registered tag, and hand back its content with
 the two extents a caller needs. The heading tree and the comment-block
-location stay unbuilt and belong to [[frd-spec-structure-conformance]];
-this block does not start them.
+location stay unbuilt and belong to [[frd-spec-structure-conformance]].
+This block doesn't start them.
 
 **Behavior:**
 
@@ -178,12 +178,12 @@ this block does not start them.
 ### Gherkin in [[module-document-core]] (added) — GHK
 
 **Intent:** Parse a Gherkin source into the records the index carries.
-This component holds the whole of what is true of Gherkin and none of
-what is true of this framework: it reads tags as strings, attaches no
-meaning to any of them, and reports what it could not parse. That is
-what keeps it in the host rather than in the profile — the test
-[[module-document-core]] states is whether a vault with nothing to do
-with C4 could use it, and a vault with `.feature` files can.
+This component holds the whole of what is true of Gherkin and none of what
+is true of this framework: it reads tags as strings, attaches no meaning to
+any of them, and reports what it couldn't parse. That's what keeps it in
+the host instead of the profile. The test [[module-document-core]] states
+is whether a vault with nothing to do with C4 could use it, and a vault
+with `.feature` files can.
 
 **Behavior:**
 
@@ -239,11 +239,11 @@ measured; `cli/core/span` for every position; the generated
 ### Corpus in [[module-document-core]] (modified — discovery) — DISC
 
 **Intent:** Wire the two sources into the walk and the index. A fenced
-block is found inside a member the walk already read, so extraction
-rides the same visit that reads its bytes, as reference extraction
-already does. A `.feature` file is a second pass over the same tree.
-This block also decides ownership, which is the one fact the two forms
-establish differently.
+block is found inside a member the walk already read, so extraction happens
+during the same visit that reads its bytes, as reference extraction already
+does. A second pass over the same tree finds `.feature` files. This block
+also decides ownership, which is the one fact the two forms establish
+differently.
 
 **Behavior:**
 
@@ -254,9 +254,8 @@ establish differently.
   handle and the same CRLF normalization every other read passes
   through.
 - A feature source SHALL produce neither an `IndexEntry` nor an
-  `IndexExclusion`. It is not a `.md` candidate, so AC-SPEC-001.6's
-  silent pass-over stands and no exception to corpus membership is
-  introduced.
+  `IndexExclusion`. It isn't a `.md` candidate, so AC-SPEC-001.6's silent
+  pass-over stands, and corpus membership gains no exception.
 - The component SHALL attribute a feature written in a fenced block to
   the document the block is written in, requiring no tag to say so
   (AC-GHK-001.7), and a feature written in a feature source to the
@@ -284,12 +283,11 @@ establish differently.
 
 ### Tag registrations in [[module-spec-profile]] (modified) — PREG
 
-**Intent:** Populate the extension point XPT widened with this
-framework's vocabulary — the tag table [[frd-gherkin-adoption]]'s
-AC-GHK-002.1 fixes, and nothing beyond it. As with every other
-registration here, the rules are registered as data rather than
-implemented as code, so that a reviewer can check a pattern against the
-guide it mirrors.
+**Intent:** Populate the extension point XPT widened with this framework's
+vocabulary: the tag table that [[frd-gherkin-adoption]]'s AC-GHK-002.1
+fixes, and nothing beyond it. As with every other registration here, the
+module registers the rules as data instead of implementing them as code, so
+a reviewer can check a pattern against the guide it mirrors.
 
 **Behavior:**
 
@@ -314,9 +312,8 @@ the drift tests in `cli/profile`; the generated patterns from MODEL.
 **Intent:** The Gherkin parser validates its own grammar and has no
 concept of an acceptance criterion, so every rule here is the CLI's.
 This block covers the identity half: is each record addressed, is it
-addressed once, and does its address agree with where it sits. These are
-the checks that make a tag an addressing scheme rather than a
-convention.
+addressed once, and does its address agree with where it sits. These
+checks make a tag an addressing scheme instead of a convention.
 
 **Behavior:**
 
@@ -346,11 +343,10 @@ convention.
   owning-document tag that names a document other than the one it is
   written in, naming both (AC-GHK-002.11).
 - The component SHALL report `gherkin/owner-unresolved` for an
-  owning-document tag whose slug names no corpus member. The FRD
-  requires ownership to be recorded and a tag that names nothing cannot
-  record it; the defect reads as the unresolved-reference defect it is
-  rather than producing a feature attributed to a document that does not
-  exist.
+  owning-document tag whose slug names no corpus member. The FRD requires
+  ownership to be recorded, and a tag that names nothing can't record it.
+  The defect reads as the unresolved-reference defect it is, instead of
+  producing a feature attributed to a document that doesn't exist.
 - The component SHALL report `gherkin/tag-unregistered`, at severity
   warning, for a tag matching no registered pattern, carrying no
   owning-document prefix and named by no qualifier, naming the tag and
@@ -361,11 +357,11 @@ convention.
 
 ### Content and diagnostic checks in [[module-document-core]] (added) — VCON
 
-**Intent:** The other half of what the parser accepts and a reader would
-not: a criterion that says nothing, prose written where a criterion
-belongs, and an outline whose blocks are tagged inconsistently. This
-block also fixes what a Gherkin finding looks like, which is what makes
-the whole set actionable by an agent that never opens the standard.
+**Intent:** This block covers the other half of what the parser accepts
+and a reader wouldn't: a criterion that says nothing, prose written where a
+criterion belongs, and an outline whose blocks are tagged inconsistently.
+It also fixes what a Gherkin finding looks like, which makes the whole set
+actionable by an agent that never opens the standard.
 
 **Behavior:**
 
@@ -405,13 +401,12 @@ the whole set actionable by an agent that never opens the standard.
 
 ### References in [[module-document-core]] (modified — Gherkin) — GREF
 
-**Intent:** A wikilink is a reference wherever it is written, and today
-one written inside a ` ```gherkin ` block is not: the References
-component masks every fenced block, precisely so a backticked
-illustration is not reported. That exclusion is right for an
-illustration and wrong for a feature, and the difference is the info
-string. This block narrows the mask and extends extraction to feature
-sources.
+**Intent:** A wikilink is a reference wherever it's written, but today one
+written inside a ` ```gherkin ` block isn't. The References component masks
+every fenced block, so that it doesn't report a backticked illustration.
+That exclusion is right for an illustration and wrong for a feature, and
+the info string tells the two apart. This block narrows the mask and
+extends extraction to feature sources.
 
 **Behavior:**
 
@@ -483,10 +478,9 @@ container already has and add no latency budget of their own.
 
 ### Feature file emission in [[container-spec-cli]] (modified) — EMIT
 
-**Intent:** Emission is what makes the fenced form the default rather
-than a compromise: a feature authored inside an FRD is still
-publishable, so no second authoring format is needed for external
-product and quality tooling.
+**Intent:** Emission is what lets the fenced form be the default instead of
+a compromise: a feature authored inside an FRD is still publishable, so
+external product and quality tooling needs no second authoring format.
 
 **Behavior:**
 
@@ -507,11 +501,11 @@ rendering as it owns the parsing.
 
 ### Local change detection in [[container-spec-cli]] (modified) — CHG
 
-**Intent:** Content hashes make "which criteria changed" a comparison of
-records rather than a diff of markdown, so a criterion that moved is not
-reported and one whose wording changed is. [[frd-gherkin-adoption]]
-declares this the lowest-priority requirement in the document, and it is
-the last delta for that reason.
+**Intent:** Content hashes turn "which criteria changed" into a comparison
+of records instead of a diff of Markdown. So the command doesn't report a
+criterion that moved, and it does report one whose wording changed.
+[[frd-gherkin-adoption]] declares this the lowest-priority requirement in
+the document, which is why it's the last delta.
 
 **Behavior:**
 
@@ -531,127 +525,120 @@ sides of the comparison.
 
 ### Relied-upon elements (unchanged)
 
-- [[container-spec-cli#Command Surface]] — the flag parsing, output
-  rendering and exit-status conventions every new subcommand follows.
-- [[module-document-core#Spans]] — every position this feature reports
-  is computed here, including the codepoint-counted column that matches
-  Gherkin's own column semantics.
-- [[module-document-core#Frontmatter]] — a containing document's slug,
-  which is what a fenced block's ownership is derived from.
-- [[module-document-core#Findings]] — the report envelope, the three
+- [[container-spec-cli#Command Surface]]: the flag parsing, output
+  rendering, and exit-status conventions every new subcommand follows.
+- [[module-document-core#Spans]]: computes every position this feature
+  reports, including the codepoint-counted column that matches Gherkin's
+  own column semantics.
+- [[module-document-core#Frontmatter]]: a containing document's slug,
+  from which a fenced block's ownership is derived.
+- [[module-document-core#Findings]]: the report envelope, the three
   severities, and the ordering that makes output byte-identical.
-- [[module-document-core#Schema Registry]] — unchanged; a feature record
-  is not frontmatter and is validated by no union branch.
-- [[module-document-core#Numbering]] — unchanged; feature identifiers
-  are not derived by a next-number query.
-- [[contract-specs-configuration]] — the profile registration surface
-  XPT widens the internal half of.
+- [[module-document-core#Schema Registry]]: unchanged. A feature record
+  isn't frontmatter, and no union branch validates it.
+- [[module-document-core#Numbering]]: unchanged. No next-number query
+  derives feature identifiers.
+- [[contract-specs-configuration]]: the profile registration surface whose
+  internal half XPT widens.
 
 ## Contracts
 
-- [[contract-specs-configuration]] (revised, drafted in place) — the
-  contract's description of the internal registration surface
-  enumerates what a profile supplies and does not mention a tag
-  vocabulary. The revision is additive and to the **internal** half
-  only, which that contract's own change policy exempts from versioning
-  WHILE both modules are `visibility: internal`; the public `specs.toml`
-  surface is untouched, so no `version` bump is required and no adopting
-  repository's file changes meaning.
+- [[contract-specs-configuration]] (revised, drafted in place): the
+  contract's description of the internal registration surface enumerates
+  what a profile supplies and doesn't mention a tag vocabulary. The
+  revision is additive and touches only the internal half, which that
+  contract's own change policy exempts from versioning while both modules
+  are `visibility: internal`. The public `specs.toml` surface is
+  untouched, so no `version` bump is required and no adopting repository's
+  file changes meaning.
 - No new contract document. The index gains a `features` collection, and
-  promotion of the index to a contract still waits on a second,
-  independently-built consumer. The generated JSON
-  Schema remains its interim machine-readable specification. This is a
-  scope decision, not an open question.
+  promoting the index to a contract still waits on a second, independently
+  built consumer. The generated JSON Schema remains its interim
+  machine-readable specification. This is a scope decision, not an open
+  question.
 
-## Tracker Reconciliation
+## Tracker reconciliation
 
-- **Subsumed by MODEL**: "compile
-  `schemas/feature.strata` and regenerate derived artifacts." The file
-  was authored on this branch while the strata CLI was unavailable and
-  has never been transpiled. MODEL's first act is that compile, and the
-  three constructs the issue names as unverified — the escaped-dot and
-  brace-quantifier regex literals, the `@discriminator`/`@tag` union,
-  and cross-file resolution of `Span` and `Slug` — are what MODEL has to
-  prove. Grooming blocks the issue on the MODEL work order.
-- **Subsumed by DISC**: "AC index: extract
-  acceptance criteria into the corpus index." GHK extracts and DISC
-  records them in `SpecIndex.features`, which is the whole of what the
-  issue asks for.
-- **Subsumed by VTAG**: "AC structural conformance
-  checks: identifier well-formedness, uniqueness, sequence." VTAG covers
-  well-formedness and uniqueness. Sequence — that a feature's criterion
-  numbers run without gaps — is **not** covered: no criterion in
-  [[frd-gherkin-adoption]] requires it, and this feature does not add
-  it. The issue is re-scoped to the sequence check rather than closed.
-- **Subsumed by EMIT**: "emit conforming
-  `.feature` files from extracted Gherkin blocks."
-- **Prerequisite**: PR #14 regressed the
-  warm-index path roughly 1.8x by emitting `UnmarshalJSON` on every
-  generated model. MODEL adds `Feature` and `Criterion` to that same
-  generator and DISC puts them on the read path, so landing this feature
-  first would compound a known regression underneath AC-GHK-007.6's
-  answer-from-the-index requirement and make the cause harder to
-  isolate.
-- **Out-of-scope** (sequenced follow-on):
-  "migrate acceptance criteria in the three FRDs to Gherkin." Nothing
-  here reads a prose criterion ([[adr-021]] constraint 9), so until that
-  migration lands, three of this corpus's four FRDs contribute no feature
-  records and a corpus-wide query under-reports. That is a translation
-  job, not a blocker on this feature, and it is named here so no later
-  agent re-derives a compatibility reader. The boundary: no delta here
-  rewrites a criterion in an existing FRD.
-- **Out-of-scope** (coordination): Strata regex
-  literals cannot contain a forward slash, even escaped. Neither pattern
-  in `feature.strata` contains one, which is why the file could be
-  authored at all; MODEL must not introduce one.
-- **Out-of-scope** (coordination):
-  `generate-schemas.sh` wipes `cli/core/specmodel`, so a test placed
-  beside a generated model is destroyed on the next run. MODEL
-  regenerates that directory; tests for the feature model therefore live
-  in the consuming packages, as they already do.
-- **Resolved** (coordination): the schema is
-  closed (`rejectUnknownProperties: true`, strata v0.8.0), which emits
-  each union variant inline with its discriminator. `FeatureSource`
-  keeps both tags — `fenced-block` and `feature-file` — as required
-  constants in its closed `anyOf`.
-- **Out-of-scope**: the generated models embed
-  this framework's `DocumentType` vocabulary, coupling the
-  framework-agnostic half to it. XPT widens the extension point without
-  adding vocabulary to the host and extends the boundary test to the new
-  registered values; it neither worsens nor fixes that coupling.
-- **Out-of-scope** (deferred follow-up): "ADR:
-  index schema and versioning." The `features` collection is additive
-  under 1.0, which is what makes shipping before that ADR safe.
-- **Out-of-scope** (coordination):
-  `regenerate-cli-snapshots.sh` needs a gate so it cannot silently
-  regress. VTAG, VCON, QRY, EMIT and CHG all change observable output,
-  so a silently-regressed regeneration script would let a stale
-  expectation pass.
-- **Out-of-scope** (coordination): relational
-  reference checks read documents off disk on the warm single-document
-  path. GREF adds reference sources without changing that path's shape.
-- **Out-of-scope**: index entries carry only the
-  `DocumentFrontmatter` envelope. DISC derives a fenced block's owning
-  slug from the parsed frontmatter the walk already holds, not from the
-  typed envelope, so this feature neither depends on that issue nor
-  resolves it.
-- **Out-of-scope** (this document): tracks
-  authoring this blueprint.
+- **Subsumed by MODEL**: "compile `schemas/feature.strata` and regenerate
+  derived artifacts." The file was authored on this branch while the
+  strata CLI was unavailable and has never been transpiled. MODEL's first
+  act is that compile. MODEL has to prove the three constructs the issue
+  names as unverified: the escaped-dot and brace-quantifier regex
+  literals, the `@discriminator`/`@tag` union, and cross-file resolution
+  of `Span` and `Slug`. Grooming blocks the issue on the MODEL work order.
+- **Subsumed by DISC**: "AC index: extract acceptance criteria into the corpus
+  index." GHK extracts the criteria and DISC records them in
+  `SpecIndex.features`, which is the whole of what the issue asks for.
+- **Subsumed by VTAG**: "AC structural conformance checks: identifier
+  well-formedness, uniqueness, sequence." VTAG covers well-formedness and
+  uniqueness. It doesn't cover sequence (that a feature's criterion numbers
+  run without gaps): no criterion in [[frd-gherkin-adoption]] requires it,
+  and this feature doesn't add it. The issue is re-scoped to the sequence
+  check instead of closed.
+- **Subsumed by EMIT**: "emit conforming `.feature` files from extracted
+  Gherkin blocks."
+- **Prerequisite**: PR #14 regressed the warm-index path roughly 1.8x by
+  emitting `UnmarshalJSON` on every generated model. MODEL adds `Feature`
+  and `Criterion` to that same generator, and DISC puts them on the read
+  path. Landing this feature first would compound a known regression
+  underneath AC-GHK-007.6's answer-from-the-index requirement and make the
+  cause harder to isolate.
+- **Out-of-scope** (sequenced follow-on): "migrate acceptance criteria in the
+  three FRDs to Gherkin." Nothing here reads a prose criterion
+  ([[adr-021]] constraint 9). Until that migration lands, three of this
+  corpus's four FRDs contribute no feature records, and a corpus-wide
+  query under-reports. That's a translation job, not a blocker on this
+  feature. It's named here so that no later agent re-derives a
+  compatibility reader. The boundary: no delta here rewrites a criterion
+  in an existing FRD.
+- **Out-of-scope** (coordination): Strata regex literals can't contain a
+  forward slash, even escaped. Neither pattern in `feature.strata`
+  contains one, which is why the file could be authored at all. MODEL must
+  not introduce one.
+- **Out-of-scope** (coordination): `generate-schemas.sh` wipes
+  `cli/core/specmodel`, so the next run destroys any test placed beside a
+  generated model. MODEL regenerates that directory, so tests for the
+  feature model live in the consuming packages, as they already do.
+- **Resolved** (coordination): the schema is closed
+  (`rejectUnknownProperties: true`, strata v0.8.0), which emits each union
+  variant inline with its discriminator. `FeatureSource` keeps both tags,
+  `fenced-block` and `feature-file`, as required constants in its closed
+  `anyOf`.
+- **Out-of-scope**: the generated models embed this framework's
+  `DocumentType` vocabulary, coupling the framework-agnostic half to it.
+  XPT widens the extension point without adding vocabulary to the host and
+  extends the boundary test to the new registered values. It neither
+  worsens nor fixes that coupling.
+- **Out-of-scope** (deferred follow-up): "ADR: index schema and versioning."
+  The `features` collection is additive under 1.0, which is what makes
+  shipping before that ADR safe.
+- **Out-of-scope** (coordination): `regenerate-cli-snapshots.sh` needs a gate
+  so it can't silently regress. VTAG, VCON, QRY, EMIT, and CHG all change
+  observable output, so a silently regressed regeneration script would let
+  a stale expectation pass.
+- **Out-of-scope** (coordination): relational reference checks read documents
+  off disk on the warm single-document path. GREF adds reference sources
+  without changing that path's shape.
+- **Out-of-scope**: index entries carry only the `DocumentFrontmatter`
+  envelope. DISC derives a fenced block's owning slug from the parsed
+  frontmatter the walk already holds, not from the typed envelope, so this
+  feature neither depends on that issue nor resolves it.
+- **Out-of-scope** (this document): tracks authoring this blueprint.
 
-## Sequencing Constraints
+## Sequencing constraints
 
-- `delivery: staged`. Three stages, each a reviewable increment:
-  - **Stage 1 — records in the index:** MODEL, XPT, MDS, GHK, DISC,
-    PREG. `specs index` emits feature and criterion records over this
-    repository's own corpus; no new check runs, no finding is raised,
-    and no exit status changes. The boundary is deliberate: it puts
-    extraction and ownership — the rules that produce wrong records —
-    in front of a reviewer before any of them can fail a build.
-  - **Stage 2 — checks and queries:** VTAG, VCON, GREF, QRY. The checks
+- `delivery: staged`, in three stages, each a reviewable increment:
+  - Stage 1 (records in the index): MODEL, XPT, MDS, GHK, DISC, and PREG.
+    `specs index` emits feature and criterion records over this
+    repository's own corpus. No new check runs, no finding is raised, and
+    no exit status changes. The boundary is deliberate: it puts extraction
+    and ownership, the rules that produce wrong records, in front of a
+    reviewer before any of them can fail a build.
+  - Stage 2 (checks and queries): VTAG, VCON, GREF, and QRY. The checks
     report, the queries answer, and exit status becomes sensitive to
     Gherkin for the first time.
-  - **Stage 3 — publication:** EMIT and CHG, the two deltas no other
-    delta depends on.
+  - Stage 3 (publication): EMIT and CHG, the two deltas no other delta
+    depends on.
 - The MODEL delta SHALL land before every other delta: all of them
   consume types it generates.
 - The XPT delta SHALL land before PREG, which populates the widened
@@ -665,23 +652,23 @@ sides of the comparison.
   inert without a registered vocabulary.
 - The VTAG and VCON deltas SHALL land before or with QRY, which declares
   their rule identifiers to the run report.
-- **Lockstep rules spanning delta blocks, and how they are satisfied:**
+- Lockstep rules spanning delta blocks, and how they're satisfied:
   - [[module-document-core]] requires the schema version and the emitted
-    index to change together when the index model changes shape. Both
-    are in MODEL, and the version is deliberately *not* bumped: the
-    `features` collection is an addition under the additive-at-1.0 rule
-    [[container-spec-cli]] states, so the satisfying act is the recorded
-    no-bump.
-  - [[module-document-core]] requires a new parsing capability to be
-    built on the Spans delimiter scanner. MDS takes its fence
-    recognition from `goldmark` and computes every position through
-    Spans, which is the same narrowing References already carries and
-    which folds into the module blueprint at retirement.
+    index to change together when the index model changes shape. Both are
+    in MODEL, and the version is deliberately not bumped: the `features`
+    collection is an addition under the additive-at-1.0 rule
+    [[container-spec-cli]] states, so the recorded no-bump is the
+    satisfying act.
+  - [[module-document-core]] requires a new parsing capability to be built
+    on the Spans delimiter scanner. MDS takes its fence recognition from
+    `goldmark` and computes every position through Spans. That's the
+    same narrowing References already carries, and the narrowing folds
+    into the module blueprint at retirement.
   - [[container-spec-cli]] requires the snapshot regeneration script to
     be run and every diff reviewed when observable output changes. VTAG,
-    VCON, QRY, EMIT and CHG each change observable output, and each
-    lands with its regenerated snapshots in the same change rather than
-    a shared regeneration pass at the end of a stage.
+    VCON, QRY, EMIT, and CHG each change observable output. Each lands
+    with its regenerated snapshots in the same change, instead of in a
+    shared regeneration pass at the end of a stage.
   - [[module-spec-profile]] requires a registered pattern to change in
     the same change as the standard that defines it. PREG's patterns
     mirror `gherkin-guide.md` and the generated `feature.strata`
@@ -689,14 +676,14 @@ sides of the comparison.
     together.
 - No backward-compatibility window applies. [[module-document-core]] and
   [[module-spec-profile]] are both `visibility: internal` and evolve in
-  lockstep with their only consumer, and the widened extension point is
-  the internal half of [[contract-specs-configuration]], which that
-  contract's change policy exempts while both modules are internal.
+  lockstep with their only consumer. The widened extension point is the
+  internal half of [[contract-specs-configuration]], which that contract's
+  change policy exempts while both modules are internal.
 
-## AC Coverage
+## AC coverage
 
-Legend: MODEL = feature, criterion and finding models in Strata; XPT =
-the widened `Profile` extension point in [[module-document-core]]; MDS =
+Legend: MODEL = feature, criterion, and finding models in Strata; XPT = the
+widened `Profile` extension point in [[module-document-core]]; MDS =
 Markdown Structure (fenced blocks); GHK = the Gherkin component; DISC =
 Corpus (discovery and records); PREG = tag registrations in
 [[module-spec-profile]]; VTAG = identity checks; VCON = content and
@@ -762,114 +749,109 @@ Surface (change detection).
 | AC-GHK-009.2 | **EMIT (proves)**, GHK | unit |
 | AC-GHK-009.4 | **GHK (proves)**, MODEL | unit |
 
-‡ AC-GHK-001.6 was declared `manual` at design time, on the reading that
-it states an authoring convention rather than a behavior of the CLI: a
-feature source sits beside the documents of its feature, and nothing in
-the tool places it there. DISC was named as its proving delta because
-discovery over the spec root is what makes the convention sufficient.
-The level was corrected to `unit` at retirement — that observable half
-is exactly what
-`TestAFeatureSourceIsFoundWhereverBeneathTheSpecRootItSits` asserts, so
-the criterion is verified automatically and nothing about it is left to
-a human to check.
+‡ AC-GHK-001.6 was declared `manual` at design time, on the reading that it
+states an authoring convention, not a behavior of the CLI. A feature source
+sits beside the documents of its feature, and nothing in the tool places it
+there. DISC was named as its proving delta because discovery over the spec
+root is what makes the convention sufficient. The level was corrected to
+`unit` at retirement.
+`TestAFeatureSourceIsFoundWhereverBeneathTheSpecRootItSits` asserts exactly
+that observable half, so the criterion is verified automatically and
+nothing about it is left for a person to check.
 
-† AC-GHK-007.6 is verified by a Go test rather than a snapshot case,
-because the state it is about — an index served warm, with nothing
-re-walked — cannot be staged from a case's input corpus, and a snapshot
-case is pure data by [[testing-standards]]'s harness-independence rule.
-It joins AC-SPECREF-003.4, which is warm-path behavior for the same
-reason.
+† AC-GHK-007.6 is verified by a Go test instead of a snapshot case. The
+state it's about (an index served warm, with nothing re-walked) can't be
+staged from a case's input corpus, and a snapshot case is pure data by
+[[testing-standards]]'s harness-independence rule. It joins
+AC-SPECREF-003.4, which is warm-path behavior for the same reason.
 
-## Key Decisions
+## Key decisions
 
-- [[adr-021]] — Gherkin is the notation for features and acceptance
-  criteria, the official Go parser is the implementation, and the
-  fourteen binding constraints every delta here realizes.
-- [[adr-016]] — Strata is the single source for generated models, which
-  is why MODEL changes `.strata` sources rather than Go structs.
-- [[adr-018]] — references are one top-level edge collection with both
-  directions derived. Features deliberately do **not** follow it:
-  criteria nest, because a criterion is a node belonging to exactly one
-  feature rather than an edge describing neither endpoint.
-- [[adr-015]] — Go, and the module composition model the MDS/GHK split
+- [[adr-021]]: Gherkin is the notation for features and acceptance
+  criteria, and the official Go parser is the implementation. The ADR also
+  states the fourteen binding constraints every delta here realizes.
+- [[adr-016]]: Strata is the single source for generated models, which is
+  why MODEL changes `.strata` sources instead of Go structs.
+- [[adr-018]]: references are one top-level edge collection with both
+  directions derived. Features deliberately don't follow it. Criteria nest,
+  because a criterion is a node belonging to exactly one feature, not an
+  edge describing neither endpoint.
+- [[adr-015]]: Go, and the module composition model the MDS/GHK split
   follows.
 
-No new ADR. The one boundary decision this blueprint makes — Gherkin
-parsing in the host, tag vocabulary in the profile — is an application
-of the one-way dependency [[module-document-core]] already states, and
-its rationale folds into that blueprint's Gherkin component at
-retirement rather than dying with this document.
+No new ADR. The one boundary decision this blueprint makes (Gherkin parsing
+in the host, tag vocabulary in the profile) applies the one-way dependency
+[[module-document-core]] already states. Its rationale folds into that
+blueprint's Gherkin component at retirement instead of retiring with this
+document.
 
-## Definition of Done
+## Definition of done
 
 - [x] Every delta above is folded into its owning blueprint:
-  - [x] [[module-document-core]] — Components gains **Gherkin**;
-        Markdown Structure carries a **Built — fenced blocks only**
-        paragraph, with the heading tree and comment blocks still named
-        as outstanding; Interface records the widened `Profile` as a
-        fifth member, `FeatureTags()`, and the two new registration
-        defects `ValidateRegistration` reports; Corpus's index
-        vocabulary gains `Feature` and `Criterion`; References records
-        the narrowed code mask; Findings records the new detail
-        variants; Key Decisions' [[adr-021]] line names the parser the
-        Gherkin component is built on rather than a follow-on.
-        Reconciled at retirement: the Components prose still said
-        nothing in Corpus called `cli/core/markdown` or
-        `cli/core/gherkin`, which DISC made false.
-  - [x] [[module-spec-profile]] — Interface and Profile Registration
+  - [x] [[module-document-core]]: Components gains Gherkin. Markdown
+        Structure carries a "Built — fenced blocks only" paragraph, with
+        the heading tree and comment blocks still named as outstanding.
+        Interface records the widened `Profile` as a fifth member,
+        `FeatureTags()`, and the two new registration defects
+        `ValidateRegistration` reports. Corpus's index vocabulary gains
+        `Feature` and `Criterion`. References records the narrowed code
+        mask, and Findings records the new detail variants. The
+        [[adr-021]] line in Key decisions names the parser the Gherkin
+        component is built on, instead of a follow-on. Reconciled at
+        retirement: the Components prose still said nothing in Corpus
+        called `cli/core/markdown` or `cli/core/gherkin`, which DISC made
+        false.
+  - [x] [[module-spec-profile]]: Interface and Profile Registration
         record the tag registration and the structural guard holding the
-        registered patterns against the generated ones; Key Decisions'
-        [[adr-021]] line names what Profile Registration registers.
-  - [x] [[container-spec-cli]] — Command Surface records `feature` and
+        registered patterns against the generated ones. The [[adr-021]]
+        line in Key decisions names what Profile Registration registers.
+  - [x] [[container-spec-cli]]: Command Surface records `feature` and
         `criterion`, the `--emit`/`--out`, `--code`, `--of`, `--tag`,
-        `--changed` and `--json` flags and their mutual exclusions;
-        Change Guidance's verification gates cover them under the
-        general command-surface rule. Reconciled at retirement: Key
-        Decisions' [[adr-021]] line still read "acceptance-criteria
-        extraction is a follow-on feature, so no component here parses
-        acceptance criteria yet".
-- [x] [[contract-specs-configuration]] — the internal registration
-      surface enumerates the tag vocabulary: the two identifier
-      patterns, the owning-document tag prefix, the shared captures and
+        `--changed`, and `--json` flags, and their mutual exclusions.
+        The verification gates in Change guidance cover them under the
+        general command-surface rule. Reconciled at retirement: the
+        [[adr-021]] line in Key decisions still read
+        "acceptance-criteria extraction is a follow-on feature, so no
+        component here parses acceptance criteria yet".
+- [x] [[contract-specs-configuration]]: the internal registration
+      surface enumerates the tag vocabulary, which is the two identifier
+      patterns, the owning-document tag prefix, the shared captures, and
       the qualifier tags with their meanings. `version` stays `"1.0"`,
-      the recorded no-bump being the satisfying act — the revision is
-      additive and to the internal half only, which that contract's own
-      change policy exempts WHILE both modules are `visibility:
-      internal`.
+      and the recorded no-bump is the satisfying act. The revision is
+      additive and touches only the internal half, which that contract's
+      own change policy exempts while both modules are
+      `visibility: internal`.
 - [x] Every AC in the coverage table is verified at its declared level
       and cited from its tests per `ac-traceability-standards.md`. All
       55 carry an `AC:` citation or a case manifest `cites` entry, and
-      no citation names a criterion [[frd-gherkin-adoption]] does not
-      define. Two — AC-GHK-002.8 and AC-GHK-003.5, both negative
-      criteria — had a test each carrying the identifier in prose rather
-      than behind the `AC:` marker, and were given proper citations at
-      retirement.
-- [x] Every issue listed as subsumed in Tracker Reconciliation is closed
-      or re-scoped: the MODEL, DISC and EMIT issues closed; the VTAG
-      issue re-scoped to
- the criterion-number sequence check alone, which no
-      criterion in [[frd-gherkin-adoption]] requires and this feature
-      does not deliver.
-- [x] This blueprint's status → retired.
+      no citation names a criterion [[frd-gherkin-adoption]] doesn't
+      define. Two negative criteria, AC-GHK-002.8 and AC-GHK-003.5, each
+      had a test carrying the identifier in prose instead of behind the
+      `AC:` marker. Both were given proper citations at retirement.
+- [x] Every issue listed as subsumed in Tracker reconciliation is closed
+      or re-scoped. The MODEL, DISC, and EMIT issues closed. The VTAG
+      issue was re-scoped to the criterion-number sequence check alone,
+      which no criterion in [[frd-gherkin-adoption]] requires and this
+      feature doesn't deliver.
+- [x] This blueprint's status moves to retired.
 
-## Open Questions
+## Open questions
 
 None.
 
 ## References
 
-- `c4-guide.md` — the container, module and component definitions the
+- `c4-guide.md`: the container, module, and component definitions the
   delta blocks are written against
-- [[frd-gherkin-adoption]] — the requirements these deltas realize
-- [[adr-021]] — the decision, its measurements, and its binding
+- [[frd-gherkin-adoption]]: the requirements these deltas realize
+- [[adr-021]]: the decision, its measurements, and its binding
   constraints
-- [[module-document-core]] — the host every parsing delta lands in
-- [[module-spec-profile]] — the plugin PREG registers through
-- [[container-spec-cli]] — the command surface QRY, EMIT and CHG extend
-- [[frd-spec-index]] — the index, the finding record and the
-  warm index these deltas build on
-- [[frd-spec-reference-integrity]] — the reference extraction GREF
-  narrows the code mask of
-- [[gherkin-guide]] — the authoring rules
-  PREG's registered patterns mirror
-- `schemas/feature.strata` — the record contract MODEL compiles
+- [[module-document-core]]: the host every parsing delta lands in
+- [[module-spec-profile]]: the plugin PREG registers through
+- [[container-spec-cli]]: the command surface QRY, EMIT, and CHG extend
+- [[frd-spec-index]]: the index, the finding record, and the warm index
+  these deltas build on
+- [[frd-spec-reference-integrity]]: the reference extraction whose code
+  mask GREF narrows
+- [[gherkin-guide]]: the authoring rules PREG's registered patterns mirror
+- `schemas/feature.strata`: the record contract MODEL compiles

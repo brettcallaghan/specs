@@ -11,36 +11,37 @@ delivery: single-pr
 frd: frd-spec-c4
 ---
 
-# C4 Model
+# C4 model
 
 ## Overview
 
 **FRD:** [[frd-spec-c4]]
 
-The model is a projection, assembled in [[module-document-core]] by a new
-**C4 Model** component from two things Document Core's **C4 Elements**
-component already builds: the element set with its declarations, and the drawings
-each relationship statement resolves to. C4 Model nests the elements by
-the containment edges the corpus declares, merges drawings into
-relationships, reads the reserved tags into properties, and narrows the
-result to one subtree on request. It returns the generated
-`specmodel.C4Model`, whose shape `schemas/c4.strata` already declares;
-the Command Surface in [[container-spec-cli]] gains a `c4` subcommand
-that renders it. One enum value is added to the schema. The index is not
-touched.
+The model is a projection. A new C4 Model component in
+[[module-document-core]] assembles it from two things that Document Core's
+C4 Elements component already builds: the element set with its
+declarations, and the drawings that each relationship statement resolves
+to. C4 Model nests the elements by the containment edges the corpus
+declares, merges drawings into relationships, reads the reserved tags into
+properties, and narrows the result to one subtree on request.
 
-Delta blocks in dependency order: MODEL, then TREE, then REL, then TAGS
-and ROOT, then CMD; DOC lands with CMD.
+C4 Model returns the generated `specmodel.C4Model`, whose shape
+`schemas/c4.strata` already declares. The Command Surface in
+[[container-spec-cli]] gains a `c4` subcommand that renders it. The
+feature adds one enum value to the schema and doesn't touch the index.
 
-## Element Deltas
+The delta blocks, in dependency order, are MODEL, then TREE, then REL,
+then TAGS and ROOT, then CMD. DOC lands with CMD.
+
+## Element deltas
 
 ### `C4ExclusionReason` in `schemas/c4.strata` (modified)
 
 **Intent:** [[frd-spec-c4]] records every relationship statement the
-model does not admit, so that its absence is visible. A `BiRel` is such
-a statement — [[c4-standards]] forbids it and the diagram checks report
-it — and the four reasons the schema names do not describe it. Without a
-fifth, a `BiRel` would vanish from the model with no trace.
+model doesn't admit, so that its absence is visible. A `BiRel` is such a
+statement: [[c4-standards]] forbids it, and the diagram checks report it.
+The four reasons the schema names don't describe it. Without a fifth, a
+`BiRel` would vanish from the model with no trace.
 
 **Behavior:**
 - `C4ExclusionReason` SHALL gain the value `bidirectional`, documented
@@ -57,16 +58,16 @@ compiler.
 
 **Intent:** The tree is the element set nested by the edges the corpus
 declares: a container's system property, a host's modules list, and a
-child's place in its parent's roster. Nothing is inferred from directory
-layout or from a diagram. Living in Document Core keeps the assembly
-available to any wrapper, per [[container-spec-cli]]'s Change Guidance
-and [[adr-030]].
+child's place in its parent's roster. The component infers nothing from
+directory layout or from a diagram. Because it lives in Document Core, the
+assembly stays available to any wrapper, per [[container-spec-cli]]'s
+Change guidance and [[adr-030]].
 
 **New components** (declared in module vocabulary):
-- **C4 Model** (Go package) — Assembles the corpus's C4 model from the
-  resolved elements and drawings: the element tree, the module
-  collection, the relationships and the excluded statements, optionally
-  narrowed to one element's subtree. Returns the generated model and
+- **C4 Model** (Go package): Assembles the corpus's C4 model from the
+  resolved elements and drawings. It builds the element tree, the module
+  collection, the relationships, and the excluded statements, optionally
+  narrowed to one element's subtree. It returns the generated model and
   renders nothing.
 
   ```component
@@ -119,10 +120,10 @@ member types, generated from `schemas/c4.strata`.
 
 ### C4 Model in [[module-document-core]] (modified — relationships)
 
-**Intent:** A relationship is read from every drawing of it, in both of
-the homes [[adr-009]] gives an edge, and recorded once. The grouping and
-the endpoint resolution are C4 Elements'; this delta turns them into
-the model's edge list and exclusion list.
+**Intent:** The component reads a relationship from every drawing of it,
+in both of the homes [[adr-009]] gives an edge, and records it once. C4
+Elements does the grouping and the endpoint resolution. This delta turns
+them into the model's edge list and exclusion list.
 
 **Behavior:**
 - The component SHALL record one relationship for each group of
@@ -157,9 +158,9 @@ the model's edge list and exclusion list.
 ### C4 Model in [[module-document-core]] (modified — reserved tags)
 
 **Intent:** Mermaid has no argument for whether a call waits or which
-contract governs it, so [[adr-029]] reserves tags for both. Whether a
-tag is well formed is the diagram checks' question; this delta records
-what a tag means once it is read.
+contract governs it, so [[adr-029]] reserves tags for both. The diagram
+checks decide whether a tag is well formed. This delta records what a tag
+means once it's read.
 
 **Behavior:**
 - WHEN the first drawing carries `sync` and not `async`, the
@@ -185,8 +186,8 @@ component returns.
 ### C4 Model in [[module-document-core]] (modified — subtree)
 
 **Intent:** An agent planning a change to one element wants that
-element's part of the architecture, not the whole. Narrowing is the
-query's, so a wrapper gets the same answer as the command.
+element's part of the architecture, not the whole. The query does the
+narrowing, so a wrapper gets the same answer as the command.
 
 **Behavior:**
 - WHERE a root slug is given, the component SHALL return a model holding
@@ -213,8 +214,8 @@ query's, so a wrapper gets the same answer as the command.
 
 ### Command Surface in [[container-spec-cli]] (modified — `c4`)
 
-**Intent:** A new subcommand, wired like `list`: flags in, one Document
-Core call, one rendering out. It decides nothing about the model.
+**Intent:** The new subcommand is wired like `list`: flags in, one
+Document Core call, one rendering out. It decides nothing about the model.
 
 **Behavior:**
 - The subcommand SHALL be named `c4` and SHALL accept no positional
@@ -244,9 +245,9 @@ the shape to follow; registration in `newRootCmd` in `cli/cmd/root.go`;
 
 ### Documentation (modified — `c4`)
 
-**Intent:** The command is not discoverable until the reference lists
-it, and [[frd-spec-c4]] says the output standards' conformance table
-gains a row when it lands.
+**Intent:** Readers can't discover the command until the reference lists
+it. [[frd-spec-c4]] also says the output standards' conformance table
+gains a row when the command lands.
 
 **Behavior:**
 - [[spec-cli-reference]] SHALL document `specs c4`, its two flags, the
@@ -261,12 +262,12 @@ copies follow.
 
 ### Relied-upon elements (unchanged)
 
-- [[module-document-core]]'s C4 Elements component — the element
-  set, each element's declarations, node resolution, and drawings
-  grouped into relationships with unresolved statements and their
-  reasons. This feature adds no resolution of its own.
-- [[module-document-core]]'s C4 Diagrams component — statements,
-  views and the reserved-tag split.
+- [[module-document-core]]'s C4 Elements component: the element set,
+  each element's declarations, node resolution, and drawings grouped into
+  relationships with unresolved statements and their reasons. This
+  feature adds no resolution of its own.
+- [[module-document-core]]'s C4 Diagrams component: statements, views,
+  and the reserved-tag split.
 - The architecture vocabulary the profile registers per [[adr-030]],
   read through Document Core's extension point.
 - The index's per-type frontmatter, which carries every property TREE
@@ -278,27 +279,25 @@ copies follow.
 
 None. The model's shape is declared in `schemas/c4.strata` and emitted
 as JSON Schema with every other generated model. Like the index
-([[container-spec-cli]], Open Questions), it is not promoted to a
-contract document until a consumer exists that is built independently.
+([[container-spec-cli]], Open questions), it isn't promoted to a contract
+document until a consumer exists that is built independently.
 
-## Tracker Reconciliation
+## Tracker reconciliation
 
-- The record-block tag registration point and heading-scoped record
-  blocks — prerequisite, transitively, already met: Document Core's C4
+- Prerequisite, already met transitively: the record-block tag
+  registration point and heading-scoped record blocks. Document Core's C4
   Elements component rests on both, and this feature rests on that
   component.
-- Out-of-scope: the C4 standards issue, subsumed by
-  the [[c4-standards]] amendment that landed with Document Core's C4
-  Elements component. This feature does not amend
-  [[c4-standards]].
-- Out-of-scope: the index-schema and contract
-  ADR. This feature emits a separate model and changes no index shape,
-  so it neither advances nor blocks that decision.
-- Prerequisite, already met: the index carries
-  per-type frontmatter.
+- Out-of-scope: the C4 standards issue, subsumed by the [[c4-standards]]
+  amendment that landed with Document Core's C4 Elements component. This
+  feature doesn't amend [[c4-standards]].
+- Out-of-scope: the index-schema and contract ADR. This feature emits a
+  separate model and changes no index shape, so it neither advances nor
+  blocks that decision.
+- Prerequisite, already met: the index carries per-type frontmatter.
 
 
-## Sequencing Constraints
+## Sequencing constraints
 
 - Document Core's C4 Elements component, with its drawings, SHALL be in
   place before the TREE delta; it is.
@@ -315,7 +314,7 @@ contract document until a consumer exists that is built independently.
   `scripts/regenerate-cli-snapshots.sh` and every diff reviewed before
   commit, per [[container-spec-cli]]'s verification gates.
 
-## AC Coverage
+## AC coverage
 
 Legend: MODEL = `C4ExclusionReason` delta; TREE = C4 Model delta
 (element tree); REL = C4 Model delta (relationships); TAGS = C4 Model
@@ -359,26 +358,26 @@ Surface `c4` delta; DOC = Documentation delta.
 | AC-C4-004.7 | REL, **CMD (proves)** | e2e |
 
 AC-C4-004.4 is declared `integration` because the snapshot harness
-replays each case once and cannot compare two runs; a Go test in
-`cli/cmd` runs the command twice and compares the bytes, as
-`list_test.go` does for AC-SPECLIST-004.3.
+replays each case once and can't compare two runs. A Go test in `cli/cmd`
+runs the command twice and compares the bytes, as `list_test.go` does for
+AC-SPECLIST-004.3.
 
-## Key Decisions
+## Key decisions
 
-- [[adr-029]] — relationships are read from blueprint diagrams, with
+- [[adr-029]]: Relationships are read from blueprint diagrams, with
   reserved relationship tags.
-- [[adr-030]] — the model is assembled in Document Core from vocabulary
+- [[adr-030]]: The model is assembled in Document Core from vocabulary
   the profile registers.
-- [[adr-009]] — an edge's two homes, which is why one relationship can
+- [[adr-009]]: An edge has two homes, which is why one relationship can
   carry several drawings.
 
-## Definition of Done
+## Definition of done
 
 - [x] Every delta above is folded into its owning blueprint:
-  - [x] [[module-document-core]] — C4 Model added to the Components
+  - [x] [[module-document-core]]: C4 Model added to the Components
         roster and diagram with its record block, including the subtree
         query
-  - [x] [[container-spec-cli]] — the Command Surface's subcommand list
+  - [x] [[container-spec-cli]]: The Command Surface's subcommand list
         gains `c4`, with its flags and the Document Core call it makes
 - [x] `schemas/c4.strata` carries `bidirectional`, and the generated
       schema and Go model are regenerated from it
@@ -388,22 +387,22 @@ replays each case once and cannot compare two runs; a Go test in
       and cited from its tests per [[ac-traceability-standards]]
 - [x] `scripts/coverage.sh` has been run from the repository root and
       the README diff committed, since `cli/**` changed
-- [x] This blueprint's status → retired
+- [x] This blueprint's status set to retired
 
-## Open Questions
+## Open questions
 
 None.
 
 ## References
 
-- [[c4-standards]] — the levels, containment and arrow rules the model
+- [[c4-standards]]: the levels, containment, and arrow rules the model
   follows
-- [[frd-spec-c4]] — the requirements this blueprint realizes
-- [[container-spec-cli]] — the container whose Change Guidance binds
-  every delta
-- [[module-document-core]] — the module the model is assembled in, whose
-  C4 Diagrams and C4 Elements components are the parser, element set and
+- [[frd-spec-c4]]: the requirements this blueprint realizes
+- [[container-spec-cli]]: the container whose Change guidance binds every
+  delta
+- [[module-document-core]]: the module the model is assembled in, whose
+  C4 Diagrams and C4 Elements components are the parser, element set, and
   drawings this model is built from
-- [[cli-output-standards]] — the rendering rules the CMD delta follows
-- [[ac-traceability-standards]] — the citation obligations the coverage
+- [[cli-output-standards]]: the rendering rules the CMD delta follows
+- [[ac-traceability-standards]]: the citation obligations the coverage
   table feeds

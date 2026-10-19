@@ -8,75 +8,73 @@ type: standards
 status: draft
 ---
 
-# Mapping Architecture to C4
+# Mapping architecture to C4
 
 ## Contents
 
-- The Abstraction Levels — system, container, module, component
-- Element Declarations: Model in Prose, Views in Diagrams — and the
+- The abstraction levels: system, container, module, and component
+- Element declarations: Model in prose, views in diagrams, with the
   relationship statements that declare edges
-- Nodes and Edges: Who Owns What
-- Naming and Relationship Conventions — acronyms, arrow direction, message
-  buses and async
-- Diagram Types and Placement — container context, deployment view, and the
+- Nodes and edges: Who owns what
+- Naming and relationship conventions: acronyms, arrow direction, message
+  buses, and async
+- Diagram types and placement: container context, deployment view, and the
   Mermaid authoring rules
-- Mapping Concrete Elements to C4 — where queues, shared libraries, IaC
-  modules, sidecars and data products belong
-- Model as Element, or Mention in Prose?
-- Contract Visibility Tiers
-- Lifecycle: Documentation Follows the Realization
+- Mapping concrete elements to C4: where queues, shared libraries, IaC
+  modules, sidecars, and data products belong
+- Model as element, or mention in prose?
+- Contract visibility tiers
+- Lifecycle: Documentation follows the realization
 - References
 
 This guide defines how this framework uses the [C4 model](https://c4model.com)
-in its architecture document types — system blueprint,
-container blueprint, module blueprint, component blueprint, and
-contract. The framework
-is used across many projects and enterprises; the rules here are
-conventions of the framework, not of any one codebase. It exists to answer one
-question quickly: **"where does this thing go?"** — which C4 level a
-concrete element maps to, which document describes it, and whether it
-belongs on a diagram at all.
+in its architecture document types: system blueprint, container blueprint,
+module blueprint, component blueprint, and contract. The framework is used
+across many projects and enterprises. The rules here are conventions of the
+framework, not of any one codebase. The guide answers one question quickly:
+where does this thing go? It says which C4 level a concrete element maps to,
+which document describes it, and whether it belongs on a diagram at all.
 
-Diagrams are **views of a model**. The model is the set of elements and
-relationships declared across the blueprint documents; every diagram is a
+Diagrams are views of a model. The model is the set of elements and
+relationships declared across the blueprint documents. Every diagram is a
 projection of that model, scoped and filtered for one audience. A diagram
 SHALL NOT show an element that the documents do not declare, or a
 relationship that the documents do not describe. Nodes and edges differ in
-where the declaration lives: a node is a view of its element's
-declaration, while a relationship statement on a diagram IS the
-declaration of its edge ([[adr-029]]).
+where the declaration lives. A node is a view of its element's declaration,
+while a relationship statement on a diagram is the declaration of its edge
+([[adr-029]]).
 
 ---
 
-## The Abstraction Levels
+## The abstraction levels
 
-One-line definitions, plus the rules this framework adds. (The definitions
-are anchors for the mapping rules below — when a mapping is disputed,
-argue from the definition.)
+These are one-line definitions, plus the rules this framework adds. The
+definitions are anchors for the mapping rules below, so when a mapping is
+disputed, argue from the definition.
 
-**Software system** — the highest level: a set of containers built and
+**Software system**: the highest level. It's a set of containers built and
 run as a unit that delivers capabilities to users or other systems.
 
-- System boundaries SHOULD be **domain-centric**: a system bundles
-  related capabilities within one business domain or subdomain.
-  Organizations that assign team ownership along domain lines arrive at
-  the same boundaries indirectly — one system = the containers one team
-  builds and runs as a unit.
+- System boundaries SHOULD be domain-centric: a system bundles related
+  capabilities within one business domain or subdomain. Organizations that
+  assign team ownership along domain lines arrive at the same boundaries
+  indirectly: one system is the containers one team builds and runs as a
+  unit.
 - In practice, accommodate system boundaries however the enterprise has
   drawn them. Blueprints document the architecture as it is.
-- Real systems accumulate history. A container that does not belong in
-  its system (by the domain lens above) stays where it actually runs,
-  and the system blueprint documents the misplacement: mark it "not for
+- Real systems accumulate history. A container that doesn't belong in its
+  system (by the domain lens above) stays where it actually runs, and the
+  system blueprint documents the misplacement. Mark the container "not for
   external use" and name the system it should belong to.
 
-**Container** — an application or data store that must be *running* for
-the system to work: API server, web app, worker, database, queue. Not a
-Docker container. The container is the unit of deployment; components
-inside it share its process space.
+**Container**: an application or data store that must be running for the
+system to work, such as an API server, web app, worker, database, or queue.
+It isn't a Docker container. The container is the unit of deployment, and
+components inside it share its process space.
 
 - Deployment is a separate concern: the same container may deploy
   differently per environment. Deployment diagrams map containers onto
-  infrastructure; the container abstraction itself stays topology-free.
+  infrastructure, and the container abstraction itself stays topology-free.
 - A repository MAY document standalone containers without a system
   blueprint: omit `system` in the container blueprint. The system
   level is introduced when a second container needs shared context worth
@@ -84,72 +82,71 @@ inside it share its process space.
   Infrastructure and Deployment section is authoritative for that
   container's deployment.
 
-**Component** — C4 defines a component as a grouping of related
-functionality behind a well-defined interface, living inside a
-container, not separately deployable. In this framework a component is
-the **atomic leaf**: an internal building block of a SINGLE container,
-with a defined interface and no internal components of its own. It
-changes in lockstep with its container — it is not vended or versioned
-independently. Its home is a component blueprint (or, un-promoted, a
-record block in its container's Components section).
+**Component**: C4 defines a component as a grouping of related
+functionality behind a well-defined interface, living inside a container,
+not separately deployable. In this framework, a component is the atomic
+leaf: an internal building block of a single container, with a defined
+interface and no internal components of its own. It changes in lockstep with
+its container and isn't vended or versioned independently. Its home is a
+component blueprint or, while it's un-promoted, a record block in its
+container's Components section.
 
-**Module** — this framework's named level between container and
-component, and the deliberate extension of strict C4:
+**Module**: this framework's named level between container and component,
+and the deliberate extension of strict C4:
 
-> A module is a unit of software with a defined interface, composed into
-> containers at build or deploy time, or living within a container at
-> runtime — that crosses a boundary of independent change (it is shared
-> or published across containers) and/or has internal components of its
-> own (one level of nesting).
+> A module is a unit of software with a defined interface that crosses a
+> boundary of independent change (it is shared or published across
+> containers) and/or has internal components of its own (one level of
+> nesting). It is composed into containers at build or deploy time, or lives
+> within a container at runtime.
 
-The extension admits build-time and deploy-time units — shared
-libraries, SDKs, UI packages, micro-frontends, IaC modules, plugins. A
-module is composed INTO a container; it is not separately deployable and
-owns no runtime data. Its **visibility** — `internal` (unpublished,
-evolves in the repo in lockstep with consumers) or `public` (published
-to a registry, consumers span versions independently) — governs the
-change rules for work touching it. Its home is a module blueprint. This
-paragraph is the extension's definition of record.
+The extension admits build-time and deploy-time units: shared libraries,
+SDKs, UI packages, micro-frontends, IaC modules, and plugins. A module is
+composed into a container. It isn't separately deployable and owns no
+runtime data. Its visibility governs the change rules for work touching it.
+Visibility is `internal` (unpublished, evolves in the repo in lockstep with
+consumers) or `public` (published to a registry, consumers span versions
+independently). Its home is a module blueprint. This paragraph is the
+extension's definition of record.
 
-**Code** — classes, functions, files. Not documented in blueprints; the
+**Code**: classes, functions, and files. Blueprints don't document code. The
 code and its inline documentation are the source of truth.
 
 ---
 
-## Element Declarations: Model in Prose, Views in Diagrams
+## Element declarations: Model in prose, views in diagrams
 
-This framework separates the model from its views without a modeling
-DSL — it deliberately stops short of Structurizr or fenced declaration
-blocks. Prose is the declaration format for **elements**: every modeled
-element is declared once, in its home document (see the mapping table
-below), and every diagram node is a view of a declaration that already
-exists. **Edges are the exception:** a relationship statement
-(`Rel(...)` and its variants) in an architecture blueprint's C4 diagram
-declares the edge it draws, and the prose beside it restates the edge for
-a reader. The statements are read as specified under Relationship
-Statements below.
+This framework separates the model from its views without a modeling DSL.
+It deliberately stops short of Structurizr or fenced declaration blocks.
+Prose is the declaration format for elements. Every modeled element is
+declared once, in its home document (see the mapping table below), and every
+diagram node is a view of a declaration that already exists. Edges are the
+exception. A relationship statement (`Rel(...)` and its variants) in an
+architecture blueprint's C4 diagram declares the edge it draws, and the
+prose beside it restates the edge for a reader. The statements are read as
+specified under Relationship statements below.
 
 Each declaration SHALL capture these facts:
 
 | Fact | Purpose |
 |------|---------|
-| **Name** | Canonical; used verbatim on every diagram and in references |
-| **Technology** | For containers and components: language, framework, store or package type |
-| **Brief description** | One line; doubles as the element's description text on diagrams |
-| **Detailed description** | The fuller prose a reader of the document needs; never rendered on diagrams |
+| Name | Canonical; used verbatim on every diagram and in references |
+| Technology | For containers and components: language, framework, store or package type |
+| Brief description | One line; doubles as the element's description text on diagrams |
+| Detailed description | The fuller prose a reader of the document needs; never rendered on diagrams |
 
 Elements are referenced by document link or heading anchor. A promoted
 element (one with its own blueprint) is referenced by its blueprint slug
-(`[[component-<name>]]` / `[[module-<name>]]`). An un-promoted element is
-referenced by a wikilink heading anchor into its parent's roster —
-`[[container-<name>#Element Name]]` — where each element is declared under
-its own `### <Name>` heading in the parent's Components section. The
-roster heading persists after promotion (it then carries the blueprint
-link in place of the record block), so an anchor reference keeps
-resolving without an immediate rewrite when an element is promoted.
-Diagrams always use the display name. A code-level element that is NOT a
-modeled component — a schema, domain type, event, flag, or table — is
-written in backticks (`ElementName`), not referenced this way.
+(`[[component-<name>]]` or `[[module-<name>]]`). An un-promoted element is
+referenced by a wikilink heading anchor into its parent's roster:
+`[[container-<name>#Element Name]]`. Each element in the roster is declared
+under its own `### <Name>` heading in the parent's Components section. The
+roster heading persists after promotion (it then carries the blueprint link
+in place of the record block). An anchor reference therefore keeps resolving
+without an immediate rewrite when an element is promoted. Diagrams always
+use the display name. A code-level element that isn't a modeled component,
+such as a schema, domain type, event, flag, or table, is written in
+backticks (`ElementName`), not referenced this way.
 
 WHERE an element has its own blueprint, that blueprint IS the
 declaration: the frontmatter `entity_name` carries the name, the
@@ -161,14 +158,13 @@ blueprint for detail.
 
 WHERE a child element has NOT been promoted to its own blueprint, its
 declaration in the parent's roster (a container's or module's Components
-section) carries a machine-readable **record block** — so every modeled
+section) carries a machine-readable record block — so every modeled
 node is declared in prose whether or not it has its own document. The
 record block's format, its schema, and how a promoted element's
-declarations relate are defined in
-[[template-authoring-standards]] (Embedded Element Records). Declaring every
-node this way keeps the model machine-readable: the element vocabulary
-and node set are parseable without a modeling DSL, and diagrams can be
-rendered from the declarations.
+declarations relate are defined in [[template-authoring-standards]]
+(Embedded element records). Declaring every node this way keeps the model
+machine-readable. The element vocabulary and node set are parseable without
+a modeling DSL, and diagrams can be rendered from the declarations.
 
 WHEN a diagram node and an element's declaration disagree, the
 declaration is authoritative — fix the node. A relationship statement has
@@ -177,32 +173,32 @@ than one diagram and the drawings differ in technology, description or
 tags, the drawings disagree with each other and the author reconciles
 them.
 
-### Relationship Statements
+### Relationship statements
 
-A C4 diagram is a fenced `mermaid` block in an architecture blueprint
-whose first statement is `C4Context`, `C4Container` or `C4Component`.
-The tooling reads exactly the following statement subset; a statement
-outside it is a parse error, not skipped, so the subset grows
-deliberately. Diagrams outside architecture blueprints (a feature
-blueprint's proposed architecture, for instance) are not read.
+A C4 diagram is a fenced `mermaid` block in an architecture blueprint whose
+first statement is `C4Context`, `C4Container`, or `C4Component`. The tooling
+reads exactly the following statement subset. A statement outside it is a
+parse error, not skipped, so the subset grows deliberately. Diagrams outside
+architecture blueprints, such as a feature blueprint's proposed
+architecture, aren't read.
 
 | Kind | Macros |
 |------|--------|
 | Element node | `System`, `Container`, `Component`, and their `Db` and `Queue` forms |
 | External node | `Person`, and every `_Ext` form |
-| Boundary | `Boundary`, `Enterprise_Boundary`, `System_Boundary`, `Container_Boundary` — groups nodes and is not itself a node |
+| Boundary | `Boundary`, `Enterprise_Boundary`, `System_Boundary`, `Container_Boundary` (groups nodes and isn't itself a node) |
 | Relationship | `Rel`; `Rel_U`, `Rel_Up`, `Rel_D`, `Rel_Down`, `Rel_L`, `Rel_Left`, `Rel_R`, `Rel_Right`; `Rel_Back`; `BiRel` |
 | Ignored | `title`, `UpdateElementStyle`, `UpdateRelStyle`, `UpdateLayoutConfig` |
 
 A `Db` or `Queue` node that names no element in scope is a passive store
 the drawing element uses; it needs no blueprint.
 
-Rules for relationship statements:
+These rules apply to relationship statements:
 
 - **Direction.** `Rel(a, b, ...)` declares `a` depending on `b`.
-  `Rel_Back(a, b, ...)` declares `b` depending on `a` — it is the same
-  edge drawn with the arrowhead reversed. `BiRel` is reported: an arrow
-  states one dependency in one direction (Relationship Direction above).
+  `Rel_Back(a, b, ...)` declares `b` depending on `a`: it's the same edge
+  drawn with the arrowhead reversed. `BiRel` is reported, because an arrow
+  states one dependency in one direction (Relationship direction above).
 - **Reserved tags.** A relationship's tags argument, written
   positionally or as `$tags`, MAY carry these tags and no others with
   meaning to the framework: `sync`, `async`, and `contract:<slug>`, the
@@ -213,178 +209,177 @@ Rules for relationship statements:
 - **Contract tags.** A `contract:<slug>` tag SHALL name a contract
   document; the source element SHOULD consume it and the target element
   SHOULD provide it.
-- **One drawing per edge, or drawings that agree.** An edge drawn twice
-  in one diagram is reported; an edge drawn in two diagrams SHALL carry
-  the same technology, description and tags in both.
+- **One drawing per edge, or drawings that agree.** An edge drawn twice in
+  one diagram is reported; an edge drawn in two diagrams SHALL carry the
+  same technology, description and tags in both.
 - **Names are identifiers.** A node's label is matched to an element's
-  `entity_name` within the drawing document's scope — its own element,
-  the components its roster declares, the modules it lists in `modules`,
-  and every system and container in the corpus. Renaming an element means
+  `entity_name` within the drawing document's scope: its own element, the
+  components its roster declares, the modules it lists in `modules`, and
+  every system and container in the corpus. Renaming an element means
   updating every diagram label that names it.
 
 ---
 
-## Nodes and Edges: Who Owns What
+## Nodes and edges: Who owns what
 
 The model is a tree of nodes with edges between them, and the framework
 files each fact at exactly one altitude:
 
-- **A parent owns the edges among its children.** A system owns the
-  relationships between its containers (the Containers section); a
+- A parent owns the edges among its children. A system owns the
+  relationships between its containers (the Containers section). A
   container owns the relationships among its components (the Components
-  section); a module owns the relationships among its internal
+  section), and a module owns the relationships among its internal
   components. Edges live with the parent, declared once.
-- **An element owns its own outward edges only through a Context view.**
-  System Context and Container Context show the subject among its direct
-  neighbors. Components and modules deliberately DO NOT get a context
-  view: a component's neighbors are owned by its container, and a shared
-  module has different neighbors in every host — so both point to their
-  host container(s) for relationships rather than restating them.
-- **Each element is light on the level below.** A container is light on
-  component internals (the component/module blueprint owns them); a
-  component or module is light on code (the code is the source of truth,
-  and an agent reads it to discover collaborators).
-- **Contract edges are the exception, and they belong to the element.**
-  Every blueprint — at all four levels — carries `contracts_consumed`,
-  and every contract names its one `provider`. The two rules above
-  govern *neighbor* edges, which have no single correct value for a
-  shared element. A contract does: it is a named document with one
-  identity, so "this element publishes it" and "this element depends on
-  it" are true wherever the element is composed. A module MAY therefore
-  declare a consumed contract even though it has no Context view.
+- An element owns its own outward edges only through a Context view. System
+  Context and Container Context show the subject among its direct neighbors.
+  Components and modules deliberately don't get a context view. A
+  component's neighbors are owned by its container, and a shared module has
+  different neighbors in every host. So both point to their host
+  container(s) for relationships rather than restating them.
+- Each element is light on the level below. A container is light on
+  component internals, which the component or module blueprint owns. A
+  component or module is light on code: the code is the source of truth, and
+  an agent reads it to discover collaborators.
+- Contract edges are the exception, and they belong to the element. Every
+  blueprint, at all four levels, carries `contracts_consumed`, and every
+  contract names its one `provider`. The two rules above govern neighbor
+  edges, which have no single correct value for a shared element. A contract
+  has one: it's a named document with one identity, so "this element
+  publishes it" and "this element depends on it" are true wherever the
+  element is composed. A module MAY therefore declare a consumed contract
+  even though it has no Context view.
 
-So every document sits at its own altitude: it owns its children as
-nodes and the edges among them, names the contracts it provides and
-consumes, points UP to its parent for its remaining outward edges, and
-points DOWN to code for internal detail.
+So every document sits at its own altitude. It owns its children as nodes
+and the edges among them, names the contracts it provides and consumes,
+points up to its parent for its remaining outward edges, and points down to
+code for internal detail.
 
 ---
 
-## Naming and Relationship Conventions
+## Naming and relationship conventions
 
 C4 leaves several conventions to its adopters. This framework adopts the
-opinionated ones below; they govern how nodes are named and how edges
-are drawn, across every diagram type.
+opinionated ones below. They govern how nodes are named and how edges are
+drawn, across every diagram type.
 
 ### Acronyms
 
-- Element names SHALL NOT use **internal acronyms** — abbreviations
-  meaningful only inside one team or enterprise.
+- Element names SHALL NOT use internal acronyms — abbreviations meaningful
+  only inside one team or enterprise.
 - Only common, industry-standard acronyms (API, SDK, HTTP, SQL) are
   allowed in a name.
-- An internal acronym MAY appear in the element's **description**, or in
-  **parentheses after the name** WHERE there is room — never as the name
+- An internal acronym MAY appear in the element's description, or in
+  parentheses after the name WHERE there is room — never as the name
   itself.
 
-RATIONALE: diagrams are read by newcomers and outsiders; an internal
-acronym on a box is a decode step they cannot perform.
+This rule exists because diagrams are read by newcomers and outsiders, and
+an internal acronym on a box is a decode step they can't perform.
 
-### Relationship Direction
+### Relationship direction
 
-A relationship (arrow) tells a story about the most important
-dependencies or data flow, and points in **one** direction.
+A relationship (arrow) tells a story about the most important dependencies
+or data flow, and points in one direction.
 
 - `<source-title> -> <target-title>` SHALL read like a sentence: "My Web
   App requests widgets from My Headless API."
-- The arrow SHALL point in the direction of the **dependency**: client
+- The arrow SHALL point in the direction of the dependency: client
   -> server, consumer -> publisher.
-- EXCEPTION: in a Dynamic diagram the arrow MAY point in the direction
-  of data flow or process sequence instead.
+- EXCEPTION: in a Dynamic diagram the arrow MAY point in the direction of
+  data flow or process sequence instead.
 
-### Message Buses and Async
+### Message buses and async
 
 - A message bus (broker, queue, topic) SHALL NOT appear as an element
   UNLESS the bus itself is the subject of the diagram.
-  - RATIONALE: a diagram where many containers point at one centralized
-    bus is incomprehensible — the bus becomes a hub that hides the
-    actual dependencies rather than revealing them.
-- Instead, draw the relationship from the **consumer to the producer**
+  - This rule exists because a diagram where many containers point at one
+    centralized bus is incomprehensible. The bus becomes a hub that hides
+    the actual dependencies rather than revealing them.
+- Instead, draw the relationship from the consumer to the producer
   (consumer -> publisher, per the dependency rule above), as if the bus
-  were not there.
+  weren't there.
 - WHERE space allows, name the transport technology and/or topic in the
   relationship label.
 
-This refines the "Queue / topic" row of the mapping table below: the
-annotated consumer -> producer relationship is the default; modeling the
-bus as its own Container is reserved for the case WHERE the bus is what
-the diagram is about.
+This refines the "Queue / topic" row of the mapping table below. The
+annotated consumer -> producer relationship is the default, and modeling the
+bus as its own Container is reserved for the case where the bus is what the
+diagram is about.
 
 ---
 
-## Diagram Types and Placement
+## Diagram types and placement
 
-Brief on purpose — the value of this table is the placement column, not
-the definitions.
+This table is brief on purpose: its value is the placement column, not the
+definitions.
 
 | Diagram | Shows | Lives in |
 |---------|-------|----------|
 | System Context | One system, its users, neighboring systems | system blueprint |
 | Container | All containers in one system | system blueprint |
-| **Container Context** | One container + direct neighbors only (defined below) | container blueprint |
+| Container Context | One container and its direct neighbors only (defined below) | container blueprint |
 | Component | Components inside one container | container blueprint |
 | Module components | Internal components inside one module | module blueprint |
 | Deployment (per environment) | Containers mapped to infrastructure | system blueprint (authoritative) |
-| Container deployment view | One container + its exclusive infra (defined below) | container blueprint (optional) |
+| Container deployment view | One container and its exclusive infra (defined below) | container blueprint (optional) |
 | Dynamic | One runtime flow, step-ordered | Any blueprint, where a flow needs it |
 | System Landscape | Many systems | Outside these documents (EA level) |
 
-### Container Context Diagram
+### Container Context diagram
 
-A **Container Context Diagram** is this framework's named convention for a
-container-scoped context view — the analogue of a System Context
-diagram, one level down. It contains:
+A Container Context diagram is this framework's named convention for a
+container-scoped context view: the analog of a System Context diagram, one
+level down. It contains:
 
 - the subject container, centered;
-- every container, system, or person with a **direct** relationship to
-  it, in either direction — crossing system boundaries where the
-  neighbor is external (an external neighbor MAY appear as its
-  containing system when container-level detail adds nothing);
-- nothing else. No transitive neighbors, no siblings that do not
+- every container, system, or person with a direct relationship to it, in
+  either direction — crossing system boundaries where the neighbor is
+  external (an external neighbor MAY appear as its containing system when
+  container-level detail adds nothing);
+- nothing else: no transitive neighbors, and no siblings that don't
   communicate with the subject.
 
-It introduces no new model elements: it is a filtered view of the same
-model the Container diagram projects, and every relationship shown SHALL
-also exist in the documents (typically governed by a contract). In
-Structurizr this is a container view with include filters scoped to the
-subject's afferent and efferent couplings; in Mermaid, a `C4Container`
-diagram drawn to this rule.
+It introduces no new model elements: it is a filtered view of the same model
+the Container diagram projects, and every relationship shown SHALL also
+exist in the documents (typically governed by a contract). In Structurizr,
+this is a container view with include filters scoped to the subject's
+afferent and efferent couplings. In Mermaid, it's a `C4Container` diagram
+drawn to this rule.
 
 ### Container deployment view
 
-An optional, container-scoped filter of the system's deployment model:
-the subject container plus only the infrastructure nodes that exist
-exclusively for it (its Redis, its DLQ, its bucket). The system
-blueprint's per-environment deployment diagrams remain authoritative for
-shared topology; this view defers to them and SHALL NOT contradict them.
+This view is an optional, container-scoped filter of the system's deployment
+model: the subject container plus only the infrastructure nodes that exist
+exclusively for it (its Redis, its DLQ, its bucket). The system blueprint's
+per-environment deployment diagrams remain authoritative for shared
+topology; this view defers to them and SHALL NOT contradict them.
 
-### Mermaid Authoring Rules
+### Mermaid authoring rules
 
-Rules for authoring the Mermaid C4 diagrams embedded in blueprints:
+These rules apply to the Mermaid C4 diagrams embedded in blueprints:
 
 - Element and relationship declarations (`Component(...)`,
-  `Container(...)`, `Rel(...)`, and friends) SHALL be written on a
-  single line. Quoted strings in these declarations cannot span lines;
-  wrapping them breaks the diagram. The 80-character line limit does
-  not apply inside diagram fences ([[template-authoring-standards]]
-  exempts code-block content).
-- Keep each element's description text short — it is the element's
-  declared brief description, verbatim, not a place for extra prose.
+  `Container(...)`, `Rel(...)`, and friends) SHALL be written on a single
+  line. Quoted strings in these declarations can't span lines, and wrapping
+  them breaks the diagram. The 80-character line limit doesn't apply inside
+  diagram fences ([[template-authoring-standards]] exempts code-block
+  content).
+- Keep each element's description text short. It's the element's declared
+  brief description, verbatim, not a place for extra prose.
 - Parse-check diagrams before finishing (RECOMMENDED). A broken C4
   diagram reports `Expecting 'RBRACE', got 'EOF'` anchored at the end
   of the diagram, far from the offending line, so authoring blind is
   risky.
-  - `mermaid.parse` needs a DOM even though it renders nothing. Import
-    it only after assigning a jsdom `window`, `document`, `navigator`,
-    `Element`, `HTMLElement` and `SVGElement` onto `globalThis`;
-    otherwise every diagram fails with `DOMPurify.addHook is not a
-    function`, valid or not. That failure is environmental — it is NOT
-    the mislocated syntax error described above, and the diagrams are
-    not at fault.
+  - `mermaid.parse` needs a DOM even though it renders nothing. Import it
+    only after assigning a jsdom `window`, `document`, `navigator`,
+    `Element`, `HTMLElement`, and `SVGElement` onto `globalThis`. Otherwise
+    every diagram fails with `DOMPurify.addHook is not a function`, valid or
+    not. That failure is environmental. It isn't the mislocated syntax error
+    described above, and the diagrams aren't at fault.
   - Any Mermaid-rendering preview works too and needs no setup.
 
 ---
 
-## Mapping Concrete Elements to C4
+## Mapping concrete elements to C4
 
 The table below maps recurring real-world elements to their C4 level and
 home document. "Contract" in the last column means the interface gets a
@@ -399,134 +394,132 @@ contract document (see visibility tiers below).
 | Mobile app | Container | Its container blueprint |
 | CLI tool (incl. codegen tooling) | Container | Its container blueprint |
 | Serverless function (or cohesive set) | Container | Its container blueprint |
-| Database / cache / bucket you **use** | Container (passive) | Element on owner's diagrams + Data section of owning container blueprint; **no blueprint of its own** |
-| Database engine you **implement** | System of containers | Its own system blueprint |
-| Queue / topic | Annotated consumer → producer relationship by default; Container (a data store) only WHEN the bus is the diagram's subject (see Message Buses and Async) | Message schema + semantics → contract |
+| Database / cache / bucket you use | Container (passive) | Element on owner's diagrams + Data section of owning container blueprint; no blueprint of its own |
+| Database engine you implement | System of containers | Its own system blueprint |
+| Queue / topic | Annotated consumer → producer relationship by default; Container (a data store) only when the bus is the diagram's subject (see Message buses and async) | Message schema + semantics → contract |
 | REST / GraphQL / gRPC API | Interface of a container | contract (shape in spec artifact) |
 | Data product / published view / shared dataset | Interface of a container or system | contract |
-| Shared library / SDK | **Module** | Its module blueprint; appears as a component in each consuming container's diagram |
+| Shared library / SDK | Module | Its module blueprint; appears as a component in each consuming container's diagram |
 | Generated client / stubs | Output of codegen; not modeled | The governing spec artifact belongs to the contract |
-| UI component package / design-system package | **Module** | Its module blueprint |
+| UI component package / design-system package | Module | Its module blueprint |
 | Design system's docs site / tokens API | Container(s) | Their container blueprint(s) |
-| Micro-frontend package | **Module**, composed by the shell container | Its module blueprint |
+| Micro-frontend package | Module, composed by the shell container | Its module blueprint |
 | Module federation | Technology choice within containers | A Tech Stack line in the affected container blueprints |
-| IaC module (Terraform, CDK, Helm chart) | **Module** (deploy-time) | Its module blueprint |
-| Platform / control plane (IDP, operators) | System — owned by the platform team | Platform team's system blueprint; your obligations → standards docs |
-| Sidecar / mesh proxy | Deployment concern | Deployment diagrams + standards docs; **not** on container/component diagrams |
-| Logging / observability platform | System — owned by its team | Consumers: prose mention + standards doc; **not** a diagram element on every system |
-| Complex internal component, composite (rules engine) | **Module** (internal, composite) | Its module blueprint |
+| IaC module (Terraform, CDK, Helm chart) | Module (deploy-time) | Its module blueprint |
+| Platform / control plane (IDP, operators) | System, owned by the platform team | Platform team's system blueprint; your obligations → standards docs |
+| Sidecar / mesh proxy | Deployment concern | Deployment diagrams + standards docs; not on container/component diagrams |
+| Logging / observability platform | System, owned by its team | Consumers: prose mention + standards doc; not a diagram element on every system |
+| Complex internal component, composite (rules engine) | Module (internal, composite) | Its module blueprint |
 | Complex internal component, atomic (pricing calculator) | Component | Its component blueprint |
-| Repeated unit built to one design (plugins, transpilers) | **Module** or Component (pattern) | One blueprint governs all instances; module WHEN shared/composite |
-| External SaaS (Stripe, Auth0) | External system | Element on context diagrams; reference the vendor's published contract by URL — do NOT author contract documents for third-party interfaces |
+| Repeated unit built to one design (plugins, transpilers) | Module or Component (pattern) | One blueprint governs all instances; module when shared or composite |
+| External SaaS (Stripe, Auth0) | External system | Element on context diagrams. Reference the vendor's published contract by URL, and don't author contract documents for third-party interfaces |
 
-When an element does not fit: argue from the definitions above, and
-prefer the level whose *boundary* matches the element's unit of change
-and ownership. IF it still does not fit, THEN flag the gap rather than
+When an element doesn't fit, argue from the definitions above, and prefer
+the level whose boundary matches the element's unit of change and
+ownership. IF it still does not fit, THEN flag the gap rather than
 forcing it — do not invent a new abstraction silently.
 
 ---
 
-## Model as Element, or Mention in Prose?
+## Model as element, or mention in prose?
 
 Not everything real deserves a box. Diagrams stay legible only if
 elements are rationed.
 
-An element SHALL be modeled (a box on a diagram, declared in a
-document) when **any** of:
+An element SHALL be modeled (a box on a diagram, declared in a document)
+when any of:
 
 - your team owns, builds, or operates it;
-- it is a direct communication partner of the subject, and the
-  relationship carries a contract;
+- it is a direct communication partner of the subject, and the relationship
+  carries a contract;
 - its presence or absence changes a decision a reader of that document
   would make.
 
 An element SHOULD be mentioned in prose (or covered by a standards
-document) instead when **any** of:
+document) instead when any of:
 
-- it is ambient — every container uses it the same way (logging
-  platform, authN provider, service mesh, artifact registry). Ambient
-  obligations belong in a cross-cutting requirements document that
-  blueprints reference;
-- it is a technology choice inside a container (ORM, module federation,
-  web framework) rather than a runtime neighbor — it belongs on a line
-  of that container's or module's Tech Stack section;
+- it is ambient — every container uses it the same way (logging platform,
+  authN provider, service mesh, artifact registry). Ambient obligations
+  belong in a cross-cutting requirements document that blueprints reference;
+- it is a technology choice inside a container (ORM, module federation, web
+  framework) rather than a runtime neighbor — it belongs on a line of that
+  container's or module's Tech Stack section;
 - it sits below the document's abstraction level (a load balancer on a
   component diagram, a helper class anywhere).
 
-Litmus tests: *"Would this box change any reader's decision?"* — if no,
-prose. *"Would this box appear on nearly every diagram in the
-organization?"* — if yes, it is ambient: prose plus a standard, and its
-own system blueprint owned by its team.
+There are two litmus tests. If the answer to "Would this box change
+any reader's decision?" is no, use prose. If the answer to "Would this box
+appear on nearly every diagram in the organization?" is yes, the element is
+ambient. It gets prose plus a standard, and its own system blueprint owned
+by its team.
 
 ---
 
-## Contract Visibility Tiers
+## Contract visibility tiers
 
-Every interface between elements has a contract; only some contracts
-get standalone documents.
+Every interface between elements has a contract, but only some contracts get
+standalone documents.
 
 | Tier | Boundary crossed | Documented as |
 |------|------------------|---------------|
-| **public** | The system boundary — consumed by other teams | contract document; strongest stability, versioning, deprecation policy |
-| **internal** | Container boundaries within one system | contract document, marked internal; SHALL NOT be consumed outside the system |
-| **private** | A container and infrastructure it exclusively owns (its DB schema, its cache keys), or in-process | Inline in the container blueprint's Data section; **no standalone document** |
+| public | The system boundary, consumed by other teams | contract document; strongest stability, versioning, and deprecation policy |
+| internal | Container boundaries within one system | contract document, marked internal; SHALL NOT be consumed outside the system |
+| private | A container and infrastructure it exclusively owns (its DB schema, its cache keys), or in-process | Inline in the container blueprint's Data section; no standalone document |
 
-The filing rule: a contract gets a standalone document WHEN the
-interface crosses a boundary of **independent change** — two codebases
-or teams evolving against it on their own schedules. A private schema is
-still a contract, but its two sides change in lockstep in one codebase,
-so it is documented where it lives.
+The filing rule: a contract gets a standalone document when the interface
+crosses a boundary of independent change, meaning two codebases or teams
+evolve against it on their own schedules. A private schema is still a
+contract, but its two sides change in lockstep in one codebase, so it's
+documented where it lives.
 
-The same three-tier spectrum classifies composed units, not just
-contracts — the framework applies one rule of independent change across
-both:
+The same three-tier spectrum classifies composed units as well as contracts,
+because the framework applies one rule of independent change across both:
 
 | Tier | Contract | Composed unit |
 |------|----------|---------------|
-| **private** | inline in the container's Data section | a **component** — internal to one container, lockstep |
-| **internal** | contract, marked internal | a **module**, `visibility: internal` — shared in-repo, unpublished |
-| **public** | contract, public | a **module**, `visibility: public` — published, consumers independent |
+| private | inline in the container's Data section | a component (internal to one container, lockstep) |
+| internal | contract, marked internal | a module with `visibility: internal` (shared in-repo, unpublished) |
+| public | contract, public | a module with `visibility: public` (published, consumers independent) |
 
 A component maturing into a shared-then-published module tracks the same
-path a private schema takes when promoted to an internal then public
-contract: each step widens the boundary of independent change and
+path a private schema takes when it's promoted to an internal and then a
+public contract. Each step widens the boundary of independent change and
 tightens the stability obligations.
 
 WHEN a private interface gains a second independently-built consumer,
 THEN it SHALL be promoted (to internal or public) and extracted into a
-contract document. Publishing a view over private data is such a
-promotion: the view becomes a contract; the underlying schema stays
-private.
+contract document. Publishing a view over private data is such a promotion:
+the view becomes a contract, and the underlying schema stays private.
 
-The machine-readable spec artifact (OpenAPI, SDL, proto, DDL) is
-normative for **shape**; the contract document is normative for
-**semantics** (idempotency, ordering, SLOs, versioning policy). Both
-change under the same versioning policy.
+The machine-readable spec artifact (OpenAPI, SDL, proto, DDL) is normative
+for shape. The contract document is normative for semantics (idempotency,
+ordering, SLOs, and versioning policy). Both change under the same
+versioning policy.
 
 Contract documents are authored only for interfaces the organization
-provides. Third-party interfaces (external SaaS APIs) are governed by
-the vendor's published contract — architecture documents SHALL reference
-those by URL and SHALL NOT restate them as contract documents.
+provides. Third-party interfaces (external SaaS APIs) are governed by the
+vendor's published contract — architecture documents SHALL reference those
+by URL and SHALL NOT restate them as contract documents.
 
 ---
 
-## Lifecycle: Documentation Follows the Realization
+## Lifecycle: Documentation follows the realization
 
 Capabilities migrate between vending mechanisms as they mature. The
 document type follows the structure, not the other way around:
 
-- A component becomes shared across containers, or grows internal
-  components → it has become a module: author a module blueprint and
-  fold the component's content into it (superseded_by the module).
-- An internal module is published to a registry → its visibility becomes
-  public: backwards-compat, deprecation windows, and recorded change
-  history now apply.
-- A module gains a worker and a queue → it has become a container (or
-  system): author the new blueprint, retire the module blueprint
+- When a component becomes shared across containers, or grows internal
+  components, it has become a module. Author a module blueprint and fold the
+  component's content into it (superseded_by the module).
+- When an internal module is published to a registry, its visibility
+  becomes public: backward compatibility, deprecation windows, and recorded
+  change history then apply.
+- When a module gains a worker and a queue, it has become a container (or
+  system). Author the new blueprint and retire the module blueprint
   (superseded_by the successor). Its contract usually survives the move
-  unchanged — which is why contracts are separate documents.
-- An internal contract gains an external consumer → promote to public;
-  the stability obligations tighten.
+  unchanged, which is why contracts are separate documents.
+- When an internal contract gains an external consumer, promote it to
+  public. The stability obligations tighten.
 - A module stops being shared and has no internal components → its
   blueprint MAY be folded back into the single consuming container and
   retired (it has become a component).
@@ -539,6 +532,6 @@ documents describing the system as it is.
 
 ## References
 
-- [[template-authoring-standards]] — frontmatter, slugs, EARS, references
-- [C4 model — abstractions](https://c4model.com/abstractions)
-- [C4 model — queues and topics](https://c4model.com/abstractions/queues-and-topics)
+- [[template-authoring-standards]]: frontmatter, slugs, EARS, and references
+- [C4 model: abstractions](https://c4model.com/abstractions)
+- [C4 model: queues and topics](https://c4model.com/abstractions/queues-and-topics)

@@ -9,56 +9,56 @@ status: approved
 sources: []
 ---
 
-# Corpus Listing
+# Corpus listing
 
 ## Overview
 
 An agent arriving at a specification corpus has to decide which documents
-to read. Today it has two routes and both are bad. It can list paths,
-which costs almost nothing and tells it almost nothing — a filename is a
+to read. Today it has two routes, and both are bad. It can list paths,
+which costs almost nothing and tells it almost nothing. A filename is a
 guess at a document's subject, and a corpus whose filenames happen to be
-descriptive is a corpus that got lucky. Or it can read the documents,
-which is authoritative and unaffordable: this repository's 57 members are
-888,869 bytes, and the decision the agent is trying to make is *which of
-them to spend context on*.
+descriptive got lucky. Or it can read the documents, which is
+authoritative and unaffordable. This repository's 57 members are 888,869
+bytes, and the decision the agent is trying to make is which of them to
+spend context on.
 
-The index does not close the gap. `specs.json` carries every span,
-heading and reference in the corpus, and at 936,833 bytes it is larger
-than the corpus it describes — so the artifact built for machine
-consumption is the most expensive way to ask what a corpus contains.
+The index doesn't close the gap. `specs.json` carries every span,
+heading, and reference in the corpus. At 936,833 bytes it's larger than
+the corpus it describes, so the artifact built for machine consumption is
+the most expensive way to ask what a corpus contains.
 
 This feature adds the missing surface. Every member already declares a
-`description` — a one- to two-sentence summary, required by
-[[frontmatter-standards]] on every document type — and nothing reads it
-back. `specs list` returns that summary, with the fields needed to act on
-it, for every member at once. The measured payload for this corpus is
-about 21 KB against 889 KB of documents, but the size is not the point:
-the point is that one invocation returns a complete, typed, filterable
-answer that no combination of shell tools returns reliably, and that the
-agent's next step — opening the right document — is a path it was handed
-rather than one it inferred.
+`description`, a one- to two-sentence summary that
+[[frontmatter-standards]] requires on every document type, and nothing
+reads it back. `specs list` returns that summary for every member at
+once, with the fields needed to act on it. The measured payload for this
+corpus is about 21 KB against 889 KB of documents. The size matters less
+than the answer: one invocation returns a complete, typed, filterable
+answer that no combination of shell tools returns reliably. The agent's next
+step, opening the right document, follows a path it was handed rather
+than one it inferred.
 
-The feature also gives `description` a consumer. A property that is
-required, written once and never read back is a property that decays;
-making it the payload of a command is what turns it into an interface
-whose quality an author has a reason to care about.
+The feature also gives `description` a consumer. A property that's
+required, written once, and never read back decays. Making it the
+payload of a command turns it into an interface whose quality an author
+has a reason to care about.
 
 ## Terminology
 
-- **Corpus member** — a markdown file beneath the spec root whose
+- **Corpus member**: a Markdown file beneath the spec root whose
   frontmatter parses and declares a type the active profile defines. The
   index records one entry per member.
-- **Summary** — the fields `list` reports for one member: its path, slug,
-  type, status, title and description.
-- **Undescribable member** — a member the index recorded with a parse
-  error rather than parsed frontmatter. It is a member, so it is
-  reported, but it has no summary to report.
-- **Registered type** — a document type the active profile defines.
+- **Summary**: the fields `list` reports for one member: its path, slug,
+  type, status, title, and description.
+- **Undescribable member**: a member the index recorded with a parse
+  error instead of parsed frontmatter. It's a member, so it's reported,
+  but it has no summary to report.
+- **Registered type**: a document type the active profile defines.
   `--type` accepts these and nothing else.
 
 ## Requirements
 
-### FEAT-SPECLIST-001: Corpus Summary
+### FEAT-SPECLIST-001: Corpus summary
 
 **Acceptance Criteria:**
 
@@ -127,17 +127,16 @@ Feature: Corpus Summary
 
 The exclusion in AC-SPECLIST-001.6 is a scope boundary rather than a
 silence. A file beneath the spec root that declares no frontmatter, or
-declares a type the profile does not define, is not a member and has no
-summary to give; reporting it here would put a conformance judgement in a
-query. `specs check` owns that judgement and reports it as a finding.
+declares a type the profile doesn't define, isn't a member and has no
+summary to give. Reporting it here would put a conformance judgment in a
+query. `specs check` owns that judgment and reports it as a finding.
 
-An undescribable member is different, and AC-SPECLIST-001.5 treats it
-differently for a reason: the index recorded it *as a member*, so
-omitting it would make the answer disagree with the corpus. An agent
-reading a list that silently skipped it would conclude the document does
-not exist.
+AC-SPECLIST-001.5 treats an undescribable member differently because the
+index recorded it as a member, so omitting it would make the answer
+disagree with the corpus. An agent reading a list that silently skipped
+it would conclude the document doesn't exist.
 
-### FEAT-SPECLIST-002: Filtering by Type
+### FEAT-SPECLIST-002: Filtering by type
 
 **Acceptance Criteria:**
 
@@ -194,23 +193,25 @@ Feature: Filtering by Type
     Then the answer carries no entry for that member
 ```
 
-AC-SPECLIST-002.4 is the one place this feature departs from
-[[cli-output-standards]]' rule that a query matching nothing is an
-answer. That rule is about the *world*: a corpus with no contracts in it
-is a fact, and reporting it as a failure would make a caller branch on
-the shape of the corpus. A type the profile does not define is not a fact
-about the corpus — it is a malformed question, and answering it with an
-empty collection would render a typo indistinguishable from an empty
-category. The active profile already reports an unregistered
-`[profile].name` by naming the registered alternatives rather than by
-failing the lookup bare; this is that behaviour, one level down.
+AC-SPECLIST-002.4 is the one place this feature departs from the rule in
+[[cli-output-standards]] that a query matching nothing is an answer. That
+rule is about facts in the corpus. A corpus with no contracts in it is a
+fact, and reporting it as a failure would make a caller branch on the
+shape of the corpus.
 
-AC-SPECLIST-002.5 follows from what a filter means rather than from a
-policy about parse failures. An undescribable member declares no type, so
-no type names it. It is visible in the unfiltered listing, which is where
-a caller looking for holes in the corpus will find it.
+A type the profile doesn't define is a malformed question, not a fact
+about the corpus. Answering it with an empty collection would make a typo
+indistinguishable from an empty category. The active profile already
+reports an unregistered `[profile].name` by naming the registered
+alternatives instead of failing the lookup bare. Rejecting an
+unregistered type applies that behavior one level down.
 
-### FEAT-SPECLIST-003: Retired Documents
+AC-SPECLIST-002.5 follows from what a filter means, not from a policy
+about parse failures. An undescribable member declares no type, so no
+type names it. It's visible in the unfiltered listing, which is where a
+caller looking for holes in the corpus finds it.
+
+### FEAT-SPECLIST-003: Retired documents
 
 **Acceptance Criteria:**
 
@@ -302,12 +303,12 @@ Feature: Rendering
     Then the answer carries no count of the members, no heading naming the command and no summary of what was reported
 ```
 
-AC-SPECLIST-004.4 is called out rather than left to the general rule
-because it is the majority case, not an edge: 38 of this repository's 57
-titles contain a colon followed by a space, which is exactly the sequence
-that stops a plain scalar reading back as written.
+AC-SPECLIST-004.4 states this case explicitly, instead of leaving it to
+the general rule, because it's the majority case. Of this repository's 57
+titles, 38 contain a colon followed by a space, the sequence that stops a
+plain scalar from reading back as written.
 
-### FEAT-SPECLIST-005: Descriptions as a Consumed Interface
+### FEAT-SPECLIST-005: Descriptions as a consumed interface
 
 **Acceptance Criteria:**
 
@@ -343,11 +344,11 @@ Feature: Descriptions as a Consumed Interface
 
 ## References
 
-- [[cli-output-standards]] — the rendering rules FEAT-SPECLIST-004
+- [[cli-output-standards]]: the rendering rules FEAT-SPECLIST-004
   restates rather than redefines
-- [[frontmatter-standards]] — where `description` is required, and the
+- [[frontmatter-standards]]: where `description` is required, and the
   guidance FEAT-SPECLIST-005 amends
-- [[container-spec-cli]] — the container this subcommand joins
-- [[frd-spec-index]] — the index this command reads, and the artifact
+- [[container-spec-cli]]: the container this subcommand joins
+- [[frd-spec-index]]: the index this command reads, and the artifact
   whose size motivates a separate listing surface
-- [[spec-cli-reference]] — the guide FEAT-SPECLIST-005 amends
+- [[spec-cli-reference]]: the guide FEAT-SPECLIST-005 amends
