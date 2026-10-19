@@ -17,25 +17,24 @@ status: approved
 ## Context
 
 [[frd-spec-c4-diagrams]] adds `c4/*` checks to `specs check`, and
-[[frd-spec-c4]] adds a `specs c4` command emitting the corpus's C4 model.
-Both need two different kinds of knowledge. One is notation: how a
-Mermaid C4 statement is written, which [[adr-029]] gives to a parser this
-CLI owns. The other is this framework's vocabulary: that a
-`container-blueprint` declares a container, that its `entity_name` is the
-name a diagram draws, that `system` and `modules` are its containment
-edges, that its children sit under the `Components` heading in
-`component` record blocks, and that a contract's `provider` names the
-element that publishes it.
+[[frd-spec-c4]] adds a `specs c4` command that emits the corpus's C4 model.
+Both need two kinds of knowledge. One is notation: how a Mermaid C4
+statement is written, which [[adr-029]] gives to a parser this CLI owns.
+The other is this framework's vocabulary: that a `container-blueprint`
+declares a container, that its `entity_name` is the name a diagram draws,
+that `system` and `modules` are its containment edges, that its children sit
+under the `Components` heading in `component` record blocks, and that a
+contract's `provider` names the element that publishes it.
 
 [[container-spec-cli]]'s Change Guidance puts every capability in one of
 its two modules, never in the command surface. [[module-document-core]]
 SHALL NOT depend on [[module-spec-profile]] and holds no document type,
-status or property name of its own; a source scan of `cli/core/corpus`
-enforces that. [[module-spec-profile]] SHALL NOT parse document text.
-So neither module can hold both kinds of knowledge as things stand.
+status or property name of its own. A source scan of `cli/core/corpus`
+enforces that rule. [[module-spec-profile]] SHALL NOT parse document text.
+Under these rules, neither module can hold both kinds of knowledge.
 
-The Gherkin capability met the same split and settled it one way: the
-parser and the feature and criterion records are Document Core's, and the
+The Gherkin capability faced the same split and resolved it this way: the
+parser and the feature and criterion records belong to Document Core, and the
 identifier patterns, the owning-document prefix and the qualifier tags
 arrive through `Profile.FeatureTags()`.
 
@@ -51,7 +50,7 @@ contract document type, and the roster heading and record-block tag that
 declare a parent's children. [[module-spec-profile]] fills it. Document
 Core names none of those values.
 
-## Alternatives Considered
+## Alternatives considered
 
 | Option | Pros | Cons | Why rejected |
 |--------|------|------|--------------|
@@ -69,19 +68,19 @@ Core names none of those values.
 - Every vocabulary value the C4 code reads is registered in one place
   and can be checked against the generated schema, the way the reference
   properties already are.
-- A profile registering no architecture vocabulary gets a corpus with no
-  elements: no `c4/*` finding is raised and the model is empty, rather
-  than an error.
+- A profile that registers no architecture vocabulary gets a corpus with
+  no elements rather than an error: no `c4/*` finding is raised, and the
+  model is empty.
 
 **Negative:**
 - `Profile` gains a seventh member, and `ValidateRegistration` gains the
   defects that member can carry.
 - Document Core now knows the Mermaid C4 notation. A corpus that never
-  draws a diagram pays nothing for it at run time, but the code is
+  draws a diagram has no run-time cost from it, but the code is still
   there.
-- The registration duplicates facts the schema states — that
-  `entity_name` exists on every architecture blueprint — so it needs the
-  same drift test the reference registration has.
+- The registration duplicates facts that the schema states, such as that
+  `entity_name` exists on every architecture blueprint. It therefore needs
+  the same drift test that the reference registration has.
 
 ## References
 

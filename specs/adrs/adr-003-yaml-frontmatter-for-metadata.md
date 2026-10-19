@@ -13,62 +13,65 @@ status: active
 
 ## Context
 
-Specification documents need structured metadata including title, description,
-document type, status, timestamps, slugs for cross-references, and other fields
-that enable automation and navigation. This metadata must be machine-readable
-for tooling (indexing, validation, cross-reference resolution) while remaining
-human-readable for manual editing. The metadata should be clearly separated from
-the document body to prevent confusion and enable reliable parsing. The solution
-must work with standard markdown tooling and not require specialized editors or
-proprietary formats.
+Specification documents need structured metadata: title, description,
+document type, status, timestamps, slugs for cross-references, and other
+fields that support automation and navigation. Tools use this metadata for
+indexing, validation, and cross-reference resolution, so it must be
+machine-readable. People edit it by hand, so it must also stay
+human-readable. The metadata should be clearly separated from the document
+body, which prevents confusion and makes parsing reliable. The solution must
+work with standard Markdown tooling and must not require specialized editors
+or proprietary formats.
 
 ## Decision
 
-We will use YAML frontmatter blocks (delimited by `---`) at the beginning of all
-specification documents to store structured metadata. The frontmatter block
-precedes all markdown content and contains key-value pairs in YAML format.
+We will use YAML frontmatter blocks, delimited by `---`, at the beginning of
+all specification documents to store structured metadata. The frontmatter
+block precedes all Markdown content and contains key-value pairs in YAML
+format.
 
-## Alternatives Considered
+## Alternatives considered
 
 | Option | Pros | Cons | Why rejected |
 |--------|------|------|--------------|
-| JSON metadata blocks | Strict schema validation<br>Native JavaScript compatibility<br>Widely supported parsing libraries | Less human-readable than YAML<br>Requires quotes around all strings<br>No comment support<br>More verbose syntax | Poor editing experience;<br>syntax strictness creates friction for manual editing |
-| Markdown tables at document start | Native markdown syntax<br>No special parser needed for basic use | Hard to parse reliably<br>Poor support for nested data<br>Not machine-readable without custom parsing<br>Ugly for complex metadata | Not designed for structured data;<br>parsing is brittle and error-prone |
-| Filename-based metadata only | No special syntax needed<br>Simple to implement<br>Works with any file | Very limited metadata capacity<br>Hard to maintain consistency<br>Filename changes break references<br>Cannot store complex or nested data | Insufficient for real-world needs;<br>cannot express required metadata richness |
-| YAML frontmatter | Standard in markdown tooling (Jekyll, Hugo, Obsidian)<br>Human-readable and easy to edit<br>Supports nested data structures<br>Clean separation from content<br>Parseable by numerous libraries | Requires YAML-aware parsers for tooling<br>Syntax errors break parsing<br>Not rendered by basic markdown viewers (invisible unless viewing raw file) | N/A — selected |
+| JSON metadata blocks | Strict schema validation<br>Native JavaScript compatibility<br>Widely supported parsing libraries | Less human-readable than YAML<br>Requires quotes around all strings<br>No comment support<br>More verbose syntax | Poor editing experience;<br>strict syntax creates friction for manual editing |
+| Markdown tables at document start | Native Markdown syntax<br>No special parser needed for basic use | Hard to parse reliably<br>Poor support for nested data<br>Not machine-readable without custom parsing<br>Hard to read for complex metadata | Not designed for structured data;<br>parsing is brittle and error-prone |
+| Filename-based metadata only | No special syntax needed<br>Simple to implement<br>Works with any file | Very limited metadata capacity<br>Hard to keep consistent<br>Filename changes break references<br>Can't store complex or nested data | Insufficient for real-world needs;<br>can't express the metadata the corpus requires |
+| YAML frontmatter | Standard in Markdown tooling (Jekyll, Hugo, Obsidian)<br>Human-readable and easy to edit<br>Supports nested data structures<br>Clean separation from content<br>Parseable by many libraries | Requires YAML-aware parsers for tooling<br>Syntax errors break parsing<br>Not rendered by basic Markdown viewers (invisible unless you view the raw file) | N/A — selected |
 
 ## Consequences
 
 **Positive:**
 - Standard practice in static site generators (Jekyll, Hugo, Gatsby) and
-  markdown tools (Obsidian, Foam)
-- Human-readable with clean syntax (no quotes required for most strings)
-- Easy to edit manually without specialized tooling
-- Parseable by well-maintained libraries in most programming languages (PyYAML,
-  js-yaml, gopkg.in/yaml, etc.)
+  Markdown tools (Obsidian, Foam)
+- Human-readable, with clean syntax (most strings need no quotes)
+- Easy to edit by hand without specialized tooling
+- Parseable by well-maintained libraries in most programming languages, such
+  as PyYAML, js-yaml, and gopkg.in/yaml
 - Clean separation between metadata and document body
-- Supports complex data structures (nested objects, arrays) when needed
-- Hidden in rendered output (doesn't clutter the rendered document)
-- Enables automation: indexing, validation, cross-reference resolution, status
-  tracking
+- Supports complex data structures, such as nested objects and arrays, when
+  needed
+- Hidden in rendered output, so it doesn't clutter the rendered document
+- Enables automation: indexing, validation, cross-reference resolution, and
+  status tracking
 
 **Negative:**
-- Requires YAML-aware parsers for any tooling that processes the metadata
-- YAML syntax errors (indentation, special characters) break parsing and can be
-  subtle
-- Not rendered by basic markdown viewers (metadata invisible unless viewing raw
-  file or using frontmatter-aware renderer)
-- Duplicates title information (frontmatter title and H1 in body must be kept in
-  sync)
+- Any tooling that processes the metadata needs a YAML-aware parser
+- YAML syntax errors in indentation or special characters break parsing
+  and can be hard to spot
+- Basic Markdown viewers don't render it, so the metadata is invisible unless
+  you view the raw file or use a frontmatter-aware renderer
+- Duplicates the title: the frontmatter title and the H1 in the body must be
+  kept in sync
 - Indentation-sensitive syntax can frustrate users unfamiliar with YAML
-- Empty or invalid frontmatter silently fails in some processors
+- Some processors fail silently on empty or invalid frontmatter
 
 ## References
 
-- All templates under `/plugin/skills/spec/references/` demonstrate frontmatter
-  usage
-- `plugin/skills/spec/references/template-authoring-standards.md` —
+- All templates under `/plugin/skills/spec/references/` demonstrate
+  frontmatter usage
+- `plugin/skills/spec/references/template-authoring-standards.md` — the
   standardized fields used across document types
-- YAML 1.2 specification: https://yaml.org/spec/1.2/spec.html
-- Static site generator conventions (Jekyll, Hugo) establish precedent for this
+- [YAML 1.2 specification](https://yaml.org/spec/1.2/spec.html)
+- Static site generator conventions (Jekyll, Hugo) set a precedent for this
   pattern

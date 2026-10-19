@@ -1,8 +1,10 @@
 # Architecture Decision Records (ADRs)
 
-This directory contains Architecture Decision Records documenting significant design and technology choices for the specification-driven development framework.
+This directory contains the Architecture Decision Records (ADRs) for the
+specification-driven development framework. Each ADR documents a
+significant design or technology choice.
 
-## ADR Index
+## ADR index
 
 - [ADR-001: Use HTML Comment Blocks for Template Instructions](adr-001-html-comments-for-instructions.md) — HTML comments embed guidance without cluttering rendered output
 - [ADR-002: Use EARS Notation for Requirements](adr-002-ears-for-requirements.md) — EARS provides standardized syntax patterns for clear, testable requirements
@@ -28,15 +30,21 @@ This directory contains Architecture Decision Records documenting significant de
 - [ADR-030: C4 Vocabulary Reaches Document Core Through the Profile](adr-030-c4-vocabulary-through-the-profile.md) — the C4 parser, element resolution and model live in Document Core, and the architecture vocabulary they read arrives as a profile registration, as the Gherkin tag vocabulary does
 - [ADR-031: Base Revisions Are Read Through the git Executable](adr-031-git-executable-for-base-revisions.md) — `criterion --changed` reads its base commit by running `git` and copying the spec root's tracked blobs into a temporary directory, rather than linking a git library or using `git archive`
 
-ADR-019 and ADR-022 through ADR-027 moved to [brettcallaghan/swarm](https://github.com/brettcallaghan/swarm) with the `swarm` CLI and its plugin.
- They decide things about that codebase and are maintained in its corpus.
+ADR-019 and ADR-022 through ADR-027 moved to the
+[brettcallaghan/swarm](https://github.com/brettcallaghan/swarm) repository
+with the `swarm` CLI and its plugin. They make decisions about that
+codebase, and that repository's corpus maintains them.
 
-ADR-014 is unused: a draft at that number deliberated the same question
-ADR-021 settles, and was replaced by it rather than retained as a retired
-record.
+ADR-014 is unused. A draft at that number considered the same question
+that ADR-021 settles. ADR-021 replaced the draft, which wasn't kept as a
+retired record.
 
 ## About ADRs
 
-Architecture Decision Records capture the context, options considered, and consequences of significant technical decisions. They create a decision log that explains "why we built it this way" for future maintainers and serve as institutional memory as the project evolves.
+An ADR records the context, the options considered, and the
+consequences of a significant technical decision. Together, the ADRs form
+a decision log that explains to future maintainers why the project is
+built the way it is.
 
-For the ADR template and usage guidelines, see [/plugin/skills/spec/references/adr-template.md](../../plugin/skills/spec/references/adr-template.md).
+For the ADR template and its usage guidelines, see the
+[ADR template](../../plugin/skills/spec/references/adr-template.md).

@@ -13,25 +13,27 @@ status: active
 
 ## Context
 
-Given the three-tier classification
-([[adr-005]]), we needed to encode it in module
+We needed to encode the three-tier classification from [[adr-005]] in module
 frontmatter. Early drafts overloaded a single `kind` field with the values
-shared, internal, and pattern; an interim version used a `shared: true|false`
+shared, internal, and pattern. An interim version used a `shared: true|false`
 boolean. Both conflated independent axes. A unit's publication status, whether
-it is a repeated pattern, and whether it is composite are three separate facts —
-a published plugin SDK is simultaneously public, a pattern, and composite. The
-frontmatter is also intended to feed a queryable database of architectural
-elements, which wants clean, single-meaning columns.
+it's a repeated pattern, and whether it's composite are three separate facts.
+For example, a published plugin SDK is public, a pattern, and composite at the
+same time. The frontmatter is also intended to feed a queryable database of
+architectural elements, which needs clean columns that each have one meaning.
 
 ## Decision
 
-We will model these as orthogonal frontmatter signals. `visibility: public |
-internal` records publication and gates the backwards-compatibility,
-deprecation, and change-history rules. `kind: standard | pattern` records
-whether the document governs one instance or many, and is uniform across the
-component and module types. Composite-ness is expressed by the presence of the
-optional Components roster, not a field. Components — always private and
-in-container — carry only `kind`.
+We will model these facts as orthogonal frontmatter signals:
+
+- `visibility: public | internal` records publication. It gates the
+  backwards-compatibility, deprecation, and change-history rules.
+- `kind: standard | pattern` records whether the document governs one instance
+  or many. It means the same thing on component and module documents.
+- Composite-ness has no field. The presence of the optional Components roster
+  expresses it.
+
+Components are always private and in-container, so they carry only `kind`.
 
 ## Alternatives Considered
 
@@ -44,15 +46,15 @@ in-container — carry only `kind`.
 ## Consequences
 
 **Positive:**
-- `kind` means the same thing on every document type
+- `kind` means the same thing on every document type.
 - `visibility` is a single, queryable, greppable anchor for change rules ("if
-  public, do X")
-- The element database gets clean, single-meaning columns
+  public, do X").
+- The element database gets clean columns that each have one meaning.
 
 **Negative:**
-- Authors set two fields rather than one
+- Authors set two fields rather than one.
 - Composite-ness is inferred from the presence of the Components roster rather
-  than declared as an explicit boolean (accepted for simplicity)
+  than declared as an explicit boolean. We accept this for simplicity.
 
 ## References
 

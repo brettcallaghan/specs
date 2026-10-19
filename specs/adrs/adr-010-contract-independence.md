@@ -13,25 +13,30 @@ status: active
 
 ## Context
 
-Contracts — interface specifications — were already separate documents rather
-than sections of blueprints, but the rationale was not recorded and the template
-did not stress it. A contract's lifecycle differs fundamentally from a
-blueprint's. A blueprint describes one design of a system, container, or module
-as it currently IS. An interface, by contrast, may be implemented many times
-over its life (re-implemented for modernization, or served by more than one
-provider for backwards compatibility), and it may exist before any provider —
+Contracts (interface specifications) were already separate documents rather
+than sections of blueprints, but the rationale wasn't recorded and the template
+didn't stress it.
+
+A contract's lifecycle differs fundamentally from a blueprint's. A blueprint
+describes one design of a system, container, or module as it currently *is*.
+An interface, by contrast, may be implemented many times over its life. It
+might be re-implemented for modernization, or served by more than one provider
+for backwards compatibility. It may also exist before any provider, and
 contract-first design is often the most consequential architectural decision.
-Separately, for GraphQL and REST services, a hand-maintained schema copy
+
+Separately, for GraphQL and REST services, a hand-maintained copy of the schema
 silently drifts from the running implementation.
 
 ## Decision
 
 We will keep contracts as documents independent of any blueprint, and state the
 rationale in the template: a contract outlives, and may precede, the
-implementations that realize it. For GraphQL and REST interfaces, the schema
-that matches the implementation is obtained from the running service
-(introspection, or an OpenAPI export endpoint); the template instructs authors
-to record how to obtain it rather than pinning a static snapshot that drifts.
+implementations that realize it.
+
+For GraphQL and REST interfaces, the schema that matches the implementation
+comes from the running service, through introspection or an OpenAPI export
+endpoint. The template tells authors to record how to obtain the schema rather
+than pin a static snapshot that drifts.
 
 ## Alternatives Considered
 
@@ -44,17 +49,17 @@ to record how to obtain it rather than pinning a static snapshot that drifts.
 ## Consequences
 
 **Positive:**
-- Contracts survive re-implementation and can precede their providers
-- Contract-first design is a first-class, expressible workflow
-- Schemas for live services do not silently drift from the implementation
+- Contracts survive re-implementation and can precede their providers.
+- Contract-first design is a first-class, expressible workflow.
+- Schemas for live services don't silently drift from the implementation.
 
 **Negative:**
-- A contract is a separate document to maintain over its (long) life
-- Schema retrieval may require running the service or CI access to it
+- A contract is a separate document to maintain over its long life.
+- Schema retrieval may require running the service or CI access to it.
 
 ## References
 
 - `references/c4-guide.md` — Contract Visibility Tiers
-- [[adr-005]] — the same visibility spectrum
-  classifies contracts and composed units
+- [[adr-005]] — the same visibility spectrum classifies contracts and
+  composed units
 - Template: `contract-template.md`

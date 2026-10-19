@@ -13,8 +13,9 @@ status: ready-for-review
 
 ## Context
 
-The framework's atomic, portable unit of executable work is referred to by
-four different names across the corpus. Measured across the skills:
+The corpus uses four different names for the framework's atomic, portable
+unit of executable work. The following table shows how often each skill uses
+each name:
 
 | Skill | "work order" | "work item" | "task" (as the container) |
 |---|---|---|---|
@@ -23,23 +24,24 @@ four different names across the corpus. Measured across the skills:
 | `groom-feature-blueprint` | 6 | **8** | 0 |
 | `retro-spec` | 0 | **6** | 0 |
 
-`groom-feature-blueprint` — the skill whose entire job is *producing* the
-thing — uses the non-canonical name more often than the canonical one, and
-`retro-spec` uses only the non-canonical one. Meanwhile `spec` promotes
-**Work Order** to one of its first-class document types.
+`groom-feature-blueprint`, the skill whose entire job is *producing* the
+unit, uses the non-canonical name more often than the canonical one.
+`retro-spec` uses only the non-canonical one. Meanwhile, `spec` makes
+**Work Order** one of its first-class document types.
 
-Two distinct concepts are also being conflated. The framework already draws
-the line clearly in `groom-beads`'s mapping table but does not name it:
+The corpus also conflates two distinct concepts. The framework already
+separates them clearly in `groom-beads`'s mapping table but doesn't name the
+distinction:
 
 - the **portable format** and its readiness bar, owned by `spec`, which is
   tracker-agnostic and is what makes a unit of work dispatchable; and
 - the **materialization** of that format into a specific tracker, owned by
   `groom-beads`, currently the Beads `bd` tracker.
 
-A reader encountering "work item" cannot tell which of the two is meant.
+A reader who encounters "work item" can't tell which of the two it means.
 
-The open question this ADR settles is whether to keep the two-word term at
-all, or adopt the more familiar SDLC word **task**.
+This ADR settles whether to keep the two-word term at all or to adopt the
+more familiar SDLC word **task**.
 
 ## Decision
 
@@ -48,7 +50,7 @@ The portable unit is a **work order**. Its Beads materialization is a
 meaning as a value of the `kind` / `type` enum and is never used for the
 container.
 
-## Alternatives Considered
+## Alternatives considered
 
 | Option | Pros | Cons | Why rejected |
 |--------|------|------|--------------|
@@ -58,12 +60,11 @@ container.
 | **Order** | Short form of the chosen term | Collides with *ordering* / sequencing, which this framework discusses constantly ("ordering lives in the graph, not in prose") | Hard collision with an existing load-bearing term |
 | **Work order** | A real term of art from manufacturing, field service, and ITSM meaning precisely *a self-contained, authorized instruction to perform a specified piece of work*; carries the readiness connotation the concept depends on; no collision with the `kind` enum, with harness tooling, or with sequencing vocabulary; distinctive, therefore greppable and unambiguous in prose | Two words; slightly formal; not native to agile vocabulary | N/A — selected |
 
-The "not native to agile" objection is weak here and arguably a point in
-favor. This framework deliberately replaces SDLC ceremonies with
-agent-native equivalents, and the manufacturing metaphor is the accurate
-one: an assembly line dispatching authorized work orders to stations is
-exactly the mental model of an orchestrator dispatching to isolated
-subagents.
+The "not native to agile" objection is weak here and arguably favors the
+term. This framework deliberately replaces SDLC ceremonies with agent-native
+equivalents, and the manufacturing model is accurate: an assembly line that
+dispatches authorized work orders to stations matches an orchestrator that
+dispatches to isolated subagents.
 
 ## Consequences
 
@@ -73,14 +74,14 @@ subagents.
 - No ambiguity with the `kind: task` enum value, which stays as is.
 - No ambiguity with harness task tooling in an environment where that
   tooling is present and deliberately unused.
-- "Work order" is distinctive enough to grep, so a future drift is
-  mechanically detectable — see the consistency check in this repo's
+- "Work order" is distinctive enough to grep, so future drift can be
+  detected mechanically. See the consistency check in this repository's
   improvement plan.
 
 **Negative:**
-- Two words is more to type and read than "task" would have been.
-- Newcomers meet an unfamiliar term of art. Mitigated by the on-ramp
-  documentation defining it once, up front.
+- Two words are more to type and read than "task" would have been.
+- Newcomers meet an unfamiliar term of art. The on-ramp documentation
+  mitigates this by defining the term once, up front.
 - A rename cost was paid across `groom-feature-blueprint` and `retro-spec`.
 
 ## References

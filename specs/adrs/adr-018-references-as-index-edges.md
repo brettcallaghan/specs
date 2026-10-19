@@ -16,41 +16,45 @@ status: approved
 
 ## Context
 
-[[frd-spec-reference-integrity]] requires the emitted index to record,
-for every corpus member, the `[[slug]]` references parsed from its body
-with the span of each occurrence (AC-SPECREF-001.1), the references held
-by its reference-bearing frontmatter properties (AC-SPECREF-001.7), and
-its inbound references derived from every other member's outbound ones
-(AC-SPECREF-001.3). It also requires that a reference resolving to
-nothing is *recorded* rather than dropped, because indexing never fails
-(AC-SPECREF-001.6). That FRD deliberately places the shape of this data
-out of scope and defers it here.
+[[frd-spec-reference-integrity]] requires the emitted index to record
+the following for every corpus member:
+
+- the `[[slug]]` references parsed from its body, with the span of each
+  occurrence (AC-SPECREF-001.1)
+- the references held by its reference-bearing frontmatter properties
+  (AC-SPECREF-001.7)
+- its inbound references, derived from every other member's outbound
+  ones (AC-SPECREF-001.3)
+
+The FRD also requires that the index *record* a reference that resolves
+to nothing instead of dropping it, because indexing never fails
+(AC-SPECREF-001.6). The FRD deliberately places the shape of this data
+out of scope and defers it to this ADR.
 
 The index is `SpecIndex`, declared in `schemas/index.strata` and
-generated per [[adr-016]]; today it carries `entries` and `exclusions`
-and nothing else. Two constraints bear on the shape. AC-SPEC-002.3 gives
-every entry a workspace identifier precisely so that indexes emitted by
-separate repositories merge into one graph, and it was
-raised — during review
- of [[frd-spec-index]], and explicitly as
-architectural input for later — that references occurring inside
-document bodies behave like edges rather than like members of the
-objects they connect. Separately, [[container-spec-cli]] pins the index
-as additive under `schema_version` 1.0: a property added alongside the
-existing shape does not bump the version, while changing what is already
-there does.
+generated as [[adr-016]] specifies. Today it carries `entries` and
+`exclusions` and nothing else. Two constraints bear on the shape:
+
+- AC-SPEC-002.3 gives every entry a workspace identifier so that indexes
+  emitted by separate repositories can merge into one graph. The review
+  of [[frd-spec-index]] also raised a point, explicitly as architectural
+  input for later work: references inside document bodies behave like
+  edges, not like members of the objects they connect.
+- [[container-spec-cli]] pins the index as additive under
+  `schema_version` 1.0. A property added alongside the existing shape
+  doesn't bump the version, but a change to what's already there does.
 
 ## Decision
 
 We will record references as **one top-level `references` collection on
-`SpecIndex`**, one row per occurrence, each row carrying the path it
+`SpecIndex`**, with one row per occurrence. Each row carries the path it
 occurs in, the slug and anchor halves of the reference, its origin (a
 document body, or a named frontmatter property), its `Span`, and its
-resolution outcome. Inbound and outbound directions are both derived by
-indexing that one collection when the index is read; neither direction
-is stored a second time.
+resolution outcome. When the index is read, both the inbound and the
+outbound directions are derived by indexing that one collection. Neither
+direction is stored a second time.
 
-## Alternatives Considered
+## Alternatives considered
 
 | Option | Pros | Cons | Why rejected |
 |--------|------|------|--------------|
@@ -62,39 +66,39 @@ is stored a second time.
 
 **Positive:**
 
-- Both questions `specs refs` answers — what points at this document, and
-  what does this document point at (AC-SPECREF-003.1, AC-SPECREF-003.2)
-  — are served from one list, so the two answers cannot disagree.
-- Merging indexes across workspaces is appending rows. An edge from
-  workspace A naming a slug declared in workspace B needs no rewrite of
-  either repository's entries, which is the case AC-SPEC-002.3 exists
-  for and the one the FRD names as a known follow-on.
-- Ordering is a property of one list. Sorting rows by path and then by
-  position within the document satisfies AC-SPECREF-001.5's ordering
-  requirement and AC-SPEC-009.7's byte-identical output in the same
-  rule, with no per-entry ordering to keep consistent.
-- `schema_version` stays `1.0`. This is an addition alongside the
-  existing shape, which is what [[container-spec-cli]]'s additive rule
-  permits at the same version, and `schemas/index.strata` already
-  records that no property on `IndexEntry` forecloses it.
+- `specs refs` answers two questions: what points at this document, and
+  what this document points at (AC-SPECREF-003.1, AC-SPECREF-003.2). One
+  list serves both answers, so they can't disagree.
+- Merging indexes across workspaces means appending rows. An edge from
+  workspace A that names a slug declared in workspace B doesn't require
+  rewriting either repository's entries. AC-SPEC-002.3 exists for this
+  case, and the FRD names it as a known follow-on.
+- Ordering is a property of one list. Sorting rows by path, and then by
+  position within the document, satisfies both AC-SPECREF-001.5's
+  ordering requirement and AC-SPEC-009.7's byte-identical output with
+  one rule. There's no per-entry ordering to keep consistent.
+- `schema_version` stays `1.0`. The collection is an addition alongside
+  the existing shape, which [[container-spec-cli]]'s additive rule
+  permits at the same version. `schemas/index.strata` already records
+  that no property on `IndexEntry` forecloses it.
 - A row is the natural home for the facts that belong to neither
   endpoint: where the reference occurs, whether it came from prose or
   from a named frontmatter property, and what it resolved to.
 
 **Negative:**
 
-- A consumer wanting one document's outbound references scans or indexes
-  the collection rather than reading a property. For the CLI this is a
-  map built once when the index is opened; for a third-party consumer
-  reading the raw JSON it is work this shape imposes and the embedded
-  shape would not.
+- A consumer that wants one document's outbound references must scan or
+  index the collection instead of reading a property. For the CLI, this
+  is a map built once when the index is opened. For a third-party
+  consumer that reads the raw JSON, it's work that this shape imposes and
+  the embedded shape wouldn't.
 - The collection dominates the index by row count, so the emitted file
-  grows by roughly an order of magnitude more rows than entries. It
-  remains one file and one write.
+  has roughly an order of magnitude more rows than entries. It's still
+  one file and one write.
 - Nothing in the artifact prevents an edge whose source path names no
-  entry. The invariant that every row's source is a member is the
-  emitter's to hold rather than the schema's, because a JSON Schema
-  cannot express a cross-collection reference.
+  entry. The emitter, not the schema, must hold the invariant that every
+  row's source is a member, because a JSON Schema can't express a
+  cross-collection reference.
 
 ## References
 
