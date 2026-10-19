@@ -9,9 +9,6 @@
 # be fixed by editing it here. Change a copy by moving its ref in MAP and
 # re-running this script, never by hand.
 #
-# tech-writer amends humanizer by section number, so re-read its
-# § references against the new SKILL.md whenever humanizer's ref moves.
-#
 # Usage
 #   scripts/sync-vendored-skills.sh            # write the vendored copies
 #   scripts/sync-vendored-skills.sh --check    # verify they match
