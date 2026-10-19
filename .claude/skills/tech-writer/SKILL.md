@@ -77,7 +77,7 @@ Where they pull apart, this is how to resolve it:
 - **Modality and tense.** nbj-write-clearly keeps the source's *can*, *might*, *should*, and *will*. §9 and T6 change them only when the source shows what is actually true. "Will return null" becomes "returns null" only for behavior that happens now. A hedge becomes a condition only when you know the condition. Otherwise leave the modal word as it is and add it to the findings for the user.
 - **Rhythm.** nbj-write-clearly says not to flatten every sentence into one rhythm, and humanizer says to vary length. Both give way to parallel structure in steps and reference entries (see "Rhythm by doc type").
 - **Tone.** Follow Google: conversational, friendly, and respectful, without slang. Use common contractions, especially negative ones ("don't," "isn't"). Precision still wins: never trade an exact term for a casual one.
-- **Dashes.** §8 applies in full. Replace every em dash and en dash in prose, spaced or not, with a period, comma, colon, or parentheses, or rewrite the sentence.
+- **Dashes.** Follow Google, not §8: an em dash is allowed where "Punctuation" below calls for one. §8's warning still holds for overuse, so a section with several dashes is a sign that most of them belong in parentheses, commas, or a sentence of their own.
 - **Headings.** For how-to titles, §20 below takes precedence over Google's task-verb heading rule.
 
 ## Google rules to apply every time
@@ -89,12 +89,55 @@ habits are easy to mistake for house style, and they are not:
 - US English spelling: "behavior," "judgment," "labeled."
 - The serial comma: "code, tests, and docs."
 - Contractions, as Tone says.
-- No dashes, as Dashes says.
+- Em dashes without spaces ("word—word"), only where "Punctuation" calls for one. Spaced dashes, en dashes in prose, and double hyphens (` -- `) used as dashes are always wrong.
 - No emphasis by capitals or bold. "Do NOT" becomes "Don't," and a bold lead-in sentence becomes a plain sentence or a heading. RFC 2119 keywords keep their capitals. Use italics for emphasis rarely, only where the sentence misreads without it.
 - When prose names a heading, write it in the heading's case. Once headings are in sentence case, so are the references to them.
 - Capitalized EARS keywords (WHEN, WHILE, IF, WHERE) belong only in requirement statements. In other prose, write them as ordinary words.
 - Present tense for what is true now (T6).
 - Name the reader early: say who the document is for and what they decide or do with it, when the source makes that clear.
+
+## Punctuation
+
+Choose the mark by what the words after it do. Ask these questions in order
+and stop at the first yes.
+
+1. **Could the second part stand as its own sentence, and is the link between
+   the two only "and also"?** Use a period. Two short sentences beat one joined
+   by a semicolon or a dash.
+2. **Does the second part deliver what the first part promised: a list, an
+   example, a definition, a cause, or the answer?** Use a colon. A test: you
+   could write "namely" or "that is" in its place. The part before the colon
+   must be a complete sentence ("The check fails for one reason: the anchor
+   doesn't exist."). Template separators such as `[[slug]]: text` and
+   `**Term**: definition` are colons too.
+3. **Is it an aside: does the sentence still work with the phrase removed?**
+   Pick the mark by how much the aside matters.
+   - **Commas** for an aside that reads as part of the sentence's flow ("The
+     index, which is rebuilt on every run, holds no state.").
+   - **Parentheses** for something the reader can skip: a unit, an
+     abbreviation, a cross-reference, a minor clarification ("Lines wrap at 80
+     columns (set in `specs.toml`)."). This is the default for asides in
+     technical docs, and parentheses wrap code and links cleanly.
+   - **A pair of em dashes** for an aside that carries weight and should stand
+     out, or one that already contains commas, where commas around it would be
+     ambiguous ("Every tool—the CLI, the plugin, and CI—reads the same
+     config.").
+4. **Does the sentence turn sharply, or sum up a list just before it?** A
+   single em dash ("Exit codes, messages, and anchors—all three changed.").
+   Use this rarely. A colon or a new sentence usually reads better.
+
+Rules that hold whatever the answer:
+
+- Em dashes take no spaces. Never use an en dash, a spaced dash, or ` -- ` in
+  prose. En dashes belong only in number ranges, and even there "to" reads
+  better in running text ("pages 4 to 9").
+- At most one pair of em dashes per sentence, and rarely more than one dash
+  sentence per section. If you reach for a second, use parentheses or split
+  the sentence.
+- Don't use a semicolon where a period works. Use one only to separate list
+  items that already contain commas.
+- Requirement statements, headings, code, and link targets keep their
+  punctuation (see Scope and defaults).
 
 ## Amendments to existing patterns
 
