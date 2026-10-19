@@ -114,7 +114,7 @@ Rules that hold whatever the answer:
 **Not X but Y.** A sentence that says what something isn't before saying what
 it is. Keep the negative half when a reader might actually believe it, or when
 it states a real limit: "This cache is not shared across workers," "The
-`--force` flag no longer skips validation." Cut it when no reader would have
+`--force` flag doesn't skip validation." Cut it when no reader would have
 believed it, because then it only builds up the second half: "It's not just a
 linter, it's a full validator" becomes "It validates the whole corpus."
 
@@ -138,10 +138,17 @@ to the findings for the user.
 configure retries in `config.yaml`," "The scheduler retries failed jobs."
 Passive is fine when the actor is irrelevant ("Logs are rotated daily").
 
-**Writing about the document.** Release notes, changelogs, and migration
-guides are about change, so "replaces," "previously," and "now" are correct
-there. Elsewhere, cut "This README describes..." and "This section covers..."
-openers.
+**Writing about the document.** Openers that describe the text instead of
+saying something: "This README describes..." or "This section covers...."
+Cut them and start with the content. A heading already says what a section
+covers. A sentence that introduces a table or list is different, and Google
+asks for one.
+
+**Writing about change.** Words that place a fact in time: "previously,"
+"now," "replaces," "no longer," "new." They're correct in release notes,
+changelogs, and migration guides, which exist to describe change. Elsewhere,
+state what is true and drop the comparison with what used to be true: "The
+CLI now validates links" becomes "The CLI validates links."
 
 **Wrong reader.** A doc's reader usually lacks context. Don't strip
 prerequisites, definitions, or "why" on the grounds that the reader already
@@ -191,7 +198,7 @@ margin.
 
 1. Load nbj-write-clearly, then this file.
 2. Identify the reader, their goal, the doc type, and the task (draft, revise, or audit). Mark what must not change, using both nbj-write-clearly's list and Scope and defaults above.
-3. **Draft or revise.** Follow nbj-write-clearly's "Write or revise" steps with this file's rules. Read its references/guide.md when the doc has procedures, code, UI labels, tables, images, or accessibility needs. Read its references/official-index.md only when the user asks for Google style compliance or a specialized rule decides the question.
+3. **Draft or revise.** Follow nbj-write-clearly's "Write or revise" steps with this file's rules. Read its references/guide.md when the doc has procedures, code, UI labels, tables, images, or accessibility needs. Google style compliance is always the goal here, so when a question turns on a specific rule that references/guide.md doesn't settle (word choice, a punctuation mark, numbers, dates, units, product names, capitalization), find it in references/official-index.md and open that page when browsing is available. That file's note that project style comes first doesn't apply, as "This skill's style is the style" says.
 4. **Check the patterns.** Run "Patterns to check" and the T-patterns over the result. Prefer a fresh-context reviewer: run this pass in a subagent that sees only the draft, the reader card if one exists, and these rules. A reviewer that wrote the draft tends to approve it.
 5. **Validate.** Run nbj-write-clearly's "Validate" checklist on the final text, and check it against "Google rules to apply every time." Skip the checklist's last item, on sounding like the author; voice is a later step.
 6. **Return the result.**
