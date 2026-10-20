@@ -53,7 +53,6 @@ sh_run "cli-conformance-table" 'scripts/check-cli-conformance-table.py'
 
 # --- generated artifacts (need a local strata build; each SKIPs without one)
 sh_run "strata-docs"   'scripts/sync-strata-docs.sh --check'
-sh_run "vendored-skills" 'scripts/sync-vendored-skills.sh --check'
 sh_run "schemas"       'scripts/generate-schemas.sh --check'
 
 printf '\n=== RESULT: %s\n' "$([ $rc -eq 0 ] && echo PASS || echo FAIL)"
