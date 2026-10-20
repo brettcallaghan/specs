@@ -8,8 +8,7 @@ description: Drafts, revises, and audits technical documentation in the project'
 Use the Google developer documentation style guide
 (developers.google.com/style), unless the project names another style guide,
 for example in a line of `AGENTS.md` or `CLAUDE.md`. Then use that one. This
-file covers only what extends the style guide: what a rewrite must leave
-alone, additional rules, project terms, voice, and patterns to check.
+file holds only what the style guide lacks.
 
 **Precedence:** the user's explicit request and the destination's requirements
 win. Then source facts, quotations, and technical tokens, which no rule may
@@ -25,20 +24,19 @@ the document doesn't count.
 
 ## Accuracy and cross-links
 
-- **Accuracy is non-negotiable.** Every code example and command must run as
-  written. Every API, flag, path, and default you describe must match the
-  source. If you're unsure of a detail, read the source again or run the
-  command; don't guess. If you still can't confirm it, leave the text as it
-  is.
-- **Cross-link everything.** Isolated docs are undiscoverable docs. When a
-  document names another document, link it: a `[[slug]]` wikilink for a
-  document in the spec corpus, and a relative Markdown link or backticked
-  path for anything else, following the project's citation conventions.
+- **Accuracy.** Every code example and command must run as written. Every
+  API, flag, path, and default you describe must match the source. If you're
+  unsure of a detail, read the source again or run the command. Don't guess.
+  If you still can't confirm it, leave the text as it is.
+- **Cross-links.** When a document names another document, link it. Use a
+  `[[slug]]` wikilink for a document in the spec corpus. For anything else,
+  use a relative Markdown link or backticked path, following the project's
+  citation conventions.
 
 ## Scope and defaults
 
 - Applies to READMEs, release notes and changelogs, docs-site pages, help-center content, UI copy, specs written for human review, and skills and other docs written only for agents.
-- Do not apply it to marketing, legal, academic, fictional, or personal writing unless the user asks for this style.
+- Don't apply it to marketing, legal, academic, fictional, or personal writing unless the user asks for this style.
 - When you revise a file in place, change prose only. Leave code blocks, inline code, commands, paths, config keys, link targets, and front matter untouched.
 - Also leave these untouched:
   - API, function, flag, and setting names
@@ -48,7 +46,7 @@ the document doesn't count.
   - RFC 2119 keywords (MUST, SHOULD, MAY) and their exact meaning
   - Wikilinks (`[[slug]]`, `[[slug#heading]]`) and identifiers such as AC and FEAT ids
   - Element record blocks
-  - In an existing document, the words and punctuation of a heading, because other documents link to it. Change a heading's case freely when links match headings without regard to case, as they do in the specs corpus. Punctuation is part of the anchor, so a dash in a heading stays. Reword a heading only when you update every link to it in the same pass. Headings in a new document follow every rule here.
+  - In an existing document, the words and punctuation of a heading, because other documents link to it. Change a heading's case freely when links match headings without regard to case, as they do in the spec corpus. Reword a heading only when you update every link to it in the same pass. Headings in a new document follow every rule here.
   - Labels and separators the document's template requires, such as **Status:**, **Rationale:**, or a `---` rule between requirements. They are structure, not decoration. Apply the rules to the text that follows them.
 - Citation lists are exempt from T5's sentence length: runs of AC ids, wikilinks, ADR numbers, or references.
 - HTML comments are not exempt. In templates they are instructions to the agent, so apply this skill to their prose. Keep any name, path, or token they cite.
@@ -86,10 +84,12 @@ colleague who remembers being new. In every document, be:
 - **Respectful of the reader's judgment.** Readers know their own setup. Give them what they need to decide, and don't decide for them.
 - **Without humor** in errors, troubleshooting, security, or breaking changes. Elsewhere, default to none.
 
-Don't sound like a salesperson (benefits without mechanisms, claims nobody can
-check), a consultant (frameworks and padding before the answer), a press
-release ("We're excited to…"), or a lecturer (background the reader must sit
-through before they can act).
+Don't sound like any of these:
+
+- A salesperson: benefits without mechanisms, claims nobody can check.
+- A consultant: frameworks and padding before the answer.
+- A press release: "We're excited to…"
+- A lecturer: background the reader must sit through before they can act.
 
 A release note, off-voice and on-voice:
 
@@ -112,18 +112,23 @@ document:
 - Tone: how the voice adjusts for them
 
 For a spec document type, start from the reader profile in the header
-comment of the spec skill's template for that type. For any other doc type,
-including a skill or another doc written only for agents, start from
-`references/reader-profiles.md`. Adjust it for the project. When a document has several readers, profile
-the one whose needs should set the tone. If you can't tell, write down your
-assumption and proceed.
+comment of the spec skill's template for that type. For any other document
+type, including a skill or another doc written only for agents, start from
+`references/reader-profiles.md`. Adjust it for the project. When a document
+has several readers, profile the one whose needs should set the tone. If you
+can't tell, write down your assumption and proceed.
 
 The profile sets the tone in every task. When you draft, it also sets the
-content: add what the reader needs and lacks (a prerequisite, a term's
-meaning, a default), cut what they already know, put the answer to "Wants"
-first, and order the rest by the reader's next step unless a template fixes
-the order. When you revise, content is fixed (see Scope and defaults), so the
-profile changes only how things are worded.
+content:
+
+- Add what the reader needs and lacks, such as a prerequisite, a term's
+  meaning, or a default.
+- Cut what they already know.
+- Put the answer to "Wants" first. Order the rest by the reader's next step,
+  unless a template fixes the order.
+
+When you revise, content is fixed except where Scope and defaults allows a
+cut, so the profile mostly changes how things are worded.
 
 Vary sentence length in narrative docs. Keep steps and reference entries
 parallel. When unsure, choose clear over friendly, and friendly over clever.
@@ -139,8 +144,8 @@ and stop at the first yes.
 2. **Does the second part deliver what the first part promised: a list, an
    example, a definition, a cause, or the answer?** Use a colon. A test: you
    could write "namely" or "that is" in its place ("The check fails for one
-   reason: the anchor doesn't exist."). Template separators such as `[[slug]]: text` and
-   `**Term**: definition` are colons too.
+   reason: the anchor doesn't exist."). Template separators such as
+   `[[slug]]: text` and `**Term**: definition` are colons too.
 3. **Is it an aside: does the sentence still work with the phrase removed?**
    Pick the mark by how much the aside matters.
    - **Commas** for an aside that reads as part of the sentence's flow ("The
@@ -155,16 +160,15 @@ and stop at the first yes.
      config.").
 4. **Does the sentence turn sharply, or sum up a list just before it?** A
    single em dash ("Exit codes, messages, and anchors—all three changed.").
-   Use this rarely. A colon or a new sentence usually reads better.
+   Use this rarely.
 
 Whatever the answer:
 
 - At most one pair of em dashes per sentence, and rarely more than one dash
   sentence per section. If you reach for a second, use parentheses or split
-  the sentence. Several dashes in one section is a sign that most of them
-  belong in parentheses, commas, or a sentence of their own.
-- Requirement statements, headings, code, and link targets keep their
-  punctuation (see Scope and defaults).
+  the sentence.
+- Requirement statements, headings in an existing document, code, and link
+  targets keep their punctuation (see Scope and defaults).
 
 ## Patterns to check
 
@@ -182,8 +186,7 @@ three items.
 
 **Repeated sentence openings.** Exempt numbered steps and reference entries.
 Steps should start with an imperative verb ("Run," "Add," "Open"), and
-reference entries should share a structure. Parallel structure helps scanning
-here.
+reference entries should share a structure.
 
 **Stacked qualifiers.** In docs, replace hedges with conditions. "This may
 fail in some cases" becomes "This fails when the disk is full." Change a
@@ -191,21 +194,21 @@ modal word (*can*, *might*, *should*, *will*) only when the source shows what
 is actually true. If you don't know the condition, keep the hedge.
 
 **Writing about the document.** Openers that describe the text instead of
-saying something: "This README describes..." or "This section covers...."
+saying something: "This README describes…" or "This section covers…"
 Cut them and start with the content. A heading already says what a section
 covers. A sentence that introduces a table or list is different: keep it.
 
 ## New patterns for technical docs
 
-**T1. Terminology drift.** The same concept appears under different names ("config file," "settings file," "configuration"). Pick one term per concept and use it everywhere. Never vary a technical term for style, even if a rewrite elsewhere encourages variety. Check that the names really are one concept first: some pairs that look like synonyms aren't (an Xcode workspace contains projects).
+**T1. Terminology drift.** The same concept appears under different names ("config file," "settings file," "configuration"). Pick one term per concept and use it everywhere. Check that the names really are one concept first: some pairs that look like synonyms aren't (an Xcode workspace contains projects).
 
 **T2. Vague capability claims.** "Supports," "handles," and "allows for" with no specifics. State what happens, the defaults, and the limits. "Supports large files" becomes "Uploads files up to 5 GB."
 
 **T3. Missing specifics.** No units, no default, no version, or "run the appropriate command." Give the exact value or command. If you don't have it, leave the text as it is rather than guessing.
 
-**T4. Nominalizations.** Verbs turned into nouns: "perform the installation of," "make a determination," "provide configuration of." This is the main source of a legalese feel. Use the verb: "install," "decide," "configure."
+**T4. Nominalizations.** Verbs turned into nouns: "perform the installation of," "make a determination," "provide configuration of." Use the verb: "install," "decide," "configure."
 
-**T5. Long sentences and walls of text.** Sentences over about 25 words, or paragraphs over about five sentences. Split them. One idea per sentence. Citation lists don't count toward the length.
+**T5. Long sentences and walls of text.** Sentences over about 25 words, or paragraphs over about five sentences. Split them. One idea per sentence.
 
 **T6. Release notes in the wrong order.** Features listed in commit order, with breaking changes buried. Put breaking changes and required actions first, then user-visible changes, then fixes. Each item starts with what the user sees or must do.
 
@@ -214,15 +217,15 @@ covers. A sentence that introduces a table or list is different: keep it.
 ## Line wrapping
 
 Follow the destination's line width, or 80 characters when it sets none.
-Links, tables, headings, and code blocks may run past it. Rewrap each paragraph you change to that width, and don't reflow
-paragraphs you didn't change. Never reword a sentence to make it fit the
-margin.
+Links, tables, headings, and code blocks may run past it. Rewrap each
+paragraph you change to that width, and don't reflow paragraphs you didn't
+change. Never reword a sentence to make it fit the margin.
 
 ## How to run it
 
-1. Identify the doc type and the task (draft, revise, or audit), and profile the reader (see Voice and tone). Mark what must not change, using Scope and defaults above.
+1. Identify the document type and the task (draft, revise, or audit), and profile the reader (see Voice and tone). Mark what must not change, using Scope and defaults above.
 2. **Draft or revise** to the style guide and this file. When a question turns on a specific rule (word choice, a punctuation mark, numbers, dates, units, product names, capitalization), look it up in the style guide when browsing is available.
-3. **Check the patterns.** Run "Patterns to check" and the T-patterns over the result. Prefer a fresh-context reviewer: run this pass in a subagent that sees only the draft, the reader profile, and these rules. A reviewer that wrote the draft tends to approve it.
+3. **Check the patterns.** Run "Patterns to check" and the T-patterns over the result. When you can start a subagent, run this pass in one that sees only the draft, the reader profile, and these rules. A reviewer that wrote the draft tends to approve it.
 4. **Validate.** Check the final text against the style guide, "Additional rules," "Project terms," and the reader profile's tone, and check that nothing in Scope and defaults changed.
 5. **Return the result.**
    - For an audit, change nothing. Report findings in priority order with short examples.
@@ -230,4 +233,4 @@ margin.
    - For a file, write the revised file and summarize what changed.
 6. If the project uses Vale, run it last and fix what it flags.
 
-Stop when the doc is clear, accurate, and consistent, and every line follows the rules above. Don't keep polishing lines that already do.
+Stop when every line follows the rules above. Don't keep polishing lines that already do.
