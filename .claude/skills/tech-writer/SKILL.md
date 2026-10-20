@@ -44,20 +44,12 @@ the document doesn't count.
 - Content is fixed and wording is not. Never add or remove a fact, requirement, decision, example, or caveat, but apply every style rule to how each one is worded.
 - Don't add opinions, reactions, or asides of your own. Keep the ones the author wrote, reworded to these rules.
 
-## Google rules to apply every time
+## Rules Google leaves open
 
-Apply these even where the document does otherwise. A document's existing
-habits are easy to mistake for house style, and they are not:
-
-- Sentence-case headings, including headings that are link targets (see Scope and defaults).
-- US English spelling: "behavior," "judgment," "labeled."
-- The serial comma: "code, tests, and docs."
-- A conversational, friendly, and respectful tone, without slang. Use common contractions, especially negative ones ("don't," "isn't"). Precision still wins: never trade an exact term for a casual one.
-- Em dashes without spaces ("word—word"), only where "Punctuation" calls for one. Spaced dashes, en dashes in prose, and double hyphens (` -- `) used as dashes are always wrong.
-- No emphasis by capitals or bold. "Do NOT" becomes "Don't," and a bold lead-in sentence becomes a plain sentence or a heading. RFC 2119 keywords keep their capitals. Use italics for emphasis rarely, only where the sentence misreads without it.
-- When prose names a heading, write it in the heading's case. Once headings are in sentence case, so are the references to them.
+- RFC 2119 keywords keep their capitals, although Google rules out capitals for emphasis.
 - Capitalized EARS keywords (WHEN, WHILE, IF, WHERE) belong only in requirement statements. In other prose, write them as ordinary words.
-- Present tense for what is true now (T6).
+- When prose names a heading, write it in the heading's case.
+- Never trade an exact term for a casual one to make the tone conversational.
 
 ## Project terms
 
@@ -80,9 +72,8 @@ and stop at the first yes.
    by a semicolon or a dash.
 2. **Does the second part deliver what the first part promised: a list, an
    example, a definition, a cause, or the answer?** Use a colon. A test: you
-   could write "namely" or "that is" in its place. The part before the colon
-   must be a complete sentence ("The check fails for one reason: the anchor
-   doesn't exist."). Template separators such as `[[slug]]: text` and
+   could write "namely" or "that is" in its place ("The check fails for one
+   reason: the anchor doesn't exist."). Template separators such as `[[slug]]: text` and
    `**Term**: definition` are colons too.
 3. **Is it an aside: does the sentence still work with the phrase removed?**
    Pick the mark by how much the aside matters.
@@ -100,17 +91,12 @@ and stop at the first yes.
    single em dash ("Exit codes, messages, and anchors—all three changed.").
    Use this rarely. A colon or a new sentence usually reads better.
 
-Rules that hold whatever the answer:
+Whatever the answer:
 
-- Em dashes take no spaces. Never use an en dash, a spaced dash, or ` -- ` in
-  prose. En dashes belong only in number ranges, and even there "to" reads
-  better in running text ("pages 4 to 9").
 - At most one pair of em dashes per sentence, and rarely more than one dash
   sentence per section. If you reach for a second, use parentheses or split
   the sentence. Several dashes in one section is a sign that most of them
   belong in parentheses, commas, or a sentence of their own.
-- Don't use a semicolon where a period works. Use one only to separate list
-  items that already contain commas.
 - Requirement statements, headings, code, and link targets keep their
   punctuation (see Scope and defaults).
 
@@ -138,26 +124,14 @@ fail in some cases" becomes "This fails when the disk is full." Change a
 modal word (*can*, *might*, *should*, *will*) only when the source shows what
 is actually true. If you don't know the condition, keep the hedge.
 
-**Passive voice.** Prefer "you" or the named component as the actor: "You
-configure retries in `config.yaml`," "The scheduler retries failed jobs."
-Passive is fine when the actor is irrelevant ("Logs are rotated daily").
-
 **Writing about the document.** Openers that describe the text instead of
 saying something: "This README describes..." or "This section covers...."
 Cut them and start with the content. A heading already says what a section
 covers. A sentence that introduces a table or list is different, and Google
 asks for one.
 
-**Writing about change.** Words that place a fact in time: "previously,"
-"now," "replaces," "no longer," "new." They're correct in release notes,
-changelogs, and migration guides, which exist to describe change. Elsewhere,
-state what is true and drop the comparison with what used to be true: "The
-CLI now validates links" becomes "The CLI validates links."
-
-**Wrong reader.** A doc's reader usually lacks context. Don't strip
-prerequisites, definitions, or "why" on the grounds that the reader already
-knows them. Check the doc against its intended reader: what would a newcomer
-to this project need?
+**Wrong reader.** Don't strip prerequisites, definitions, or "why" on the
+grounds that the reader already knows them.
 
 ## New patterns for technical docs
 
@@ -171,11 +145,9 @@ to this project need?
 
 **T5. Long sentences and walls of text.** Sentences over about 25 words, or paragraphs over about five sentences. Split them. One idea per sentence. Citation lists don't count toward the length.
 
-**T6. Future tense for current behavior.** "The function will return null" for something that happens now. Use present tense. Keep "will" for genuine future events (deprecations, scheduled removals).
+**T6. Release notes in the wrong order.** Features listed in commit order, with breaking changes buried. Put breaking changes and required actions first, then user-visible changes, then fixes. Each item starts with what the user sees or must do.
 
-**T7. Release notes in the wrong order.** Features listed in commit order, with breaking changes buried. Put breaking changes and required actions first, then user-visible changes, then fixes. Each item starts with what the user sees or must do.
-
-**T8. Invented examples.** A rewrite must never invent a flag, an output, a default, or an example value. If an example would help and you don't have a real one, leave it out.
+**T7. Invented examples.** A rewrite must never invent a flag, an output, a default, or an example value. If an example would help and you don't have a real one, leave it out.
 
 ## Rhythm by doc type
 
@@ -194,11 +166,11 @@ margin.
 1. Identify the reader, their goal, the doc type, and the task (draft, revise, or audit). Mark what must not change, using Scope and defaults above.
 2. **Draft or revise** to Google's guide and this file. When a question turns on a specific Google rule (word choice, a punctuation mark, numbers, dates, units, product names, capitalization), look it up on developers.google.com/style when browsing is available.
 3. **Check the patterns.** Run "Patterns to check" and the T-patterns over the result. Prefer a fresh-context reviewer: run this pass in a subagent that sees only the draft, the reader card if one exists, and these rules. A reviewer that wrote the draft tends to approve it.
-4. **Validate.** Check the final text against "Google rules to apply every time" and "Project terms," and check that nothing in Scope and defaults changed.
+4. **Validate.** Check the final text against Google's guide, "Rules Google leaves open," and "Project terms," and check that nothing in Scope and defaults changed.
 5. **Return the result.**
    - For an audit, change nothing. Report findings in priority order with short examples.
    - For pasted text, return the revised text.
-   - For a file, write the revised file, and summarize what changed.
+   - For a file, write the revised file and summarize what changed.
 6. If the project uses Vale, run it last and fix what it flags.
 
 Stop when the doc is clear, accurate, and consistent, and every line follows the rules above. Don't keep polishing lines that already do.
