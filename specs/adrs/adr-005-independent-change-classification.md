@@ -6,22 +6,21 @@ type: adr
 status: active
 ---
 
-# ADR-005: Classify Composed Units by the Boundary of Independent Change
+# ADR-005: Classify composed units by the boundary of independent change
 
 **Status:** active  
 **Date:** 2026-07-29
 
 ## Context
 
-Having decided to split the component and module types
-([[adr-004]]), we needed a crisp, durable
-test for which is which. An initial cut used composite-ness — does the unit have
-internal components? — as the boundary. But the concern that actually changes
-how an agent behaves when it touches a unit (whether it must preserve backwards
-compatibility, version carefully, and record change history) is not triggered by
-having sub-parts. It is triggered by being shared or published to consumers who
-evolve on their own schedules. The framework already draws exactly this line for
-contracts, whose visibility tiers are private, internal, and public.
+[[adr-004]] splits the component and module types, so the framework needs a
+crisp, durable test for which is which. One candidate boundary is
+composite-ness: whether the unit has internal components. The concern that
+changes how an agent behaves when it touches a unit is whether it must preserve
+backwards compatibility, version carefully, and record change history. Having
+sub-parts doesn't trigger that concern. Being shared or published to consumers
+who evolve on their own schedules does. The framework already draws this line
+for contracts, whose visibility tiers are private, internal, and public.
 
 ## Decision
 
@@ -29,29 +28,29 @@ We will classify composed units by their **boundary of independent change** —
 the same test the framework uses for contract visibility. A **component** is
 internal to one container and changes in lockstep with it. A **module** crosses
 a boundary of independent change: it is shared or published across containers,
-and/or it is composite with internal components of its own. This yields a single
-three-tier spectrum spanning both contracts and composed units: **private** (a
-component; a private schema), **internal** (an in-repo module; an internal
-contract), and **public** (a published module; a public contract).
+or it is composite with internal components of its own, or both. The result is
+a single three-tier spectrum that spans contracts and composed units:
+**private** (a component, a private schema), **internal** (an in-repo module,
+an internal contract), and **public** (a published module, a public contract).
 
-## Alternatives Considered
+## Alternatives considered
 
 | Option | Pros | Cons | Why rejected |
 |--------|------|------|--------------|
-| Split on composite-ness (has internal components) | Intuitive — "a module is the bigger thing" | Misses the concern that matters: an atomic shared library has no sub-parts yet needs versioning and compatibility;<br>a composite unit used by one container does not | Would misclassify exactly the cases where the distinction matters most |
-| Split on a bare shared / not-shared binary | Captures sharing | Loses the published-vs-in-repo distinction that governs breaking-change freedom;<br>not unified with contracts | Too coarse (see [[adr-006]]) |
-| Boundary of independent change, unified with contract visibility | One rule learned once, spanning contracts and composed units<br>Directly predicts the change-rule behavior of a unit | "Independent change" is a subtler concept than "has sub-parts" and must be taught | N/A — selected |
+| Split on composite-ness (has internal components) | Intuitive: "a module is the bigger thing" | Misses the concern that matters: an atomic shared library has no sub-parts yet needs versioning and compatibility, and a composite unit used by one container doesn't | Would misclassify exactly the cases where the distinction matters most |
+| Split on a bare shared / not-shared binary | Captures sharing | Loses the published-versus-in-repo distinction that governs freedom to make breaking changes<br>Not unified with contracts | Too coarse (see [[adr-006]]) |
+| Boundary of independent change, unified with contract visibility | One rule learned once, spanning contracts and composed units<br>Directly predicts the change-rule behavior of a unit | "Independent change" is a subtler concept than "has sub-parts," and it must be taught | N/A — selected |
 
 ## Consequences
 
 **Positive:**
-- One conceptual model spans contracts and composed units — learn it once
+- One conceptual model, learned once, spans contracts and composed units
 - The classification directly predicts the change rules a unit is subject to
-- It matches how teams actually mature code: internal first, published later
+- It matches how teams mature code: internal first, published later
 
 **Negative:**
-- "Boundary of independent change" is a subtler test than "has sub-parts," and
-  requires the C4 guide to teach it explicitly (done)
+- "Boundary of independent change" is a subtler test than "has sub-parts," so
+  the C4 guide must teach it explicitly, which it does
 
 ## References
 

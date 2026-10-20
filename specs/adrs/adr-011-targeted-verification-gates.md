@@ -6,7 +6,7 @@ type: adr
 status: active
 ---
 
-# ADR-011: Blueprints Declare Targeted Verification Gates
+# ADR-011: Blueprints declare targeted verification gates
 
 **Status:** active  
 **Date:** 2026-07-29
@@ -14,12 +14,12 @@ status: active
 ## Context
 
 In large projects run as orchestrated bead waves, running the full test suite
-for every work item does not scale — it slows a parallel sprint run to a crawl.
+for every work item doesn't scale: it slows a parallel sprint run to a crawl.
 
-Agents have been given the agency to choose which tests to run for a change, but
-that judgment is unanchored: nothing tells an isolated agent, with zero session
+Agents have the agency to choose which tests to run for a change, but that
+judgment is unanchored. Nothing tells an isolated agent, with zero session
 context, which tests actually gate a change to a given architectural element.
-The result is inconsistent selection — some agents over-run (slow), others
+The result is inconsistent selection: some agents over-run (slow), and others
 under-test (risky).
 
 ## Decision
@@ -27,16 +27,16 @@ under-test (risky).
 We will have each blueprint's Change Guidance declare a **Verification gates**
 entry naming the specific, runnable tests that MUST run when that element
 changes — the minimal, targeted set an agent runs to prove a change before
-handoff. CI and downstream agents still run the full suite. Feature blueprints
+handoff. CI and downstream agents still run the full suite. Feature Blueprints
 map their AC Coverage "Verified by" column onto these gates, so the targeted set
 is traceable to acceptance criteria.
 
-## Alternatives Considered
+## Alternatives considered
 
 | Option | Pros | Cons | Why rejected |
 |--------|------|------|--------------|
-| Run the full suite on every change | Maximal safety per change | Does not scale across many parallel work items;<br>slows waves dramatically | Throughput-prohibitive at the scale the plugin targets |
-| Leave test selection entirely to agent judgment, with no per-element guidance | Flexible | An isolated agent has no authoritative signal for which tests gate this element;<br>selection is inconsistent and error-prone | Under-specified — misses tests or over-runs |
+| Run the full suite on every change | Maximal safety per change | Doesn't scale across many parallel work items;<br>slows waves dramatically | Throughput-prohibitive at the scale the plugin targets |
+| Leave test selection entirely to agent judgment, with no per-element guidance | Flexible | An isolated agent has no authoritative signal for which tests gate this element;<br>selection is inconsistent and error-prone | Under-specified: misses tests or over-runs |
 | The blueprint declares the targeted gate;<br>CI runs the full suite | An authoritative, per-element minimal set<br>Fast agent loop<br>Full coverage still enforced in CI | Authors must curate and maintain the gate list per element | N/A — selected |
 
 ## Consequences
@@ -56,9 +56,8 @@ is traceable to acceptance criteria.
 
 ## References
 
-- [[adr-004]] — the blueprints that carry
-  these gates
+- [[adr-004]] — the blueprints that carry these gates
 - [[adr-006]] — visibility gates the change
   rules; these gates the tests
-- Change Guidance sections of the component, module, and container blueprint
+- Change Guidance sections of the Component, Module, and Container Blueprint
   templates; the groom-beads skill (consumes these gates)
