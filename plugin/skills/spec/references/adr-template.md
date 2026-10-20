@@ -24,15 +24,15 @@ Purpose
   explains "why we built it this way" for future maintainers.
 
 Reader profile (apply with the tech-writer skill)
-  reader: a future maintainer, human or agent, asking "why is it this way?",
-      and today's reviewer.
-  knows: the system now, not the context at the time of the decision.
-  wants: the decision, its context, the alternatives, and the consequences,
-      including the costs.
-  budget: a few minutes.
-  tone: neutral and direct. State the decision as "We will..." and give the
-      rejected alternatives a fair hearing. Don't argue for the decision
-      beyond its reasons.
+- Reader: a future maintainer, human or agent, asking "why is it this way?",
+  and today's reviewer.
+- Knows: the system now, not the context at the time of the decision.
+- Wants: the decision, its context, the alternatives, and the consequences,
+  including the costs.
+- Budget: a few minutes.
+- Tone: neutral and direct. State the decision as "We will..." and give the
+  rejected alternatives a fair hearing. Don't argue for the decision beyond
+  its reasons.
 
 When to use
   - Choosing between two or more real technology options

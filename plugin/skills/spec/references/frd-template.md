@@ -26,14 +26,14 @@ Purpose
   verified; it does not describe how the system is built internally.
 
 Reader profile (apply with the tech-writer skill)
-  reader: a reviewer approving what will be built, then the authors of the
-      Feature Blueprint and tests that trace back to it.
-  knows: the product, not this feature.
-  wants: why the feature matters (the user story) and what it must do (the
-      acceptance criteria).
-  budget: one focused read.
-  tone: precise and candid. State assumptions and open questions outright. Say
-      nothing about how the system is built.
+- Reader: a reviewer approving what will be built, then the authors of the
+  Feature Blueprint and tests that trace back to it.
+- Knows: the product, not this feature.
+- Wants: why the feature matters (the user story) and what it must do (the
+  acceptance criteria).
+- Budget: one focused read.
+- Tone: precise and candid. State assumptions and open questions outright. Say
+  nothing about how the system is built.
 
 When to use
   - Specifying a feature that delivers complete, independently testable value

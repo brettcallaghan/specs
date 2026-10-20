@@ -62,14 +62,14 @@ Purpose
   is part of the deliberate C4 superset defined in `shared/c4-standards.md`.
 
 Reader profile (apply with the tech-writer skill)
-  reader: an engineer or agent changing this module, or consuming it from a
-      container that composes it.
-  knows: the containers that use it, not its internals.
-  wants: its interface, versioning and compatibility rules, and the change
-      guidance feature work must respect.
-  budget: one focused read.
-  tone: matter-of-fact and exact: name interfaces, versions, and compatibility
-      promises. Decisions and their alternatives belong in ADRs.
+- Reader: an engineer or agent changing this module, or consuming it from a
+  container that composes it.
+- Knows: the containers that use it, not its internals.
+- Wants: its interface, versioning and compatibility rules, and the change
+  guidance feature work must respect.
+- Budget: one focused read.
+- Tone: matter-of-fact and exact: name interfaces, versions, and compatibility
+  promises. Decisions and their alternatives belong in ADRs.
 
 When to use — either trigger is sufficient
   - SHARED / PUBLISHED: the unit is vended or consumed across containers

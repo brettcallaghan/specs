@@ -46,13 +46,13 @@ Purpose
   `shared/c4-standards.md`.
 
 Reader profile (apply with the tech-writer skill)
-  reader: an engineer or agent changing this component inside its container.
-  knows: the host container, not this component's internals.
-  wants: its responsibilities, its interface, and the change guidance feature
-      work must respect.
-  budget: one focused read.
-  tone: matter-of-fact and exact: name functions, types, and files. Decisions
-      and their alternatives belong in ADRs.
+- Reader: an engineer or agent changing this component inside its container.
+- Knows: the host container, not this component's internals.
+- Wants: its responsibilities, its interface, and the change guidance feature
+  work must respect.
+- Budget: one focused read.
+- Tone: matter-of-fact and exact: name functions, types, and files. Decisions
+  and their alternatives belong in ADRs.
 
 When to use — the trigger is the promotion predicate
   A component earns its own blueprint WHEN it has an interface other

@@ -61,14 +61,14 @@ Purpose
   when the order is dispatched.
 
 Reader profile (apply with the tech-writer skill)
-  reader: a fresh agent with zero session context, dispatched to do this one
-      job.
-  knows: only what this work order says and the files it names.
-  wants: the job, how to prove it's done, and every fact needed to finish
-      without asking.
-  budget: read in full before starting, then consulted while working.
-  tone: imperative and exact. Name files, commands, and values. Never point at
-      a conversation the agent didn't see.
+- Reader: a fresh agent with zero session context, dispatched to do this one
+  job.
+- Knows: only what this work order says and the files it names.
+- Wants: the job, how to prove it's done, and every fact needed to finish
+  without asking.
+- Budget: read in full before starting, then consulted while working.
+- Tone: imperative and exact. Name files, commands, and values. Never point at
+  a conversation the agent didn't see.
 
 This document is GENERATED, not hand-authored
   Unlike every other spec type, a work order is NOT authored through the

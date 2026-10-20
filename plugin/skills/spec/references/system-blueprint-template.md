@@ -39,14 +39,14 @@ Purpose
   readers.
 
 Reader profile (apply with the tech-writer skill)
-  reader: anyone starting on the system: a newcomer, a reviewer, or an agent
-      planning feature work. This document is their entry point.
-  knows: the problem domain, not this system's structure.
-  wants: the system's context, its containers, public contracts, and
-      deployment, and where to read next.
-  budget: one focused read.
-  tone: matter-of-fact, describing the system as it is. Favor the big picture.
-      Decisions and their alternatives belong in ADRs.
+- Reader: anyone starting on the system: a newcomer, a reviewer, or an agent
+  planning feature work. This document is their entry point.
+- Knows: the problem domain, not this system's structure.
+- Wants: the system's context, its containers, public contracts, and
+  deployment, and where to read next.
+- Budget: one focused read.
+- Tone: matter-of-fact, describing the system as it is. Favor the big picture.
+  Decisions and their alternatives belong in ADRs.
 
 When to use
   - Documenting a system your team owns (one blueprint per system)

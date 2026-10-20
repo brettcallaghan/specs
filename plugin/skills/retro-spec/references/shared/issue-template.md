@@ -60,14 +60,14 @@ Purpose
   user as candidates, and only the ones the user chooses are filed.
 
 Reader profile (apply with the tech-writer skill)
-  reader: the person deciding whether to file or accept it, then whoever makes
-      the change.
-  knows: the code or the skill, not your setup or your use case.
-  wants: what happened or what's missing, the evidence, and the one change
-      proposed.
-  budget: a minute or two to triage.
-  tone: neutral and specific. Describe what happened, not how frustrating it
-      was. Persuade with evidence, not enthusiasm. No blame.
+- Reader: the person deciding whether to file or accept it, then whoever makes
+  the change.
+- Knows: the code or the skill, not your setup or your use case.
+- Wants: what happened or what's missing, the evidence, and the one change
+  proposed.
+- Budget: a minute or two to triage.
+- Tone: neutral and specific. Describe what happened, not how frustrating it
+  was. Persuade with evidence, not enthusiasm. No blame.
 
 Which audience — apply the merge test
   Findings and the issues built from them serve two audiences, and the

@@ -104,13 +104,11 @@ A release note, off-voice and on-voice:
 Before you write, profile the reader in your working notes, not in the
 document:
 
-```
-Reader:  who, and how they arrive
-Knows:   what they already know, and what they don't
-Wants:   the one thing they came to do or decide
-Budget:  how long they'll give this page
-Tone:    how the voice adjusts for them
-```
+- Reader: who, and how they arrive
+- Knows: what they already know, and what they don't
+- Wants: the one thing they came to do or decide
+- Budget: how long they'll give this page
+- Tone: how the voice adjusts for them
 
 For a spec document type, start from the reader profile in the header
 comment of the spec skill's template for that type. For any other doc type,

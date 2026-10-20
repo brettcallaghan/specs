@@ -275,8 +275,8 @@ Templates SHALL include instructions that describe:
 - When the template should be used
 - When the template should NOT be used
 - Who reads the document, as a **Reader profile** in the document-level
-  instructions (`reader`, `knows`, `wants`, `budget`, `tone`), from which
-  the `tech-writer` skill sets the document's tone
+  instructions: a list of Reader, Knows, Wants, Budget, and Tone, from
+  which the `tech-writer` skill sets the document's tone
 - Guidance for completing each section
 
 Instructions SHALL be provided in two locations:
@@ -306,11 +306,11 @@ Purpose
   <One paragraph explaining what this template is for>
 
 Reader profile (apply with the tech-writer skill)
-  reader: <who reads it, and when>
-  knows: <what they already know, and what they don't>
-  wants: <the one thing they came to do or decide>
-  budget: <how long they'll give the document>
-  tone: <how the voice adjusts for this reader>
+- Reader: <who reads it, and when>
+- Knows: <what they already know, and what they don't>
+- Wants: <the one thing they came to do or decide>
+- Budget: <how long they'll give the document>
+- Tone: <how the voice adjusts for this reader>
 
 When to use
   - <Scenario 1>

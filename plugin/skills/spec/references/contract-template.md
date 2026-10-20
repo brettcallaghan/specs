@@ -35,13 +35,13 @@ Purpose
   expectations, and change policy that schema languages cannot express.
 
 Reader profile (apply with the tech-writer skill)
-  reader: a consumer or provider building against the interface on its own
-      schedule.
-  knows: the machine-readable spec's shape, not its semantics.
-  wants: the guarantees: what each operation means, its errors, ordering, and
-      limits.
-  budget: looked up repeatedly, one guarantee at a time.
-  tone: exact and neutral, like reference. State guarantees, not rationale.
+- Reader: a consumer or provider building against the interface on its own
+  schedule.
+- Knows: the machine-readable spec's shape, not its semantics.
+- Wants: the guarantees: what each operation means, its errors, ordering, and
+  limits.
+- Budget: looked up repeatedly, one guarantee at a time.
+- Tone: exact and neutral, like reference. State guarantees, not rationale.
 
 Ownership
   A contract is owned by its PROVIDER, never by a relationship or a

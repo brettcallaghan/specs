@@ -46,15 +46,15 @@ Purpose
   the contracts it provides and consumes, and the data it owns.
 
 Reader profile (apply with the tech-writer skill)
-  reader: an engineer or agent about to change or build on this container,
-      often while writing a Feature Blueprint, and a newcomer who needs the
-      facts first.
-  knows: the surrounding system, not this container.
-  wants: its stack, components, contracts, owned data, and the change guidance
-      feature work must respect.
-  budget: one focused read.
-  tone: matter-of-fact, describing the container as it is, with exact names.
-      Decisions and their alternatives belong in ADRs.
+- Reader: an engineer or agent about to change or build on this container,
+  often while writing a Feature Blueprint, and a newcomer who needs the facts
+  first.
+- Knows: the surrounding system, not this container.
+- Wants: its stack, components, contracts, owned data, and the change guidance
+  feature work must respect.
+- Budget: one focused read.
+- Tone: matter-of-fact, describing the container as it is, with exact names.
+  Decisions and their alternatives belong in ADRs.
 
 When to use
   - Documenting an application your team builds and runs: API server, web

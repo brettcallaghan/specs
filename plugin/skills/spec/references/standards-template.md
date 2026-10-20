@@ -24,14 +24,13 @@ Purpose
   expressed using EARS (Easy Approach to Requirements Syntax).
 
 Reader profile (apply with the tech-writer skill)
-  reader: an engineer or agent checking whether their work complies, often
-      from a review comment or a link in a spec.
-  knows: their own work, not the rule.
-  wants: the rule, its scope, and what compliant looks like.
-  budget: a minute per rule.
-  tone: firm and unambiguous, not scolding. Give the reason for any rule that
-      isn't obviously necessary, so readers can apply it to cases it doesn't
-      name.
+- Reader: an engineer or agent checking whether their work complies, often
+  from a review comment or a link in a spec.
+- Knows: their own work, not the rule.
+- Wants: the rule, its scope, and what compliant looks like.
+- Budget: a minute per rule.
+- Tone: firm and unambiguous, not scolding. Give the reason for any rule that
+  isn't obviously necessary, so readers can apply it to cases it doesn't name.
 
 Slug
   This type has no fixed prefix (it is the registry's one exception). Use 
