@@ -24,10 +24,11 @@ the document doesn't count.
 
 ## Accuracy and cross-links
 
-- **Accuracy.** Every code example and command must run as written. Every
-  API, flag, path, and default you describe must match the source. If you're
-  unsure of a detail, read the source again or run the command. Don't guess.
-  If you still can't confirm it, leave the text as it is.
+- **Accuracy is non-negotiable.** Every code example and command must run as
+  written. Every API, flag, path, and default you describe must match the
+  source. If you're unsure of a detail, read the source again or run the
+  command. Don't guess. If you still can't confirm it, leave the text as it
+  is.
 - **Cross-links.** When a document names another document, link it. Use a
   `[[slug]]` wikilink for a document in the spec corpus. For anything else,
   use a relative Markdown link or backticked path, following the project's
