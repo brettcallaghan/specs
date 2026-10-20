@@ -37,7 +37,7 @@ the document doesn't count.
   - RFC 2119 keywords (MUST, SHOULD, MAY) and their exact meaning
   - Wikilinks (`[[slug]]`, `[[slug#heading]]`) and identifiers such as AC and FEAT ids
   - Element record blocks
-  - The words and punctuation of a heading, because other documents link to it. Change a heading's case freely when links match headings without regard to case, as they do in the specs corpus. Punctuation is part of the anchor, so a dash in a heading stays. Reword a heading only when you update every link to it in the same pass.
+  - In an existing document, the words and punctuation of a heading, because other documents link to it. Change a heading's case freely when links match headings without regard to case, as they do in the specs corpus. Punctuation is part of the anchor, so a dash in a heading stays. Reword a heading only when you update every link to it in the same pass. Headings in a new document follow every rule here.
   - Labels and separators the document's template requires, such as **Status:**, **Rationale:**, or a `---` rule between requirements. They are structure, not decoration. Apply the rules to the text that follows them.
 - Citation lists are exempt from T5's sentence length: runs of AC ids, wikilinks, ADR numbers, or references.
 - HTML comments are not exempt. In templates they are instructions to the agent, so apply this skill to their prose. Keep any name, path, or token they cite.
@@ -58,7 +58,6 @@ habits are easy to mistake for house style, and they are not:
 - When prose names a heading, write it in the heading's case. Once headings are in sentence case, so are the references to them.
 - Capitalized EARS keywords (WHEN, WHILE, IF, WHERE) belong only in requirement statements. In other prose, write them as ordinary words.
 - Present tense for what is true now (T6).
-- Name the reader early: say who the document is for and what they decide or do with it, when the source makes that clear.
 
 ## Project terms
 
@@ -137,8 +136,7 @@ here.
 **Stacked qualifiers.** In docs, replace hedges with conditions. "This may
 fail in some cases" becomes "This fails when the disk is full." Change a
 modal word (*can*, *might*, *should*, *will*) only when the source shows what
-is actually true. If you don't know the condition, keep the hedge and add it
-to the findings for the user.
+is actually true. If you don't know the condition, keep the hedge.
 
 **Passive voice.** Prefer "you" or the named component as the actor: "You
 configure retries in `config.yaml`," "The scheduler retries failed jobs."
@@ -167,7 +165,7 @@ to this project need?
 
 **T2. Vague capability claims.** "Supports," "handles," and "allows for" with no specifics. State what happens, the defaults, and the limits. "Supports large files" becomes "Uploads files up to 5 GB."
 
-**T3. Missing specifics.** No units, no default, no version, or "run the appropriate command." Give the exact value or command. If you don't have it, leave the text as it is and add it to the findings for the user rather than guessing.
+**T3. Missing specifics.** No units, no default, no version, or "run the appropriate command." Give the exact value or command. If you don't have it, leave the text as it is rather than guessing.
 
 **T4. Nominalizations.** Verbs turned into nouns: "perform the installation of," "make a determination," "provide configuration of." This is the main source of a legalese feel. Use the verb: "install," "decide," "configure."
 
@@ -177,20 +175,11 @@ to this project need?
 
 **T7. Release notes in the wrong order.** Features listed in commit order, with breaking changes buried. Put breaking changes and required actions first, then user-visible changes, then fixes. Each item starts with what the user sees or must do.
 
-**T8. Invented examples.** A rewrite must never invent a flag, an output, a default, or an example value. If an example would help and you don't have a real one, add it to the findings for the user.
+**T8. Invented examples.** A rewrite must never invent a flag, an output, a default, or an example value. If an example would help and you don't have a real one, leave it out.
 
 ## Rhythm by doc type
 
 Vary sentence length in READMEs, explanations, tutorial narration, and announcements. For reference pages and numbered steps, consistent and parallel structure is better. Vary rhythm in the prose around the steps, not in the steps.
-
-## Findings for the user
-
-Some problems are not yours to fix: a contradiction, a miscount, a version
-mismatch, a missing value, or an example you would have to invent. Don't fix
-them, and don't mark them in the file with `TODO(author)`. Report each one to
-the user with its file, line, and a quote, and ask them to decide. If the
-user isn't available, save the findings list with your result so they can
-decide later.
 
 ## Line wrapping
 
@@ -209,7 +198,7 @@ margin.
 5. **Return the result.**
    - For an audit, change nothing. Report findings in priority order with short examples.
    - For pasted text, return the revised text.
-   - For a file, write the revised file, summarize what changed, and list the findings for the user.
+   - For a file, write the revised file, and summarize what changed.
 6. If the project uses Vale, run it last and fix what it flags.
 
 Stop when the doc is clear, accurate, and consistent, and every line follows the rules above. Don't keep polishing lines that already do.
