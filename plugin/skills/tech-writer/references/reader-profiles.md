@@ -59,7 +59,7 @@ for agents).
 **Docs written only for agents**: skills and their references, `AGENTS.md` and
 `CLAUDE.md`, subagent prompts, and the instruction comments in templates.
 - Reader: an LLM agent that loads the text into its context, often mid-task, and follows it literally.
-- Knows: general technical knowledge, languages, and common tools at expert level. Knows nothing about this project except what the text and its links say.
+- Knows: public-domain knowledge, languages, and common tools at expert level. Knows nothing about this project except what the text and its links say.
 - Wants: what to do, when to do it, and the constraints that change what it does.
 - Budget: tokens. Every sentence takes context away from the task.
 - Tone: terse and imperative. No persuasion, encouragement, or narrative.
