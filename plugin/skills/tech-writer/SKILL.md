@@ -28,11 +28,12 @@ the document doesn't count.
   written. Every API, flag, path, and default you describe must match the
   source. If you're unsure of a detail, read the source again or run the
   command. Don't guess. If you still can't confirm it, leave the text as it
-  is.
-- **Cross-links.** When a document names another document, link it. Use a
-  `[[slug]]` wikilink for a document in the spec corpus. For anything else,
-  use a relative Markdown link or backticked path, following the project's
-  citation conventions.
+  is and report a finding (see Scope and defaults).
+- **Cross-links.** When you draft a document that names another document,
+  link it. Use a `[[slug]]` wikilink for a document in the spec corpus. For
+  anything else, use a relative Markdown link or backticked path, following
+  the project's citation conventions. When you revise, report an unlinked
+  mention as a finding instead of adding a link.
 
 ## Scope and defaults
 
@@ -44,21 +45,23 @@ the document doesn't count.
   - Error messages and log output quoted verbatim
   - Version numbers, dates, and numeric limits
   - Requirement statements in specs (EARS, Gherkin, "the system shall"), including whole Gherkin blocks. Their punctuation is part of their wording, dashes included.
-  - RFC 2119 keywords (MUST, SHOULD, MAY) and their exact meaning
+  - RFC 2119 keywords (MUST, SHOULD, MAY, SHALL, SHALL NOT) and their exact meaning
   - Wikilinks (`[[slug]]`, `[[slug#heading]]`) and identifiers such as AC and FEAT ids
   - Element record blocks
-  - In an existing document, the words and punctuation of a heading, because other documents link to it. Change a heading's case freely when links match headings without regard to case, as they do in the spec corpus. Reword a heading only when you update every link to it in the same pass. Headings in a new document follow every rule here.
+  - In an existing document, the words and punctuation of a heading, because other documents link to it. Change a heading's case freely when links match headings without regard to case, as they do in the spec corpus. Reword a heading only when you update every link to it in the same pass. A heading that names an element (it has a record block or an `entity_name`) or repeats a Gherkin `Feature:` name keeps its case too. Headings in a new document follow every rule here.
+  - Examples marked or quoted as wrong, such as an anti-pattern or a ❌ line. They must stay wrong.
   - Labels and separators the document's template requires, such as **Status:**, **Rationale:**, or a `---` rule between requirements. They are structure, not decoration. Apply the rules to the text that follows them.
 - Citation lists are exempt from T5's sentence length: runs of AC ids, wikilinks, ADR numbers, or references.
 - HTML comments are not exempt. In templates they are instructions to the agent, so apply this skill to their prose. Keep any name, path, or token they cite.
 - Content is fixed and wording is not. Never add or remove a fact, requirement, decision, example, or caveat, but apply every style rule to how each one is worded.
-- One exception: when you revise a doc written only for agents, cut the content its reader profile says the agent doesn't need. Never cut an instruction, constraint, or fact the agent needs to act correctly, and list every cut in your summary.
+- One exception: when you revise a doc written only for agents, cut the content its reader profile says the agent doesn't need. Never cut an instruction, constraint, or fact the agent needs to act correctly, and list every cut in your summary. No document in the spec corpus counts as written only for agents, even when a skill vendors it.
+- When you find a content problem, such as a contradiction, a stale claim, or a path that doesn't exist, report it as a finding with its `file:line` and a quote. Don't fix it, and don't leave a marker in the document.
 - Don't add opinions, reactions, or asides of your own. Keep the ones the author wrote, reworded to these rules.
 
 ## Additional rules
 
 - RFC 2119 keywords keep their capitals. Don't use capitals for emphasis anywhere else.
-- Capitalized EARS keywords (WHEN, WHILE, IF, WHERE) belong only in requirement statements. In other prose, write them as ordinary words.
+- Capitalized EARS keywords (WHEN, WHILE, IF, THEN, WHERE) belong only in requirement statements and in prose that names the keyword itself. In other prose, write them as ordinary words.
 - When prose names a heading, write it in the heading's case.
 - Never trade an exact term for a casual one to make the tone conversational.
 
@@ -113,8 +116,9 @@ document:
 - Tone: how the voice adjusts for them
 
 For a spec document type, start from the reader profile in the header
-comment of the spec skill's template for that type. For any other document
-type, including a skill or another doc written only for agents, start from
+comment of the spec skill's template for that type. For a spec corpus guide,
+which has no template, and for any other document type, including a skill or
+another doc written only for agents, start from
 `references/reader-profiles.md`. Adjust it for the project. When a document
 has several readers, profile the one whose needs should set the tone. If you
 can't tell, write down your assumption and proceed.
@@ -129,7 +133,8 @@ content:
   unless a template fixes the order.
 
 When you revise, content is fixed except where Scope and defaults allows a
-cut, so the profile mostly changes how things are worded.
+cut, so the profile changes only how things are worded. A profile line that
+would add, cut, or move content becomes a finding instead.
 
 Vary sentence length in narrative docs. Keep steps and reference entries
 parallel. When unsure, choose clear over friendly, and friendly over clever.
@@ -217,8 +222,9 @@ covers. A sentence that introduces a table or list is different: keep it.
 
 ## Line wrapping
 
-Follow the destination's line width, or 80 characters when it sets none.
-Links, tables, headings, and code blocks may run past it. Rewrap each
+Follow the destination's line width (in the spec corpus, `line_width` in
+`specs.toml`), or 80 characters when it sets none. Links, wikilinks that
+contain spaces, tables, headings, and code blocks may run past it. Rewrap each
 paragraph you change to that width, and don't reflow paragraphs you didn't
 change. Never reword a sentence to make it fit the margin.
 
@@ -226,12 +232,12 @@ change. Never reword a sentence to make it fit the margin.
 
 1. Identify the document type and the task (draft, revise, or audit), and profile the reader (see Voice and tone). Mark what must not change, using Scope and defaults above.
 2. **Draft or revise** to the style guide and this file. When a question turns on a specific rule (word choice, a punctuation mark, numbers, dates, units, product names, capitalization), look it up in the style guide when browsing is available.
-3. **Check the patterns.** Run "Patterns to check" and the T-patterns over the result. When you can start a subagent, run this pass in one that sees only the draft, the reader profile, and these rules. A reviewer that wrote the draft tends to approve it.
+3. **Check the patterns.** Run "Patterns to check" and the T-patterns over the result. When you can start a subagent, run this pass in one that sees only the draft, the reader profile, and these rules. When you revise, also give it the original or the diff, and have it check every item in Scope and defaults against the original. A reviewer that wrote the draft tends to approve it.
 4. **Validate.** Check the final text against the style guide, "Additional rules," "Project terms," and the reader profile's tone, and check that nothing in Scope and defaults changed.
 5. **Return the result.**
    - For an audit, change nothing. Report findings in priority order with short examples.
    - For pasted text, return the revised text.
-   - For a file, write the revised file and summarize what changed.
+   - For a file, write the revised file and report the sentences you changed, any exempt text you touched, your findings, any cuts, and your judgment calls.
 6. If the project uses Vale, run it last and fix what it flags.
 
 Stop when every line follows the rules above. Don't keep polishing lines that already do.

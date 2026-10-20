@@ -5,7 +5,7 @@ that matches, then adjust it for the project and the document. Each spec
 document type carries its own profile in its template's header comment.
 
 Contents: project docs (README, release notes); Diataxis (tutorial, how-to
-guide, explanation, reference); agents (skills and other docs written only
+guide, explanation, reference); spec corpus guides; agents (skills and other docs written only
 for agents).
 
 ## Project docs
@@ -53,6 +53,16 @@ for agents).
 - Wants: the exact value, signature, or option.
 - Budget: seconds.
 - Tone: neutral and precise, in parallel entries. Personality stays out.
+
+## Spec corpus guides
+
+**Guide** (`type: guide`). Use the Reference profile for a command or API
+reference, such as the CLI reference.
+- Reader: an author or reviewer applying a convention while writing or checking a spec.
+- Knows: the spec document types, not the convention's details.
+- Wants: the rule and a correct example to copy.
+- Budget: a lookup mid-task, or one read when learning the convention.
+- Tone: precise and instructive. Label good and bad examples clearly.
 
 ## Agents
 
