@@ -106,6 +106,8 @@ expensive to silently get wrong.
 Derive work orders from the blueprint — each item is one **work order**
 (`references/shared/work-order-template.md`). Do not invent design; every
 item must trace to a delta, a DoD entry, or a sequencing constraint.
+Write each work order's prose with the `tech-writer` skill, taking the tone
+from the template's reader profile.
 
 Decomposition produces the work order's *substance* — its Problem (the
 delta and anchors), Design intent, Acceptance (the ACs), provenance

@@ -174,9 +174,10 @@ Step 5 is a hard stop. Do not tick 6 before the user has answered.
    per `references/shared/issue-template.md`, `audience: project`,
    `target` naming the document. **One issue is one change** — the
    issue is the unit of decision, so the user must be able to accept
-   one and decline the next. Before raising one, search the project's
-   tracker for an issue already open or closed on the same document and
-   theme: an open one gains this finding as recurrence, and a declined
+   one and decline the next. Write each issue with the `tech-writer`
+   skill, taking the tone from the template's reader profile. Before
+   raising one, search the project's tracker for an issue already open
+   or closed on the same document and theme: an open one gains this finding as recurrence, and a declined
    one is re-raised only with new evidence.
 5. **Present the report, and STOP.** In the session, in this order:
    - **Provenance** — the phase, the documents examined, and the

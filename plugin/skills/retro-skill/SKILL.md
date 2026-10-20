@@ -219,7 +219,9 @@ Step 5 is a hard stop. Do not tick 6 before the user has answered.
    `references/shared/issue-template.md`. **One issue is one change** —
    the issue is the unit of decision, so the user must be able to accept
    one and decline the next. Findings about different skills are
-   different issues; so are two changes to one skill.
+   different issues; so are two changes to one skill. Write each issue
+   with the `tech-writer` skill, taking the tone from the template's reader
+   profile.
 
    **WHERE a finding is a property of several skills rather than of
    one** — the same gap present in each skill's text, not one skill's
