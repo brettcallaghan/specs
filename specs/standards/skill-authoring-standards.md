@@ -419,6 +419,15 @@ mechanically checkable: a sentence either names its source or it does not.
 
 ## Content Discipline
 
+A skill's prose SHALL be written with the `tech-writer` skill, using its
+reader profile for agent-only docs.
+
+**Rationale:** A skill's reader is an agent that already knows the public
+domain and pays for every sentence in context. The profile says what such a
+reader needs and what to cut.
+
+---
+
 A skill SHALL use one term for one concept throughout.
 
 **Rationale:** *Observed.* One routing vocabulary was declared in four

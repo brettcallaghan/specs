@@ -1,6 +1,6 @@
 ---
 name: tech-writer
-description: Drafts, revises, and audits technical documentation in the project's style guide (by default, the Google developer documentation style guide), with its own extensions and a reader profile per doc type. Use for READMEs, release notes and changelogs, docs-site pages, help-center content, UI copy, and specs written for human review.
+description: Drafts, revises, and audits technical documentation in the project's style guide (by default, the Google developer documentation style guide), with its own extensions and a reader profile per doc type. Use for READMEs, release notes and changelogs, docs-site pages, help-center content, UI copy, specs written for human review, and skills and other docs written only for agents.
 ---
 
 # Tech writer
@@ -37,7 +37,7 @@ the document doesn't count.
 
 ## Scope and defaults
 
-- Applies to READMEs, release notes and changelogs, docs-site pages, help-center content, UI copy, and specs written for human review.
+- Applies to READMEs, release notes and changelogs, docs-site pages, help-center content, UI copy, specs written for human review, and skills and other docs written only for agents.
 - Do not apply it to marketing, legal, academic, fictional, or personal writing unless the user asks for this style.
 - When you revise a file in place, change prose only. Leave code blocks, inline code, commands, paths, config keys, link targets, and front matter untouched.
 - Also leave these untouched:
@@ -53,6 +53,7 @@ the document doesn't count.
 - Citation lists are exempt from T5's sentence length: runs of AC ids, wikilinks, ADR numbers, or references.
 - HTML comments are not exempt. In templates they are instructions to the agent, so apply this skill to their prose. Keep any name, path, or token they cite.
 - Content is fixed and wording is not. Never add or remove a fact, requirement, decision, example, or caveat, but apply every style rule to how each one is worded.
+- One exception: when you revise a doc written only for agents, cut the content its reader profile says the agent doesn't need. Never cut an instruction, constraint, or fact the agent needs to act correctly, and list every cut in your summary.
 - Don't add opinions, reactions, or asides of your own. Keep the ones the author wrote, reworded to these rules.
 
 ## Additional rules
@@ -112,7 +113,8 @@ document:
 
 For a spec document type, start from the reader profile in the header
 comment of the spec skill's template for that type. For any other doc type,
-start from `references/reader-profiles.md`. Adjust it for the project. When a document has several readers, profile
+including a skill or another doc written only for agents, start from
+`references/reader-profiles.md`. Adjust it for the project. When a document has several readers, profile
 the one whose needs should set the tone. If you can't tell, write down your
 assumption and proceed.
 
