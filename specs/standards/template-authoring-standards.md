@@ -369,11 +369,12 @@ incremented. WHEN only editorial content changes (typos, phrasing,
 examples), the PATCH version MAY be incremented instead. Version
 numbers use `MAJOR.MINOR` with an optional `.PATCH`.
 
-The same rule applies to the skills (`version` in SKILL.md
-frontmatter): any normative change bumps the version in the same
-commit. A standards document or guide carries no version of its own;
-where it ships to other repositories it is vendored into a skill, and a
-change to the vendored copy bumps that skill's version.
+A plugin skill's `version` (SKILL.md frontmatter) SHALL be the
+plugin's release version, and SHALL NOT be bumped by hand: the release
+cut stamps it into every plugin skill. A standards document or guide
+carries no version of its own; where it ships to other repositories it
+is vendored into a skill, and the skill's release version identifies
+the text.
 
 **Rationale:** Issues raised by a retro (see the issue template) cite
 the versions of the templates and skills a session followed.

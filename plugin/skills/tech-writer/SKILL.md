@@ -1,7 +1,7 @@
 ---
 name: tech-writer
 description: Drafts, revises, and audits technical documentation in the project's style guide (by default, the Google developer documentation style guide), with its own extensions and a reader profile per doc type. Use for READMEs, release notes and changelogs, docs-site pages, help-center content, UI copy, and specs written for human review.
-version: "1.1"
+version: "0.1.0"
 ---
 
 # Tech writer

@@ -11,7 +11,7 @@ description: Evidence-based retrospective on a SKILL that an agent just
   produced a wrong result, or when asked to retro a skill, critique a
   skill, report a bug in a skill, or capture how a skill could be
   improved.
-version: "1.1"
+version: "0.1.0"
 ---
 
 # Skill Retro

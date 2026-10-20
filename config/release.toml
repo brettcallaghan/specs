@@ -3,7 +3,15 @@ target = "main"
 # module's versions only from tags carrying that prefix: `go install
 # .../cli/specs@cli/vX.Y.Z` does not work with a bare vX.Y.Z tag.
 tag_prefix = "cli/v"
-release_paths = ["plugin/.claude-plugin/plugin.json"]
+release_paths = [
+  "plugin/.claude-plugin/plugin.json",
+  "plugin/skills/groom-beads/SKILL.md",
+  "plugin/skills/groom-feature-blueprint/SKILL.md",
+  "plugin/skills/retro-skill/SKILL.md",
+  "plugin/skills/retro-spec/SKILL.md",
+  "plugin/skills/spec/SKILL.md",
+  "plugin/skills/tech-writer/SKILL.md",
+]
 
 [changelog]
 breaking_heading = "💥 Breaking changes"
