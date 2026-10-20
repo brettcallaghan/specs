@@ -60,5 +60,4 @@ guidance, examples, and meta-commentary within specification templates.
 ## References
 
 - Each template's header comment explains when to remove its instructions.
-- Every template under `/plugin/skills/spec/references/` uses comment
-  blocks.
+- Every template under `plugin/skills/spec/references/` uses comment blocks.

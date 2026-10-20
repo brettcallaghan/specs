@@ -8,7 +8,7 @@ status: ready-for-review
 
 # ADR-020: FRDs evolve in place; deltas are keyed on AC identifiers
 
-**Status:** ready-for-review
+**Status:** ready-for-review  
 **Date:** 2026-08-13
 
 ## Context
@@ -55,8 +55,7 @@ FRD no longer does its job. Consequently:
      unspecified.
 
 This depends on AC identifiers being append-only: an FRD never renumbers an
-existing acceptance criterion's identifier
-(`plugin/skills/spec/references/ac-traceability-standards.md`). An
+existing acceptance criterion's identifier ([[ac-traceability-standards]]). An
 identifier-keyed delta is sound only because an identifier keeps meaning the
 same criterion across every revision of the FRD that carries it.
 
@@ -66,17 +65,16 @@ same criterion across every revision of the FRD that carries it.
 |--------|------|------|--------------|
 | **Amendment FRDs** — a new FRD that modifies an earlier one | Preserves each version as an unchanged record. A superseding chain is a familiar pattern for decision records | A reader has to replay the chain of amendments to learn the feature's current requirements. The FRD's one job is to be *the* current answer, and a chain destroys that. A growing chain gets harder to replay with every revision | Directly defeats the FRD's one job: being the single current answer |
 | **Line-based diffs** for targeting what changed between FRD versions | Needs no new convention, because `git diff` already does it. Works for any document, not just FRDs | Fails in both directions. Reordering or rewording a requirement produces line noise that isn't a requirements change. Meanwhile, `SHALL` → `SHOULD` or `100ms` → `500ms` is a one-word diff with large downstream impact, and a line diff doesn't distinguish it from the noise | A line diff cannot tell a cosmetic edit from a requirements change, so it neither suppresses false positives nor surfaces the changes that matter |
-| **Edit-in-place FRDs with AC-identifier-keyed deltas** (chosen) | One current document per feature. The same-feature test is mechanical (slug equality). A delta reduces to a query over identifiers already threaded through tests and work orders, not a new document type or a new citation format | Depends on AC identifiers staying append-only, a rule this ADR doesn't itself enforce. The identifier-keyed delta isn't yet built as a CLI capability | N/A — selected |
+| **Edit-in-place FRDs with AC-identifier-keyed deltas** (chosen) | One current document per feature. The same-feature test is mechanical (slug equality). A delta reduces to a query over identifiers already threaded through tests and work orders, not a new document type or a new citation format | Depends on AC identifiers staying append-only, a rule this ADR doesn't itself enforce | N/A — selected |
 
 ## Consequences
 
 **Positive:**
 - Tests already cite AC identifiers, and work orders already name their sources
-  (`plugin/skills/spec/references/ac-traceability-standards.md`). So a changed
-  AC traces forward to the tests that verify it and the work orders that
-  produced it. Locating the blast radius of a requirements change is a query
-  over machinery that already exists, not a new document type or a new
-  citation format to maintain.
+  ([[ac-traceability-standards]]). So a changed AC traces forward to the tests
+  that verify it and the work orders that produced it. Locating the blast
+  radius of a requirements change is a query over machinery that already
+  exists, not a new document type or a new citation format to maintain.
 - A feature has exactly one current FRD to read. Nothing asks a reader
   to reconstruct intent by replaying a chain of amendments.
 - The same-feature test is mechanical rather than a judgment call for
@@ -92,10 +90,6 @@ same criterion across every revision of the FRD that carries it.
   requirement changed. That history lives only in git blame and commit
   messages on the FRD file, which is weaker provenance than a document per
   revision would give.
-- No tooling computes the identifier-keyed delta yet. Until it exists,
-  applying it is a manual read of two FRD versions. A CLI capability to
-  automate it (`specs diff` or equivalent) is out of scope for this
-  decision and would need its own FRD.
 - This ADR doesn't resolve one boundary case: a change large enough that "is
   this the same feature?" stops being obvious. The slug test answers the common
   case, but a genuinely ambiguous case still needs human judgment.
@@ -115,15 +109,15 @@ same criterion across every revision of the FRD that carries it.
   amendment and a supersession, needs its own ADR. Deferring it keeps this
   decision to the question at hand: how a feature's requirements and acceptance
   criteria change.
-- **A `specs diff` CLI capability.** Computing the identifier-keyed delta
-  automatically is out of scope and would need its own FRD (see
-  Consequences).
+- **A CLI capability that computes the delta.** Computing the
+  identifier-keyed delta automatically is out of scope here. `specs criterion
+  --changed` computes it, as FEAT-GHK-008 in [[frd-gherkin-adoption]]
+  specifies.
 
 ## References
 
-- `plugin/skills/spec/references/ac-traceability-standards.md` — states
-  that AC identifiers are append-only and never renumbered, and names
-  the same downstream failure (a meaningless identifier-keyed delta)
-  that motivates this decision
+- [[ac-traceability-standards]] — states that AC identifiers are append-only
+  and never renumbered, and names the same downstream failure (a meaningless
+  identifier-keyed delta) that motivates this decision
 - `plugin/skills/spec/references/frd-template.md` — FRD structure and AC
   identifier conventions

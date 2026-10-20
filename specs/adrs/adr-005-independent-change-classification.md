@@ -50,11 +50,12 @@ an internal contract), and **public** (a published module, a public contract).
 
 **Negative:**
 - "Boundary of independent change" is a subtler test than "has sub-parts," so
-  the C4 guide must teach it explicitly, which it does
+  [[c4-standards]] must teach it explicitly, which it does
 
 ## References
 
 - [[adr-004]] — the type split this test
   governs
 - [[adr-006]] — how the tier is recorded
-- `references/c4-guide.md` — Contract Visibility Tiers and the composed-unit parallel
+- [[c4-standards#Contract Visibility Tiers]] — the contract tiers and the
+  composed-unit parallel

@@ -21,11 +21,11 @@ Spec CLI is a Go binary that `.github/workflows/release.yml` publishes through
 two channels: the Go module proxy (`go install …/cli/specs@cli/vX.Y.Z`) and
 per-platform release archives with a `SHA256SUMS` file.
 
-The skills call it throughout. `specs check` decides three of the eight checks
-in `document-readiness-checklist.md`. `specs next-id` and `specs slug-exists`
-answer questions an agent would otherwise answer by reading the corpus, which is
-expensive and unverifiable: an agent that scanned the corpus and one that
-assumed the answer produce identical output.
+The skills call it throughout. `specs check` decides four of the nine checks in
+[[document-readiness-checklist]] outright, and part of a fifth. `specs next-id`
+and `specs slug-exists` answer questions an agent would otherwise answer by
+reading the corpus, which is expensive and unverifiable: an agent that scanned
+the corpus and one that assumed the answer produce identical output.
 
 The skills are written against one release of the CLI: they cite its
 subcommands, flags, output shapes, and exit statuses. A skill that cites a
@@ -51,7 +51,7 @@ skill runs:
    it is. Nothing is downloaded, and the PATH isn't changed.
 3. Otherwise, the hook downloads the pinned release archive for the platform
    from the public release assets on github.com and verifies it against the
-   release's `SHA256SUMS`. It keeps the archive under
+   release's `SHA256SUMS`. It keeps the binary under
    `${CLAUDE_PLUGIN_DATA}/bin/<version>/` and prepends that directory to the
    session's PATH through `CLAUDE_ENV_FILE`. A version already kept there isn't
    downloaded again.
@@ -81,7 +81,7 @@ plugin carries would rest on the same root.
 
 Skills call `specs` directly, in a single code path. They don't branch on
 whether it's installed. The fallback is stated once, where the checks are
-defined (`document-readiness-checklist.md`). Every check remains defined
+defined ([[document-readiness-checklist]]). Every check remains defined
 independently of the tool, so all of them can be run by hand, and the agent
 SHALL say which happened. "`specs check` reports no findings" and "I read the
 frontmatter and it looks right" are different claims, and only the first can be
@@ -130,5 +130,5 @@ re-run by a reviewer.
   contract
 - `plugin/skills/spec/references/shared/spec-cli-reference.md` — the
   command surface the skills call
-- `plugin/skills/spec/references/document-readiness-checklist.md` — where
-  the mechanized/human split is recorded
+- [[document-readiness-checklist]] — where the mechanized/human split is
+  recorded

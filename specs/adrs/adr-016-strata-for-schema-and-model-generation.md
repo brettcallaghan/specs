@@ -21,10 +21,10 @@ shapes in three forms at once: **JSON Schema** to validate document
 frontmatter and `specs.toml` ([[contract-specs-configuration]]),
 **Go structs** for the CLI and its modules ([[adr-015]]), and
 **human-readable Markdown** shipped inside the plugin so an author knows
-what frontmatter to write. Today those three exist only as prose in
-`plugin/skills/spec/references/frontmatter-standards.md` and the
-templates, and they already disagree: a prototype found 26 broken
-references and one unparseable document that no reviewer had caught.
+what frontmatter to write. Without a single source, those three exist only as
+prose in [[frontmatter-standards]] and the templates, and they disagree: a
+prototype found 26 broken references and one unparseable document that no
+reviewer had caught.
 
 Three properties of this problem constrain the choice. The first is the one that
 eliminates most candidates:
@@ -65,8 +65,8 @@ repository remains buildable and correct if Strata is removed.
 | **TypeSpec** (Microsoft) | JSON Schema emitter is GA and battle-tested at vendor scale; emits 2020-12 with `$defs` bundling<br>Can emit standalone models without declaring a service<br>Large vendor behind it; active 1.0 line | Requires a Node + npm runtime the repo does not otherwise need<br>Go generation is `@azure-tools/typespec-go`, an Azure SDK **client** emitter producing `models.go`/`service.go` with client and tracing options, not a plain-struct emitter<br>No Markdown documentation emitter in the standard library | The two artifacts this project most needs (plain Go structs and human-readable Markdown) are the two TypeSpec doesn't produce. Its JSON Schema emitter is **more mature** than Strata's (GA, against a pre-1.0 tool in which this evaluation found, and got fixed, a correctness bug) but not more **capable**: Strata was tested at `schemaVersion: Draft202012` and matches it on 2020-12 output and `$defs` bundling, and adds root filtering and an OpenAI Structured Outputs dialect. The schema half of the comparison separates the two on reliability, not on features |
 | **Smithy** (AWS) | The most mature option by a wide margin; its Go codegen powers `aws-sdk-go-v2`<br>Protocol-agnostic, JSON AST, strong validation and traits model<br>Documentation generation is a first-class stated capability | Java toolchain: a Gradle plugin, or the JVM Smithy CLI plus `smithy-build.json`<br>Designed around service and operation shapes, and `smithy-jsonschema` contextualizes output by service shape ID<br>Go codegen is SDK-client-shaped, not plain data models | Wrong shape and heaviest toolchain. Modeling Markdown frontmatter as a Smithy service to get a JSON Schema out inverts the tool's purpose, and a JVM+Gradle dependency is a larger tax than the Rust one it would replace |
 | **Go structs as the source, JSON Schema by reflection** (e.g. `invopop/jsonschema`) | No new language runtime at all, because the CLI is already Go<br>Zero generated-artifact drift for the Go half, since Go *is* the source<br>Smallest possible toolchain | Inverts the direction: the schema becomes a projection of one consumer's implementation<br>Yields no Markdown artifact, so the plugin's shipped frontmatter reference stays hand-maintained and drifts<br>Struct tags and reflection express constraints far less directly than a schema language | The closest call on this list, and the one that would win if Go were the only output. It loses on the third deliverable: the plugin ships documentation of the frontmatter shape, and this option leaves that hand-written, which is the drift the decision exists to end |
-| **Hand-author JSON Schema, Go structs and Markdown separately** | No tooling, no build step, no new dependency<br>Full control over every artifact | Three artifacts to keep in agreement by discipline alone<br>This is the status quo that already produced the drift cited in Context | Rejected by the evidence: the prose-only version of these shapes is already inconsistent, and adding two more hand-maintained artifacts makes that worse |
-| **Strata** | Generates all three needed artifacts (JSON Schema, plain Go structs, Markdown) from one source<br>Struct inheritance emits the `allOf` + `$ref` shape `frontmatter-standards.md` independently specified<br>Doc blocks become JSON Schema `description`s, Go doc comments and Markdown tables from one text<br>Single static binary at runtime; diagnostics name the fix | Pre-1.0 (`0.7.0`), thin ecosystem, effectively a bus factor of one<br>Evaluation found a silent correctness bug (`allowAdditionalProperties: false` dropped struct inheritance from emitted schemas). It was fixed upstream and merged the same day, but only on `main`<br>No compatibility-diff tooling and no consumer-side output verification<br>Rust build-time dependency; release binaries unreachable from locked-down networks<br>Generated Go carries `json:` tags only — no YAML or TOML tags | N/A — selected |
+| **Hand-author JSON Schema, Go structs and Markdown separately** | No tooling, no build step, no new dependency<br>Full control over every artifact | Three artifacts to keep in agreement by discipline alone<br>This is the approach that produced the drift cited in Context | Rejected by the evidence: the prose-only version of these shapes proved inconsistent, and adding two more hand-maintained artifacts makes that worse |
+| **Strata** | Generates all three needed artifacts (JSON Schema, plain Go structs, Markdown) from one source<br>Struct inheritance emits the `allOf` + `$ref` shape [[frontmatter-standards]] independently specified<br>Doc blocks become JSON Schema `description`s, Go doc comments and Markdown tables from one text<br>Single static binary at runtime; diagnostics name the fix | Pre-1.0, thin ecosystem, effectively a bus factor of one<br>Evaluation found a silent correctness bug (`allowAdditionalProperties: false` dropped struct inheritance from emitted schemas). It was fixed upstream the same day and released in `0.8.0`<br>No compatibility-diff tooling and no consumer-side output verification<br>Release binaries come from a private repository and are unreachable from locked-down networks<br>Generated Go carries `json:` tags only — no YAML or TOML tags | N/A — selected |
 
 ## Consequences
 
@@ -76,12 +76,12 @@ repository remains buildable and correct if Strata is removed.
   and the disagreement in Context becomes mechanically impossible rather
   than a review responsibility.
 - `specs check` checks every document's frontmatter against the generated schema
-  on each push. It found two documents that wrote an unquoted `version`, which
-  YAML reads as a float.
+  on each pull request and each push to `main`. It found two documents that
+  wrote an unquoted `version`, which YAML reads as a float.
 - Doc comments written once reach three audiences: the JSON Schema a tool reads,
   the Go doc comment a maintainer reads, and the Markdown an author reads.
 - Strata's inheritance emits exactly the two-schema `allOf` composition
-  `frontmatter-standards.md` already required, so a rule previously
+  [[frontmatter-standards]] already required, so a rule previously
   enforced by hand-assembly guidance is enforced by the language.
 - The decision is cheap to reverse. Generated artifacts are committed,
   so removing Strata means freezing the current output and hand-editing
@@ -98,22 +98,20 @@ repository remains buildable and correct if Strata is removed.
   `allowAdditionalProperties` bug found during this evaluation exited zero and
   emitted well-formed, wrong JSON Schema. Inspection caught it, not any gate.
   That specific defect is fixed, but the general exposure isn't. Until Strata
-  ships such a check, `specs check` is the only thing standing in for it, and it
-  covers only what a stock JSON Schema validator can see.
-- **The schemas track Strata's `main`, not a release.** The fix landed after
-  `0.7.0`, so `scripts/generate-schemas.sh` must run against a compiler built
-  from source until the next release. The binary reports `strata-cli 0.7.0`
-  either way (the crate version didn't change), so the version string can't
-  distinguish a fixed compiler from the buggy release. The session-start hook
-  writes `~/.cache/strata-cli/built-commit`, which identifies the build.
-- **Building the CLI requires a Rust toolchain**, in a repository that is
-  otherwise bash, Python, and Go. Release binaries exist for four platforms, but
-  their bytes are unreachable through this environment's egress proxy, so a cold
-  container pays for a `cargo build --release` (~2 minutes). Committing the
-  generated artifacts mitigates this but doesn't solve it: only someone
-  *changing* a `.strata` file needs the compiler. This is why
-  `scripts/generate-schemas.sh --check` isn't yet a CI gate, and why CI can't
-  currently catch a stale generated artifact.
+  ships such a check, `specs check` and the shape assertion in
+  `scripts/generate-schemas.sh` stand in for it. The assertion catches only
+  that one regression, and `specs check` covers only what a stock JSON Schema
+  validator can see.
+- **The schemas need Strata `0.8.0` or later.** Earlier releases carry the
+  `allowAdditionalProperties` bug, so `scripts/generate-schemas.sh` checks the
+  emitted shape rather than trusting a version string.
+- **Running Strata requires a release binary from a private repository.**
+  `scripts/install-strata-cli.sh` downloads it and needs `STRATA_ACCESS_TOKEN`
+  to read `strata-lang/strata`. Committing the generated artifacts mitigates
+  this but doesn't solve it: only someone *changing* a `.strata` file needs the
+  compiler. `scripts/ci.sh` and `swarm.toml` run
+  `scripts/generate-schemas.sh --check`, but no GitHub Actions workflow does,
+  so CI doesn't catch a stale generated artifact.
 - **Generated Go structs carry `json:` tags only.** Frontmatter is YAML and
   configuration is TOML, so neither deserializes directly into a generated
   struct. Both must be parsed to a generic model and converted to JSON first.

@@ -63,7 +63,8 @@ declaration of an element. The element's name is `entity_name`, not `title`:
 ## References
 
 - [[adr-007]] — the model this completes
-- `plugin/skills/spec/references/template-authoring-standards.md` — Embedded
-  Element Records and the two-schema rule
-- `references/c4-guide.md` — Element Declarations; templates:
-  `container-blueprint-template.md`, `module-blueprint-template.md`
+- [[frontmatter-standards#Embedded Element Records]] — Embedded Element
+  Records and the two-schema rule
+- [[c4-standards#Element Declarations: Model in Prose, Views in Diagrams]];
+  templates: `plugin/skills/spec/references/container-blueprint-template.md`,
+  `plugin/skills/spec/references/module-blueprint-template.md`

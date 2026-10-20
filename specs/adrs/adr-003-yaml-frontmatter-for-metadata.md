@@ -59,17 +59,16 @@ precedes all markdown content and contains key-value pairs in YAML format.
   parsing and can be subtle.
 - Basic Markdown viewers don't render it. The metadata is invisible unless you
   view the raw file or use a renderer that reads frontmatter.
-- The title appears twice: the frontmatter title and the H1 in the body must
-  be kept in sync.
+- The title appears twice: the H1 in the body must repeat the words of the
+  frontmatter title.
 - Indentation-sensitive syntax can frustrate users who don't know YAML.
 - Some processors fail silently on empty or invalid frontmatter.
 
 ## References
 
-- All templates under `/plugin/skills/spec/references/` demonstrate frontmatter
+- All templates under `plugin/skills/spec/references/` demonstrate frontmatter
   usage
-- `plugin/skills/spec/references/template-authoring-standards.md` —
-  standardized fields used across document types
+- [[frontmatter-standards]] — standardized fields used across document types
 - YAML 1.2 specification: https://yaml.org/spec/1.2/spec.html
 - Static site generator conventions (Jekyll, Hugo) set the precedent for this
   pattern

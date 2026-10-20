@@ -53,7 +53,7 @@ to record how to obtain it instead of pinning a static snapshot that drifts.
 
 ## References
 
-- `references/c4-guide.md` — Contract Visibility Tiers
+- [[c4-standards#Contract Visibility Tiers]]
 - [[adr-005]] — the same visibility spectrum classifies Contracts and composed
   units
-- Template: `contract-template.md`
+- Template: `plugin/skills/spec/references/contract-template.md`

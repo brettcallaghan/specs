@@ -26,15 +26,16 @@ that composes both endpoints, and an element's own Context view for its
 outward edges. In either home, the only structured form the edge takes is a
 Mermaid `Rel(...)` line. The prose paragraph beside it restates the edge for
 a reader and carries no syntax that a tool can rely on. Meanwhile,
-[[c4-standards]] declares prose the declaration format, calls diagrams views
-of it, and says that a view yields to its declaration when the two disagree.
+[[c4-standards]] declares prose the declaration format for elements, calls
+diagrams views of it, and says that a view yields to its declaration when the
+two disagree.
 
 Three measured facts constrain the answer.
 
-- **The subset is small.** Across `specs/` and the spec skill's templates,
-  `grep` finds 35 `Rel` lines, all plain `Rel`, and no `BiRel`, `Rel_Back`,
-  `RelIndex`, `$tags`, or `UpdateRelStyle`. [[c4-standards]] already
-  requires every declaration to sit on one line.
+- **The subset is small.** Across the `mermaid` blocks in `specs/` and the
+  spec skill's templates, every relationship line is a plain `Rel`, with no
+  `BiRel`, `Rel_Back`, `RelIndex`, `$tags`, or `UpdateRelStyle`.
+  [[c4-standards]] already requires every declaration to sit on one line.
 - **The one Go library found with a C4 parser doesn't handle it.**
   `github.com/sammcj/mermaid-check` v0.5.1, run over every `mermaid` block
   in the same files, returns `unrecognised C4 syntax in boundary` for two
@@ -86,8 +87,7 @@ matched is reported, never invented.
 **Negative:**
 - Diagrams stop being pure views. A `Rel` line is the declaration of an
   edge. This inverts [[c4-standards]]' authority rule for edges and leaves it
-  intact for nodes. Its "prose is the declaration format" statement and its
-  model-in-prose section need amending to say so.
+  intact for nodes. Its model-in-prose section states this exception.
 - An edge drawn in both of its homes is two drawings that can disagree.
   The model keeps one relationship and the check reports the disagreement,
   but nothing prevents an author from writing it.
@@ -104,8 +104,8 @@ matched is reported, never invented.
   dependency, so a reviewer who reads the diff instead of the rendering can
   misread it.
 - Reserved tags and the `technology` property are new authoring rules.
-  [[c4-standards]] and the four architecture blueprint templates must
-  state them before authors can be expected to follow them.
+  [[c4-standards]] states both. The four architecture blueprint templates
+  carry the `technology` property but don't state the reserved tags.
 
 ## References
 

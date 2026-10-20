@@ -15,8 +15,8 @@ status: ready-for-review
 
 Framework documents reference each other and reference C4 model elements. Two
 separate systems had grown up for it: `@document-slug` for documents (defined
-in `plugin/skills/spec/references/template-authoring-standards.md`) and a
-homegrown `#ComponentName` reference-id for elements (defined in the C4 guide).
+in [[template-authoring-standards]]) and a homegrown `#ComponentName`
+reference-id for elements (defined in [[c4-standards]]).
 Both conventions are authored and consumed mainly inside coding agents and
 edited in Obsidian-style Markdown tooling, and both interact badly with those
 environments:
@@ -55,7 +55,7 @@ backticks reserved for code:
   domain types, events, flags, tables — use backtick identifiers
   (`` `ElementName` ``).
 - **Framework guides and out-of-set repository docs** are referenced by
-  path in backticks (`` `references/c4-guide.md` ``).
+  path in backticks (`` `references/shared/c4-standards.md` ``).
 - **ADRs** are referenced number-only (`[[adr-<nnn>]]`). The descriptive text
   lives in the ADR's title, so its slug is stable across retitling.
 
@@ -94,14 +94,15 @@ reference-id convention are both removed.
   (`[[container-<name>#Name]]`). There's no bare element token.
 - A multi-word component reference loses the single greppable token the old
   reference-id gave it. Greppability now rides on the heading anchor.
-- Reference validation depends on the planned frontmatter-index script
-  existing. Until it does, `[[ ]]` links are unchecked.
+- Reference validation depends on the project's own tooling: `specs check`
+  resolves `[[ ]]` links, and a generic Markdown tool doesn't.
 
 ## References
 
-- `plugin/skills/spec/references/template-authoring-standards.md` — normative
-  slug and reference rules
-- `references/c4-guide.md` — element declarations and anchor resolution
+- [[template-authoring-standards]] — normative slug rules
+- [[cross-document-references]] — normative reference rules
+- [[c4-standards#Element Declarations: Model in Prose, Views in Diagrams]] —
+  element declarations and anchor resolution
 - [[adr-007]] — promotion-based blueprint creation (why anchors must
   survive promotion)
 - [[adr-008]] — machine-readable element record blocks

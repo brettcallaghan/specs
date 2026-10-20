@@ -59,5 +59,6 @@ is traceable to acceptance criteria.
 - [[adr-004]] — the blueprints that carry these gates
 - [[adr-006]] — visibility gates the change
   rules; these gates the tests
-- Change Guidance sections of the Component, Module, and Container Blueprint
-  templates; the groom-beads skill (consumes these gates)
+- Change Guidance sections of the System, Container, Component, and Module
+  Blueprint templates; the groom-feature-blueprint skill (consumes these
+  gates)

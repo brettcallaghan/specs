@@ -54,13 +54,13 @@ architecture taxonomy grows from eight document types to nine.
 - A deliberately small taxonomy has one more document type.
 - Authors must decide between component and module. The crisp boundary test
   in [[adr-005]] makes that easier.
-- Existing single-component blueprints in adopting projects need to migrate
-  to one type or the other.
 
 ## References
 
 - [[adr-005]] — the test for which type a unit is
 - [[adr-006]] — how a module is classified
 - [[adr-007]] — when to create either blueprint
-- `references/c4-guide.md` — the abstraction levels, including the module extension
-- Templates: `module-blueprint-template.md`, `component-blueprint-template.md`
+- [[c4-standards#The Abstraction Levels]] — the abstraction levels, including
+  the module extension
+- Templates: `plugin/skills/spec/references/module-blueprint-template.md`,
+  `plugin/skills/spec/references/component-blueprint-template.md`

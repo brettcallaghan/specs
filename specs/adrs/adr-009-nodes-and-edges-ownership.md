@@ -79,4 +79,4 @@ prevent.
 
 - [[adr-004]] — the split that raises the fragmentation risk
 - [[adr-007]] — the granularity this principle keeps coherent
-- `references/c4-guide.md` — Nodes and Edges: Who Owns What
+- [[c4-standards#Nodes and Edges: Who Owns What]]

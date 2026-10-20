@@ -16,7 +16,7 @@ status: approved
 ## Context
 
 [[frd-spec-index]] deliberately states requirements rather than technology and
-defers this choice. FEAT-SPEC-009 sets the binding limits. A corpus query
+defers this choice. FEAT-SPEC-009 sets the latency targets. A corpus query
 returns within 50 ms at p95 against a warm index, a single-document check within
 100 ms, and a cold 1,000-document index within 1 second. The tool runs "on a
 machine with no language runtime, interpreter, or package manager installed
@@ -50,10 +50,10 @@ Two results decide which candidates survive.
 
 **Bun doesn't survive compilation.** Its resident startup is near-native, which
 at first makes TypeScript look viable. Compiling to the standalone executable
-that FEAT-SPEC-009.4 requires gives that back entirely: 32.29 ms, thirteen times
+that AC-SPEC-009.4 requires gives that back entirely: 32.29 ms, thirteen times
 the resident figure, because the embedded runtime still bootstraps. A 50 ms p95
 budget with 32 ms of fixed overhead leaves 18 ms for the work, in a 95 MB
-artifact. Python and Node fail FEAT-SPEC-009.4 outright without bundling, and
+artifact. Python and Node fail AC-SPEC-009.4 outright without bundling, and
 bundling reproduces this result.
 
 **Go and Rust are tied on startup.** The gap between 1.72 ms and 1.77 ms is
@@ -110,10 +110,10 @@ Rust — jsonschema 0.26
   (reports 4 of 5 — format included, required-property omitted)
 ```
 
-All report every error with a JSON Pointer. Go's `BasicOutput()` and
-boon's `detailed_output()` both emit structured JSON carrying
-`instanceLocation` and `keywordLocation`. This dimension is a tie, and
-literally so: `boon` and `santhosh-tekuri/jsonschema` share an author
+Go's validator and boon report every error with a JSON Pointer. Go's
+`BasicOutput()` and boon's `detailed_output()` both emit structured JSON
+carrying `instanceLocation` and `keywordLocation`. This dimension is a tie,
+and literally so: `boon` and `santhosh-tekuri/jsonschema` share an author
 and produce the same message text.
 
 ### Measured: is YAML support adequate?
@@ -200,16 +200,15 @@ Astral's.
 We will implement the spec corpus CLI in Go, with `cobra` for the
 command surface, `goccy/go-yaml` for YAML, `santhosh-tekuri/jsonschema`
 for JSON Schema, `goldmark` for the markdown AST, and the official
-`cucumber/gherkin` Go implementation WHERE Gherkin support is later
-added.
+`cucumber/gherkin` Go implementation for Gherkin.
 
 ## Alternatives considered
 
 | Option | Pros | Cons | Why rejected |
 |--------|------|------|--------------|
 | **Rust** | 1.0 MB artifact, the smallest of the four<br>`serde` makes typed deserialization a single line<br>`clap` derives `--help` from doc comments, so help can't drift<br>`markdown-rs` is by remark's author<br>`cargo-dist` covers mirrorable-registry distribution<br>The strongest current signal in developer tooling | Gherkin is third-party and measurably diverges (no tag inheritance, wrong line number, opaque errors), so adopting it would require a second tool<br>YAML support is a maintained fork of an archived crate, and this corner has churned twice<br>An agent can't patch a compiled binary mid-session<br>Slowest of the four to a first working version | The closest call. Startup is a tie (1.77 ms vs 1.72 ms), JSON Schema is a tie (same author, identical messages), and the `serde` advantage doesn't survive separating validation from deserialization. What remains is a Gherkin liability with nothing left to outweigh it |
-| **TypeScript** (Bun or Node) | `remark`/`mdast` is the best Markdown AST ecosystem anywhere<br>`ajv` is the best JSON Schema validator anywhere<br>Official Gherkin<br>Anthropic Agent SDK language<br>An agent can patch it mid-session | The standalone executable starts in 32.29 ms and weighs 95 MB, measured<br>Node without bundling is 29.68 ms before loading a module | Fails FEAT-SPEC-009.1 in practice: 32 ms of fixed overhead against a 50 ms p95 budget. A 95 MB artifact is a poor fit for a tool meant to sit in every adopter's CI |
-| **Python** | Official Gherkin<br>Strongest parsing libraries overall; `tomllib` in the stdlib<br>Anthropic Agent SDK language<br>An agent can patch it mid-session<br>Fastest to a working prototype | 33.30 ms fixed startup before any work, and roughly 1 s to parse 1,000 documents<br>Requires an interpreter and dependencies on the adopter's machine<br>PyYAML coerces scalars, which AC-SPEC-003.2 must work around | Fails FEAT-SPEC-009.4 without bundling and FEAT-SPEC-009.1 with or without it |
+| **TypeScript** (Bun or Node) | `remark`/`mdast` is the best Markdown AST ecosystem anywhere<br>`ajv` is the best JSON Schema validator anywhere<br>Official Gherkin<br>Anthropic Agent SDK language<br>An agent can patch it mid-session | The standalone executable starts in 32.29 ms and weighs 95 MB, measured<br>Node without bundling is 29.68 ms before loading a module | Fails AC-SPEC-009.1 in practice: 32 ms of fixed overhead against a 50 ms p95 budget. A 95 MB artifact is a poor fit for a tool meant to sit in every adopter's CI |
+| **Python** | Official Gherkin<br>Strongest parsing libraries overall; `tomllib` in the stdlib<br>Anthropic Agent SDK language<br>An agent can patch it mid-session<br>Fastest to a working prototype | 33.30 ms fixed startup before any work, and roughly 1 s to parse 1,000 documents<br>Requires an interpreter and dependencies on the adopter's machine<br>PyYAML coerces scalars, which AC-SPEC-003.2 must work around | Fails AC-SPEC-009.4 without bundling and AC-SPEC-009.1 with or without it |
 | **Go** | The only candidate that ties on every discriminating measure and wins the one that separates them: official in-process Gherkin, with better errors than the Rust crate<br>1.72 ms startup, 2.2 MB artifact<br>JSON Schema output identical to Rust's<br>Steadiest YAML maintenance story<br>Simplest cross-compilation of the four<br>Adjacent to Beads, already a project dependency<br>`cobra` is the most battle-tested CLI harness in any language | No sum types, so a Result-shaped pipeline carries `if err != nil` at each step<br>Reflection-based JSON is a looser guarantee than a derive macro for an index that is a published API<br>Larger artifact than Rust, and an agent can't patch a compiled binary | N/A — selected |
 
 ## Consequences
@@ -221,7 +220,7 @@ added.
   magnitude of margin, so a write-time validation hook stays
   imperceptible as corpora grow.
 - Cross-compilation is a build flag, so producing the platform matrix
-  FEAT-SPEC-009.6 needs carries no extra machinery.
+  AC-SPEC-009.7 needs carries no extra machinery.
 - Contributors (human or agent) meet one toolchain for both this tool and
   Beads.
 
@@ -285,8 +284,6 @@ that Go can't meet.
   decision is measured against
 - [[adr-021]] — adopts Gherkin for acceptance criteria, exercising the
   in-process parser this decision preserved
-- `docs/plans/spec-validation-cli-brief.md` — earlier measurements and
-  the distribution research
 - [cucumber/gherkin](https://github.com/cucumber/gherkin) — the shared
   test suite that defines an official implementation
 - [cucumber-rs/gherkin](https://github.com/cucumber-rs/gherkin) — the

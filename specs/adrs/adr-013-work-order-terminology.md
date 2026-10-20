@@ -13,8 +13,9 @@ status: ready-for-review
 
 ## Context
 
-The framework's atomic, portable unit of executable work goes by four
-different names across the corpus. Occurrences, measured in each skill:
+The framework's atomic, portable unit of executable work went by more than
+one name across the corpus. Occurrences, measured in each skill before the
+rename this ADR records:
 
 | Skill | "work order" | "work item" | "task" (as the container) |
 |---|---|---|---|
@@ -24,8 +25,8 @@ different names across the corpus. Occurrences, measured in each skill:
 | `retro-spec` | 0 | **6** | 0 |
 
 `groom-feature-blueprint`—the skill whose entire job is *producing* the
-thing—uses the non-canonical name more often than the canonical one.
-`retro-spec` uses only the non-canonical one. Meanwhile, `spec` promotes
+thing—used the non-canonical name more often than the canonical one.
+`retro-spec` used only the non-canonical one. Meanwhile, `spec` promotes
 **Work Order** to one of its first-class document types.
 
 The corpus also conflates two distinct concepts. The framework already
@@ -53,7 +54,7 @@ container.
 | Option | Pros | Cons | Why rejected |
 |--------|------|------|--------------|
 | **Task** | Universally familiar across Jira, Linear, GitHub Projects, and Asana. Short. Natural as a verb phrase ("dispatch a task") | Already occupies a slot in the `kind` vocabulary (`epic \| feature \| task \| bug \| chore`), which produces "a task of kind task" alongside "a task of kind bug". The enum is built into `bead.schema.json`, `validate_beads.py`, the Definition of Ready, and the work-order → bead mapping. Collides with the harness's own `TaskCreate` / `TodoWrite` tools, which this repo's `AGENTS.md` explicitly bans for tracking. Naming the core artifact "task" invites exactly the confusion that rule exists to prevent. Carries no readiness connotation: a task is a thing to do, whereas the whole point of this concept is a unit that is *authorized, specified, and dispatchable*. | The enum collision alone disqualifies it, and the harness collision compounds it |
-| **Work item** | Azure DevOps' real term; already in use in two skills | Vaguer than work order: an "item" is any entry in a list. It's the name currently *causing* the drift, and it still doesn't distinguish format from materialization | Vagueness is the defect being fixed |
+| **Work item** | Azure DevOps' real term; was in use in two skills | Vaguer than work order: an "item" is any entry in a list. It's the name that *caused* the drift, and it still doesn't distinguish format from materialization | Vagueness is the defect being fixed |
 | **Job** | Short. Suggests dispatch ("job queue," "job runner"). Agent-native | Implies batch compute rather than specified work. Loses the authorization and specification connotation. "Job" has no readiness bar in any tradition | Weaker semantics than work order for no structural gain |
 | **Order** | Short form of the chosen term | Collides with *ordering* (sequencing), which this framework discusses constantly ("ordering lives in the graph, not in prose") | Hard collision with an existing load-bearing term |
 | **Work order** | A real term of art from manufacturing, field service, and ITSM that means precisely *a self-contained, authorized instruction to perform a specified piece of work*. Carries the readiness connotation the concept depends on. Doesn't collide with the `kind` enum, with harness tooling, or with sequencing vocabulary. Distinctive, so it's greppable and unambiguous in prose | Two words. Slightly formal. Not native to agile vocabulary | N/A — selected |
@@ -75,8 +76,7 @@ subagents.
 - No ambiguity with harness task tooling in an environment where that
   tooling is present and deliberately unused.
 - "Work order" is distinctive enough to grep, so future drift is
-  mechanically detectable (see the consistency check in this repo's
-  improvement plan).
+  mechanically detectable.
 
 **Negative:**
 - Two words take longer to type and read than "task" would.
@@ -87,6 +87,5 @@ subagents.
 ## References
 
 - `plugin/skills/spec/references/work-order-template.md` — the format
-- `plugin/skills/spec/references/work-order-definition-of-ready.md` — the
-  readiness bar
+- [[work-order-definition-of-ready]] — the readiness bar
 - `plugin/skills/groom-beads/SKILL.md` — the work-order → bead mapping

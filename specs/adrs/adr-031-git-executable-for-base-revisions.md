@@ -21,7 +21,7 @@ holds now against those it held at a git revision: the merge-base of
 HEAD and the repository's default branch, or of HEAD and a revision that
 `--since` names. The persisted index can't stand in for that revision,
 because any query may rebuild it. So the CLI must read documents as
-they were at a commit, which nothing in it does today.
+they were at a commit.
 
 Two constraints bind the choice. First, [[container-spec-cli]] ships one
 statically linked binary built with `CGO_ENABLED=0`, and a CI step runs it
@@ -56,6 +56,12 @@ exits.
 
 ## Consequences
 
+**Positive:**
+- Corpus discovery stays one walk over one directory. Nothing in
+  Document Core learns about git objects, and the base build is
+  exercised by the same tests as the working-tree build.
+
+**Negative:**
 - `criterion --changed` needs `git` on `PATH`. Its absence is reported as
   an environment error. No other command gains the dependency.
 - The base corpus is built from blob bytes, without git's checkout
@@ -64,9 +70,6 @@ exits.
   committed in.
 - A file the commit records as a symbolic link or a submodule isn't copied,
   so a criterion reached only through one reads as added.
-- Corpus discovery stays one walk over one directory. Nothing in
-  Document Core learns about git objects, and the base build is
-  exercised by the same tests as the working-tree build.
 - The cost of a comparison grows with the size of the spec root at the
   base. Nothing outside the spec root is read.
 

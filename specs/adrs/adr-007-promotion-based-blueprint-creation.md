@@ -52,12 +52,13 @@ container that composes the unit.
 **Negative:**
 - "Is this a seam?" is a judgment call
 - Promotion requires linking the new blueprint from every composing
-  container's roster in the same change. The record block may stay, and
-  `specs check` reports a block whose fields disagree with the blueprint
+  container's roster in the same change. The record block may stay, and a
+  block whose fields disagree with the blueprint is a finding
 
 ## References
 
 - [[adr-004]] — the types this policy
   applies to
 - [[adr-008]] — record blocks make promotion mechanical
-- `references/c4-guide.md`; template: `container-blueprint-template.md`
+- [[c4-standards]]; template:
+  `plugin/skills/spec/references/container-blueprint-template.md`

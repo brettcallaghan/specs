@@ -31,14 +31,13 @@ than dropped, because indexing never fails (AC-SPECREF-001.6). That FRD puts
 the shape of this data out of scope on purpose and leaves it to this ADR.
 
 The index is `SpecIndex`, declared in `schemas/index.strata` and generated as
-[[adr-016]] decides. Today it carries `entries` and `exclusions` and nothing
-else. Two constraints bear on the shape. First, AC-SPEC-002.3 gives every entry
-a workspace identifier so that indexes emitted by separate repositories merge
-into one graph. References that occur inside document bodies behave like edges
-in that graph, not like members of the objects they connect. Second,
-[[container-spec-cli]] pins the index as additive under `schema_version` 1.0: a
-property added alongside the existing shape doesn't bump the version, but a
-change to what's already there does.
+[[adr-016]] decides. Two constraints bear on the shape. First, AC-SPEC-002.3
+gives every entry a workspace identifier so that indexes emitted by separate
+repositories merge into one graph. References that occur inside document bodies
+behave like edges in that graph, not like members of the objects they connect.
+Second, [[container-spec-cli]] pins the index as additive under
+`schema_version` 2.2: a property added alongside the existing shape doesn't
+bump the version, but a change to what's already there does.
 
 ## Decision
 
@@ -56,7 +55,7 @@ stored a second time.
 |--------|------|------|--------------|
 | Outbound array embedded on each `IndexEntry`, inbound derived at load | One document's outbound references are a property access<br>Smallest change to the existing model | Inbound edges are absent from the artifact, so every consumer re-derives them<br>Merging two workspaces' indexes means rewriting entries rather than appending rows<br>A reference's own attributes (span, origin, resolution) sit on the source endpoint, which is only one of the two documents that care | Consumers other than this CLI read the artifact (AC-SPEC-002.3's merged graph, the Architecture Catalogue in [[container-spec-cli]]). Making each of them re-derive the reverse is what the index exists to prevent |
 | Outbound *and* inbound arrays embedded on each `IndexEntry` | Both directions are readable with no indexing at all | Stores the reverse of every edge twice, so the two copies can disagree<br>Every edge is written into two entries, so an emitter bug is legible in one place and wrong in another<br>Contradicts the declare-once, derive-the-reverse rule that [[document-relationship-standards]] rests on, and does so in the artifact that rule cites as its authority | A framework that tells authors not to mirror an edge cannot mirror it in its own index |
-| One top-level `references` edge collection; both directions derived at load | One row per occurrence, so a repeated reference is two rows with two spans (AC-SPECREF-001.5) rather than a special case<br>Cross-workspace merge is a row append<br>An unresolved reference is a row with a resolution state, so AC-SPECREF-001.6 needs no second collection<br>A reference's attributes belong to the edge, which is what they describe | "What does this document reference" costs an index build at load rather than a property access<br>The collection is the largest part of the index by row count (roughly 256 rows over 29 documents in this repository today) | N/A — selected |
+| One top-level `references` edge collection; both directions derived at load | One row per occurrence, so a repeated reference is two rows with two spans (AC-SPECREF-001.5) rather than a special case<br>Cross-workspace merge is a row append<br>An unresolved reference is a row with a resolution state, so AC-SPECREF-001.6 needs no second collection<br>A reference's attributes belong to the edge, which is what they describe | "What does this document reference" costs an index build at load rather than a property access<br>The collection is the largest part of the index by row count | N/A — selected |
 
 ## Consequences
 
@@ -73,10 +72,9 @@ stored a second time.
   position within the document satisfies AC-SPECREF-001.5's ordering
   requirement and AC-SPEC-009.7's byte-identical output in the same
   rule, with no per-entry ordering to keep consistent.
-- `schema_version` stays `1.0`. The collection is an addition alongside the
+- `schema_version` doesn't change. The collection is an addition alongside the
   existing shape, which [[container-spec-cli]]'s additive rule permits at the
-  same version. `schemas/index.strata` already records that no property on
-  `IndexEntry` forecloses it.
+  same version.
 - A row is the natural home for the facts that belong to neither
   endpoint: where the reference occurs, whether it came from prose or
   from a named frontmatter property, and what it resolved to.
@@ -102,7 +100,7 @@ stored a second time.
 - [[frd-spec-index]] — AC-SPEC-002.2 and AC-SPEC-002.3, the
   versioned schema and the workspace identifier this shape is chosen
   against
-- [[container-spec-cli]] — the additive-under-1.0 rule, and the Open
+- [[container-spec-cli]] — the additive `schema_version` rule, and the Open
   Question on promoting the index to a contract document
 - [[adr-016]] — Strata is the single source, so this shape is declared
   in `schemas/index.strata` rather than assembled in the emitter
