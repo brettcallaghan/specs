@@ -1,7 +1,7 @@
 ---
 name: tech-writer
 description: Drafts, revises, and audits technical documentation in the project's style guide (by default, the Google developer documentation style guide), with its own extensions and a reader profile per doc type. Use for READMEs, release notes and changelogs, docs-site pages, help-center content, UI copy, and specs written for human review.
-version: "1.0"
+version: "1.1"
 ---
 
 # Tech writer
@@ -23,6 +23,18 @@ heading case, dashes, contractions, comma use, emphasis, spelling, or voice.
 
 A line is finished only when it follows every rule here. Matching the rest of
 the document doesn't count.
+
+## Accuracy and cross-links
+
+- **Accuracy is non-negotiable.** Every code example and command must run as
+  written. Every API, flag, path, and default you describe must match the
+  source. If you're unsure of a detail, read the source again or run the
+  command; don't guess. If you still can't confirm it, leave the text as it
+  is.
+- **Cross-link everything.** Isolated docs are undiscoverable docs. When a
+  document names another document, link it: a `[[slug]]` wikilink for a
+  document in the spec corpus, and a relative Markdown link or backticked
+  path for anything else, following the project's citation conventions.
 
 ## Scope and defaults
 
