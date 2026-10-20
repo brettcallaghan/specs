@@ -1,20 +1,21 @@
 ---
 name: tech-writer
-description: Drafts, revises, and audits technical documentation in the Google developer documentation style guide, with this project's extensions. Use for READMEs, release notes and changelogs, docs-site pages, help-center content, UI copy, and specs written for human review.
+description: Drafts, revises, and audits technical documentation in the project's style guide (by default, the Google developer documentation style guide), with this project's extensions. Use for READMEs, release notes and changelogs, docs-site pages, help-center content, UI copy, and specs written for human review.
 ---
 
 # Tech writer
 
 Use the Google developer documentation style guide
-(developers.google.com/style). This file covers only what extends it: what a
-rewrite must leave alone, project terms, rules that settle choices Google
-leaves open, and patterns to check.
+(developers.google.com/style), unless the project names another style guide,
+for example in a line of `AGENTS.md` or `CLAUDE.md`. Then use that one. This
+file covers only what extends the style guide: what a rewrite must leave
+alone, additional rules, project terms, voice, and patterns to check.
 
 **Precedence:** the user's explicit request and the destination's requirements
 win. Then source facts, quotations, and technical tokens, which no rule may
-change. Then this file, then Google's guide.
+change. Then this file, then the style guide.
 
-**This skill's style is the style.** Apply Google's guide and this file in
+**This skill's style is the style.** Apply the style guide and this file in
 full. The only project input you keep is terminology: the names the project
 uses for its concepts. Don't copy the existing document's habits, such as
 heading case, dashes, contractions, comma use, emphasis, spelling, or voice.
@@ -42,9 +43,9 @@ the document doesn't count.
 - Content is fixed and wording is not. Never add or remove a fact, requirement, decision, example, or caveat, but apply every style rule to how each one is worded.
 - Don't add opinions, reactions, or asides of your own. Keep the ones the author wrote, reworded to these rules.
 
-## Rules Google leaves open
+## Additional rules
 
-- RFC 2119 keywords keep their capitals, although Google rules out capitals for emphasis.
+- RFC 2119 keywords keep their capitals. Don't use capitals for emphasis anywhere else.
 - Capitalized EARS keywords (WHEN, WHILE, IF, WHERE) belong only in requirement statements. In other prose, write them as ordinary words.
 - When prose names a heading, write it in the heading's case.
 - Never trade an exact term for a casual one to make the tone conversational.
@@ -62,16 +63,15 @@ between two services" and "a blueprint for the rollout" use ordinary words.
 
 ## Voice and tone
 
-Google's guide sets the base tone. On top of it, keep one voice in every
-document, and shift the tone to fit the reader.
-
-Write like an experienced colleague who remembers being new:
+Use one consistent voice in every document, and shift tone to fit the reader.
+In tutorials, how-to guides, and explanations, write like an experienced
+colleague who remembers being new. In every document, be:
 
 - **Outcome-minded.** Tie each technical fact to what the reader sees, waits for, can now do, or must change.
 - **Candid.** State known bugs, unsupported cases, and sharp edges where the reader will meet them. Don't bury them, and don't oversell.
 - **A translator.** Expertise shows in how simple you make a hard thing look, not in how technical you sound.
 - **Respectful of the reader's judgment.** Readers know their own setup. Give them what they need to decide, and don't decide for them.
-- **No humor** in errors, troubleshooting, security, or breaking changes. Elsewhere, default to none.
+- **Without humor** in errors, troubleshooting, security, or breaking changes. Elsewhere, default to none.
 
 Don't sound like a salesperson (benefits without mechanisms, claims nobody can
 check), a consultant (frameworks and padding before the answer), a press
@@ -180,8 +180,7 @@ is actually true. If you don't know the condition, keep the hedge.
 **Writing about the document.** Openers that describe the text instead of
 saying something: "This README describes..." or "This section covers...."
 Cut them and start with the content. A heading already says what a section
-covers. A sentence that introduces a table or list is different, and Google
-asks for one.
+covers. A sentence that introduces a table or list is different: keep it.
 
 ## New patterns for technical docs
 
@@ -201,18 +200,17 @@ asks for one.
 
 ## Line wrapping
 
-Follow the destination's line width. Google's Markdown guide keeps an
-80-character limit, with exceptions for links, tables, headings, and code
-blocks. Rewrap each paragraph you change to that width, and don't reflow
+Follow the destination's line width, or 80 characters when it sets none.
+Links, tables, headings, and code blocks may run past it. Rewrap each paragraph you change to that width, and don't reflow
 paragraphs you didn't change. Never reword a sentence to make it fit the
 margin.
 
 ## How to run it
 
 1. Identify the doc type and the task (draft, revise, or audit), and profile the reader (see Voice and tone). Mark what must not change, using Scope and defaults above.
-2. **Draft or revise** to Google's guide and this file. When a question turns on a specific Google rule (word choice, a punctuation mark, numbers, dates, units, product names, capitalization), look it up on developers.google.com/style when browsing is available.
+2. **Draft or revise** to the style guide and this file. When a question turns on a specific rule (word choice, a punctuation mark, numbers, dates, units, product names, capitalization), look it up in the style guide when browsing is available.
 3. **Check the patterns.** Run "Patterns to check" and the T-patterns over the result. Prefer a fresh-context reviewer: run this pass in a subagent that sees only the draft, the reader profile, and these rules. A reviewer that wrote the draft tends to approve it.
-4. **Validate.** Check the final text against Google's guide, "Rules Google leaves open," "Project terms," and the reader profile's tone, and check that nothing in Scope and defaults changed.
+4. **Validate.** Check the final text against the style guide, "Additional rules," "Project terms," and the reader profile's tone, and check that nothing in Scope and defaults changed.
 5. **Return the result.**
    - For an audit, change nothing. Report findings in priority order with short examples.
    - For pasted text, return the revised text.
