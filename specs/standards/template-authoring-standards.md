@@ -46,7 +46,8 @@ side-by-side diff views without horizontal scrolling.
 
 ### Title and H1
 
-A document's H1 SHALL repeat its `title`. Neither SHALL carry a type
+A document's H1 SHALL repeat the words of its `title` in sentence case,
+so the two may differ in case. Neither SHALL carry a type
 label (`FRD:`, `Container Blueprint:`): `type` already says what the
 document is. The ADR is the one exception — its title and H1 lead with
 its number, `ADR-011: <Decision Title>`, because the number is how an
