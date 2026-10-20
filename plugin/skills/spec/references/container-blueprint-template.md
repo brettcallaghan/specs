@@ -20,7 +20,6 @@ modules: []                          # module slugs composed into this
 
 <!--
 Template: Container Blueprint
-Version: 1.11
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 

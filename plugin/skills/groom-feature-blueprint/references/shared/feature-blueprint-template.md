@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: plugin/skills/spec/references/feature-blueprint-template.md (version 1.7)
+     Source of truth: plugin/skills/spec/references/feature-blueprint-template.md
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -19,7 +19,6 @@ frd: frd-<feature-name>              # the FRD this blueprint realizes (1:1)
 
 <!--
 Template: Feature Blueprint
-Version: 1.7
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]].
 

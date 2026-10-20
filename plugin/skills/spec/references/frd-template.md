@@ -9,7 +9,6 @@ sources: []                          # slugs of documents this FRD is based on
 
 <!--
 Template: Feature Requirements Document (FRD)
-Version: 1.6
 Source: Adapted from the 8090 Requirements Writing Guide
   (https://www.8090.ai/docs/opinions/requirements-writing-guide), modified to
   use tagged Gherkin for features and acceptance criteria per [[adr-021]].

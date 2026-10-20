@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: plugin/skills/spec/references/issue-template.md (version 1.2)
+     Source of truth: plugin/skills/spec/references/issue-template.md
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -37,7 +37,6 @@ model: <model that produced the findings>   # load-bearing; never omit
 
 <!--
 Template: Issue
-Version: 1.2
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]]. The findings this issue cites are
   captured per [[findings-capture-protocol]].

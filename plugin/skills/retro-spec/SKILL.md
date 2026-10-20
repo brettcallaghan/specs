@@ -119,7 +119,7 @@ Copy this checklist into your response and check items off as you go.
 
 ```
 Retro progress:
-- [ ] 1. Scope and provenance established (phase, docs, skill/template versions)
+- [ ] 1. Scope and provenance established (phase, docs, plugin release)
 - [ ] 2. Evidence harvested from the session / in-flight findings
 - [ ] 3. Each finding root-caused (project-doc / skill-template / one-off)
 - [ ] 4. Bar applied — below-bar items to Considered and Not Proposed
@@ -132,11 +132,10 @@ Step 5 is a hard stop. Do not tick 6 before the user has answered.
 
 1. **Establish scope and provenance.** Identify the phase just
    executed, the documents it consumed, the documents it produced, and
-   the skill(s) and template(s) that guided it. Record each template's
-   version (its instruction header) and the plugin's release version,
-   which identifies the skills and standards — the report's Provenance
-   block needs them, and a later reader cannot judge "already fixed?"
-   without them.
+   the skill(s) and template(s) that guided it. Record the plugin's
+   release version, which identifies its skills, templates, and
+   standards — the report's Provenance block needs it, and a later
+   reader cannot judge "already fixed?" without it.
 2. **Harvest evidence from the session.** Walk the session for
    friction, and state each item as a finding — what happened, the
    defect, the root cause. Sources of findings:
@@ -180,7 +179,7 @@ Step 5 is a hard stop. Do not tick 6 before the user has answered.
    one is re-raised only with new evidence.
 5. **Present the report, and STOP.** In the session, in this order:
    - **Provenance** — the phase, the documents examined, and the
-     versions from step 1.
+     release version from step 1.
    - **Candidate issues, stack-ranked** by expected impact, highest
      first — `priority` 0 (critical) to 4 (backlog), ties broken by
      recurrence. One numbered entry each: title, target document,
@@ -237,7 +236,7 @@ Considered and Not Proposed at most.
 | Recording analysis or proposals as findings | Capture is a sensor's job; root-causing without cross-item perspective bakes in wrong conclusions |
 | Issues without verbatim source citations | Nobody can verify the defect or check whether it is already fixed |
 | Blaming guidance for authoring carelessness | The fix for ignoring an existing warning is not another warning |
-| Omitting versions from Provenance | "Is this already fixed?" becomes archaeology |
+| Omitting the release version from Provenance | "Is this already fixed?" becomes archaeology |
 | Padding a thin retro with marginal issues | Dilutes trust in every issue; saying the retro came up clean is the honest result |
 | Bundling several changes into one issue | The issue is the unit of decision; the user cannot accept half of it |
 | Re-raising an issue the project already declined, without new evidence | Relitigates settled questions; search the tracker first |

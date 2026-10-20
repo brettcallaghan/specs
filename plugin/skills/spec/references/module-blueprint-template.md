@@ -23,7 +23,6 @@ version: "0.1"                       # required WHEN visibility: public
 
 <!--
 Template: Module Blueprint
-Version: 0.13
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 

@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/work-order-definition-of-ready.md (version unversioned)
+     Source of truth: specs/standards/work-order-definition-of-ready.md
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 

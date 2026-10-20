@@ -14,7 +14,6 @@ contracts_consumed: []               # contract slugs this system consumes
 
 <!--
 Template: System Blueprint
-Version: 1.9
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 

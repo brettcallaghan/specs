@@ -153,7 +153,7 @@ report:
 - **origin** — `self` when this repo critiqued its own skill, otherwise
   the project the run happened in.
 - **harness**, the **task** the skill was applied to, the **run
-  dates**, and the versions of every reference/script/template invoked.
+  dates**, and every reference, script, and template invoked.
 
 Every candidate issue repeats the fields its template asks for
 (`skill_version`, `model`, `session`, `run`, `branch`), because an issue

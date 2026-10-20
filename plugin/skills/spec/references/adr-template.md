@@ -8,7 +8,6 @@ status: draft
 
 <!--
 Template: Architecture Decision Record (ADR)
-Version: 1.5
 Source: Adapted from Michael Nygard's ADR format
 
 Sections (complete each, then delete its instruction block)

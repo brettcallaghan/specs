@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/template-authoring-standards.md (version 1.3)
+     Source of truth: specs/standards/template-authoring-standards.md
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -26,7 +26,7 @@ for any type of structured document.
 - Slug Conventions — format, identity rule, choosing the identifier, the
   prefix registry, the frontmatter index, construction
 - Template Instructions — placement, HTML comment format, lifecycle
-- Template Versioning — when to bump a template, skill, or standard
+- Versioning — what identifies a template, skill, or standard
 - Requirements Expression → `ears-guide.md`
 - Placeholders and Parameters — format, naming, env vars vs placeholders
 - Cross-Document References → `cross-document-references.md`
@@ -355,39 +355,20 @@ authoring.
 
 ---
 
-## Template Versioning
+## Versioning
 
-Every template SHALL carry a `Version:` line in its document-level
-instruction block, immediately after the `Template:` line:
-
-```markdown
-<!--
-Template: Feature Blueprint
-Version: 1.3
-...
--->
-```
-
-WHEN a template's normative content changes (a rule, a required
-section, a check, reference syntax), the MINOR version SHALL be
-incremented. WHEN only editorial content changes (typos, phrasing,
-examples), the PATCH version MAY be incremented instead. Version
-numbers use `MAJOR.MINOR` with an optional `.PATCH`.
-
-A SKILL.md SHALL NOT carry a `version` in its frontmatter: the Agent
-Skills upload check rejects the field. A skill, and any standards
-document or guide vendored into it, is identified by the release
-version of the plugin that ships it (`version` in the plugin's
-`plugin.json`).
+Templates, skills, and the standards documents and guides vendored into
+them SHALL NOT carry a version of their own: no `Version:` line in a
+template's instruction block, and no `version` in a SKILL.md's
+frontmatter, which the Agent Skills upload check rejects. The release
+version of the plugin that ships them (`version` in the plugin's
+`plugin.json`) identifies all of them.
 
 **Rationale:** Issues raised by a retro (see the issue template) cite
-the versions of the templates and skills a session followed.
-Triage uses those citations to answer "is this issue already
-fixed?" mechanically; without version stamps that judgment requires
-diff archaeology. The version lives in the instruction block — not
-the template's frontmatter — because template frontmatter is the
-placeholder frontmatter of generated documents, and instances do not
-carry their template's version.
+the release a session ran, and triage compares it with the current one
+to answer "is this issue already fixed?". One version per release
+answers that without a hand-maintained number on every file, which
+drifts the moment someone forgets to bump it.
 
 ---
 

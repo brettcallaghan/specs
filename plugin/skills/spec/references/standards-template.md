@@ -8,7 +8,6 @@ status: draft
 
 <!--
 Template: Standards Document
-Version: 1.5
 
 Sections (complete each, then delete its instruction block)
   - <Major Category>

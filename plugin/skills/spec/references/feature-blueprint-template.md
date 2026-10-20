@@ -14,7 +14,6 @@ frd: frd-<feature-name>              # the FRD this blueprint realizes (1:1)
 
 <!--
 Template: Feature Blueprint
-Version: 1.7
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]].
 

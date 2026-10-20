@@ -90,8 +90,8 @@ Then, per issue, in received order:
    `run`, `branch`, `skill_version`, `model`. Compare the cited version
    against the current one. WHEN the source has changed since, verify
    the quoted evidence still exists: an issue against text already
-   fixed or removed is rejected "already addressed in <file> v<X.Y>"
-   without further debate. An issue missing its versions is still
+   fixed or removed is rejected "already addressed in <release>"
+   without further debate. An issue missing its `skill_version` is still
    triaged, but say so; the citation burden was the reporter's.
 
    **Read the findings it cites.** Every claim in an issue traces to a
@@ -250,8 +250,7 @@ Then, per issue, in received order:
      it rests on, and labels `issue-triage` plus `theme:<key>`.
 
    - **Sequence by FILE, not by issue.** WHEN two approved issues change
-     the same file, wire a real `blocks` edge between them; the one that
-     owns that file's version bump goes last in its chain. Issues from
+     the same file, wire a real `blocks` edge between them. Issues from
      different reporters routinely land in the same file, and two beads
      with no edge between them are still a collision when they edit the
      same lines.
@@ -267,22 +266,6 @@ Then, per issue, in received order:
 
    - Apply any inline changes; keep every touched file within its own
      conventions (80-column lines, EARS for normative statements).
-   - Bump the version of every changed template (instruction-block
-     `Version:`) per [[template-authoring-standards]]. Skills carry no
-     version: the plugin's release version identifies them.
-     **Bump each file exactly once for the whole triage, no matter how
-     many proposals changed it** — the version announces the release,
-     not the proposal count. WHEN several proposals touch one file, the
-     bump belongs to whichever lands last; verify the bump after the
-     final change to that file, never before.
-
-     WHEN a changed file carries no version property at all, do not
-     bump — add one at `0.1`, and let this triage's change land inside
-     that first version. A higher initial value implies a predecessor a
-     reader could diff against; for a file that has never been
-     versioned there is none, and step 1's provenance check would then
-     be asking about a version that never existed. Place the property
-     per [[frontmatter-standards]].
    - File one bead per approved **deferral** to the same bar — deferred
      work is read months later by an agent with no memory of this
      triage, so it needs grooming exactly as much as adopted work does.
@@ -306,12 +289,12 @@ Then, per issue, in received order:
      `grooming_status` (`blocked-needs-info` when a specific fact is
      missing, `blocked-ungroomable` when it needs redesign).
    - **Verify before moving on.** Re-read each file you changed: the
-     change is present, its version bumped, and its own conventions held.
+     change is present and its own conventions held.
      A half-applied adoption is worse than a deferral, because the
      recorded outcome will claim it landed.
    - **Record the outcome on the bead, not in a document.** Adopted /
      adopted-with-refinement + the refinement / deferred / rejected +
-     rationale, with the files changed and versions bumped. **The
+     rationale, with the files changed. **The
      tracker holds workflow state**; writing a resolution section into
      a separate document keeps a second copy of it in prose.
 
@@ -347,7 +330,6 @@ Then, per issue, in received order:
 | Adopting on plausibility without verifying the cited findings | The pipeline's currency is verified evidence; spending it on taste devalues every future report |
 | Silent rejection (no recorded outcome) | The next reporter re-derives and re-reports the same idea |
 | Deferring without a theme label | Recurrence across projects becomes uncountable — the accumulation model stops working |
-| Forgetting version bumps on changed files | Issues cite versions; stale versions break the "already fixed?" check |
 | Editing a received issue's evidence or proposed change | The issue is the reporter's testimony; triage records an outcome, it does not rewrite the report |
 | Adopting a self-reported issue without recording that it was self-reported | An undisclosed self-adoption is indistinguishable later from an independently reviewed one |
 | Treating an issue's cited occurrences as the complete set | The reporter lists what its run touched; a defect class usually reaches files that run never opened, and the record then says fixed about a class that is still live |

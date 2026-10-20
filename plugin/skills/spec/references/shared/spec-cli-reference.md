@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/guides/spec-cli-reference.md (version unversioned)
+     Source of truth: specs/guides/spec-cli-reference.md
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
