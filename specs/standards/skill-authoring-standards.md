@@ -585,12 +585,13 @@ from gates rather than diligence cannot exempt itself.
 
 ---
 
-WHEN a skill is changed in a way that alters its normative content, the
-author SHALL increment its `version`.
+A SKILL.md SHALL NOT carry a `version` in its frontmatter. A skill
+inherits the release version of the plugin that ships it (`version` in the
+plugin's `plugin.json`).
 
-**Rationale:** Retrospective issues cite the version they exercised,
-and triage answers "is this already fixed?" from that citation. Without the
-stamp the question requires diff archaeology.
+**Rationale:** The Agent Skills upload check rejects the field.
+Retrospective issues cite the release a session ran, and triage answers
+"is this already fixed?" from that citation.
 
 ---
 

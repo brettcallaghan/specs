@@ -352,18 +352,14 @@ authoring.
 
 ## Versioning
 
-Templates, skills, and the standards documents and guides vendored into
-them SHALL NOT carry a version of their own: no `Version:` line in a
-template's instruction block, and no `version` in a SKILL.md's
-frontmatter, which the Agent Skills upload check rejects. The release
-version of the plugin that ships them (`version` in the plugin's
-`plugin.json`) identifies all of them.
+Templates SHALL NOT carry a version of their own. They inherit the
+release version of the plugin that ships them (`version` in the plugin's
+`plugin.json`).
 
 **Rationale:** Issues raised by a retro (see the issue template) cite
 the release a session ran, and triage compares it with the current one
-to answer "is this issue already fixed?". One version per release
-answers that without a hand-maintained number on every file, which
-drifts the moment someone forgets to bump it.
+to answer "is this issue already fixed?". A hand-maintained number on
+every template drifts the moment someone forgets to bump it.
 
 ---
 
