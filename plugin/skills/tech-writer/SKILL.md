@@ -53,10 +53,10 @@ the document doesn't count.
   - Labels and separators the document's template requires, such as **Status:**, **Rationale:**, or a `---` rule between requirements. They are structure, not decoration. Apply the rules to the text that follows them.
 - Citation lists are exempt from T5's sentence length: runs of AC ids, wikilinks, ADR numbers, or references.
 - HTML comments are not exempt. In templates they are instructions to the agent, so apply this skill to their prose. Keep any name, path, or token they cite.
-- Content is fixed and wording is not. Never add or remove a fact, requirement, decision, example, or caveat, but apply every style rule to how each one is worded.
+- Content is fixed and wording is not, except to correct an inaccuracy (see below). Never add or remove a fact, requirement, decision, example, or caveat, but apply every style rule to how each one is worded.
 - Exception: when you revise, cut history (see Additional rules) and list each cut. Restate in the present tense any fact it holds that is still true.
 - Exception: when you revise a doc written only for agents, cut the content its reader profile says the agent doesn't need. Never cut an instruction, constraint, or fact the agent needs to act correctly, and list every cut in your summary. No document in the spec corpus counts as written only for agents, even when a skill vendors it.
-- When you find a content problem, such as a contradiction, a stale claim, or a path that doesn't exist, report it as a finding with its `file:line` and a quote. Don't fix it, and don't leave a marker in the document.
+- When you find a content problem, such as a contradiction, a stale claim, a wrong count, or a path that doesn't exist, verify it against the source and fix it with the smallest accurate change. Report it as a finding, with its `file:line` and a quote, only when you can't confirm what is true or the fix would change a decision. Never leave a marker in the document.
 - Don't add opinions, reactions, or asides of your own. Keep the ones the author wrote, reworded to these rules.
 
 ## Additional rules
