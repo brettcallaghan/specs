@@ -76,8 +76,7 @@ Issue triage progress:
 - [ ] 4. Recommendation table presented — STOPPED for human approval
 - [ ] 5. Approved issues groomed into work orders and bundled
 - [ ] 6. Received issues closed out at their source
-- [ ] 7. Plugin version bumped IF any shipped skill/template/standard
-      changed
+- [ ] 7. Release flagged IF any shipped skill/template/standard changed
 ```
 
 Step 4 is a hard stop. Do not tick 5 before the human has answered.
@@ -270,8 +269,9 @@ Then, per issue, in received order:
    - Apply any inline changes; keep every touched file within its own
      conventions (80-column lines, EARS for normative statements).
    - Bump the version of every changed template (instruction-block
-     `Version:`), skill (frontmatter `version`), and standard
-     (frontmatter `version`) per [[template-authoring-standards]].
+     `Version:`) per [[template-authoring-standards]]. Never bump a
+     plugin skill's `version`: the release cut stamps the release
+     version into every plugin skill.
      **Bump each file exactly once for the whole triage, no matter how
      many proposals changed it** — the version announces the release,
      not the proposal count. WHEN several proposals touch one file, the
@@ -328,15 +328,15 @@ Then, per issue, in received order:
    decision, so it is the unit the counts are in too. **Write no log
    file**: the tracker already holds every outcome.
 7. **Publish.** WHEN any skill, template, or standard **that ships
-   inside the plugin** changed, bump the plugin version in
-   `plugin/.claude-plugin/plugin.json` (MINOR for normative changes).
-   A skill ships in the plugin IFF it has a source directory under
-   `plugin/skills/`; a tracked skill living only under
-   `.claude/skills/` (such as this skill itself) is repo-local, and
-   changing it does NOT on its own justify a bump, because installs
-   never receive it. WHEN a triage changed only repo-local skills, say
-   so and skip the bump. Distribution is plugin-only: installs pick
-   up the change on plugin update once the bump is released (the
+   inside the plugin** changed, tell the user it reaches installs only
+   with the next release. The release cut stamps the release version
+   into `plugin/.claude-plugin/plugin.json` and every plugin skill;
+   never edit those versions by hand. A skill ships in the plugin IFF
+   it has a source directory under `plugin/skills/`; a tracked skill
+   living only under `.claude/skills/` (such as this skill itself) is
+   repo-local, and changing it does NOT on its own call for a release,
+   because installs never receive it. Distribution is plugin-only:
+   installs pick up the change on plugin update once it is released (the
    `brettcallaghan` marketplace serves the latest release); a
    session run with `claude --plugin-dir ./plugin` sees it after
    `/reload-plugins`.
