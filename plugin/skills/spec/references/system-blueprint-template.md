@@ -14,7 +14,7 @@ contracts_consumed: []               # contract slugs this system consumes
 
 <!--
 Template: System Blueprint
-Version: 1.8
+Version: 1.9
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 
@@ -37,6 +37,16 @@ Purpose
   of, the public contracts it provides, and how it deploys. This is the
   top-level architecture document for a system and the entry point for
   readers.
+
+Reader profile (apply with the tech-writer skill)
+  reader: anyone starting on the system: a newcomer, a reviewer, or an agent
+      planning feature work. This document is their entry point.
+  knows: the problem domain, not this system's structure.
+  wants: the system's context, its containers, public contracts, and
+      deployment, and where to read next.
+  budget: one focused read.
+  tone: matter-of-fact, describing the system as it is. Favor the big picture.
+      Decisions and their alternatives belong in ADRs.
 
 When to use
   - Documenting a system your team owns (one blueprint per system)

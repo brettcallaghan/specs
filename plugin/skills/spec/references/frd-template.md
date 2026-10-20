@@ -9,7 +9,7 @@ sources: []                          # slugs of documents this FRD is based on
 
 <!--
 Template: Feature Requirements Document (FRD)
-Version: 1.5
+Version: 1.6
 Source: Adapted from the 8090 Requirements Writing Guide
   (https://www.8090.ai/docs/opinions/requirements-writing-guide), modified to
   use tagged Gherkin for features and acceptance criteria per [[adr-021]].
@@ -24,6 +24,16 @@ Purpose
   Capture the localized WHY (user story) and WHAT (acceptance criteria) for a
   single feature. An FRD describes what users need and how success is
   verified; it does not describe how the system is built internally.
+
+Reader profile (apply with the tech-writer skill)
+  reader: a reviewer approving what will be built, then the authors of the
+      Feature Blueprint and tests that trace back to it.
+  knows: the product, not this feature.
+  wants: why the feature matters (the user story) and what it must do (the
+      acceptance criteria).
+  budget: one focused read.
+  tone: precise and candid. State assumptions and open questions outright. Say
+      nothing about how the system is built.
 
 When to use
   - Specifying a feature that delivers complete, independently testable value

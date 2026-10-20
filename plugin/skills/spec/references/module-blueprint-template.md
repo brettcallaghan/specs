@@ -23,7 +23,7 @@ version: "0.1"                       # required WHEN visibility: public
 
 <!--
 Template: Module Blueprint
-Version: 0.12
+Version: 0.13
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 
@@ -60,6 +60,16 @@ Purpose
   change? A component does not — it is internal to one container and
   changes in lockstep with it; a module does. This framework's "module"
   is part of the deliberate C4 superset defined in `shared/c4-standards.md`.
+
+Reader profile (apply with the tech-writer skill)
+  reader: an engineer or agent changing this module, or consuming it from a
+      container that composes it.
+  knows: the containers that use it, not its internals.
+  wants: its interface, versioning and compatibility rules, and the change
+      guidance feature work must respect.
+  budget: one focused read.
+  tone: matter-of-fact and exact: name interfaces, versions, and compatibility
+      promises. Decisions and their alternatives belong in ADRs.
 
 When to use — either trigger is sufficient
   - SHARED / PUBLISHED: the unit is vended or consumed across containers

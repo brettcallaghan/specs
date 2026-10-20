@@ -8,7 +8,7 @@ status: draft
 
 <!--
 Template: Architecture Decision Record (ADR)
-Version: 1.4
+Version: 1.5
 Source: Adapted from Michael Nygard's ADR format
 
 Sections (complete each, then delete its instruction block)
@@ -22,6 +22,17 @@ Purpose
   Records significant architectural and technology decisions, their context,
   alternatives considered, and consequences. ADRs create a decision log that
   explains "why we built it this way" for future maintainers.
+
+Reader profile (apply with the tech-writer skill)
+  reader: a future maintainer, human or agent, asking "why is it this way?",
+      and today's reviewer.
+  knows: the system now, not the context at the time of the decision.
+  wants: the decision, its context, the alternatives, and the consequences,
+      including the costs.
+  budget: a few minutes.
+  tone: neutral and direct. State the decision as "We will..." and give the
+      rejected alternatives a fair hearing. Don't argue for the decision
+      beyond its reasons.
 
 When to use
   - Choosing between two or more real technology options

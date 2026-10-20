@@ -8,7 +8,7 @@ status: draft
 
 <!--
 Template: Standards Document
-Version: 1.4
+Version: 1.5
 
 Sections (complete each, then delete its instruction block)
   - <Major Category>
@@ -22,6 +22,16 @@ Purpose
   for the whole family of cross-cutting standards, policies, invariants, 
   and constraints. Requirements are organized hierarchically and 
   expressed using EARS (Easy Approach to Requirements Syntax).
+
+Reader profile (apply with the tech-writer skill)
+  reader: an engineer or agent checking whether their work complies, often
+      from a review comment or a link in a spec.
+  knows: their own work, not the rule.
+  wants: the rule, its scope, and what compliant looks like.
+  budget: a minute per rule.
+  tone: firm and unambiguous, not scolding. Give the reason for any rule that
+      isn't obviously necessary, so readers can apply it to cases it doesn't
+      name.
 
 Slug
   This type has no fixed prefix (it is the registry's one exception). Use 

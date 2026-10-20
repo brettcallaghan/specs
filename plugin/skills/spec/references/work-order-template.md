@@ -37,7 +37,7 @@ c4_docs: []                          # C4 doc files that may need updating
 
 <!--
 Template: Work Order
-Version: 1.6
+Version: 1.7
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]]. Readiness criteria are defined in
   [[work-order-definition-of-ready]] and [[work-order-field-guide]].
@@ -59,6 +59,16 @@ Purpose
   independent of any one tracker. Everything the executing agent needs rides
   in the order itself, never in a planning conversation that will not exist
   when the order is dispatched.
+
+Reader profile (apply with the tech-writer skill)
+  reader: a fresh agent with zero session context, dispatched to do this one
+      job.
+  knows: only what this work order says and the files it names.
+  wants: the job, how to prove it's done, and every fact needed to finish
+      without asking.
+  budget: read in full before starting, then consulted while working.
+  tone: imperative and exact. Name files, commands, and values. Never point at
+      a conversation the agent didn't see.
 
 This document is GENERATED, not hand-authored
   Unlike every other spec type, a work order is NOT authored through the

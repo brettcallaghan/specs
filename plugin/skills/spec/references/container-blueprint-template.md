@@ -20,7 +20,7 @@ modules: []                          # module slugs composed into this
 
 <!--
 Template: Container Blueprint
-Version: 1.10
+Version: 1.11
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 
@@ -44,6 +44,17 @@ Purpose
   must be running for the system to work): its responsibility, the
   containers and infrastructure it depends on, the components inside it,
   the contracts it provides and consumes, and the data it owns.
+
+Reader profile (apply with the tech-writer skill)
+  reader: an engineer or agent about to change or build on this container,
+      often while writing a Feature Blueprint, and a newcomer who needs the
+      facts first.
+  knows: the surrounding system, not this container.
+  wants: its stack, components, contracts, owned data, and the change guidance
+      feature work must respect.
+  budget: one focused read.
+  tone: matter-of-fact, describing the container as it is, with exact names.
+      Decisions and their alternatives belong in ADRs.
 
 When to use
   - Documenting an application your team builds and runs: API server, web

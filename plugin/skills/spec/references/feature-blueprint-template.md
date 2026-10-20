@@ -14,7 +14,7 @@ frd: frd-<feature-name>              # the FRD this blueprint realizes (1:1)
 
 <!--
 Template: Feature Blueprint
-Version: 1.6
+Version: 1.7
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]].
 
@@ -42,6 +42,16 @@ Purpose
   documents must be updated when the change lands. Architecture
   blueprints remain the single source of truth for the steady state at
   all times; this document never competes with them.
+
+Reader profile (apply with the tech-writer skill)
+  reader: the human reviewer approving the design, then the planning agent
+      that derives the implementation plan.
+  knows: the FRD and the architecture blueprints this feature changes.
+  wants: what changes, element by element, and how each acceptance criterion
+      is covered.
+  budget: one focused read.
+  tone: precise and diff-shaped. Reference decisions, contracts, and steady-
+      state architecture; don't restate them.
 
 Audience and altitude
   Written for two readers: the human reviewer approving the design, and

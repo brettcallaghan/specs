@@ -1,6 +1,7 @@
 ---
 name: tech-writer
-description: Drafts, revises, and audits technical documentation in the project's style guide (by default, the Google developer documentation style guide), with this project's extensions. Use for READMEs, release notes and changelogs, docs-site pages, help-center content, UI copy, and specs written for human review.
+description: Drafts, revises, and audits technical documentation in the project's style guide (by default, the Google developer documentation style guide), with its own extensions and a reader profile per doc type. Use for READMEs, release notes and changelogs, docs-site pages, help-center content, UI copy, and specs written for human review.
+version: "1.0"
 ---
 
 # Tech writer
@@ -100,8 +101,9 @@ Budget:  how long they'll give this page
 Tone:    how the voice adjusts for them
 ```
 
-Start from the default for the doc type in `references/reader-profiles.md`
-and adjust it for the project. When a document has several readers, profile
+For a spec document type, start from the reader profile in the header
+comment of the spec skill's template for that type. For any other doc type,
+start from `references/reader-profiles.md`. Adjust it for the project. When a document has several readers, profile
 the one whose needs should set the tone. If you can't tell, write down your
 assumption and proceed.
 

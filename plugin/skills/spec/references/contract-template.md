@@ -13,7 +13,7 @@ version: "1.0"
 
 <!--
 Template: Contract
-Version: 1.6
+Version: 1.7
 Source: Architecture documentation framework. C4 mapping rules and
   contract visibility tiers are defined in `shared/c4-standards.md`.
 
@@ -33,6 +33,15 @@ Purpose
   subject, SQL DDL for a published view) is normative for SHAPE; this
   document is normative for SEMANTICS — the guarantees, operational
   expectations, and change policy that schema languages cannot express.
+
+Reader profile (apply with the tech-writer skill)
+  reader: a consumer or provider building against the interface on its own
+      schedule.
+  knows: the machine-readable spec's shape, not its semantics.
+  wants: the guarantees: what each operation means, its errors, ordering, and
+      limits.
+  budget: looked up repeatedly, one guarantee at a time.
+  tone: exact and neutral, like reference. State guarantees, not rationale.
 
 Ownership
   A contract is owned by its PROVIDER, never by a relationship or a

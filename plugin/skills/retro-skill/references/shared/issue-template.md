@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: plugin/skills/spec/references/issue-template.md (version 1.1)
+     Source of truth: plugin/skills/spec/references/issue-template.md (version 1.2)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -37,7 +37,7 @@ model: <model that produced the findings>   # load-bearing; never omit
 
 <!--
 Template: Issue
-Version: 1.1
+Version: 1.2
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]]. The findings this issue cites are
   captured per [[findings-capture-protocol]].
@@ -58,6 +58,16 @@ Purpose
   report from someone who hit a defect, or arrives from a project reporting
   one. All use this template unchanged. A retro presents its issues to the
   user as candidates, and only the ones the user chooses are filed.
+
+Reader profile (apply with the tech-writer skill)
+  reader: the person deciding whether to file or accept it, then whoever makes
+      the change.
+  knows: the code or the skill, not your setup or your use case.
+  wants: what happened or what's missing, the evidence, and the one change
+      proposed.
+  budget: a minute or two to triage.
+  tone: neutral and specific. Describe what happened, not how frustrating it
+      was. Persuade with evidence, not enthusiasm. No blame.
 
 Which audience — apply the merge test
   Findings and the issues built from them serve two audiences, and the

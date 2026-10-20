@@ -11,7 +11,7 @@ description: Retrospective on a completed phase of spec-driven work —
   capture lessons learned about the documents a phase consumed. To
   critique the SKILLS, templates, or scripts that guided the phase, use
   the retro-skill skill instead.
-version: "2.0.0"
+version: "2.1.0"
 ---
 
 # Spec Retro
