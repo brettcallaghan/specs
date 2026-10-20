@@ -7,7 +7,6 @@ description: Translate an approved feature blueprint and its FRD into an
   guessing. Use when a feature blueprint is ready for implementation
   planning, or when asked to groom, decompose, or plan a specified
   feature.
-version: "0.1.0"
 ---
 
 # Groom Feature Blueprint

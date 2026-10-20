@@ -31,7 +31,7 @@ session: <session id>                # OPTIONAL — the authoring agent's sessio
                                      # same agent", which `model` cannot, since
                                      # two unrelated agents can share a model.
 branch: <branch the run worked on>
-skill_version: <what was being exercised>
+skill_version: <the plugin release that shipped the skill, or a commit>
 model: <model that produced the findings>   # load-bearing; never omit
 ---
 

@@ -8,7 +8,6 @@ description: Triage issues reported against the skills, templates and
   asked to triage reported issues or bug reports (GitHub issues, or an
   issue file handed over from another project), review a reported
   issue, or check on deferred themes.
-version: "3.0"
 ---
 
 # Issue Triage
@@ -269,9 +268,8 @@ Then, per issue, in received order:
    - Apply any inline changes; keep every touched file within its own
      conventions (80-column lines, EARS for normative statements).
    - Bump the version of every changed template (instruction-block
-     `Version:`) per [[template-authoring-standards]]. Never bump a
-     plugin skill's `version`: the release cut stamps the release
-     version into every plugin skill.
+     `Version:`) per [[template-authoring-standards]]. Skills carry no
+     version: the plugin's release version identifies them.
      **Bump each file exactly once for the whole triage, no matter how
      many proposals changed it** — the version announces the release,
      not the proposal count. WHEN several proposals touch one file, the
@@ -330,8 +328,7 @@ Then, per issue, in received order:
 7. **Publish.** WHEN any skill, template, or standard **that ships
    inside the plugin** changed, tell the user it reaches installs only
    with the next release. The release cut stamps the release version
-   into `plugin/.claude-plugin/plugin.json` and every plugin skill;
-   never edit those versions by hand. A skill ships in the plugin IFF
+   into `plugin/.claude-plugin/plugin.json`; never edit it by hand. A skill ships in the plugin IFF
    it has a source directory under `plugin/skills/`; a tracked skill
    living only under `.claude/skills/` (such as this skill itself) is
    repo-local, and changing it does NOT on its own call for a release,

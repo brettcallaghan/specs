@@ -156,8 +156,8 @@ Cross-cutting standards, policies, guidelines or constraints that apply
 across documents or components rather than to one of them.
 
 Carries no version of its own. A standard that ships to other
-repositories is vendored into a skill, and the skill's version
-identifies the text a reader followed.
+repositories is vendored into a skill, and the release version of the
+plugin that ships the skill identifies the text a reader followed.
 
 **Inherits from:** [DocumentFrontmatter](#documentfrontmatter)
 
@@ -282,8 +282,8 @@ conventions.
 A guide carries no relationships of its own: it explains a technique
 rather than participating in the architecture graph. Like a standard,
 it carries no version of its own: a guide that ships to other
-repositories is vendored into a skill, and the skill's version
-identifies the text.
+repositories is vendored into a skill, and the release version of the
+plugin that ships the skill identifies the text.
 
 **Inherits from:** [DocumentFrontmatter](#documentfrontmatter)
 

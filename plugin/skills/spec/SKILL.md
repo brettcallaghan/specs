@@ -12,7 +12,6 @@ description: Spec-first development using this framework's specification
   system, container, component, or interface. Covers choosing the right
   document type and authoring it from the framework templates using Gherkin
   and EARS syntax and the C4 model.
-version: "0.1.0"
 ---
 
 # Spec-First Development

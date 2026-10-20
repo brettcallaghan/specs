@@ -11,7 +11,6 @@ description: Retrospective on a completed phase of spec-driven work —
   capture lessons learned about the documents a phase consumed. To
   critique the SKILLS, templates, or scripts that guided the phase, use
   the retro-skill skill instead.
-version: "0.1.0"
 ---
 
 # Spec Retro
@@ -133,11 +132,11 @@ Step 5 is a hard stop. Do not tick 6 before the user has answered.
 
 1. **Establish scope and provenance.** Identify the phase just
    executed, the documents it consumed, the documents it produced, and
-   the skill(s) and template(s) that guided it. Record the version of
-   each (SKILL.md frontmatter; template instruction headers; standards
-   frontmatter) and the plugin version — the report's Provenance block
-   needs them, and a later reader cannot judge "already fixed?" without
-   them.
+   the skill(s) and template(s) that guided it. Record each template's
+   version (its instruction header) and the plugin's release version,
+   which identifies the skills and standards — the report's Provenance
+   block needs them, and a later reader cannot judge "already fixed?"
+   without them.
 2. **Harvest evidence from the session.** Walk the session for
    friction, and state each item as a finding — what happened, the
    defect, the root cause. Sources of findings:

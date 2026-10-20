@@ -35,7 +35,7 @@ esac
 command -v python3 >/dev/null 2>&1 || { echo "check-skills: python3 required" >&2; exit 2; }
 
 STRICT=$STRICT python3 - <<'PY'
-import glob, json, os, re, sys
+import glob, os, re, sys
 
 # The skill re-injection cap: after a compaction Claude re-reads at most
 # ~5,000 tokens of a loaded skill, and anything past that is simply gone.
@@ -199,18 +199,12 @@ for p in SKILLS + glob.glob('plugin/skills/*/references/*.md'):
     if re.search(r'\bmodel_reason\b', body):
         err(p, "uses `model_reason` — routing is by `tier`/`tier_reason`")
 
-# ---- 6. plugin skills carry the release version --------------------------
-# release cut's propagate step (scripts/propagate-version.sh) stamps the
-# release version into every plugin skill, but only into paths
-# config/release.toml lists in release_paths.
-plugin_version = json.load(open('plugin/.claude-plugin/plugin.json'))['version']
-release_toml = open('config/release.toml').read()
-for p in sorted(glob.glob('plugin/skills/*/SKILL.md')):
-    m = re.search(r'^version:\s*"?([^"\n]*)"?\s*$', open(p).read().split('\n---', 1)[0], re.M)
-    if not m or m.group(1) != plugin_version:
-        err(p, f"version must be the plugin's release version, {plugin_version}")
-    if f'"{p}"' not in release_toml:
-        err(p, "missing from release_paths in config/release.toml")
+# ---- 6. no `version` in SKILL.md frontmatter ------------------------------
+# The Agent Skills upload check (claude.ai, the Skills API) rejects it, and
+# Claude Code ignores it. The plugin's release version identifies a skill.
+for p in SKILLS:
+    if re.search(r'^version:', open(p).read().split('\n---', 1)[0], re.M):
+        err(p, "frontmatter has `version`; skills are identified by the plugin's release version")
 
 print("=== check-skills ===")
 for e in errors:   print(f"  ERROR {e}")

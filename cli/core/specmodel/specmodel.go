@@ -4989,8 +4989,8 @@ func (v *Contract) UnmarshalJSON(data []byte) error {
 // across documents or components rather than to one of them.
 //
 // Carries no version of its own. A standard that ships to other
-// repositories is vendored into a skill, and the skill's version
-// identifies the text a reader followed.
+// repositories is vendored into a skill, and the release version of the
+// plugin that ships the skill identifies the text a reader followed.
 type Standards struct {
 	// A one- to two-sentence summary of what this is and what it is
 	// responsible for.
@@ -5811,8 +5811,8 @@ func (v *FeatureBlueprint) UnmarshalJSON(data []byte) error {
 // A guide carries no relationships of its own: it explains a technique
 // rather than participating in the architecture graph. Like a standard,
 // it carries no version of its own: a guide that ships to other
-// repositories is vendored into a skill, and the skill's version
-// identifies the text.
+// repositories is vendored into a skill, and the release version of the
+// plugin that ships the skill identifies the text.
 type Guide struct {
 	// A one- to two-sentence summary of what this is and what it is
 	// responsible for.

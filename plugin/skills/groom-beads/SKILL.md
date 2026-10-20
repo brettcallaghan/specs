@@ -10,7 +10,6 @@ description: >-
   before a long-running or orchestrated session. Trigger even if the user
   just says "groom these" or "make these beads ready" in a repo that uses
   beads.
-version: "0.1.0"
 ---
 
 # Bead Grooming

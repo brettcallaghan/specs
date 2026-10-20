@@ -11,7 +11,6 @@ description: Evidence-based retrospective on a SKILL that an agent just
   produced a wrong result, or when asked to retro a skill, critique a
   skill, report a bug in a skill, or capture how a skill could be
   improved.
-version: "0.1.0"
 ---
 
 # Skill Retro
@@ -138,8 +137,9 @@ issue is adopted, and how recurrence across runs is weighted, is the
 triage side's call — never the retro's. Record, at the head of the
 report:
 
-- **skill** and **skill_version** — the skill critiqued and its
-  SKILL.md frontmatter version.
+- **skill** and **skill_version** — the skill critiqued and the release
+  version of the plugin that shipped it (from its plugin manifest), or the
+  commit for a skill that ships in no plugin.
 - **model** and **effort** — exact model id and reasoning effort
   (e.g. `claude-opus-4-8[1m]`, effort high). Not "Claude".
 - **session** — the harness's session identifier, WHERE it exposes one.

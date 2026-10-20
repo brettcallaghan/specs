@@ -4,10 +4,8 @@
 #
 # `release cut` runs it in the stage checkout with RELEASE_VERSION set and
 # commits what it changes, provided every path is in release_paths. It writes
-# the version into the specs plugin manifest and into the `version` of every
-# plugin skill, so the plugin, its skills and the `specs` CLI released from the
-# same commit carry one version. A new skill must also be listed in
-# config/release.toml's release_paths; scripts/check-skills.sh enforces both. The marketplace
+# the version into the specs plugin manifest, so the plugin and the `specs`
+# CLI released from the same commit carry one version. The marketplace
 # (brettcallaghan/agent-plugins) serves the plugin from the release/vMAJOR
 # branch, which the release workflow moves, so it carries no version to pin.
 set -eu
@@ -41,18 +39,3 @@ except BaseException:
         pass
     raise
 PY
-
-for skill in plugin/skills/*/SKILL.md; do
-  python3 -I - "$skill" "$RELEASE_VERSION" <<'PY'
-import re, sys
-path, version = sys.argv[1], sys.argv[2]
-text = open(path, encoding="utf-8").read()
-end = text.find("\n---", 4)
-if not text.startswith("---\n") or end < 0:
-    sys.exit(f"{path}: no frontmatter")
-head, n = re.subn(r'^version:.*$', f'version: "{version}"', text[:end], count=1, flags=re.M)
-if n != 1:
-    sys.exit(f"{path}: no version field to update")
-open(path, "w", encoding="utf-8").write(head + text[end:])
-PY
-done
