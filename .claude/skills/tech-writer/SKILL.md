@@ -1,30 +1,25 @@
 ---
 name: tech-writer
-description: Drafts, revises, and audits technical documentation in Google developer style. Applies the nbj-write-clearly skill with amendments for docs. Use for READMEs, release notes and changelogs, docs-site pages, help-center content, UI copy, and specs written for human review.
+description: Drafts, revises, and audits technical documentation in the Google developer documentation style guide, with this project's extensions. Use for READMEs, release notes and changelogs, docs-site pages, help-center content, UI copy, and specs written for human review.
 ---
 
 # Tech writer
 
-This skill writes and revises technical documentation by applying the
-vendored **nbj-write-clearly** skill (MIT; it paraphrases the Google Developer
-Documentation Style Guide) and amending it for docs. nbj-write-clearly drives
-the work: who the reader is, how the document is structured, and Google's
-prose rules. This file adds rules nbj-write-clearly leaves open and patterns
-to check.
-
-Load nbj-write-clearly before you start, then apply this file on top of it.
+Use the Google developer documentation style guide
+(developers.google.com/style). This file covers only what extends it: what a
+rewrite must leave alone, project terms, rules that settle choices Google
+leaves open, and patterns to check.
 
 **Precedence:** the user's explicit request and the destination's requirements
 win. Then source facts, quotations, and technical tokens, which no rule may
-change. Then this file, then nbj-write-clearly.
+change. Then this file, then Google's guide.
 
-**This skill's style is the style.** When you invoke it, apply the rules of
-this file and nbj-write-clearly in full. nbj-write-clearly's "Follow
-project-specific style" step doesn't apply. The only project input you keep is
-terminology: the names the project uses for its concepts. Don't copy the
-existing document's habits, such as heading case, dashes, contractions, comma
-use, emphasis, or spelling. Voice is a separate step that runs after this
-skill, so don't preserve the existing voice either.
+**This skill's style is the style.** Apply Google's guide and this file in
+full. The only project input you keep is terminology: the names the project
+uses for its concepts. Don't copy the existing document's habits, such as
+heading case, dashes, contractions, comma use, emphasis, or spelling. Voice is
+a separate step that runs after this skill, so don't preserve the existing
+voice either.
 
 A line is finished only when it follows every rule here. Matching the rest of
 the document doesn't count.
@@ -64,6 +59,17 @@ habits are easy to mistake for house style, and they are not:
 - Capitalized EARS keywords (WHEN, WHILE, IF, WHERE) belong only in requirement statements. In other prose, write them as ordinary words.
 - Present tense for what is true now (T6).
 - Name the reader early: say who the document is for and what they decide or do with it, when the source makes that clear.
+
+## Project terms
+
+The spec skill's document types are proper names. Write them in title case
+wherever they appear, including in sentence-case headings and in plurals:
+ADR, FRD, Standards, System Blueprint, Container Blueprint, Component
+Blueprint, Module Blueprint, Feature Blueprint, Contract, and Work Order.
+Write "a Component Blueprint," not "a component blueprint."
+
+This applies only when the word names the document type. "The API contract
+between two services" and "a blueprint for the rollout" use ordinary words.
 
 ## Punctuation
 
@@ -196,15 +202,14 @@ margin.
 
 ## How to run it
 
-1. Load nbj-write-clearly, then this file.
-2. Identify the reader, their goal, the doc type, and the task (draft, revise, or audit). Mark what must not change, using both nbj-write-clearly's list and Scope and defaults above.
-3. **Draft or revise.** Follow nbj-write-clearly's "Write or revise" steps with this file's rules. Read its references/guide.md when the doc has procedures, code, UI labels, tables, images, or accessibility needs. Google style compliance is always the goal here, so when a question turns on a specific rule that references/guide.md doesn't settle (word choice, a punctuation mark, numbers, dates, units, product names, capitalization), find it in references/official-index.md and open that page when browsing is available. That file's note that project style comes first doesn't apply, as "This skill's style is the style" says.
-4. **Check the patterns.** Run "Patterns to check" and the T-patterns over the result. Prefer a fresh-context reviewer: run this pass in a subagent that sees only the draft, the reader card if one exists, and these rules. A reviewer that wrote the draft tends to approve it.
-5. **Validate.** Run nbj-write-clearly's "Validate" checklist on the final text, and check it against "Google rules to apply every time." Skip the checklist's last item, on sounding like the author; voice is a later step.
-6. **Return the result.**
-   - For an audit, change nothing. Report findings in priority order with short examples, as nbj-write-clearly says.
+1. Identify the reader, their goal, the doc type, and the task (draft, revise, or audit). Mark what must not change, using Scope and defaults above.
+2. **Draft or revise** to Google's guide and this file. When a question turns on a specific Google rule (word choice, a punctuation mark, numbers, dates, units, product names, capitalization), look it up on developers.google.com/style when browsing is available.
+3. **Check the patterns.** Run "Patterns to check" and the T-patterns over the result. Prefer a fresh-context reviewer: run this pass in a subagent that sees only the draft, the reader card if one exists, and these rules. A reviewer that wrote the draft tends to approve it.
+4. **Validate.** Check the final text against "Google rules to apply every time" and "Project terms," and check that nothing in Scope and defaults changed.
+5. **Return the result.**
+   - For an audit, change nothing. Report findings in priority order with short examples.
    - For pasted text, return the revised text.
    - For a file, write the revised file, summarize what changed, and list the findings for the user.
-7. If the project uses Vale, run it last and fix what it flags.
+6. If the project uses Vale, run it last and fix what it flags.
 
 Stop when the doc is clear, accurate, and consistent, and every line follows the rules above. Don't keep polishing lines that already do.
