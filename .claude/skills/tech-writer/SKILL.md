@@ -17,9 +17,7 @@ change. Then this file, then Google's guide.
 **This skill's style is the style.** Apply Google's guide and this file in
 full. The only project input you keep is terminology: the names the project
 uses for its concepts. Don't copy the existing document's habits, such as
-heading case, dashes, contractions, comma use, emphasis, or spelling. Voice is
-a separate step that runs after this skill, so don't preserve the existing
-voice either.
+heading case, dashes, contractions, comma use, emphasis, spelling, or voice.
 
 A line is finished only when it follows every rule here. Matching the rest of
 the document doesn't count.
@@ -61,6 +59,61 @@ Write "a Component Blueprint," not "a component blueprint."
 
 This applies only when the word names the document type. "The API contract
 between two services" and "a blueprint for the rollout" use ordinary words.
+
+## Voice and tone
+
+Google's guide sets the base tone. On top of it, keep one voice in every
+document, and shift the tone to fit the reader.
+
+Write like an experienced colleague who remembers being new:
+
+- **Outcome-minded.** Tie each technical fact to what the reader sees, waits for, can now do, or must change.
+- **Candid.** State known bugs, unsupported cases, and sharp edges where the reader will meet them. Don't bury them, and don't oversell.
+- **A translator.** Expertise shows in how simple you make a hard thing look, not in how technical you sound.
+- **Respectful of the reader's judgment.** Readers know their own setup. Give them what they need to decide, and don't decide for them.
+- **No humor** in errors, troubleshooting, security, or breaking changes. Elsewhere, default to none.
+
+Don't sound like a salesperson (benefits without mechanisms, claims nobody can
+check), a consultant (frameworks and padding before the answer), a press
+release ("We're excited to…"), or a lecturer (background the reader must sit
+through before they can act).
+
+A release note, off-voice and on-voice:
+
+> This release introduces significant enhancements to the caching layer,
+> providing a more robust and seamless experience across a variety of
+> deployment scenarios.
+
+> Cached pages expire after 10 minutes instead of 24 hours, so edits show up
+> sooner. If you set `CACHE_TTL` yourself, nothing changes for you.
+
+### Profile the reader
+
+Before you write, profile the reader in your working notes, not in the
+document:
+
+```
+Reader:  who, and how they arrive
+Knows:   what they already know, and what they don't
+Wants:   the one thing they came to do or decide
+Budget:  how long they'll give this page
+Tone:    how the voice adjusts for them
+```
+
+Start from the default for the doc type in `references/reader-profiles.md`
+and adjust it for the project. When a document has several readers, profile
+the one whose needs should set the tone. If you can't tell, write down your
+assumption and proceed.
+
+The profile sets the tone in every task. When you draft, it also sets the
+content: add what the reader needs and lacks (a prerequisite, a term's
+meaning, a default), cut what they already know, put the answer to "Wants"
+first, and order the rest by the reader's next step unless a template fixes
+the order. When you revise, content is fixed (see Scope and defaults), so the
+profile changes only how things are worded.
+
+Vary sentence length in narrative docs. Keep steps and reference entries
+parallel. When unsure, choose clear over friendly, and friendly over clever.
 
 ## Punctuation
 
@@ -130,9 +183,6 @@ Cut them and start with the content. A heading already says what a section
 covers. A sentence that introduces a table or list is different, and Google
 asks for one.
 
-**Wrong reader.** Don't strip prerequisites, definitions, or "why" on the
-grounds that the reader already knows them.
-
 ## New patterns for technical docs
 
 **T1. Terminology drift.** The same concept appears under different names ("config file," "settings file," "configuration"). Pick one term per concept and use it everywhere. Never vary a technical term for style, even if a rewrite elsewhere encourages variety. Check that the names really are one concept first: some pairs that look like synonyms aren't (an Xcode workspace contains projects).
@@ -149,10 +199,6 @@ grounds that the reader already knows them.
 
 **T7. Invented examples.** A rewrite must never invent a flag, an output, a default, or an example value. If an example would help and you don't have a real one, leave it out.
 
-## Rhythm by doc type
-
-Vary sentence length in READMEs, explanations, tutorial narration, and announcements. For reference pages and numbered steps, consistent and parallel structure is better. Vary rhythm in the prose around the steps, not in the steps.
-
 ## Line wrapping
 
 Follow the destination's line width. Google's Markdown guide keeps an
@@ -163,10 +209,10 @@ margin.
 
 ## How to run it
 
-1. Identify the reader, their goal, the doc type, and the task (draft, revise, or audit). Mark what must not change, using Scope and defaults above.
+1. Identify the doc type and the task (draft, revise, or audit), and profile the reader (see Voice and tone). Mark what must not change, using Scope and defaults above.
 2. **Draft or revise** to Google's guide and this file. When a question turns on a specific Google rule (word choice, a punctuation mark, numbers, dates, units, product names, capitalization), look it up on developers.google.com/style when browsing is available.
-3. **Check the patterns.** Run "Patterns to check" and the T-patterns over the result. Prefer a fresh-context reviewer: run this pass in a subagent that sees only the draft, the reader card if one exists, and these rules. A reviewer that wrote the draft tends to approve it.
-4. **Validate.** Check the final text against Google's guide, "Rules Google leaves open," and "Project terms," and check that nothing in Scope and defaults changed.
+3. **Check the patterns.** Run "Patterns to check" and the T-patterns over the result. Prefer a fresh-context reviewer: run this pass in a subagent that sees only the draft, the reader profile, and these rules. A reviewer that wrote the draft tends to approve it.
+4. **Validate.** Check the final text against Google's guide, "Rules Google leaves open," "Project terms," and the reader profile's tone, and check that nothing in Scope and defaults changed.
 5. **Return the result.**
    - For an audit, change nothing. Report findings in priority order with short examples.
    - For pasted text, return the revised text.
