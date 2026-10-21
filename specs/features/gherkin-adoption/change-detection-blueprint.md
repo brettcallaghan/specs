@@ -11,50 +11,50 @@ delivery: single-pr
 frd: frd-gherkin-adoption
 ---
 
-# Criterion Change Detection Against Git
+# Criterion change detection against Git
 
 ## Overview
 
 **FRD:** [[frd-gherkin-adoption]]
 
 This blueprint covers FEAT-GHK-008 only, as rewritten on 2026-10-08. The
-rest of the FRD was built under `feature-gherkin-adoption`, now
-retired, and its other changes of that date are carried as standalone
-work orders (see Tracker Reconciliation).
+rest of the FRD was built under the retired `feature-gherkin-adoption`
+Feature Blueprint. Standalone Work Orders carry the FRD's other changes of
+that date (see Tracker reconciliation).
 
-Today `criterion --changed` compares the working tree against
+The index-based `criterion --changed` compares the working tree against
 `specs.json`, an artifact every query may rewrite, so its baseline is
-whatever the last query left behind. The comparison moves to a git
-revision. A new **Revisions** component in [[module-document-core]]
-resolves the base commit and copies the spec root as that commit holds
-it into a temporary directory, through the `git` executable
-([[adr-031]]). The Corpus build already used for the working tree builds
-that copy unchanged, and Command Surface compares the two builds' criteria
-by identifier and content hash, as it does now. The persisted index takes
-no part.
+whatever the last query left behind. This change moves the comparison to
+a Git revision. A new **Revisions** component in [[module-document-core]]
+works through the `git` executable ([[adr-031]]). It resolves the base
+commit and copies the spec root, as that commit holds it, into a temporary
+directory. The Corpus build that the working tree already uses builds
+that copy unchanged. Command Surface compares the two builds' criteria by
+identifier and content hash, as it does now. The persisted index takes no
+part.
 
 Delta blocks in dependency order: BASE, then DIFF.
 
-## Element Deltas
+## Element deltas
 
 ### Revisions in [[module-document-core]] (added) — BASE
 
-**Intent:** give Document Core the one capability the comparison lacks,
-which is reading the spec root as a commit holds it. The capability is
-framework-agnostic, since it knows git and directories and no document
-type, so it belongs in the module rather than in the command surface
-([[container-spec-cli]]'s Change Guidance). It returns a directory
-rather than a parsed corpus so that the base and the working tree pass
-through one build.
+**Intent:** give Document Core the one capability the comparison lacks:
+reading the spec root as a commit holds it. The capability is
+framework-agnostic because it knows Git and directories and no document
+type. So it belongs in the module rather than in the command surface
+([[container-spec-cli]]'s Change guidance). It returns a directory rather
+than a parsed corpus so that the base and the working tree pass through
+one build.
 
 **New components:**
-- **Revisions** (Go package) — Resolves a git revision to a commit and
+- **Revisions** (Go package) — Resolves a Git revision to a commit and
   materializes a directory's tracked files at that commit. Runs the
   `git` executable as a subprocess: `rev-parse` to locate the repository
   and resolve revisions, `merge-base` for the base, `ls-tree` to list a
   path's tracked files, and `cat-file --batch` to read their blobs.
   Writes only into a temporary directory it creates and removes. It
-  knows nothing of documents, criteria or the index.
+  knows nothing of documents, criteria, or the index.
 
   ```component
   entity_name: Revisions
@@ -101,16 +101,16 @@ through one build.
 - The component SHALL NOT write to the repository or its `.git`
   directory, and SHALL NOT change HEAD, the index or the working tree.
 
-**Anchors:** new package beside `cli/core/corpus`. Its tests build
-throwaway repositories with `git init` in `t.TempDir()`, the way
-`cli/specs/main_e2e_test.go` already drives subprocesses.
+**Anchors:** a new package beside `cli/core/corpus`. Its tests build
+throwaway repositories with `git init` in `t.TempDir()`, the same way
+`cli/specs/main_e2e_test.go` drives subprocesses.
 
 ### Command Surface in [[container-spec-cli]] (modified — change listing) — DIFF
 
-**Intent:** point `criterion --changed` at a git base and give it the
-answer and the statuses [[cli-output-standards]] and
+**Intent:** point `criterion --changed` at a Git base, and give it the
+answer and the statuses that [[cli-output-standards]] and
 [[cli-exit-status-standards]] require of a query. The comparison itself
-does not change: identifier and content hash only, never position.
+doesn't change: it uses identifier and content hash only, never position.
 
 **Behavior:**
 - WHEN `criterion --changed` runs, the command SHALL build the current
@@ -152,10 +152,10 @@ does not change: identifier and content hash only, never position.
 **Anchors:** `runCriterionChanged`, `changedCriteria`, `criterionHashes`
 and `renderCriterionChanges` in `cli/cmd/criterion.go`; `corpusOptions`
 in `cli/cmd/root.go`. The snapshot cases `criterion-changed`,
-`criterion-changed-none` and `criterion-changed-no-index` under
+`criterion-changed-none`, and `criterion-changed-no-index` under
 `cli/testdata/cases/` depend on a persisted index as their baseline, and
-a snapshot case's input cannot hold a git repository. They are replaced
-by end-to-end tests that build their repository at test time.
+a snapshot case's input can't hold a Git repository. End-to-end tests
+that build their repository at test time replace them.
 
 ### Relied-upon elements (unchanged)
 
@@ -172,29 +172,29 @@ by end-to-end tests that build their repository at test time.
 None. The answer's shape is fixed in the DIFF delta and reaches callers
 only through the command surface.
 
-## Tracker Reconciliation
+## Tracker reconciliation
 
 - Subsumed by DIFF, with BASE: "criterion --changed
   compares against a git ref instead of the persisted index." Grooming
-  blocks that issue on DIFF, and the Definition of Done closes it.
-- Prerequisite: the work order that implements the exit-status classes,
+  blocks that issue on DIFF, and the Definition of done closes it.
+- Prerequisite: the Work Order that implements the exit-status classes,
   including the environment status `3` that BASE's errors and the
   `--since` invocation error depend on.
 - Out-of-scope: the work that renders `feature` and `criterion`
-  queries as YAML lists. DIFF renders the change listing itself, and
+  queries as YAML lists. DIFF renders the change listing itself and
   shares that work's YAML renderer without depending on its record
   shape.
-- Out-of-scope: whether queries may write `specs.json`.
-  DIFF stops `--changed` reading it, whatever that decides.
+- Out-of-scope: whether queries may write `specs.json`. DIFF stops
+  `--changed` from reading it, whatever that work decides.
 
-## Sequencing Constraints
+## Sequencing constraints
 
 - `delivery: single-pr`. BASE and DIFF land in the same change, with
-  the documentation updates the Definition of Done lists.
+  the documentation updates the Definition of done lists.
 - The BASE delta SHALL land before the DIFF delta.
 - The exit-status work order SHALL land before the DIFF delta.
 
-## AC Coverage
+## AC coverage
 
 Legend: BASE = Revisions delta in [[module-document-core]];
 DIFF = change listing delta in [[container-spec-cli]].
@@ -211,24 +211,24 @@ DIFF = change listing delta in [[container-spec-cli]].
 | AC-GHK-008.8 | **DIFF (proves)** | e2e |
 | AC-GHK-008.9 | BASE, **DIFF (proves)** | e2e |
 
-## Key Decisions
+## Key decisions
 
 - [[adr-031]] — base revisions are read through the `git` executable,
   with tracked blobs copied into a temporary directory.
 
-## Definition of Done
+## Definition of done
 
 - [x] Every delta above is folded into its owning blueprint:
   - [x] [[module-document-core]] — Revisions added to the Components
-    roster, the diagram and its record block
+    roster, the diagram, and its record block
   - [x] [[container-spec-cli]] — the `criterion --changed` paragraph of
-    Command Surface rewritten for the git base, `--since` and
+    Command Surface rewritten for the Git base, `--since` and
     `--exit-code`
 - [x] [[adr-031]] status: draft → approved, and referenced from the Key
   Decisions of [[module-document-core]] and [[container-spec-cli]]
 - [x] Every AC in the coverage table is verified at its declared level
   and cited from its tests per [[ac-traceability-standards]]
-- [x] Every behaviour this blueprint decided that no FRD criterion asks
+- [x] Every behavior this blueprint decided that no FRD criterion asks
   for (the default-branch order, the answer's shape, `--since` without
   `--changed`, a spec root outside the work tree) is lifted into
   [[frd-gherkin-adoption]] as a criterion and cited from its test
@@ -241,7 +241,7 @@ DIFF = change listing delta in [[container-spec-cli]].
 - [x] With this blueprint already retired, `specs check --strict` over
   the corpus is green
 
-## Open Questions
+## Open questions
 
 None.
 
@@ -249,8 +249,8 @@ None.
 
 - [[c4-standards]] — the component and module definitions the delta
   blocks are written against
-- `feature-gherkin-adoption` — the retired blueprint that built the
-  rest of this FRD, including the index-based comparison this replaces
+- `feature-gherkin-adoption` — the retired Feature Blueprint that built
+  the rest of this FRD, including the index-based comparison this replaces
 - [[adr-020]] — FRDs evolve in place, and deltas between versions are
   keyed on AC identifiers, which is the comparison this command performs
 - [[cli-exit-status-standards]] — the classes BASE's errors map to

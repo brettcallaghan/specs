@@ -15,74 +15,72 @@ sources: []
 ## Overview
 
 A corpus that follows [[c4-standards]] describes an architecture, but no
-artifact states it. The elements are scattered across system, container,
-module and component blueprints and the record blocks inside them; the
+artifact states it. The elements are scattered across System, Container,
+Module, and Component Blueprints and the record blocks inside them. The
 relationships between them exist only as `Rel(...)` lines in Mermaid
-diagrams. A reader — human, agent or the Architecture Catalogue named in
-[[container-spec-cli]] — who wants to know what the system is made of and
-what depends on what must open every blueprint and reassemble the model
-by hand, and gets a different answer each time the corpus changes.
+diagrams. A reader who wants to know what the system is made of, and what
+depends on what, must open every blueprint and reassemble the model by hand.
+That reader gets a different answer each time the corpus changes, whether
+it's a human, an agent, or the Architecture Catalogue named in
+[[container-spec-cli]].
 
 This feature adds `specs c4`, which emits that model as one structured
-artifact: elements nested by containment, modules held apart because they
-may be composed into several containers, and relationships as a flat edge
-list carrying the document and line each was drawn at. It is a
-projection of the index: the index says which documents are
-architecture blueprints and where each record block sits, and the
-command reads back only what the index points at — each record block
-through its span, decoded into the element record's Go type, and the
-Mermaid C4 diagrams, parsed per [[adr-029]].
+artifact. Elements nest by containment. Modules are held apart, because they
+may be composed into several containers. Relationships form a flat edge list
+that carries the document and line where each was drawn.
 
-The diagram parser and node resolution are
-[[frd-spec-c4-diagrams]]'s, which also checks diagrams for conformance.
-This feature depends on that one and adds the model built from what it
-resolves.
+The command is a projection of the index. The index says which documents are
+architecture blueprints and where each record block sits. The command reads
+back only what the index points at: it reads each record block through its
+span and decodes it into the element record's Go type, and it parses the
+Mermaid C4 diagrams per [[adr-029]].
+
+The diagram parser and node resolution belong to [[frd-spec-c4-diagrams]],
+which also checks diagrams for conformance. This feature depends on that one
+and adds the model built from what it resolves.
 
 ### Prerequisites
 
-The index does not yet carry one thing this feature projects, and it is a
-prerequisite rather than part of it:
+One thing this feature projects is a prerequisite rather than part of it:
 
-- **Recorded record blocks.** Recording each registered block's tag and
-  span against its heading is AC-SPECSTR-001.2 of [[frd-spec-structure]],
-  which waits on the tag registration in FEAT-SPECSTR-004 of
-  [[frd-spec-structure-conformance]]. The index carries where a record
-  is, not what it says; this command decodes the content itself. Today
-  the index records no record block at all — `specs index` on this
-  repository reports zero, including the `component` block in
-  [[container-spec-cli]]'s roster. Without them the tree holds only
-  promoted elements.
+- **Recorded record blocks.** The index records each registered block's tag
+  and span against its heading (AC-SPECSTR-001.2 of [[frd-spec-structure]]).
+  That depends on the tag registration in FEAT-SPECSTR-004 of
+  [[frd-spec-structure-conformance]]. The index carries where a record is,
+  not what it says. This command decodes the content itself. Without recorded
+  blocks, the tree holds only promoted elements.
 
-This feature reads each document's type-specific frontmatter — `system`,
-`modules`, `entity_name`, `kind`, `visibility`, `provider` and
-`contracts_consumed` — from the index, which carries every property a
-document's type defines (AC-SPEC-002.1 of [[frd-spec-index]]).
+This feature reads each document's type-specific frontmatter from the index,
+which carries every property a document's type defines (AC-SPEC-002.1 of
+[[frd-spec-index]]). It reads `system`, `modules`, `entity_name`, `kind`,
+`visibility`, `provider`, and `contracts_consumed`.
 
 ### Out of scope
 
-- **People and external systems** as elements. An edge touching one is
+- **People and external systems** as elements. An edge that touches one is
   reported as an excluded relationship.
 - **Dynamic and deployment diagrams.** They contribute nothing to the
   model.
 - **Contract tags in the reference graph.** A `contract:` tag is not a
-  wikilink, so `specs refs` on a contract does not list the diagrams that
+  wikilink, so `specs refs` on a contract doesn't list the diagrams that
   tag it.
 - **Other output formats**, such as Structurizr DSL or Backstage
   descriptors.
 
 ## Terminology
 
-The terms this feature shares with [[frd-spec-c4-diagrams]] — architecture
-blueprint, element, entity name, C4 diagram, drawing document, scope of a
-drawing document, the diagram statement kinds, drawing and reserved tag —
-are defined there and used here unchanged. In addition:
+[[frd-spec-c4-diagrams]] defines the terms this feature shares with it, and
+this feature uses them unchanged: architecture blueprint, element, entity
+name, C4 diagram, drawing document, scope of a drawing document, the diagram
+statement kinds, drawing, and reserved tag. This feature also uses these
+terms:
 
-- **Drawing document**, as used for edges: per [[adr-009]] it holds the
-  edges among its element's children, and draws its element's outward
-  edges in a Context view.
+- **Drawing document**, as used for edges: per [[adr-009]], it holds the
+  edges among its element's children and draws its element's outward edges
+  in a Context view.
 - **Relationship** — a dependency edge between two elements, read from a
   relationship statement in a C4 diagram: the source depends on the
-  target. It is identified by its source, target and description.
+  target. It's identified by its source, target, and description.
 - **Excluded relationship** — a relationship statement the model does not
   admit, recorded with the reason it was excluded.
 - **Orphaned element** — a container whose blueprint names no system, or
@@ -423,13 +421,13 @@ Feature: Output
   feature builds on
 - [[adr-009]] — an edge's two homes, the parent and the Context view
 - [[adr-008]] — record blocks declare un-promoted elements
-- [[c4-standards]] — levels, naming, diagram types and arrow direction
+- [[c4-standards]] — levels, naming, diagram types, and arrow direction
 - [[frd-spec-index]] — the index this feature projects, and the unverified
   severity of AC-SPEC-006.3
 - [[frd-spec-structure]] and [[frd-spec-structure-conformance]] — record
   block parsing and registration, which this feature depends on
-- [[cli-output-standards]] — YAML by default, `--json`, and stable order;
-  its command table gains a `c4` row when the command lands
+- [[cli-output-standards]] — YAML by default, `--json`, and stable order.
+  Its current-conformance table has a `c4` row.
 - [[cli-exit-status-standards]] — why a root naming no element exits zero
 - [[container-spec-cli]] — the CLI and the Architecture Catalogue that
   consumes its artifacts

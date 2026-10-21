@@ -10,18 +10,18 @@ delivery: staged
 frd: frd-spec-anchor-references
 ---
 
-# Spec Corpus Anchor References
+# Spec corpus anchor references
 
 **FRD:** [[frd-spec-anchor-references]]
 
 ## Overview
 
-The anchor half of a reference is already extracted and carried in the
-index; what is missing is everything downstream of it. This design adds
-one derivation — the heading identifier a markdown renderer computes —
-and makes it the single thing both the matcher and the link rewriter
-use, so an anchor the checks call resolved is an anchor an exported copy
-can target. On top of it, `References` gains anchor resolution, `Corpus`
+The index already extracts and carries the anchor half of a reference.
+What's missing is everything downstream of it. This design adds one
+derivation, the heading identifier a Markdown renderer computes, and
+makes it the single thing both the matcher and the link rewriter use. So
+an anchor the checks call resolved is an anchor an exported copy can
+target. On top of it, `References` gains anchor resolution, `Corpus`
 gains two checks, and the command surface gains an anchor-qualified
 `refs` query. The frontmatter schema is widened so a citation may carry
 an anchor where a document's own slug may not, and the finding union
@@ -29,14 +29,14 @@ gains the two variants the checks report through.
 
 Delta blocks in dependency order: FIND, SREF, AEX, MDL, ARES, CHK, CMD.
 
-## Element Deltas
+## Element deltas
 
 ### Findings in [[module-document-core]] (modified) — FIND
 
 **Intent:** The two anchor checks report defects the existing finding
-variants cannot carry: an anchor that named no heading, and one that
-named several. Both are structured — the reader's next step is to open a
-heading — so each gets a variant rather than a message string, in
+variants can't carry: an anchor that named no heading, and one that named
+several. Both are structured (the reader's next step is to open a
+heading), so each gets a variant rather than a message string, in
 `schemas/finding.strata` alongside every other model.
 
 **Behavior:**
@@ -59,7 +59,7 @@ the constructors in `cli/core/finding`.
 today, and the slug pattern admits no `#`, so a citation carrying an
 anchor fails schema validation before anything resolves it. The
 identity a document declares and a citation of someone else's identity
-are two different types wearing one name; this delta separates them.
+are two different types wearing one name. This delta separates them.
 
 **Behavior:**
 - The profile's frontmatter schema SHALL declare a citation type that
@@ -78,8 +78,8 @@ are two different types wearing one name; this delta separates them.
 **Intent:** Extraction already splits a reference on its first `#` and
 records the anchor as authored, from a body wikilink and from a
 registered frontmatter property alike. This delta pins the semantics the
-FRD now fixes and covers them with tests, so a later change cannot
-quietly acquire an alias splitter or normalize on the way in.
+FRD fixes and covers them with tests, so a later change can't quietly
+acquire an alias splitter or normalize on the way in.
 
 **Behavior:**
 - The component SHALL record an anchor as authored, without
@@ -99,9 +99,9 @@ quietly acquire an alias splitter or normalize on the way in.
 **Intent:** `cli/core/mdlinks` holds a private heading-identifier
 derivation, and [[frd-spec-structure]] exposes the one this feature
 matches against. Left as two, they can disagree, and every disagreement
-is a link the checks call resolved and a reader cannot follow. This
-delta makes the rewriter a consumer of the shared derivation, and
-settles which heading a fragment is derived from.
+is a link the checks call resolved and a reader can't follow. This delta
+makes the rewriter a consumer of the shared derivation and settles which
+heading a fragment is derived from.
 
 **Behavior:**
 - `Markdown Links` SHALL derive a fragment through the heading
@@ -117,11 +117,11 @@ settles which heading a fragment is derived from.
 
 ### References in [[module-document-core]] (modified — matching) — ARES
 
-**Intent:** Resolution answers what a reference reached; it answers only
-the slug half today. This delta extends it to the anchor, against the
-headings the index carries for the target document, and keeps the
-existing seam: extraction knows a document, resolution knows a corpus,
-and matching a heading is a corpus question.
+**Intent:** Resolution answers what a reference reached, and today it
+answers only for the slug half. This delta extends it to the anchor,
+against the headings the index carries for the target document. It keeps
+the existing seam: extraction knows a document, resolution knows a
+corpus, and matching a heading is a corpus question.
 
 **Behavior:**
 - The component SHALL match an anchor against a heading by deriving a
@@ -143,10 +143,10 @@ and matching a heading is a corpus question.
 
 ### Anchor checks in [[module-document-core]] (added) — CHK
 
-**Intent:** The checks are what makes an anchor's breakage visible. They
-report at the document a reader must open, which for a reference is the
-referring document, and they add nothing where the slug already failed —
-one mistake, one finding.
+**Intent:** The checks make an anchor's breakage visible. They report at
+the document a reader must open, which for a reference is the referring
+document. They add nothing where the slug already failed: one mistake,
+one finding.
 
 **Behavior:**
 - WHEN an anchor matches no heading of a target whose headings are
@@ -171,10 +171,10 @@ one mistake, one finding.
 
 ### Command Surface in [[container-spec-cli]] (modified) — CMD
 
-**Intent:** `refs` answers what cites a document; the rename question an
-anchor creates is narrower — what cites this heading. The argument
-already has a place to put the anchor, since a reference's own notation
-carries one.
+**Intent:** `refs` answers what cites a document. The rename question an
+anchor creates is narrower: what cites this heading? The argument
+already has a place to put the anchor, because a reference's own
+notation carries one.
 
 **Behavior:**
 - WHEN `refs` is given an argument qualified by an anchor, the CLI SHALL
@@ -197,7 +197,7 @@ cases under `cli/testdata/cases/`.
 
 - [[frd-spec-structure]] — supplies the heading tree the ARES and CHK
   deltas match against, and the heading-identifier derivation ARES and
-  MDL both use; see Sequencing Constraints.
+  MDL both use; see Sequencing constraints.
 - [[container-spec-cli#Command Surface]] — the warm corpus open that
   `check` and `refs` already share.
 - `Corpus` in [[module-document-core]] — the index the resolved
@@ -210,29 +210,29 @@ cases under `cli/testdata/cases/`.
 ## Contracts
 
 - No new contract document. The finding JSON gains two variants under
-  the additive rule the generated schema already documents, and the
-  index gains no shape it did not carry: an anchor remains one string
-  recorded as authored.
+  the additive rule the generated schema already documents. The index
+  gains no shape it didn't carry: an anchor remains one string recorded
+  as authored.
 - [[contract-specs-configuration]] is untouched. The citation type SREF
   introduces is internal to the profile's frontmatter schema, and no
   `specs.toml` key changes meaning.
 
-## Tracker Reconciliation
+## Tracker reconciliation
 
-- Prerequisite: the issue that the relational reference checks
-  read documents off disk on the warm single-document path, which is the
-  path CHK extends with per-reference heading lookups. Landing anchor
-  checks on top of it compounds a budget defect rather than inheriting
-  it.
-- Out-of-scope: whether a retired document is
-  exempt from reference checks is a policy question for reference checks
-  as a whole. The anchor checks follow whatever that decides and
-  introduce no exemption of their own.
-- Out-of-scope: the issue that the feature-blueprint template's
-  slug rule contradicts the profile. This document follows the profile's
-  registered pattern; the template fix is not this feature's to make.
+- Prerequisite: the issue that the relational reference checks read
+  documents off disk on the warm single-document path, the path CHK
+  extends with per-reference heading lookups. Landing anchor checks on
+  top of it compounds a budget defect rather than inheriting it.
+- Out-of-scope: whether a retired document is exempt from reference
+  checks is a policy question for reference checks as a whole. The
+  anchor checks follow whatever that policy decides and introduce no
+  exemption of their own.
+- Out-of-scope: the issue that the Feature Blueprint template's slug rule
+  contradicts the profile. This document follows the profile's
+  registered pattern, and the template fix isn't this feature's to
+  make.
 
-## Sequencing Constraints
+## Sequencing constraints
 
 - `delivery: staged`. Two stages, each a reviewable increment:
   - **Stage 1 — the anchor in the index:** FIND, SREF, AEX. The
@@ -243,13 +243,12 @@ cases under `cli/testdata/cases/`.
     Anchors resolve, the checks report, `refs` answers by heading, and
     exit status becomes sensitive to anchors for the first time.
 - The heading tree in `Markdown Structure` SHALL be built before the
-  ARES and CHK deltas land. It does not exist today:
-  [[frd-spec-structure]] specifies it, and AC-SPECSTR-001.1 — a heading
-  recorded with the span of the content beneath it — is the whole of
-  what this feature needs from it. Stage 2 lands after that criterion
-  does. Shipping stage 2 first would report `unverified` for every
-  anchored reference in the corpus, and this repository's own gates run
-  `specs check --strict`, which fails on `unverified`.
+  ARES and CHK deltas land. [[frd-spec-structure]] specifies it, and
+  AC-SPECSTR-001.1 (a heading recorded with the span of the content
+  beneath it) is all this feature needs from it. Stage 2 lands after
+  that criterion does. Shipping stage 2 first would report `unverified`
+  for every anchored reference in the corpus, and this repository's own
+  gates run `specs check --strict`, which fails on `unverified`.
 - The FIND delta SHALL land before CHK, which reports through the
   variants it declares.
 - The SREF delta SHALL land before a frontmatter citation carrying an
@@ -269,19 +268,19 @@ cases under `cli/testdata/cases/`.
     act is the recorded no-bump.
   - [[module-document-core]] requires a new parsing capability to be
     built on the Spans delimiter scanner. No delta here parses anything
-    new: MDL consumes a derivation over text a heading already carries;
-    every position this feature reports is the `Span` its source already
-    holds.
+    new: MDL consumes a derivation over text a heading already carries,
+    and every position this feature reports is the `Span` its source
+    already holds.
   - [[container-spec-cli]] requires the snapshot regeneration script to
     be run and every diff reviewed when observable output changes. CHK
     and CMD each change observable output, and each lands with its
-    regenerated snapshots in the same change rather than a shared
+    regenerated snapshots in the same change, not in a shared
     regeneration pass at the end of stage 2.
 - No backward-compatibility window applies. [[module-document-core]] and
   [[module-spec-profile]] are both `visibility: internal` and evolve in
   lockstep with their only consumer.
 
-## AC Coverage
+## AC coverage
 
 Legend: FIND = the finding variants for the two anchor rules; SREF =
 the citation type in the profile's frontmatter schema; AEX = References
@@ -308,7 +307,7 @@ checks in `Corpus`; CMD = Command Surface in [[container-spec-cli]].
 | AC-SPECANCH-003.3 | **CMD (proves)** | integration |
 | AC-SPECANCH-003.4 | **CMD (proves)**, ARES | integration |
 
-## Key Decisions
+## Key decisions
 
 - [[adr-012]] — the wikilink and heading-anchor conventions this feature
   resolves, including the slug-less form its FRD added. No new ADR: the
@@ -320,7 +319,7 @@ checks in `Corpus`; CMD = Command Surface in [[container-spec-cli]].
   both directions derived from it; CMD answers by heading from the same
   collection rather than gaining an index of its own.
 
-## Definition of Done
+## Definition of done
 
 - [x] Every delta above is folded into its owning blueprint:
   - [x] [[module-document-core]] — References carries the five anchor
@@ -340,7 +339,7 @@ checks in `Corpus`; CMD = Command Surface in [[container-spec-cli]].
     `<slug>#<anchor>` argument form, the ambiguity mark, the empty
     answer, the `--outbound` refusal, and the YAML/JSON rendering
     [[cli-output-standards]] requires (CMD)
-- [x] New ADRs are referenced from the owning blueprints' Key Decisions
+- [x] New ADRs are referenced from the owning blueprints' Key decisions
   (none authored by this feature)
 - [x] Every AC in the coverage table is verified at its declared level
   and cited from its tests per [[ac-traceability-standards]] — all 16.
@@ -355,10 +354,11 @@ checks in `Corpus`; CMD = Command Surface in [[container-spec-cli]].
   which is cited at both levels), `refs-anchor` and `refs-anchor-json`
   (003.1), `check-path-anchor-elsewhere` (003.2), `refs-anchor-no-match`
   (003.3), `refs-anchor-ambiguous` (003.4)
-- [x] Every issue listed as subsumed in Tracker Reconciliation is closed
-  or re-scoped (none; the prerequisite closed as such, and the
-  retired-document exemption question — deferred — and the template slug
-  rule — open — remain out-of-scope, neither touched by this feature)
+- [x] Every issue listed as subsumed in Tracker reconciliation is closed
+  or re-scoped (none: the prerequisite closed as such. The
+  retired-document exemption question, which is deferred, and the
+  template slug rule, which is open, remain out-of-scope, and this
+  feature touches neither)
 
 - [x] [[frd-spec-markdown-links]]'s revised fragment criteria are
   verified by the MDL delta's tests, since this feature is what makes
@@ -374,13 +374,11 @@ checks in `Corpus`; CMD = Command Surface in [[container-spec-cli]].
   looser matcher from emitting fragments that reach nothing
 - [x] `specs check --strict` reports no findings over this repository's
   corpus, with `reference/unresolved-anchor` and
-  `reference/ambiguous-anchor` both listed `passed`. Eleven references
-  in this corpus carry an anchor — six into
-  `container-spec-cli#Command Surface`, five into component rosters of
-  [[module-document-core]] — and every one resolves
+  `reference/ambiguous-anchor` both listed `passed`. Every reference in
+  this corpus that carries an anchor resolves
 - [x] This blueprint's status → retired
 
-## Open Questions
+## Open questions
 
 None.
 
