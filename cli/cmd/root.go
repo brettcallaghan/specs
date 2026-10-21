@@ -9,14 +9,14 @@
 // cli/core/numbering and cli/core/finding, and renders their results as
 // stdout and an exit status. No file in this package decides what makes a
 // document valid, what a slug pattern is, or how a check is scored — that
-// is the binding Change Guidance in spec-cli-container.md ("a check that
+// is the binding Change guidance in spec-cli-container.md ("a check that
 // lived here would be unavailable to a future API or MCP wrapper"). A
 // capability that looks missing here belongs in cli/core or cli/profile,
 // not in a workaround in this file.
 //
 // `--help` text is never written by hand: it is cobra's own rendering of
 // the Use, Short and flag declarations below, so the declaration and the
-// help text cannot drift (spec-cli-container.md's Change Guidance).
+// help text cannot drift (spec-cli-container.md's Change guidance).
 package cmd
 
 import (

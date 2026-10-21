@@ -281,7 +281,7 @@ Good example:
       Then the system completes the transaction and displays the confirmation on their next visit
 -->
 
-## Open Questions
+## Open questions
 
 <!--
 Optional, draft only. Track unresolved questions while the document is

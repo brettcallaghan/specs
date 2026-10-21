@@ -13,7 +13,7 @@
 // write it — "system-blueprint") is converted to the PascalCase form the
 // top-level "definitions" are keyed by ("SystemBlueprint"). Both are
 // read from the schema, never from a list, which is what lets this
-// package name no document type of its own: [[module-spec-profile]]'s Change Guidance forbids it, and
+// package name no document type of its own: [[module-spec-profile]]'s Change guidance forbids it, and
 // specs/modules/document-core/document-core-module.md states the same rule for
 // every package under cli/core.
 //

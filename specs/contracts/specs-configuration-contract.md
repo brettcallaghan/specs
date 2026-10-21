@@ -101,7 +101,7 @@ Required sections are a **hierarchy, not a flat list.** A document's
 headings nest, and the rules worth enforcing are about that nesting. A
 missing `## Consequences` and a `### Consequences` misplaced under
 `## Decision` are different defects, and a flat list can't tell them
-apart. Nor can a flat list say that `## Alternatives Considered` holds
+apart. Nor can a flat list say that `## Alternatives considered` holds
 one subsection per alternative, which is the shape most likely to be
 gotten wrong. The registered form is therefore a tree, each node naming a
 heading, its level relative to its parent, whether it's required, and

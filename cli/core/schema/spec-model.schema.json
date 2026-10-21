@@ -1658,7 +1658,7 @@
       "properties": {
         "delivery": {
           "$ref": "#/definitions/Delivery",
-          "description": "The delivery unit grooming plans against. When `staged`, each stage\nboundary is enumerated in the blueprint's Sequencing Constraints."
+          "description": "The delivery unit grooming plans against. When `staged`, each stage\nboundary is enumerated in the blueprint's Sequencing constraints."
         },
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
@@ -4226,7 +4226,7 @@
     },
     "SystemBlueprint": {
       "additionalProperties": false,
-      "description": "A C4 system blueprint: the public contracts a system provides.\n\nThe containers a system bundles are not listed here. Each container\ndeclares the system that composes it in its own `system` property, and\nthe roster is derived from those inbound edges — one authoritative end,\nper the Document Relationship Standard.\n\nA system's dependency on another system is not recorded in frontmatter\nat all. Where the dependency is a named interface it is a contract, and\n`contracts_consumed` holds it. Where it is looser, the blueprint's own\n\"Consumed Systems and Contracts\" section says what is depended on and\nwhat for — which a slug list cannot, and which is what a reader actually\nneeds. A repository spanning more than one system is rare enough that a\nfrontmatter property for the untyped case would be maintained by nobody.",
+      "description": "A C4 system blueprint: the public contracts a system provides.\n\nThe containers a system bundles are not listed here. Each container\ndeclares the system that composes it in its own `system` property, and\nthe roster is derived from those inbound edges — one authoritative end,\nper the Document Relationship Standard.\n\nA system's dependency on another system is not recorded in frontmatter\nat all. Where the dependency is a named interface it is a contract, and\n`contracts_consumed` holds it. Where it is looser, the blueprint's own\n\"Consumed systems and Contracts\" section says what is depended on and\nwhat for — which a slug list cannot, and which is what a reader actually\nneeds. A repository spanning more than one system is rare enough that a\nfrontmatter property for the untyped case would be maintained by nobody.",
       "properties": {
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbor edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code. The\ncontract's consumers are derived from this property.",

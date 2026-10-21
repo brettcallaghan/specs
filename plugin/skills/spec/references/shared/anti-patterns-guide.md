@@ -43,5 +43,5 @@ a reviewer can cite the row instead of arguing from taste.
 | Recording durable content only in a Feature Blueprint | The Feature Blueprint retires on merge. Decisions belong in ADRs, and interface shapes belong in Contract documents. |
 | Task lists or new code structure in a Feature Blueprint | Wrong altitude: planners derive tasks, and implementers choose signatures. The blueprint carries deltas, constraints, and anchors. |
 | Merging a feature without folding its deltas into the owning blueprints | Architecture blueprints rot, and the reference chain collapses. The Definition of done includes the documentation updates. |
-| Beginning implementation planning against a draft Feature Blueprint | Planning SHALL NOT begin until status is approved and Open Questions is empty — gaps bounce back to the human loop, never get guessed at |
+| Beginning implementation planning against a draft Feature Blueprint | Planning SHALL NOT begin until status is approved and Open questions is empty — gaps bounce back to the human loop, never get guessed at |
 | Hand-authoring a Work Order instead of grooming one | Grooming generates Work Orders to the Definition of Ready. Writing one by hand skips the readiness gate that makes it dispatchable. |

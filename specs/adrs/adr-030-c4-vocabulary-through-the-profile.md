@@ -29,7 +29,7 @@ The other is this framework's vocabulary, which says that:
   blocks
 - a contract's `provider` names the element that publishes it
 
-[[container-spec-cli]]'s Change Guidance puts every capability in one of
+[[container-spec-cli]]'s Change guidance puts every capability in one of
 its two modules, never in the command surface. [[module-document-core]]
 SHALL NOT depend on [[module-spec-profile]] and holds no document type,
 status, or property name of its own. A source scan of `cli/core/corpus`
@@ -58,10 +58,10 @@ Core names none of those values.
 | Option | Pros | Cons | Why rejected |
 |--------|------|------|--------------|
 | Document Core components, vocabulary registered by the profile | Follows the Gherkin precedent exactly<br>Keeps both modules' dependency rules intact<br>A profile with another taxonomy reuses the parser and the model | The extension point widens again<br>Document Core gains code that knows the C4 notation | N/A — selected |
-| Hard-code the vocabulary in Document Core | No registration to design | Breaks the module's no-vocabulary rule and fails its source scan | Violates [[module-document-core]]'s Change Guidance |
+| Hard-code the vocabulary in Document Core | No registration to design | Breaks the module's no-vocabulary rule and fails its source scan | Violates [[module-document-core]]'s Change guidance |
 | Put the capability in the profile module | The vocabulary is already there | The profile would parse document text, which its interface forbids<br>Another profile could not reuse the parser | Violates [[module-spec-profile]]'s interface guarantees |
 | A third module for C4, between core and profile | Document Core stays free of C4 notation | Checks run inside Document Core's `Check`, which has no way to take rules from another module<br>A new Module Blueprint, and a third dependency edge to police | Costs a rule-plugin mechanism the CLI doesn't have, for a separation the Gherkin precedent already decided against |
-| Implement in the command surface | Fastest to build | A future API or MCP wrapper wouldn't have it | Violates [[container-spec-cli]]'s Change Guidance |
+| Implement in the command surface | Fastest to build | A future API or MCP wrapper wouldn't have it | Violates [[container-spec-cli]]'s Change guidance |
 
 ## Consequences
 

@@ -126,6 +126,6 @@ enum Delivery {
   """The whole feature lands in one pull request."""
   SinglePr: "single-pr"
 
-  """The feature lands across several stages, each boundary enumerated in Sequencing Constraints."""
+  """The feature lands across several stages, each boundary enumerated in Sequencing constraints."""
   Staged: "staged"
 }

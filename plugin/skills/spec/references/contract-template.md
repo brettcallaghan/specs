@@ -20,10 +20,10 @@ Sections (complete each, then delete its instruction block)
   - Overview
   - Specification
   - Guarantees
-  - Operational Expectations
-  - Versioning and Change Policy
-  - Key Decisions
-  - Open Questions
+  - Operational expectations
+  - Versioning and change policy
+  - Key decisions
+  - Open questions
   - References
 
 Purpose
@@ -152,7 +152,7 @@ error semantics, pagination stability, timezone/encoding conventions.
 - The provider SHALL NOT <thing consumers must not have to defend
   against>.
 
-## Operational Expectations
+## Operational expectations
 
 <!--
 The operational half of the contract: what consumers may assume about
@@ -168,7 +168,7 @@ rather than restating them.
 - **Consumer obligations:** consumers SHALL <e.g. handle out-of-order
   delivery, honor Retry-After, tolerate unknown fields>.
 
-## Versioning and Change Policy
+## Versioning and change policy
 
 <!--
 How this contract evolves. Both shape AND semantics changes are subject
@@ -185,7 +185,7 @@ to this policy.
   available for <window>, and the provider SHALL notify consumers via
   <channel>.
 
-## Key Decisions
+## Key decisions
 
 <!--
 One line per significant decision: restate the outcome and reference
@@ -194,7 +194,7 @@ the ADR. The trade-off analysis lives in the ADR, not here.
 
 - [[adr-<nnn>]] — <one-line statement of the decision>.
 
-## Open Questions
+## Open questions
 
 <!--
 Optional, draft only. Track unresolved questions while the document is

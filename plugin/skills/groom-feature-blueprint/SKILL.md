@@ -3,7 +3,7 @@ name: groom-feature-blueprint
 description: Translate an approved feature blueprint and its FRD into an
   executable implementation plan — beads if the project uses beads,
   otherwise a task-file directory. Enforces the readiness gate first and
-  bounces spec gaps back into the blueprint's Open Questions instead of
+  bounces spec gaps back into the blueprint's Open questions instead of
   guessing. Use when a feature blueprint is ready for implementation
   planning, or when asked to groom, decompose, or plan a specified
   feature.
@@ -21,7 +21,7 @@ blueprint that cannot be planned mechanically is sent back, never patched
 over with guesses.
 
 It owns **decomposition and traceability** — deriving work orders from
-deltas, wiring the graph, carrying AC coverage and the Definition of Done.
+deltas, wiring the graph, carrying AC coverage and the Definition of done.
 It does NOT own the **dispatch-readiness finishing pass** (assigning each
 work order a model, tagging C4 blast radius, validating to the Definition
 of Ready): that logic lives in one place, `groom-beads` (the work-order
@@ -55,7 +55,7 @@ Copy this into your response and check items off as you go.
 Blueprint grooming:
 - [ ] 1. Readiness gate run from the checklist document (not from memory)
 - [ ]    Readiness check failed?  -> reported and STOPPED, nothing modified
-- [ ]    Content check failed?    -> gaps written to Open Questions, status
+- [ ]    Content check failed?    -> gaps written to Open questions, status
                                      back to draft, reported, STOPPED
 - [ ] 2. Work orders derived — every one traces to a delta, DoD entry, or
         sequencing constraint
@@ -89,7 +89,7 @@ plannable?
 WHEN a content check fails, the skill SHALL NOT produce a plan.
 Instead:
 
-1. Write each gap as an entry in the blueprint's Open Questions section
+1. Write each gap as an entry in the blueprint's Open questions section
    (create the section if absent): what is missing, what it blocks, who
    decides.
 2. Set the blueprint's status back to `draft`.
@@ -124,8 +124,8 @@ Deriving them here would fork routing logic that must live in one place.
   Documentation is not an upfront phase or a final pass; it travels
   with the code it describes.
 - Each code item carries: the delta it implements (blueprint section
-  reference) and its delta key from the AC Coverage legend, the ACs it
-  covers with their `verified by` level (from the AC Coverage table),
+  reference) and its delta key from the AC coverage legend, the ACs it
+  covers with their `verified by` level (from the AC coverage table),
   the test obligation (citation comments per the AC traceability
   standards), the code anchors from the delta, and the owning
   blueprint sections to update.
@@ -133,17 +133,17 @@ Deriving them here would fork routing logic that must live in one place.
   names several deltas, the item derived from the marked proving delta
   owes the citation at the declared level; participating items list
   the AC without owing the citation.
-- WHERE the owning blueprint declares a Change Guidance section, its
+- WHERE the owning blueprint declares a Change guidance section, its
   constraints bind the items derived from that element's deltas:
   artifacts a lockstep-update rule couples are delivered within one
   item UNLESS the blueprint states how the rule is otherwise satisfied
   (e.g., single-PR delivery); that statement is a design decision the
   graph inherits, and its absence when coupled artifacts span deltas
   is a Phase 1 content failure (checklist #9), never the groomer's
-  interpretation. Change Guidance verification gates inform each
+  interpretation. Change guidance verification gates inform each
   item's test obligation.
-- **Tracker Reconciliation becomes graph structure.** For each issue
-  the blueprint's Tracker Reconciliation section classifies: a
+- **Tracker reconciliation becomes graph structure.** For each issue
+  the blueprint's Tracker reconciliation section classifies: a
   *subsumed* issue is blocked on the superseding work order and gets a
   supersession note ("close or re-scope when <item> lands"); a
   *prerequisite* issue becomes a dependency edge into the items whose
@@ -158,9 +158,9 @@ Deriving them here would fork routing logic that must live in one place.
   Do NOT add dependency edges for this — serializing independent code
   work to protect a verification step trades real parallelism for a
   hazard the note and the DoD backstop already cover.
-- **One item per Definition of Done entry not tied to a single delta**
+- **One item per Definition of done entry not tied to a single delta**
   (flip draft contracts to `active`, reference new ADRs from the owning
-  blueprints' Key Decisions), depending on the code items it concludes.
+  blueprints' Key decisions), depending on the code items it concludes.
 - **Every item ends with a Retro section** — the standing instruction
   for its implementing agent (often a spawned subagent that sees only
   the item) to record friction findings per the findings capture
@@ -171,7 +171,7 @@ Deriving them here would fork routing logic that must live in one place.
   unsatisfiable obligations. Phase 3 states the section's exact text
   per backend — short and self-sufficient, so the item carries the
   instruction without carrying the protocol.
-- **A final item**: verify the Definition of Done — every delta folded,
+- **A final item**: verify the Definition of done — every delta folded,
   every AC cited at its declared level — set the blueprint's status
   to `retired`, and then run the `retro-spec` skill over the
   implementation phase, aggregating the findings recorded on the
@@ -237,7 +237,7 @@ inputs produce identical graphs:
   records none; say so rather than inventing filler.
   ```
 - Label the epic, every created issue, and every pre-existing issue
-  named in Tracker Reconciliation with the **feature slug from the
+  named in Tracker reconciliation with the **feature slug from the
   blueprint frontmatter** (e.g. `feature-local-packages`) — never an
   invented name. The feature's closure set is then exactly
   `bd list --label <feature-slug>`, and the final DoD item verifies
@@ -269,12 +269,12 @@ dispatch model and no finishing pass runs against it.
 ---
 id: <feature-slug>/NN-<item-slug>
 title: <imperative summary>
-delta: <KEY>            # delta key from the blueprint's AC Coverage
+delta: <KEY>            # delta key from the blueprint's AC coverage
                         # legend — what re-grooming diffs by
 status: todo            # todo | in-progress | done | blocked
 depends_on: []          # ids of prerequisite items
 acs: [AC-<PREFIX>-001.1]  # ACs this item covers
-verify: [unit]          # levels from the AC Coverage table
+verify: [unit]          # levels from the AC coverage table
 ---
 ```
 
