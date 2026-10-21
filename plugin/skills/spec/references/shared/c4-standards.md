@@ -84,7 +84,7 @@ Components inside it share its process space.
   blueprint: omit `system` in the container blueprint. The system
   level is introduced when a second container needs shared context worth
   modeling. WHEN there is no system blueprint, the container blueprint's
-  Infrastructure and Deployment section is authoritative for that
+  Infrastructure and deployment section is authoritative for that
   container's deployment.
 
 **Component** — C4 defines a component as a grouping of related
@@ -411,7 +411,7 @@ contract document (see Contract visibility tiers, below).
 | UI component package / design-system package | **Module** | Its Module Blueprint |
 | Design system's docs site / tokens API | Container(s) | Their Container Blueprints |
 | Micro-frontend package | **Module**, composed by the shell container | Its Module Blueprint |
-| Module federation | Technology choice within containers | A Tech Stack line in the affected Container Blueprints |
+| Module federation | Technology choice within containers | A Tech stack line in the affected Container Blueprints |
 | IaC module (Terraform, CDK, Helm chart) | **Module** (deploy-time) | Its Module Blueprint |
 | Platform / control plane (IDP, operators) | System — owned by the platform team | Platform team's System Blueprint; your obligations → Standards documents |
 | Sidecar / mesh proxy | Deployment concern | Deployment diagrams + Standards documents; **not** on container/component diagrams |
@@ -451,7 +451,7 @@ document) instead when **any** of:
   blueprints reference;
 - it is a technology choice inside a container (ORM, module federation,
   web framework) rather than a runtime neighbor — it belongs on a line
-  of that container's or module's Tech Stack section;
+  of that container's or module's Tech stack section;
 - it sits below the document's abstraction level (a load balancer on a
   component diagram, a helper class anywhere).
 

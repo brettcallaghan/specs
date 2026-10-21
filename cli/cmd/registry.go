@@ -9,7 +9,7 @@
 // the generated configuration schema, and selects a profile by name from
 // a registry — but the schema itself, the profile vocabulary, and the
 // corpus and finding machinery all come from cli/core and cli/profile.
-// Per specs/containers/spec-cli/spec-cli-container.md's Change Guidance, a
+// Per specs/containers/spec-cli/spec-cli-container.md's Change guidance, a
 // capability that belongs in a module is invoked from here, never
 // reimplemented here.
 package cmd

@@ -25,7 +25,7 @@ import "github.com/brettcallaghan/specs/cli/core/specmodel"
 // this same version. Changing the shape of what is already there —
 // rather than adding alongside it — updates this constant, the Strata
 // source that constrains the property, and the emitted index in one
-// change, per the Change Guidance in
+// change, per the Change guidance in
 // specs/modules/document-core/document-core-module.md.
 const SchemaVersion = "2.2"
 

@@ -18,10 +18,10 @@ status: active
 ## Contents
 
 - Readiness checks #1–#3 — is grooming premature? (FRD status, blueprint
-  status, Open Questions)
-- Content checks #4–#10 — is the approved design plannable? (AC Coverage
+  status, Open questions)
+- Content checks #4–#10 — is the approved design plannable? (AC coverage
   rows, `[[slug]]` resolution, component references, design intent, delta
-  keys, lockstep rules, Tracker Reconciliation)
+  keys, lockstep rules, Tracker reconciliation)
 - The decision sweep — the authoring preflight for check 7, and which
   notation a delta's behavior lines use
 
@@ -36,7 +36,7 @@ Each skill, not this document, defines what happens on failure, and the
 result differs by consumer. At authoring time, a failed check is
 unfinished work. At groom time, a failed readiness check stops grooming
 without modifying any document, and a failed content check bounces the
-gap into the blueprint's Open Questions and demotes the blueprint to
+gap into the blueprint's Open questions and demotes the blueprint to
 `draft`.
 
 ---
@@ -45,7 +45,7 @@ gap into the blueprint's Open Questions and demotes the blueprint to
 
 1. The FRD's status is `approved` or `active`.
 2. The blueprint's status is `approved`.
-3. The blueprint's Open Questions section is absent, empty, or states
+3. The blueprint's Open questions section is absent, empty, or states
    only "None."
 
 At authoring time, these checks translate to a handoff obligation: WHEN a
@@ -57,11 +57,11 @@ time.
 ## Content checks — is the approved design plannable?
 
 4. Every AC defined in the FRD appears at least once in the blueprint's
-   AC Coverage table. Every row names at least one delta block that
-   exists in the Element Deltas section. A row is invalid if it names
+   AC coverage table. Every row names at least one delta block that
+   exists in the Element deltas section. A row is invalid if it names
    only a relied-upon element, a sequencing constraint, or a Definition
    of Done entry. A row is also invalid if it names more than one delta
-   without marking exactly one as the proving delta (see the AC Coverage
+   without marking exactly one as the proving delta (see the AC coverage
    row validity rules in the Feature Blueprint template).
 
    **Enumerate the FRD's ACs with `specs feature <id> --full` instead of
@@ -77,7 +77,7 @@ time.
    the element declarations in [[c4-standards]]).
 7. Every delta contains enough design intent to implement without
    making a design decision that the blueprint doesn't record.
-8. The AC Coverage legend assigns every delta block a unique short key.
+8. The AC coverage legend assigns every delta block a unique short key.
    Every legend key expands to an existing delta block, and no key from
    an earlier revision has been reused for a different delta. These keys
    are the stable identity that Work Orders carry through grooming and
@@ -85,10 +85,10 @@ time.
 9. For every lockstep-update rule in the owning blueprints' Change
    Guidance whose coupled artifacts span more than one delta block,
    the blueprint states how the rule is satisfied (in the delta or in
-   Sequencing Constraints). Reconciling such a rule is a design
+   Sequencing constraints). Reconciling such a rule is a design
    decision. Its absence is a content gap, not a groom-time judgment
    call.
-10. The Tracker Reconciliation section exists and either classifies
+10. The Tracker reconciliation section exists and either classifies
     every listed issue as subsumed, prerequisite, or out-of-scope, or
     states "None." Where the project has no tracker, "None." also
     satisfies the check.
@@ -124,8 +124,8 @@ writes, and [[adr-021]] governs nothing in it.
 
 ## References
 
-- `plugin/skills/spec/references/feature-blueprint-template.md` — the
-  document these checks apply to, including the AC Coverage row validity
+- The `spec` skill's Feature Blueprint template — the document these
+  checks apply to, including the AC coverage row validity
   rules
 - [[c4-standards]] — element declarations and reference rules
 - [[ac-traceability-standards]] — the test citation obligations the AC

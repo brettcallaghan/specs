@@ -28,9 +28,9 @@ guidelines belong to the companion document,
 
 This document holds the normative prose. The **per-type property tables**
 derived from it list which properties each document type carries and which
-are required. They're generated from the schemas in `schemas/` into
-`plugin/skills/spec/references/generated/frontmatter.md`, alongside the
-JSON Schema that validates them. When this document and a generated table
+are required. They're generated from the schemas in `schemas/` into the `spec` skill's
+generated frontmatter reference, alongside the JSON Schema that validates
+them. When this document and a generated table
 disagree, tooling enforces the schema. The disagreement is a defect in one
 of them to resolve, not a precedence rule to apply.
 

@@ -19,15 +19,15 @@ Source: Architecture documentation framework. C4 mapping rules are
 
 Sections (complete each, then delete its instruction block)
   - Overview
-  - System Context
+  - System context
   - Containers
   - Public Contracts
-  - Consumed Systems and Contracts
+  - Consumed systems and Contracts
   - Deployment
-  - Cross-Cutting Standards
-  - Change Guidance
-  - Key Decisions
-  - Open Questions
+  - Cross-cutting Standards
+  - Change guidance
+  - Key decisions
+  - Open questions
   - References
 
 Purpose
@@ -88,7 +88,7 @@ Status vocabulary
 This is a living document. Update it when the architecture changes — a
 system blueprint describes the system as it is, not as it was planned.
 Remove all HTML comment blocks after completing each section. WHILE status
-is draft, the Open Questions section MAY contain open questions or the
+is draft, the Open questions section MAY contain open questions or the
 literal text "None."; remove the section when the document becomes active.
 -->
 
@@ -105,7 +105,7 @@ are for.
 
 <What this system does, for whom, and who owns it>
 
-## System Context
+## System context
 
 <!--
 A C4 System Context diagram: this system, the people who use it, and the
@@ -176,7 +176,7 @@ contracts — list them in the providing container's blueprint, not here.
 
 - [[contract-<name>]] — <what it vends, to whom, via what mechanism>.
 
-## Consumed Systems and Contracts
+## Consumed systems and Contracts
 
 <!--
 What this system depends on: neighboring systems, platform services, and
@@ -216,7 +216,7 @@ C4Deployment
     }
 ```
 
-## Cross-Cutting Standards
+## Cross-cutting Standards
 
 <!--
 The standards and platform obligations this system complies with, by
@@ -227,7 +227,7 @@ This system SHALL comply with:
 
 - [[<standard-slug>]] — <one-line scope of the standard>.
 
-## Change Guidance
+## Change guidance
 
 <!--
 Rules for feature work touching this system as a whole: the constraints
@@ -237,9 +237,9 @@ respect when a change spans containers. Write normative rules in EARS.
 This section carries SYSTEM-LEVEL architectural constraints: invariants
 that hold across containers, cross-container lockstep-update rules, and
 boundary rules for what may talk to what. Constraints scoped to a single
-container belong in that [[container-<name>]] blueprint's Change Guidance,
+container belong in that [[container-<name>]] blueprint's Change guidance,
 not here; organization-wide rules belong in a cross-cutting requirements
-document referenced from Cross-Cutting Standards.
+document referenced from Cross-cutting Standards.
 
 WHEN prose anywhere in this blueprint mentions a known defect or other
 open tracker issue, it SHOULD cite the tracker ID in greppable form
@@ -248,7 +248,7 @@ reconciling their deltas against the tracker.
 
 End with a Verification gates entry naming the system-level suites
 (integration, end-to-end, contract tests) that gate cross-container
-changes. Feature blueprints map their AC Coverage "Verified by" column
+changes. Feature blueprints map their AC coverage "Verified by" column
 onto these gates.
 -->
 
@@ -259,7 +259,7 @@ onto these gates.
 - **Verification gates:** <the system-level integration / end-to-end /
   contract-test suites that gate cross-container changes>.
 
-## Key Decisions
+## Key decisions
 
 <!--
 One line per significant decision: restate the outcome and reference
@@ -268,7 +268,7 @@ the ADR. The trade-off analysis lives in the ADR, not here.
 
 - [[adr-<nnn>]] — <one-line statement of the decision>.
 
-## Open Questions
+## Open questions
 
 <!--
 Optional, draft only. Track unresolved questions while the document is

@@ -24,11 +24,11 @@ under-test (risky).
 
 ## Decision
 
-We will have each blueprint's Change Guidance declare a **Verification gates**
+We will have each blueprint's Change guidance declare a **Verification gates**
 entry naming the specific, runnable tests that MUST run when that element
 changes — the minimal, targeted set an agent runs to prove a change before
 handoff. CI and downstream agents still run the full suite. Feature Blueprints
-map their AC Coverage "Verified by" column onto these gates, so the targeted set
+map their AC coverage "Verified by" column onto these gates, so the targeted set
 is traceable to acceptance criteria.
 
 ## Alternatives considered
@@ -59,6 +59,6 @@ is traceable to acceptance criteria.
 - [[adr-004]] — the blueprints that carry these gates
 - [[adr-006]] — visibility gates the change
   rules; these gates the tests
-- Change Guidance sections of the System, Container, Component, and Module
+- Change guidance sections of the System, Container, Component, and Module
   Blueprint templates; the groom-feature-blueprint skill (consumes these
   gates)

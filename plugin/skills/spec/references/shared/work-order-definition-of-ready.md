@@ -42,8 +42,7 @@ owns it, and the grooming skills enforce it: `groom-beads` on any unit of work,
 and `groom-feature-blueprint` on work decomposed from a blueprint.
 [[work-order-field-guide]] holds the field-by-field guidance: the distinction
 between the three text fields, the tier-routing rubric, and the C4 conventions.
-Each check maps onto the format in
-`plugin/skills/spec/references/work-order-template.md`.
+Each check maps onto the format in the `spec` skill's Work Order template.
 
 ## The checks
 
@@ -182,7 +181,7 @@ flagged for the author on the tracker and excluded from dispatch until the
 flag is resolved. The flag is `blocked-needs-info` when a specific fact is
 missing, and `blocked-ungroomable` when the order needs redesign. The flag
 lives on the tracker issue, not in the Work Order frontmatter (see the status
-note in `plugin/skills/spec/references/work-order-template.md`).
+note in the `spec` skill's Work Order template).
 
 ## Worked examples
 

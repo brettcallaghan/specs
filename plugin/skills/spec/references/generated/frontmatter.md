@@ -176,7 +176,7 @@ per the Document Relationship Standard.
 A system's dependency on another system is not recorded in frontmatter
 at all. Where the dependency is a named interface it is a contract, and
 `contracts_consumed` holds it. Where it is looser, the blueprint's own
-"Consumed Systems and Contracts" section says what is depended on and
+"Consumed systems and Contracts" section says what is depended on and
 what for — which a slug list cannot, and which is what a reader actually
 needs. A repository spanning more than one system is rare enough that a
 frontmatter property for the untyped case would be maintained by nobody.
@@ -268,7 +268,7 @@ that must agree.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| delivery | [Delivery](vocabulary.md#delivery) | The delivery unit grooming plans against. When `staged`, each stage boundary is enumerated in the blueprint's Sequencing Constraints. |
+| delivery | [Delivery](vocabulary.md#delivery) | The delivery unit grooming plans against. When `staged`, each stage boundary is enumerated in the blueprint's Sequencing constraints. |
 | plan | String? | Where this feature's implementation plan lives, stamped in by the groom-feature-blueprint skill once grooming serializes the plan: an epic id (`bd-a3f8`) when the plan is beads, or a repository-relative directory (`plans/<feature-slug>/`) when it is task files. Absent before grooming, since an ungroomed blueprint has no plan yet; present through `retired`, since the pointer retires with the document rather than being cleared. |
 | frd | [Citation](vocabulary.md#citation) | The FRD this blueprint realizes, one to one.<br><br>A feature blueprint answers how the system changes; the FRD it names answers what the change must achieve. Singular and required, so the one-to-one relationship is expressible in the schema rather than only in this comment, and named `frd` rather than `sources` so that one property name does not span two relationships — `Frd.sources` is optional, many-valued provenance, which is a different edge. |
 

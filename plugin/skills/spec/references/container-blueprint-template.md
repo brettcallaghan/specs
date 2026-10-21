@@ -25,17 +25,17 @@ Source: Architecture documentation framework. C4 mapping rules are
 
 Sections (complete each, then delete its instruction block)
   - Overview
-  - Tech Stack
-  - Container Context
+  - Tech stack
+  - Container context
   - Components
   - Provided Contracts
   - Consumed Contracts
   - Data
-  - Infrastructure and Deployment
-  - Cross-Cutting Standards
-  - Change Guidance
-  - Key Decisions
-  - Open Questions
+  - Infrastructure and deployment
+  - Cross-cutting Standards
+  - Change guidance
+  - Key decisions
+  - Open questions
   - References
 
 Purpose
@@ -84,7 +84,7 @@ Standalone containers
   `system`. Standalone containers are valid; the system level is
   introduced when a second container needs shared context worth
   modeling (see `shared/c4-standards.md`). WHEN there is no system blueprint, this
-  document's Infrastructure and Deployment section is authoritative
+  document's Infrastructure and deployment section is authoritative
   for this container's deployment.
 
 Slug format
@@ -96,7 +96,7 @@ Status vocabulary
 
 This is a living document — update it when the container changes. Remove
 all HTML comment blocks after completing each section. WHILE status is
-draft, the Open Questions section MAY contain open questions or the
+draft, the Open questions section MAY contain open questions or the
 literal text "None."; remove the section when the document becomes
 active.
 -->
@@ -108,14 +108,14 @@ active.
 <!--
 What this container is and does, in 1-2 paragraphs, plus the facts a
 newcomer needs: its responsibility and runtime/hosting model. The
-technologies it is built from go in Tech Stack, below.
-Keep reasoning out — decisions go in Key Decisions.
+technologies it is built from go in Tech stack, below.
+Keep reasoning out — decisions go in Key decisions.
 -->
 
 - **Responsibility:** <what this container does within the system>
 - **Runtime:** <how and where it runs — platform, scaling model>
 
-## Tech Stack
+## Tech stack
 
 <!--
 The technologies this container is built from, one line each: language and runtime, frameworks, notable libraries, the data
@@ -128,13 +128,13 @@ Each line item MAY cite the ADR that decided the choice, as a trailing
 [[adr-<nnn>]] link. Cite one WHEN such an ADR exists; an uncited line is
 valid and records a choice nobody has yet needed to defend. Do not
 author an ADR only to fill the slot. An ADR cited here SHALL also be
-listed under Key Decisions, which stays the complete index of decisions
+listed under Key decisions, which stays the complete index of decisions
 governing this container.
 
 Do not state dependency versions: they are volatile facts (see
 [[template-authoring-standards]] § Avoid Volatile Facts). WHEN a version
 is contractual (a minimum supported runtime, a pinned toolchain), state
-it as a requirement in EARS in Change Guidance instead.
+it as a requirement in EARS in Change guidance instead.
 
 The frontmatter `technology` value is the short label diagrams draw; it
 SHALL agree with the primary entries here.
@@ -143,7 +143,7 @@ SHALL agree with the primary entries here.
 - **<Category>:** <technology> — <what it is used for>. [[adr-<nnn>]]
 - **<Category>:** <technology> — <what it is used for>.
 
-## Container Context
+## Container context
 
 <!--
 A Container Context Diagram (defined in `shared/c4-standards.md`): THIS container in the
@@ -326,7 +326,7 @@ extracted to a contract document and listed under Provided Contracts.
   truth: <link>. Exclusively owned by this container.
   - The container SHALL <invariant maintained over this data>.
 
-## Infrastructure and Deployment
+## Infrastructure and deployment
 
 <!--
 Infrastructure exclusively supporting this container (its cache, its
@@ -358,7 +358,7 @@ C4Deployment
     }
 ```
 
-## Cross-Cutting Standards
+## Cross-cutting Standards
 
 <!--
 Standards this container complies with, by reference. Platform choices
@@ -371,7 +371,7 @@ This container SHALL comply with:
 
 - [[<standard-slug>]] — <one-line scope>.
 
-## Change Guidance
+## Change guidance
 
 <!--
 Rules for feature work touching this container: the constraints a
@@ -384,7 +384,7 @@ It is not a task list or a commands reference — reference the
 repository's build/contributor docs for procedure rather than
 duplicating them (duplication drifts). Constraints that span multiple
 containers belong in a cross-cutting requirements document referenced
-from Cross-Cutting Standards, not here.
+from Cross-cutting Standards, not here.
 
 WHEN prose anywhere in this blueprint mentions a known defect or other
 open tracker issue, it SHOULD cite the tracker ID in greppable form
@@ -398,7 +398,7 @@ targeted set an agent changing the container runs to prove the change
 before handoff: running the whole suite for every change does not scale
 (a parallel sprint run slows to a crawl), so the blueprint is the authority on
 what THIS container's change must run. CI and downstream agents still
-run the full suite. Feature blueprints map their AC Coverage "Verified
+run the full suite. Feature blueprints map their AC coverage "Verified
 by" column onto these gates.
 -->
 
@@ -410,7 +410,7 @@ by" column onto these gates.
   minimal targeted set an agent runs before handoff, not the full suite
   (which CI runs)>.
 
-## Key Decisions
+## Key decisions
 
 <!--
 One line per significant decision: restate the outcome and reference
@@ -419,7 +419,7 @@ the ADR. The trade-off analysis lives in the ADR, not here.
 
 - [[adr-<nnn>]] — <one-line statement of the decision>.
 
-## Open Questions
+## Open questions
 
 <!--
 Optional, draft only. Track unresolved questions while the document is

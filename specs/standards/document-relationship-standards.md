@@ -134,7 +134,7 @@ The Feature Blueprint declares its own edges (to its FRD, to the
 blueprints it folds into, and to the decisions it applies), and
 `specs refs <slug>` answers the reverse direction.
 
-**Rationale:** A Feature Blueprint retires when its Definition of Done is
+**Rationale:** A Feature Blueprint retires when its Definition of done is
 complete, not because something replaced it. An edge declared *into* one
 becomes a `reference/retired-target` warning on the day the feature ships,
 and it fails every `--strict` run from then on. The durable end of the

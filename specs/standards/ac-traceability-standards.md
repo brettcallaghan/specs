@@ -31,13 +31,12 @@ The requirements in this document are EARS, not Gherkin: a Standards
 document states invariants, not scenarios ([[adr-002]]).
 
 The durable traceability pair is the **FRD** and the **annotated test
-suite**. A Feature Blueprint's AC Coverage table declares intent at
-design time and is reconciled at merge time (its Definition of Done),
+suite**. A Feature Blueprint's AC coverage table declares intent at
+design time and is reconciled at merge time (its Definition of done),
 but the blueprint retires. Long-term coverage verification is a function
 of active FRDs and test citations only. AC identifiers are never reused
-(see the ID conventions in
-`plugin/skills/spec/references/frd-template.md`), which is what makes
-this sound.
+(see the ID conventions in the `spec` skill's FRD template), which is
+what makes this sound.
 
 ---
 
@@ -112,13 +111,13 @@ Every acceptance criterion of an FRD SHALL be cited by at least one
 test before the implementing change merges.
 
 **Rationale:** This is the merge-time reconciliation of the Feature
-Blueprint's AC Coverage table: the point where declared intent becomes
+Blueprint's AC coverage table: the point where declared intent becomes
 verifiable reality.
 
 ---
 
 A test citing an acceptance criterion SHOULD verify it at the level
-declared in the feature blueprint's AC Coverage table
+declared in the feature blueprint's AC coverage table
 (unit | integration | e2e | manual).
 
 **Rationale:** The declared level is a design-time judgment about what
@@ -127,7 +126,7 @@ and the level isn't durably machine-checkable afterward.
 
 Where a criterion carries a `@level-<unit|integration|e2e>` tag, that tag
 is the FRD's own statement of the same judgment and outlives the
-blueprint. The tag is optional, but the AC Coverage table isn't.
+blueprint. The tag is optional, but the AC coverage table isn't.
 
 ---
 
@@ -175,13 +174,13 @@ Blueprints.
 
 ## References
 
-- `plugin/skills/spec/references/frd-template.md` — AC identifier format
-  and the no-reuse rule (templates aren't documents and have no slugs;
-  they're referenced by path)
+- The `spec` skill's FRD template — AC identifier format and the
+  no-reuse rule (templates aren't documents and have no slugs, so they're
+  cited by name)
 - [[gherkin-guide]] — the tag vocabulary these identifiers are written
   in, including `@manual` and `@level-*`
 - [[adr-021]] — the decision that makes an acceptance criterion a tagged
   Gherkin scenario
-- `plugin/skills/spec/references/feature-blueprint-template.md` — AC
-  Coverage table and Definition of Done
+- The `spec` skill's Feature Blueprint template — AC coverage table and
+  Definition of done
 - [[template-authoring-standards]] — EARS and referencing conventions

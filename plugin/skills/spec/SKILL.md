@@ -133,7 +133,7 @@ specs.
 - A feature blueprint is authored after its FRD is stable, and the
   contracts and ADRs it introduces are drafted alongside it — the
   blueprint references them; it never contains them.
-- WHEN a feature blueprint reaches `approved` with no Open Questions,
+- WHEN a feature blueprint reaches `approved` with no Open questions,
   hand off to the `groom-feature-blueprint` skill — it translates the blueprint into
   an executable work-item graph. Authoring stops at the blueprint; task
   decomposition is grooming's job, not this skill's.
@@ -268,7 +268,7 @@ specs.
    `groom-feature-blueprint` enforces at its Phase 1 gate, so a first-pass
    blueprint lands groomable instead of discovering the checks by
    failing them. Authoring a feature blueprint includes surveying the
-   project's issue tracker to populate its Tracker Reconciliation
+   project's issue tracker to populate its Tracker reconciliation
    section — existing issues the feature subsumes, depends on, or must
    not absorb are design inputs, not groom-time discoveries. Flag BOTH
    status flips to the human reviewer: the blueprint's approval AND

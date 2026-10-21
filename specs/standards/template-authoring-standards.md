@@ -63,10 +63,10 @@ substituted ("this container", "this module"). The shared outline:
 |---------|-----------|----------|
 | `## Overview` | every type except ADR (which opens with `## Context`) and Standards (an introductory paragraph under the H1) | first |
 | *type-specific sections* | per template | after Overview |
-| `## Cross-Cutting Standards` | System, Container, Module, Component Blueprints | after the type-specific sections |
-| `## Change Guidance` | the same four | after Cross-Cutting Standards |
-| `## Key Decisions` | the four blueprints, Contract, Feature Blueprint | after Change Guidance, or after the type-specific sections where there is none |
-| `## Open Questions` | the four blueprints, Contract, Feature Blueprint, FRD | second to last |
+| `## Cross-cutting Standards` | System, Container, Module, Component Blueprints | after the type-specific sections |
+| `## Change guidance` | the same four | after Cross-cutting Standards |
+| `## Key decisions` | the four blueprints, Contract, Feature Blueprint | after Change guidance, or after the type-specific sections where there is none |
+| `## Open questions` | the four blueprints, Contract, Feature Blueprint, FRD | second to last |
 | `## References` | every type | last |
 
 Every `##` section SHALL carry a section-level instruction block. An
@@ -74,13 +74,13 @@ Every `##` section SHALL carry a section-level instruction block. An
 entry, an example requirement, an example delta) is covered by the
 parent's block.
 
-`## Open Questions` is **optional**: it exists while a document is a
+`## Open questions` is **optional**: it exists while a document is a
 draft and is removed when the document leaves draft. While present, it
 MAY state the literal text "None." instead of a list. A tool that checks
 required sections SHALL NOT require it. Every other section in the
 outline above is required for the types it lists, except where a
 template marks a section conditional on a frontmatter value (Pattern
-Guidance for `kind: pattern`, Versioning and Compatibility for
+Guidance for `kind: pattern`, Versioning and compatibility for
 `visibility: public`).
 
 Body text SHALL NOT restate a frontmatter property's value unless the

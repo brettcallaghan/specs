@@ -10,8 +10,8 @@ status: draft
 Template: Standards Document
 
 Sections (complete each, then delete its instruction block)
-  - <Major Category>
-  - <Another Major Category>
+  - <Major category>
+  - <Another major category>
   - References
 
 Purpose
@@ -96,7 +96,7 @@ Replace with a 2-3 sentence introduction that explains:
 
 ---
 
-## <Major Category>
+## <Major category>
 
 <!--
 Use level-2 headers (##) for major requirement categories.
@@ -174,7 +174,7 @@ WHILE <state holds>, the system SHALL <required behavior>.
 
 ---
 
-### <Another Subcategory>
+### <Another subcategory>
 
 <!--
 Continue with additional subcategories as needed.
@@ -190,7 +190,7 @@ The system MAY <optional behavior>.
 
 ---
 
-## <Another Major Category>
+## <Another major category>
 
 <!--
 Continue with additional major categories as needed.

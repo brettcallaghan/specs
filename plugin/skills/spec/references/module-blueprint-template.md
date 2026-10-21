@@ -28,15 +28,15 @@ Source: Architecture documentation framework. C4 mapping rules are
 
 Sections (complete each, then delete its instruction block)
   - Overview
-  - Tech Stack
+  - Tech stack
   - Interface
   - Components
-  - Pattern Guidance
-  - Versioning and Compatibility
-  - Cross-Cutting Standards
-  - Change Guidance
-  - Key Decisions
-  - Open Questions
+  - Pattern guidance
+  - Versioning and compatibility
+  - Cross-cutting Standards
+  - Change guidance
+  - Key decisions
+  - Open questions
   - References
 
 Purpose
@@ -82,7 +82,7 @@ When to use — either trigger is sufficient
   public   — published to a registry (enterprise or public). Consumers
              are independent and may span majors, so backwards
              compatibility, deprecation windows, and a recorded change
-             history are required (see Change Guidance and Versioning).
+             history are required (see Change guidance and Versioning).
   internal — not published; lives in the repo and evolves in lockstep
              with its consumers, so it may be refactored or broken
              freely in the same change as its consumers. Modules often
@@ -136,7 +136,7 @@ Status vocabulary
 
 This is a living document — update it when the module changes. Remove
 all HTML comment blocks after completing each section. WHILE status is
-draft, the Open Questions section MAY contain open questions or the
+draft, the Open questions section MAY contain open questions or the
 literal text "None."; remove the section when the document becomes
 active.
 -->
@@ -168,7 +168,7 @@ edges to sibling components here (see the instruction block above).
   it is vended and composed>; see those blueprints for this module's
   relationships to sibling components.
 
-## Tech Stack
+## Tech stack
 
 <!--
 The technologies this module is built from, one line each: language, frameworks, notable libraries it depends on, and how
@@ -181,13 +181,13 @@ Each line item MAY cite the ADR that decided the choice, as a trailing
 [[adr-<nnn>]] link. Cite one WHEN such an ADR exists; an uncited line is
 valid and records a choice nobody has yet needed to defend. Do not
 author an ADR only to fill the slot. An ADR cited here SHALL also be
-listed under Key Decisions, which stays the complete index of decisions
+listed under Key decisions, which stays the complete index of decisions
 governing this module.
 
 Do not state dependency versions: they are volatile facts (see
 [[template-authoring-standards]] § Avoid Volatile Facts). WHEN a version
 is contractual (a minimum supported runtime, a pinned toolchain), state
-it as a requirement in EARS in Change Guidance instead.
+it as a requirement in EARS in Change guidance instead.
 
 The frontmatter `technology` value is the short label diagrams draw; it
 SHALL agree with the primary entries here.
@@ -297,7 +297,7 @@ See [[component-<name>]]. (<kind>) — <brief description>.
 
 <Relationship paragraphs: who depends on whom, what crosses, why.>
 
-## Pattern Guidance
+## Pattern guidance
 
 <!--
 kind: pattern only — delete this section otherwise.
@@ -329,7 +329,7 @@ specification.
 
 - **<InstanceName>** (<container or repo>) — <target/variant>.
 
-## Versioning and Compatibility
+## Versioning and compatibility
 
 <!--
 visibility: public only — delete this section otherwise. This is the
@@ -344,7 +344,7 @@ multiple majors and cannot be updated in lockstep.
 - **Deprecation:** WHEN an API is deprecated, it SHALL remain functional
   for <window> and SHALL emit <deprecation signal>.
 
-## Cross-Cutting Standards
+## Cross-cutting Standards
 
 <!--
 Standards this module complies with, by reference. A shared module
@@ -358,7 +358,7 @@ This module SHALL comply with:
 
 - [[<standard-slug>]] — <one-line scope>.
 
-## Change Guidance
+## Change guidance
 
 <!--
 Rules for feature work touching this module: the constraints a feature
@@ -374,7 +374,7 @@ regeneration obligations. It is not a task list or a commands
 reference — reference the repository's build and contributor docs for
 procedure rather than duplicating them (duplication drifts). Constraints
 that span multiple modules or containers belong in a cross-cutting
-requirements document referenced from Cross-Cutting Standards, not here.
+requirements document referenced from Cross-cutting Standards, not here.
 
 WHEN prose anywhere in this blueprint mentions a known defect or other
 open tracker issue, it SHOULD cite the tracker ID in greppable form
@@ -388,7 +388,7 @@ agent changing the module runs to prove the change before handoff:
 running the whole suite for every change does not scale (a parallel sprint run
 slows to a crawl), so the blueprint is the authority on what THIS
 module's change must run. CI and downstream agents still run the full
-suite. Feature blueprints map their AC Coverage "Verified by" column onto
+suite. Feature blueprints map their AC coverage "Verified by" column onto
 these gates.
 -->
 
@@ -408,7 +408,7 @@ these gates.
   minimal targeted set an agent runs before handoff, not the full suite
   (which CI runs)>.
 
-## Key Decisions
+## Key decisions
 
 <!--
 One line per significant decision: restate the outcome and reference
@@ -417,7 +417,7 @@ the ADR. The trade-off analysis lives in the ADR, not here.
 
 - [[adr-<nnn>]] — <one-line statement of the decision>.
 
-## Open Questions
+## Open questions
 
 <!--
 Optional, draft only. Track unresolved questions while the document is
