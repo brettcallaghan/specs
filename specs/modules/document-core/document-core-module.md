@@ -2119,10 +2119,10 @@ message and in its `inline-comment` detail, and says that the text after the
 (AC-SPEC-003.9). It's a warning, not an error, because the block still parses
 and the shortened value may even be valid, so only `--strict` fails on it.
 
-The unverified mechanism is built, and no check calls it yet. The diagram
-validation that AC-SPEC-006.3 illustrates is a structure-feature concern. A
-later check adds a variant to the union without changing the envelope that
-carries it.
+The unverified mechanism is built, and no check registers against it yet.
+The diagram validation that AC-SPEC-006.3 illustrates is a structure-feature
+concern. A later check adds a variant to the union without changing the
+envelope that carries it.
 
 **The c4 rules are declared here.** Ten identifiers check the Mermaid C4
 diagrams in architecture blueprints for [[frd-spec-c4-diagrams]]:
@@ -2321,7 +2321,7 @@ that can find a problem.
 problem produces `Finding` values, and none of them formats output. Rendering
 belongs to the command surface of [[container-spec-cli]].
 
-## Cross-cutting standards
+## Cross-cutting Standards
 
 This module SHALL comply with:
 

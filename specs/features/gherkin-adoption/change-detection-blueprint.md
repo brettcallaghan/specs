@@ -18,9 +18,9 @@ frd: frd-gherkin-adoption
 **FRD:** [[frd-gherkin-adoption]]
 
 This blueprint covers FEAT-GHK-008 only, as rewritten on 2026-10-08. The
-retired `feature-gherkin-adoption` Feature Blueprint covers the rest of
-the FRD. Standalone Work Orders carry the FRD's other changes of that date
-(see Tracker reconciliation).
+rest of the FRD was built under the retired `feature-gherkin-adoption`
+Feature Blueprint. Standalone Work Orders carry the FRD's other changes of
+that date (see Tracker reconciliation).
 
 The index-based `criterion --changed` compares the working tree against
 `specs.json`, an artifact every query may rewrite, so its baseline is
@@ -249,7 +249,7 @@ None.
 
 - [[c4-standards]] — the component and module definitions the delta
   blocks are written against
-- `feature-gherkin-adoption` — the retired Feature Blueprint that covers
+- `feature-gherkin-adoption` — the retired Feature Blueprint that built
   the rest of this FRD, including the index-based comparison this replaces
 - [[adr-020]] — FRDs evolve in place, and deltas between versions are
   keyed on AC identifiers, which is the comparison this command performs

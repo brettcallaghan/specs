@@ -257,9 +257,10 @@ Feature: Report a citation the copy cannot reach
 *Examples:* `frontmatter-standards` cites
 `` `[[document-relationship-standards]]` ``, a corpus document under
 `specs/standards/` that the plugin doesn't ship. Under a link map that omits it,
-the CLI reports both citations as errors (AC-SPECMD-002.1). `c4-standards`
-writes `` `[[component-<name>]]` `` and `` `[[module-<name>]]` `` in prose about
-element records, and the CLI reports each as a warning (AC-SPECMD-002.4).
+the CLI reports both citations as errors (AC-SPECMD-002.1). The module
+blueprint template writes `` `[[component-<name>]]` `` and
+`` `[[module-<name>]]` `` in prose about element records, and the CLI reports
+each as a warning (AC-SPECMD-002.4).
 
 *Note:* AC-SPECMD-002.1 is the reason the CLI never completes a given map by
 derivation (see AC-SPECMD-006.3).

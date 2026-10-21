@@ -320,8 +320,8 @@ Its registered rules derive from this framework's own Standards documents,
 vendored copies. The derivation isn't literal transcription. The union
 schema reaches this module through `schemas/*.strata`, and each slug
 pattern was checked against the documents this repository actually holds
-before it was registered, which is where the three divergences noted under
-Interface come from.
+before it was registered, which is where the divergence noted under
+Interface comes from.
 
 ## Change guidance
 
