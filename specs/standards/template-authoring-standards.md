@@ -9,39 +9,39 @@ type: standards
 status: active
 ---
 
-# Template Authoring Standards
+# Template authoring standards
 
 This document defines invariants that SHALL be applied when authoring templates 
 for any type of structured document.
 
 ## Contents
 
-- Document Structure — line length, title and H1, section outline
-- Metadata (Frontmatter) → `frontmatter-standards.md`
-- Slug Conventions — format, identity rule, choosing the identifier, the
+- Document structure — line length, title and H1, section outline
+- Metadata (frontmatter) → [[frontmatter-standards]]
+- Slug conventions — format, identity rule, choosing the identifier, the
   prefix registry, the frontmatter index, construction
-- Template Instructions — placement, HTML comment format, lifecycle
+- Template instructions — placement, HTML comment format, lifecycle
 - Versioning — what identifies a template, skill, or standard
-- Requirements Expression → `ears-guide.md`
-- Placeholders and Parameters — format, naming, env vars vs placeholders
-- Cross-Document References → `cross-document-references.md`
-- Template Content Guidelines — avoid duplication, avoid volatile facts,
+- Requirements expression → [[guide-ears]]
+- Placeholders and parameters — format, naming, env vars vs placeholders
+- Cross-document references → [[cross-document-references]]
+- Template content guidelines — avoid duplication, avoid volatile facts,
   living documents
 - Validation — frontmatter schemas, reference validation, dependency graph
 - References
 
 ---
 
-## Document Structure
+## Document structure
 
-### Line Length
+### Line length
 
 The width of any line SHALL NOT exceed 80 characters.
 
 WHEN a line contains a URL, code block content, or table cell data, the line 
 MAY exceed 80 characters IF line breaks would break functionality.
 
-**Rationale:** Ensures readability in terminals, code review tools, and 
+**Rationale:** Lines stay readable in terminals, code review tools, and
 side-by-side diff views without horizontal scrolling.
 
 ### Title and H1
@@ -49,11 +49,11 @@ side-by-side diff views without horizontal scrolling.
 A document's H1 SHALL repeat the words of its `title` in sentence case,
 so the two may differ in case. Neither SHALL carry a type
 label (`FRD:`, `Container Blueprint:`): `type` already says what the
-document is. The ADR is the one exception — its title and H1 lead with
-its number, `ADR-011: <Decision Title>`, because the number is how an
-ADR is cited.
+document is. The ADR is the one exception: its title and H1 lead with its
+number (`ADR-011: <Decision Title>`), because the number is how an ADR is
+cited.
 
-### Section Outline
+### Section outline
 
 Templates that share a section SHALL give it the same name, the same
 position and the same instruction block, with only the type noun
@@ -61,12 +61,12 @@ substituted ("this container", "this module"). The shared outline:
 
 | Section | Present in | Position |
 |---------|-----------|----------|
-| `## Overview` | every type except ADR (which opens with `## Context`) and standards (an introductory paragraph under the H1) | first |
+| `## Overview` | every type except ADR (which opens with `## Context`) and Standards (an introductory paragraph under the H1) | first |
 | *type-specific sections* | per template | after Overview |
-| `## Cross-Cutting Standards` | system, container, module, component blueprints | after the type-specific sections |
+| `## Cross-Cutting Standards` | System, Container, Module, Component Blueprints | after the type-specific sections |
 | `## Change Guidance` | the same four | after Cross-Cutting Standards |
-| `## Key Decisions` | the four blueprints, contract, feature blueprint | after Change Guidance, or after the type-specific sections where there is none |
-| `## Open Questions` | the four blueprints, contract, feature blueprint, FRD | second to last |
+| `## Key Decisions` | the four blueprints, Contract, Feature Blueprint | after Change Guidance, or after the type-specific sections where there is none |
+| `## Open Questions` | the four blueprints, Contract, Feature Blueprint, FRD | second to last |
 | `## References` | every type | last |
 
 Every `##` section SHALL carry a section-level instruction block. An
@@ -89,20 +89,20 @@ does; repeating `visibility` or `source_paths` does not. Where both
 exist, frontmatter is authoritative.
 
 **Rationale:** A required-sections check reads one list per type from
-configuration; this outline is where that list comes from, so it is
-written down once rather than inferred from each template.
+configuration. This outline is where that list comes from, so it's written
+down once rather than inferred from each template.
 
 ---
 
-## Metadata (Frontmatter)
+## Metadata (frontmatter)
 
-Defined in `frontmatter-standards.md` — required, relationship, and optional
+[[frontmatter-standards]] defines the required, relationship, and optional
 properties, the `status` vocabulary, and the embedded element-record blocks.
-Load it when authoring a template's frontmatter or validating a document's.
+Load it when you author a template's frontmatter or validate a document's.
 
 ---
 
-## Slug Conventions
+## Slug conventions
 
 ### Format
 
@@ -119,51 +119,51 @@ overwrite.
 
 Every document type SHALL have an assigned slug prefix. The prefix is a
 property of the type, drawn from the registry the document system
-defines — it is not mechanically the `type` value. The prefix names the
-subject or the type as that type is habitually cited; the identifier
-names the specific document.
+defines. It isn't mechanically the `type` value. The prefix names the
+subject or the type as that type is habitually cited. The identifier names
+the specific document.
 
-### Identity Rule
+### Identity rule
 
 A slug encodes **identity only**. It SHALL NOT encode any mutable
 attribute — status, version, date, or containment/hierarchy. Those live
-in frontmatter (`status`, `version`, `system`, `modules`, …) where
-they change without breaking references.
+in frontmatter (`status`, `version`, `system`, `modules`, …), where they
+change without breaking references.
 
 WHEN a document's title or subject is rephrased, its slug SHOULD NOT
-change. WHEN a document is genuinely replaced, it is retired with
+change. When a document is genuinely replaced, it's retired with
 `superseded_by` rather than renamed. The only sanctioned slug rewrite is
-**promotion** (a component promoted to a module), which is a deliberate,
-tooling-assisted change that rewrites the slug and every reference to it
-in one commit.
+**promotion** (a component promoted to a module). Promotion is a
+deliberate, tooling-assisted change that rewrites the slug and every
+reference to it in one commit.
 
-### Choosing the Identifier
+### Choosing the identifier
 
 The identifier SHALL be however that document type is habitually cited,
 in the shortest form that stays unambiguous:
 
 - **Named documents** (features, systems, containers, modules,
-  components, contracts) use the subject's own distinctive name —
+  components, contracts) use the subject's own distinctive name:
   `component-ledger`, not `component-the-ledger-subsystem`.
-- **Numbered documents** (ADRs) use a monotonic number — `adr-011`. The
-  number is the stable identity and encodes decision order; the human
+- **Numbered documents** (ADRs) use a monotonic number, such as `adr-011`.
+  The number is the stable identity and encodes decision order. The human
   description lives in `title`, not the slug. The next number is derived
   from the frontmatter index (`max + 1`), never tracked by hand.
 
-WHEN two named documents would collide (two containers each with a
-`parser` component), disambiguate by making the name more distinctive —
-prefer an intrinsic role/domain qualifier (`component-billing-ledger`),
-and only where that does not suffice, a parent qualifier
+When two named documents would collide (two containers each with a
+`parser` component), disambiguate by making the name more distinctive.
+Prefer an intrinsic role or domain qualifier (`component-billing-ledger`).
+Only where that doesn't suffice, use a parent qualifier
 (`component-<container>-<component>`, `container-<system>-<container>`).
 A parent qualifier bakes a mutable relationship into the key, so a later
-reparent becomes a slug rewrite; the frontmatter index flags every
+reparent becomes a slug rewrite. The frontmatter index flags every
 dangling reference when that happens.
 
-### Prefix Registry
+### Prefix registry
 
 The prefix set is small and closed. Terse prefixes are reserved for
-**transient, agent-generated** artifacts (feature blueprints, work
-orders), which are read far more than they are hand-authored; durable,
+**transient, agent-generated** artifacts (Feature Blueprints, Work
+Orders), which are read far more than they're hand-authored. Durable,
 human-cited specs use full-word prefixes. Acronyms are used only for
 genuine industry-standard terms (ADR, FRD), never for coined
 abbreviations.
@@ -184,8 +184,8 @@ abbreviations.
 
 The **Standards** type is the deliberate exception: it carries no fixed
 prefix. Its documents are cross-cutting and are cited by a descriptive
-name ending in an approved role noun — `-standards`, `-policy`,
-`-guidelines`, `-constraints` (e.g. `security-standards`,
+name ending in an approved role noun: `-standards`, `-policy`,
+`-guidelines`, or `-constraints` (for example, `security-standards` or
 `data-retention-policy`). A forced `standards-` prefix would be both
 redundant and less descriptive.
 
@@ -212,34 +212,35 @@ an ADR is cited and sorted.
 | Contract | `<name>-contract.md` |
 | Guide | `<name>-guide.md` |
 
-The `<name>` is the document's own name — its slug with the registered
-type prefix removed, since the suffix now carries what the prefix did.
+The `<name>` is the document's own name: its slug with the registered
+type prefix removed, because the suffix carries what the prefix did.
 
 A suffix SHALL NOT be doubled, and SHALL NOT be stacked on a name that
 already ends in a role noun serving the same purpose (`-checklist`,
-`-protocol`, `-reference`, `-guide`, `-definition-of-ready`). A standards
-document named `blueprint-readiness-checklist` is already announced as
-what it is; `blueprint-readiness-checklist-standards.md` says it twice
-and reads worse for it.
+`-protocol`, `-reference`, `-guide`, `-definition-of-ready`). A Standards
+document named `blueprint-readiness-checklist` already announces what it
+is. `blueprint-readiness-checklist-standards.md` says it twice and reads
+worse for it.
 
-**Rationale:** the suffix sorts a directory by subject rather than by
-type, which is how a reader looks for a document — every FRD grouped
+**Rationale:** The suffix sorts a directory by subject rather than by
+type, which is how a reader looks for a document. Every FRD grouped
 together is useless when the directory holds only FRDs, while `checkout`
-next to `checkout-frd.md` and `checkout-blueprint.md` is not. The ADR
-inverts this because its identity is its number: `[[adr-011]]` cites a
+next to `checkout-frd.md` and `checkout-blueprint.md` isn't. The ADR
+inverts this because its identity is its number. `[[adr-011]]` cites a
 number, so a directory sorted by number is the one a reader can navigate.
 
 Renaming a file is cheap: no `[[slug]]` reference addresses a path, and
 the index is built by walking the spec root rather than by matching
-names. Renaming a *slug* is not — it breaks every inbound reference — so
-WHEN a filename and its slug disagree, prefer correcting the filename.
+names. Renaming a *slug* isn't cheap, because it breaks every inbound
+reference. So when a filename and its slug disagree, prefer correcting the
+filename.
 
-The one cost to weigh first: a standard or guide vendored into a skill
+There's one cost to weigh first: a standard or guide vendored into a skill
 (`references/shared/`) takes its copy's basename from its source, so
-renaming the source renames every copy and breaks each backticked
-citation of it.
+renaming the source renames every copy and breaks each backticked citation
+of it.
 
-### Frontmatter Index
+### Frontmatter index
 
 A document system SHOULD maintain a machine-readable index of all
 documents' frontmatter (a JSON object written to disk). The index is the
@@ -249,7 +250,7 @@ detection after a promotion or reparent.
 
 ### Construction
 
-WHEN creating a slug from a document title:
+When creating a slug from a document title:
 
 1. Convert to lowercase
 2. Replace spaces with hyphens
@@ -257,13 +258,13 @@ WHEN creating a slug from a document title:
 4. Prepend the type's registered prefix
 
 **Example transformations:**
-- "Guest Checkout" (feature blueprint) → `feature-guest-checkout`
-- "Payments API" (contract) → `contract-payments-api`
-- "Data Retention" (standards) → `data-retention-policy`
+- "Guest Checkout" (Feature Blueprint) → `feature-guest-checkout`
+- "Payments API" (Contract) → `contract-payments-api`
+- "Data Retention" (Standards) → `data-retention-policy`
 
 ---
 
-## Template Instructions
+## Template instructions
 
 ### Placement
 
@@ -334,9 +335,9 @@ Example:
 -->
 ```
 
-**Rationale:** HTML comments are passed through markdown processors but not 
-rendered by browsers, making them invisible to end users while visible to 
-document authors.
+**Rationale:** Markdown processors pass HTML comments through, and
+browsers don't render them. So they're invisible to end users and visible
+to document authors.
 
 ### Lifecycle
 
@@ -346,8 +347,8 @@ HTML comment blocks after reading and completing each section.
 Instructions SHALL be deleted from the final document to prevent instruction 
 bloat.
 
-**Rationale:** Keeps final documents clean while providing guidance during 
-authoring.
+**Rationale:** Final documents stay clean, and authors still get guidance
+while they write.
 
 ---
 
@@ -358,29 +359,29 @@ release version of the plugin that ships them (`version` in the plugin's
 `plugin.json`).
 
 **Rationale:** Issues raised by a retro (see the issue template) cite
-the release a session ran, and triage compares it with the current one
-to answer "is this issue already fixed?". A hand-maintained number on
-every template drifts the moment someone forgets to bump it.
+the release a session ran. Triage compares it with the current release to
+answer "is this issue already fixed?" A hand-maintained number on every
+template drifts the moment someone forgets to bump it.
 
 ---
 
-## Requirements Expression
+## Requirements expression
 
 WHEN a template is used to express requirements or invariants, EARS (Easy
 Approach to Requirements Syntax) SHALL be adopted, with capitalized RFC 2119
 modal verbs.
 
-The patterns, the modal-verb rubric, style rules, and worked examples are
-defined in `ears-guide.md` — the single, more complete definition. Load it
-when writing any requirement; this document does not restate it.
+[[guide-ears]] defines the patterns, the modal-verb rubric, style rules,
+and worked examples, and it's the single, more complete definition. Load it
+when you write any requirement. This document doesn't restate it.
 
-**Rationale:** EARS provides unambiguous, testable constraint definitions
-with explicit triggers and conditions. Developed by Rolls-Royce for
+**Rationale:** EARS gives unambiguous, testable constraint definitions
+with explicit triggers and conditions. Rolls-Royce developed it for
 safety-critical systems.
 
 ---
 
-## Placeholders and Parameters
+## Placeholders and parameters
 
 ### Format
 
@@ -395,11 +396,11 @@ content.
 - `<PREFIX>` (for ID generation)
 - `YYYY-MM-DD` (date format indicator)
 
-**Rationale:** Angle bracket notation originates from Backus-Naur Form (1950s) 
-and is universally recognized in technical documentation to distinguish 
-literal text from placeholders.
+**Rationale:** Angle-bracket notation comes from Backus-Naur Form
+(1950s). Technical documentation universally recognizes it as a way to tell
+placeholders apart from literal text.
 
-### Variable Naming
+### Variable naming
 
 Placeholders SHALL use one of these naming conventions:
 
@@ -410,7 +411,7 @@ Placeholders SHALL use one of these naming conventions:
 Placeholder names SHALL be self-explanatory without requiring external 
 documentation.
 
-### Environment Variables vs Placeholders
+### Environment variables vs placeholders
 
 Template placeholders are distinct from environment variables injected at 
 runtime.
@@ -430,23 +431,23 @@ created_by: ${USER_EMAIL}
 Environment variables SHALL use `${VARIABLE_NAME}` syntax when supported by 
 the document generation tool.
 
-**Note:** Environment variable injection is tool-specific and should be 
+**Note:** Environment variable injection is tool-specific. It should be
 documented in the relevant tooling guide, not in individual templates.
 
 ---
 
-## Cross-Document References
+## Cross-document references
 
-Defined in `cross-document-references.md` — the `[[slug]]` wikilink syntax,
+[[cross-document-references]] defines the `[[slug]]` wikilink syntax,
 usage rules, component heading anchors, and the rules for referencing
-documents outside the specification set. Load it when authoring or
-validating references; do not restate it here.
+documents outside the specification set. Load it when you author or
+validate references. Don't restate it here.
 
 ---
 
-## Template Content Guidelines
+## Template content guidelines
 
-### Avoid Duplication
+### Avoid duplication
 
 Templates SHALL instruct authors to cross-reference other documents rather 
 than duplicate content.
@@ -454,10 +455,10 @@ than duplicate content.
 WHEN content exists in another document, templates SHALL guide authors to 
 reference that document using `[[document-slug]]` notation.
 
-**Rationale:** Duplication leads to drift when only one copy is updated. 
-Cross-referencing maintains a single source of truth.
+**Rationale:** When only one copy of duplicated content is updated, the
+copies drift. A cross-reference keeps a single source of truth.
 
-### Avoid Volatile Facts
+### Avoid volatile facts
 
 Documents SHOULD NOT state volatile facts — element counts, line 
 numbers, dependency version numbers, file sizes — unless the fact is 
@@ -469,11 +470,11 @@ Exception: versions that are contractual (a minimum supported runtime,
 a pinned toolchain) are requirements, not descriptions, and SHALL be 
 expressed in EARS.
 
-**Rationale:** Volatile precision reads as rigor but rots immediately: 
-the count changes and the document silently becomes wrong. The 
-underlying source of truth stays correct.
+**Rationale:** Volatile precision reads as rigor but rots immediately:
+the count changes, and the document silently becomes wrong. The underlying
+source of truth stays correct.
 
-### Living Documents
+### Living documents
 
 WHEN templates are used for documentation that evolves over time, the template 
 SHALL include instructions that documents are living artifacts.
@@ -493,7 +494,7 @@ This is a living document. Update when:
 
 ## Validation
 
-### Frontmatter Validation
+### Frontmatter validation
 
 WHEN a document system implements validation tooling, JSON Schema definitions 
 SHALL be created for each document type to validate:
@@ -507,12 +508,12 @@ SHALL be created for each document type to validate:
 Schema validation SHOULD be run as a pre-commit hook to catch errors before 
 commit.
 
-### Reference Validation
+### Reference validation
 
 WHEN a document system implements reference validation, tools SHOULD validate 
 that all `[[document-slug]]` references point to existing documents.
 
-### Dependency Graph
+### Dependency graph
 
 WHEN documents include relationship properties (`sources`, `system`,
 `modules`), tools SHOULD generate a dependency graph alongside the

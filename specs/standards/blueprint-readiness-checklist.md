@@ -8,7 +8,7 @@ type: standards
 status: active
 ---
 
-# Blueprint Readiness Checklist
+# Blueprint readiness checklist
 
 ## Contents
 
@@ -20,18 +20,18 @@ status: active
 - The decision sweep — the authoring preflight for check 7, and which
   notation a delta's behavior lines use
 
-One list, two consumers. The `spec` skill runs these checks as a
-**preflight** before a feature blueprint is set to `ready-for-review`;
-the `groom-feature-blueprint` skill enforces them as its **Phase 1 gate** before
-deriving a work-item graph. The checks are defined only here — the
-skills reference this document rather than restating it, so authoring
-and grooming can never disagree about what "groomable" means.
+This list has two consumers. The `spec` skill runs these checks as a
+**preflight** before a Feature Blueprint is set to `ready-for-review`.
+The `groom-feature-blueprint` skill enforces them as its **Phase 1
+gate** before it derives a Work Order graph. Only this document defines
+the checks. The skills cite it instead of restating it, so authoring
+and grooming can't disagree about what "groomable" means.
 
-What happens on failure differs by consumer and is defined in each
-skill, not here: at authoring time a failed check is simply unfinished
-work; at groom time a failed readiness check stops grooming without
-modifying any document, and a failed content check bounces the gap
-into the blueprint's Open Questions and demotes the blueprint to
+Each skill, not this document, defines what happens on failure, and the
+result differs by consumer. At authoring time, a failed check is
+unfinished work. At groom time, a failed readiness check stops grooming
+without modifying any document, and a failed content check bounces the
+gap into the blueprint's Open Questions and demotes the blueprint to
 `draft`.
 
 ---
@@ -43,7 +43,7 @@ into the blueprint's Open Questions and demotes the blueprint to
 3. The blueprint's Open Questions section is absent, empty, or states
    only "None."
 
-At authoring time these translate to a handoff obligation: WHEN a
+At authoring time, these checks translate to a handoff obligation: WHEN a
 feature blueprint is submitted for review, the author SHALL flag BOTH
 status flips to the human reviewer — the blueprint's approval AND its
 FRD's — so the FRD gate is not discovered for the first time at groom
@@ -51,77 +51,78 @@ time.
 
 ## Content checks — is the approved design plannable?
 
-4. Every AC defined in the FRD appears at least once in the
-   blueprint's AC Coverage table, and every row names at least one
-   delta block that exists in the Element Deltas section. A row naming
-   only a relied-upon element, a sequencing constraint, or a
-   Definition of Done entry is invalid, and a row naming more than one
-   delta without marking exactly one as the proving delta is invalid
-   (see the AC Coverage row validity rules in the feature blueprint
-   template).
+4. Every AC defined in the FRD appears at least once in the blueprint's
+   AC Coverage table. Every row names at least one delta block that
+   exists in the Element Deltas section. A row is invalid if it names
+   only a relied-upon element, a sequencing constraint, or a Definition
+   of Done entry. A row is also invalid if it names more than one delta
+   without marking exactly one as the proving delta (see the AC Coverage
+   row validity rules in the Feature Blueprint template).
 
-   **Enumerate the FRD's ACs with `specs feature <id>` rather than by
-   reading it.** An acceptance criterion is a tagged Gherkin `Scenario`
-   ([[adr-021]]), so the set is a query. Reading for them by eye misses
-   the case the notation is worst at: several `Examples` blocks under one
-   outline, where each tagged block is its own criterion and only the
-   first looks like a criterion in a diff.
+   **Enumerate the FRD's ACs with `specs feature <id> --full` instead of
+   by reading it.** An acceptance criterion is a tagged Gherkin
+   `Scenario` ([[adr-021]]), so the set is a query. Reading for them by
+   eye misses the case that the notation handles worst: several
+   `Examples` blocks under one outline. Each tagged block is its own
+   criterion, and only the first one looks like a criterion in a diff.
 5. Every `[[slug]]` reference resolves to an existing document.
 6. Every component reference resolves to exactly one declaration across
-   the referenced containers' and modules' Components sections — by name,
-   qualified in prose where ambiguous (see element declarations in
-   `c4-guide.md`).
+   the Components sections of the referenced containers and modules. It
+   resolves by name, qualified in prose where the name is ambiguous (see
+   the element declarations in [[c4-standards]]).
 7. Every delta contains enough design intent to implement without
-   making a design decision the blueprint does not record.
-8. The AC Coverage legend assigns every delta block a unique short
-   key, every legend key expands to an existing delta block, and no
-   key from an earlier revision has been reused for a different delta.
-   These keys are the stable identity work orders carry through
-   grooming and re-grooming.
+   making a design decision that the blueprint doesn't record.
+8. The AC Coverage legend assigns every delta block a unique short key.
+   Every legend key expands to an existing delta block, and no key from
+   an earlier revision has been reused for a different delta. These keys
+   are the stable identity that Work Orders carry through grooming and
+   re-grooming.
 9. For every lockstep-update rule in the owning blueprints' Change
    Guidance whose coupled artifacts span more than one delta block,
    the blueprint states how the rule is satisfied (in the delta or in
    Sequencing Constraints). Reconciling such a rule is a design
-   decision — its absence is a content gap, not a groom-time judgment
+   decision. Its absence is a content gap, not a groom-time judgment
    call.
-10. The Tracker Reconciliation section exists and classifies every
-    listed issue as subsumed, prerequisite, or out-of-scope — or
-    states "None." (which also satisfies the check WHERE the project
-    has no tracker).
+10. The Tracker Reconciliation section exists and either classifies
+    every listed issue as subsumed, prerequisite, or out-of-scope, or
+    states "None." Where the project has no tracker, "None." also
+    satisfies the check.
 
 ### The decision sweep — authoring preflight for check 7
 
-Check 7 is the check most likely to fail late — during grooming or
-implementation — because unrecorded decisions are invisible until
-someone has to make them. Before setting `ready-for-review`, walk each
-delta asking: what would an implementer have to *choose* here?
-Typical silent decisions:
+Check 7 is the check most likely to fail late (during grooming or
+implementation), because unrecorded decisions are invisible until
+someone has to make them. Before you set `ready-for-review`, walk each
+delta and ask what an implementer would have to *choose* there. Typical
+silent decisions:
 
 - file/artifact paths and names
-- default values and default resolution bases (cwd vs discovered root)
-- runtime-vs-build-time access to generated artifacts
+- default values and default resolution bases (cwd versus discovered
+  root)
+- runtime versus build-time access to generated artifacts
 - v1 scope cuts (what is deliberately not handled)
-- behavior at half-valid inputs (presence vs validity)
+- behavior at half-valid inputs (presence versus validity)
 - coexistence rules (multiple instances of X at once)
 
-For each: pin it as an EARS behavior line in the delta, or raise it as
-an Open Question. Implementation *structure* (function signatures,
-file layout, algorithms) stays unpinned — the sweep is for observable
-behavior and on-disk surfaces only. The blueprint template's "anchors,
-not signatures" rule guards against pinning too much; this sweep
-guards against pinning too little.
+Pin each one as an EARS behavior line in the delta, or raise it as an
+Open Question. Implementation *structure* (function signatures, file
+layout, algorithms) stays unpinned: the sweep is for observable
+behavior and on-disk surfaces only. The Feature Blueprint template's
+"anchors, not signatures" rule guards against pinning too much, and
+this sweep guards against pinning too little.
 
-**A delta's behavior lines are EARS, not Gherkin.** A feature blueprint
-holds no features and no acceptance criteria — those live in its FRD, in
-tagged Gherkin blocks, and a blueprint that restates them has duplicated
+**A delta's behavior lines are EARS, not Gherkin.** A Feature Blueprint
+holds no features and no acceptance criteria. Those live in its FRD, in
+tagged Gherkin blocks, and a blueprint that restates them duplicates
 the document it traces to. [[adr-002]] governs everything a blueprint
-writes; [[adr-021]] governs nothing in it.
+writes, and [[adr-021]] governs nothing in it.
 
 ## References
 
-- `feature-blueprint-template.md` (same directory) — the document
-  these checks apply to, including the AC Coverage row validity rules
-- `c4-guide.md` — element declarations and reference rules
+- `plugin/skills/spec/references/feature-blueprint-template.md` — the
+  document these checks apply to, including the AC Coverage row validity
+  rules
+- [[c4-standards]] — element declarations and reference rules
 - [[ac-traceability-standards]] — the test citation obligations the AC
   Coverage table feeds
 - [[gherkin-guide]] — the notation the FRD's acceptance criteria are

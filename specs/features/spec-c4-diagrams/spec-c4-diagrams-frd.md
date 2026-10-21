@@ -10,62 +10,60 @@ status: approved
 sources: []
 ---
 
-# C4 Diagram Conformance
+# C4 diagram conformance
 
 ## Overview
 
 Architecture blueprints draw their structure as Mermaid C4 diagrams, and
 [[c4-standards]] requires every node on those diagrams to be an element
-the documents declare, named exactly as declared. Nothing checks it. A
-diagram that names a component nobody declares, draws an arrow both
-ways, or breaks on a parenthesis inside a quoted argument is invisible
-until a human notices, and by then the diagram and its declarations have
-drifted.
+the documents declare, named exactly as declared. Without a check, a
+diagram that names a component nobody declares, draws an arrow both ways, or
+breaks on a parenthesis inside a quoted argument is invisible until a human
+notices. By then, the diagram and its declarations have drifted.
 
 This feature adds a C4 diagram parser and a family of `c4/*` rules to
-`specs check`. Each rule reports one defect at the statement that
-carries it. The parser and the node resolution it performs are also the
-foundation [[frd-spec-c4]] builds its relationship model on, parsed per
-[[adr-029]]; this feature stands without that one.
+`specs check`. Each rule reports one defect at the statement that carries it.
+The parser reads diagrams per [[adr-029]]. The parser and the node resolution
+it performs are also the foundation that [[frd-spec-c4]] builds its
+relationship model on, but this feature stands without that one.
 
 ### Prerequisites
 
-Resolving a node needs the elements it may name, and two of the checks
-need an element's contract edges. The index does not yet carry either:
+Resolving a node needs the elements it may name, and two of the checks need
+an element's contract edges. The index carries both:
 
 - **Recorded record blocks.** An un-promoted element is declared by a
   `component` record block, which the index records per AC-SPECSTR-001.2
-  of [[frd-spec-structure]]. Today it records none. Without them a node
-  naming an un-promoted element is reported as undeclared.
+  of [[frd-spec-structure]]. Without recorded blocks, a node that names an
+  un-promoted element is reported as undeclared.
 - **Each document's type-specific frontmatter.** AC-SPEC-002.1 of
-  [[frd-spec-index]] requires the index to carry every frontmatter
-  property a document's type defines; today an entry carries the shared
-  envelope only. Node resolution reads `entity_name` and `modules`,
-  and the contract checks the contract edges, from the index once it
-  does.
+  [[frd-spec-index]] requires the index to carry every frontmatter property
+  a document's type defines. Node resolution reads `entity_name` and
+  `modules` from the index, and the contract checks read the contract edges
+  from it.
 
 ### Out of scope
 
 - **Agreement between a node's technology or description and its
-  element's declaration.** [[c4-standards]] requires both to match; this
+  element's declaration.** [[c4-standards]] requires both to match. This
   feature matches nodes by entity name only.
 - **Dynamic and deployment diagrams**, which are reported as unverified.
-- **Diagrams outside architecture blueprints.** A feature blueprint may
+- **Diagrams outside architecture blueprints.** A Feature Blueprint may
   draw a proposed architecture that no document declares yet.
 
 ## Terminology
 
 - **Architecture blueprint** — a corpus member of type
-  `system-blueprint`, `container-blueprint`, `module-blueprint` or
+  `system-blueprint`, `container-blueprint`, `module-blueprint`, or
   `component-blueprint`.
-- **Element** — a system, container, module or component declared either
+- **Element** — a system, container, module, or component declared either
   by its own architecture blueprint or by a record block in its parent's
   roster section.
 - **Entity name** — an element's `entity_name`, from its blueprint's
-  frontmatter or its record block. It is the name diagrams draw, and is
-  distinct from a blueprint's `title`, which names the document.
+  frontmatter or its record block. It's the name that diagrams draw, and
+  it's distinct from a blueprint's `title`, which names the document.
 - **C4 diagram** — a fenced `mermaid` block in an architecture blueprint
-  whose first statement is `C4Context`, `C4Container` or `C4Component`.
+  whose first statement is `C4Context`, `C4Container`, or `C4Component`.
 - **Drawing document** — the architecture blueprint a C4 diagram sits in.
 - **Scope of a drawing document** — the elements a diagram node in it may
   name: the document's own element; the components its roster declares
@@ -87,8 +85,8 @@ need an element's contract edges. The index does not yet carry either:
   the same label.
 - **Reserved tag** — a relationship tag with meaning to this framework:
   `sync`, `async`, or `contract:` followed by a slug. Tags are written in
-  Mermaid's tags argument, positionally or as `$tags`, several joined by
-  a plus sign.
+  Mermaid's tags argument, either positionally or as `$tags`, and several
+  tags are joined by a plus sign.
 
 ## Requirements
 
@@ -288,5 +286,5 @@ Feature: Reserved Relationship Tags
 - [[c4-standards]] — the diagram conventions these rules enforce
 - [[frd-spec-structure]] — record blocks, which declare un-promoted
   elements
-- [[frd-spec-index]] — the check engine, rule identifiers and the
+- [[frd-spec-index]] — the check engine, rule identifiers, and the
   unverified severity of AC-SPEC-006.3
