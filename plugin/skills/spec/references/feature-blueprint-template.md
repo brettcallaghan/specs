@@ -8,26 +8,25 @@ status: draft
 delivery: single-pr                  # single-pr | staged. The delivery
                                      # unit grooming plans against. WHEN
                                      # staged, enumerate each stage
-                                     # boundary in Sequencing Constraints.
+                                     # boundary in Sequencing constraints.
 frd: frd-<feature-name>              # the FRD this blueprint realizes (1:1)
 ---
 
 <!--
 Template: Feature Blueprint
-Version: 1.6
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]].
 
 Sections (complete each, then delete its instruction block)
   - Overview
-  - Element Deltas
+  - Element deltas
   - Contracts
-  - Tracker Reconciliation
-  - Sequencing Constraints
-  - AC Coverage
-  - Key Decisions
-  - Definition of Done
-  - Open Questions
+  - Tracker reconciliation
+  - Sequencing constraints
+  - AC coverage
+  - Key decisions
+  - Definition of done
+  - Open questions
   - References
 
 Purpose
@@ -43,6 +42,16 @@ Purpose
   blueprints remain the single source of truth for the steady state at
   all times; this document never competes with them.
 
+Reader profile (apply with the tech-writer skill)
+- Reader: the human reviewer approving the design, then the planning agent
+  that derives the implementation plan.
+- Knows: the FRD and the architecture blueprints this feature changes.
+- Wants: what changes, element by element, and how each acceptance criterion
+  is covered.
+- Budget: one focused read.
+- Tone: precise and diff-shaped. Reference decisions, contracts, and steady-
+  state architecture; don't restate them.
+
 Audience and altitude
   Written for two readers: the human reviewer approving the design, and
   the planning agent that will derive an implementation plan (impl-plan
@@ -53,10 +62,10 @@ Audience and altitude
   and implementing agents' choices.
 
 Lifecycle — this document is TRANSIENT
-  draft            — under authorship; Open Questions section allowed
+  draft            — under authorship; Open questions section allowed
   ready-for-review — design complete, awaiting human review
   approved         — design accepted. Implementation planning MAY begin.
-                     WHILE the Open Questions section is non-empty,
+                     WHILE the Open questions section is non-empty,
                      planning SHALL NOT begin.
   in-progress      — implementation planned or in progress (this type
                      uses in-progress in place of active — it specifies
@@ -67,7 +76,7 @@ Lifecycle — this document is TRANSIENT
                      plans/<feature-slug>/` for task files) so readers
                      mid-flight can find the graph without searching
                      the tracker; the pointer retires with the document.
-  retired          — the feature is merged and the Definition of Done is
+  retired          — the feature is merged and the Definition of done is
                      complete: every delta has been folded into the
                      owning architecture blueprint, draft contracts
                      flipped to active, and this document retired.
@@ -85,7 +94,7 @@ Lifecycle — this document is TRANSIENT
   sees architecture blueprints that match merged reality. Doc updates
   are neither an upfront phase (implementation may still bounce design
   questions back) nor a final pass (the step most easily dropped under
-  pressure); the Definition of Done below is the completeness CHECK,
+  pressure); the Definition of done below is the completeness CHECK,
   not a batch of work left for the end.
 
 When to use
@@ -142,7 +151,7 @@ HTML comment blocks after completing each section.
 <!--
 2-4 sentences: the design approach at a glance — how the system delivers
 this feature. The reader has already read the FRD; do NOT restate the
-requirements. Name the major elements touched so the Element Deltas
+requirements. Name the major elements touched so the Element deltas
 section is navigable from here. End the overview with a single sentence
 listing the delta blocks in dependency order — the one-line map
 reviewers and groomers orient by.
@@ -153,7 +162,7 @@ reviewers and groomers orient by.
 <How the system delivers this feature, at a glance: the approach chosen
 and the elements it touches.>
 
-## Element Deltas
+## Element deltas
 
 <!--
 The normative core: one delta block per element added, modified, or
@@ -173,7 +182,7 @@ concerns with different upstream dependencies. Group by unit of
 delivery, not by narrative ("the LSP changes" is a story, not a block).
 
 Every delta block SHALL have a short key (PD, CLI, DOC, ...) declared
-in the AC Coverage legend. The key is the block's stable identity:
+in the AC coverage legend. The key is the block's stable identity:
 grooming stamps it onto the derived work order, and re-grooming diffs
 by it. Never reuse a retired key for a different delta.
 
@@ -184,7 +193,7 @@ in at retirement is a mechanical copy:
     slug, brief description, detail)
   - a new or changed module → the module blueprint's vocabulary; a
     change to a PUBLIC module also honors its backwards-compatibility
-    change rules (see the module's Change Guidance)
+    change rules (see the module's Change guidance)
   - a schema change → the container blueprint's Data section shape
     (store, what it holds, EARS invariants)
   - a new behavior or guarantee → EARS statements
@@ -200,15 +209,15 @@ Each block contains, as applicable:
 
 Deltas SHALL be independently implementable and testable wherever
 possible; where two deltas cannot land independently, say so in
-Sequencing Constraints rather than merging the blocks.
+Sequencing constraints rather than merging the blocks.
 
-Consult the owning blueprint's Change Guidance section when writing
+Consult the owning blueprint's Change guidance section when writing
 each delta: its constraints are binding on the design (lockstep-update
 rules, layering boundaries), and its verification gates are what the
-AC Coverage "Verified by" column maps onto. WHEN artifacts coupled by
+AC coverage "Verified by" column maps onto. WHEN artifacts coupled by
 an owning blueprint's lockstep-update rule are assigned to different
 delta blocks, the blueprint SHALL state how the rule is satisfied —
-in the delta or in Sequencing Constraints (e.g., "single-PR delivery;
+in the delta or in Sequencing constraints (e.g., "single-PR delivery;
 the DOC delta lands in the same change as the CLI delta"). Absence is
 a content-check failure at groom time, not a call the groomer makes.
 
@@ -286,7 +295,7 @@ owning container's delta block above, not here.
 - [[contract-<name>]] (revised, drafted in place) — <what changes for
   consumers>.
 
-## Tracker Reconciliation
+## Tracker reconciliation
 
 <!--
 Survey the project's issue tracker while authoring: this feature's
@@ -302,7 +311,7 @@ One line per overlapping issue, classified as exactly one of:
                   tracked defects the feature rolls in and fixes); name
                   the superseding delta by key. Grooming blocks the
                   issue on the superseding work order with a
-                  supersession note, and the Definition of Done closes
+                  supersession note, and the Definition of done closes
                   or re-scopes it.
   prerequisite  — the issue must land first (e.g., an open defect in
                   code a delta extends that the feature must not build
@@ -314,7 +323,7 @@ One line per overlapping issue, classified as exactly one of:
 WHEN a delta's anchors point at code containing a tracked open defect,
 the relationship SHALL be recorded here under one of the three
 classifications. IF an overlapping issue cannot be classified, THEN it
-goes to Open Questions — the same escalation path as any other design
+goes to Open questions — the same escalation path as any other design
 gap.
 -->
 
@@ -322,7 +331,7 @@ gap.
 - <tracker-id> — prerequisite: <why it must land before <KEY>>.
 - <tracker-id> — out-of-scope: <the boundary this feature respects>.
 
-## Sequencing Constraints
+## Sequencing constraints
 
 <!--
 Hard ordering constraints that are DESIGN decisions — the planner cannot
@@ -355,7 +364,7 @@ of the design; grooming reads it rather than assuming it.
 - The system SHALL maintain backward compatibility with <surface> until
   <condition>.
 
-## AC Coverage
+## AC coverage
 
 <!--
 The traceability map: every acceptance criterion in the FRD SHALL appear
@@ -365,7 +374,7 @@ the PR afterward. WHEN an AC has no satisfying delta, the design is
 incomplete — resolve it before status may become approved.
 
 Satisfied by: the delta block(s) that realize the AC. Every row SHALL
-name at least one delta block from Element Deltas — this is what makes
+name at least one delta block from Element deltas — this is what makes
 the table mechanically translatable into work orders:
   - WHEN an AC is delivered by relied-upon unchanged machinery, name
     the delta that feeds it and append the mechanism: "CLI delta, via
@@ -373,7 +382,7 @@ the table mechanically translatable into work orders:
   - WHEN an AC is guaranteed by a sequencing constraint, name the
     constrained delta(s) and note the constraint parenthetically.
   - A row naming only a relied-upon element, a sequencing constraint,
-    or a Definition of Done entry is invalid — grooming bounces it.
+    or a Definition of done entry is invalid — grooming bounces it.
 A short-name legend above the table SHALL assign each delta block a
 unique key (e.g. "PD = `PackageDiscovery` delta") and the Satisfied-by
 column SHALL use the keys. Every legend entry SHALL expand to a delta
@@ -412,7 +421,7 @@ delta (— <focus>); ...
 | AC-<PREFIX>-001.2 | <KEY>, **<KEY2> (proves)** — via [[contract-<name>]] | integration |
 | AC-<PREFIX>-002.1 | <...> | e2e |
 
-## Key Decisions
+## Key decisions
 
 <!--
 Standalone ADRs only — this document retires, so a decision recorded
@@ -423,7 +432,7 @@ while authoring this blueprint, author the ADR and reference it here
 
 - [[adr-<nnn>]] — <one-line statement of the decision>.
 
-## Definition of Done
+## Definition of done
 
 <!--
 The retirement contract, populated per-feature from the deltas above.
@@ -437,14 +446,14 @@ truthful again. Keep one checkbox per affected document.
   - [ ] [[module-<name>]] — Components / Interface / Versioning updated
   - [ ] [[component-<name>]] — <sections affected>
 - [ ] [[contract-<name>]] status: draft → active
-- [ ] New ADRs are referenced from the owning blueprints' Key Decisions
+- [ ] New ADRs are referenced from the owning blueprints' Key decisions
 - [ ] Every AC in the coverage table is verified at its declared level
   and cited from its tests per [[ac-traceability-standards]]
 - [ ] Every behaviour this blueprint decided that no FRD criterion asks
   for (a refusal, an error path, a registration) is lifted into the FRD
   as a criterion and cited from its test; it must not retire with this
   document
-- [ ] Every issue listed as subsumed in Tracker Reconciliation is
+- [ ] Every issue listed as subsumed in Tracker reconciliation is
   closed or re-scoped (omit WHERE that section states "None.")
 - [ ] No live document references this blueprint (`specs refs
   <this-slug>` names no live document), per
@@ -454,7 +463,7 @@ truthful again. Keep one checkbox per affected document.
   the corpus is green — a gate run before retirement tests a state that
   will never exist again
 
-## Open Questions
+## Open questions
 
 <!--
 Draft-mode escalation path. WHEN a planning or authoring agent finds the

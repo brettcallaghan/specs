@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/guides/ears-guide.md (version unversioned)
+     Source of truth: specs/guides/ears-guide.md
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -13,36 +13,37 @@ type: guide
 status: draft
 ---
 
-# Writing Requirements with EARS
+# Writing requirements with EARS
 
 ## Contents
 
 - Where EARS applies — and the one surface it does not
 - Why EARS — what the syntax buys over free-form prose
-- Sentence Patterns — ubiquitous, event-driven, state-driven, optional
-  feature, conditional, negative (plus pattern selection and complex
+- Sentence patterns — ubiquitous, event-driven, state-driven, optional
+  feature, conditional, and negative (plus pattern selection and complex
   requirements)
-- Modal Verbs — RFC 2119 keywords and when each applies
-- Writing Style Rules
-- Common Mistakes
-- Examples Across Requirement Types
-- Requirements in Documents
-- Quick Checklist — run this before calling a requirement done
+- Modal verbs — RFC 2119 keywords and when each applies
+- Writing style rules
+- Common mistakes
+- Examples across requirement types
+- Requirements in documents
+- Quick checklist — run this before you call a requirement done
 - References
 
-EARS (Easy Approach to Requirements Syntax) is the convention for authoring
-requirements in this project — functional requirements, non-functional
-requirements, system invariants, policies and constraints, in any document
+EARS (Easy Approach to Requirements Syntax) is this project's convention for
+authoring requirements: functional requirements, non-functional
+requirements, system invariants, policies, and constraints, in any document
 that expresses them ([[adr-002]]).
 
-**Acceptance criteria are the exception, and features with them.** Those
-are written in Gherkin ([[adr-021]]); [[gherkin-guide]] is how. Nothing
-below applies to an FRD's `Feature` blocks. Everything below applies to
-every other normative statement, including the ones in an FRD's prose and
-in the standards, contracts and blueprints an FRD cites.
+**Acceptance criteria, and the features that carry them, are the
+exception.** They're written in Gherkin ([[adr-021]]), as [[gherkin-guide]]
+describes. Nothing below applies to an FRD's `Feature` blocks. Everything
+below applies to every other normative statement, including the ones in an
+FRD's prose and in the Standards documents, Contracts, and blueprints that an
+FRD cites.
 
 EARS is a writing convention, not a document type. Any document may contain
-EARS requirements; this guide defines how to write them.
+EARS requirements. This guide defines how to write them.
 
 ---
 
@@ -50,19 +51,19 @@ EARS requirements; this guide defines how to write them.
 
 Free-form prose requirements hide ambiguity: implicit assumptions, missing
 conditions, and vague qualifiers that different readers interpret
-differently. EARS eliminates this by forcing every requirement into one of a
-small set of sentence patterns with explicit triggers, conditions, and
-responses.
+differently. EARS eliminates that ambiguity by forcing every requirement into
+one of a small set of sentence patterns with explicit triggers, conditions,
+and responses.
 
 A well-formed EARS requirement has three properties:
 
-1. **Unambiguous** — exactly one interpretation.
-2. **Testable** — you could write a failing test for it.
-3. **Atomic** — one requirement per sentence.
+1. **Unambiguous**: exactly one interpretation.
+2. **Testable**: you could write a failing test for it.
+3. **Atomic**: one requirement per sentence.
 
 ---
 
-## Sentence Patterns
+## Sentence patterns
 
 Every requirement SHALL use one of the following patterns. Keywords (WHEN,
 WHILE, WHERE, IF, THEN, SHALL, SHALL NOT) SHALL be capitalized.
@@ -76,16 +77,16 @@ WHILE, WHERE, IF, THEN, SHALL, SHALL NOT) SHALL be capitalized.
 | Conditional / unwanted behavior | IF [condition], THEN the system SHALL [action] | Response to a precondition, often an error or undesired situation |
 | Negative | The system SHALL NOT [action] | Hard prohibition |
 
-Replace "the system" with the actual subject of the requirement — a named
+Replace "the system" with the requirement's actual subject: a named
 component, service, template, process, or role. Prefer the most specific
 subject that owns the behavior.
 
-### Pattern Selection
+### Pattern selection
 
 Ask these questions in order:
 
 1. Is this forbidding something? → **Negative** (SHALL NOT)
-2. Does it only apply when an optional feature exists? → **Optional
+2. Does it apply only when an optional feature exists? → **Optional
    feature** (WHERE)
 3. Does something *happen* to trigger it? → **Event-driven** (WHEN)
 4. Is it true only *during* some state? → **State-driven** (WHILE)
@@ -93,11 +94,11 @@ Ask these questions in order:
    **Conditional** (IF/THEN)
 6. None of the above? → **Ubiquitous** (plain SHALL)
 
-### Complex Requirements
+### Complex requirements
 
 Patterns MAY be combined when a requirement genuinely needs multiple
-clauses. Keep clause order: WHERE, WHILE, WHEN, IF/THEN, then the SHALL
-clause.
+clauses. Keep the clauses in this order: WHERE, WHILE, WHEN, IF/THEN, and
+then the SHALL clause.
 
 ```markdown
 WHILE ingestion is paused, WHEN a new file arrives, the system SHALL queue
@@ -105,11 +106,11 @@ the file without processing it.
 ```
 
 Use combinations sparingly. If a sentence needs more than two clauses,
-consider whether it is actually two requirements.
+consider whether it's actually two requirements.
 
 ---
 
-## Modal Verbs
+## Modal verbs
 
 EARS requirements SHALL use RFC 2119 modal verbs to express requirement
 strength:
@@ -118,18 +119,18 @@ strength:
 |---------|---------|
 | SHALL / SHALL NOT | Absolute requirement or prohibition |
 | SHOULD / SHOULD NOT | Strong recommendation; deviation needs justification |
-| MAY | Truly optional; implementer's choice |
+| MAY | Truly optional: the implementer's choice |
 
-- Default to SHALL. A requirement that cannot be stated with SHALL is
+- Default to SHALL. A requirement that can't be stated with SHALL is
   usually a preference, not a requirement.
 - Use SHOULD only when a legitimate reason to deviate can exist. If you
-  cannot imagine one, use SHALL.
+  can't imagine one, use SHALL.
 - Modal verbs SHALL be capitalized, and SHALL be reserved for actual
   requirements — never use them casually in surrounding prose.
 
 ---
 
-## Writing Style Rules
+## Writing style rules
 
 **One requirement per sentence.** Never join two SHALLs with "and." Split
 them so each can be tested, traced, and disputed independently.
@@ -143,7 +144,7 @@ them so each can be tested, traced, and disputed independently.
 ```
 
 **Be specific enough to test.** Every requirement should imply a concrete
-pass/fail check. Quantify where possible.
+pass/fail check. Quantify where you can.
 
 ```markdown
 ❌ The system SHALL respond quickly.
@@ -152,38 +153,40 @@ pass/fail check. Quantify where possible.
 ```
 
 **Ban vague qualifiers.** Avoid "appropriate," "reasonable," "adequate,"
-"user-friendly," "as needed," "etc." If you cannot define it, it is not
-testable, and it is not a requirement yet.
+"user-friendly," "as needed," and "etc." If you can't define a qualifier, it
+isn't testable, and it isn't a requirement yet.
 
-**Use active voice with an explicit subject.** "The scheduler SHALL retry
-failed jobs" — not "failed jobs SHALL be retried" (retried by what?).
+**Use active voice with an explicit subject.** Write "The scheduler SHALL
+retry failed jobs" instead of "failed jobs SHALL be retried" (retried by
+what?).
 
 **Name events and states precisely.** "WHEN the upload completes" is
-testable; "WHEN the upload is done or whatever finishes first" is not.
-Define terms in a glossary or inline if they could be misread.
+testable. "WHEN the upload is done or whatever finishes first" isn't. If a
+term could be misread, define it in a glossary or inline.
 
 **State the trigger, not the implementation.** Requirements say *what* and
-*under which conditions*, never *how*. "The system SHALL persist audit
-events durably" — not "the system SHALL write audit events to PostgreSQL
-with fsync enabled" (unless the technology itself is the requirement).
+*under which conditions*, never *how*. Write "The system SHALL persist audit
+events durably" instead of "the system SHALL write audit events to
+PostgreSQL with fsync enabled" (unless the technology itself is the
+requirement).
 
 ---
 
-## Common Mistakes
+## Common mistakes
 
 | Mistake | Problem | Fix |
 |---------|---------|-----|
-| Compound requirements ("...and...") | Cannot test or trace independently | Split into one sentence per SHALL |
-| Missing trigger ("The system SHALL validate input") | Validate when? On every call? | Add WHEN/WHILE/IF clause if behavior is not truly ubiquitous |
-| Vague qualifiers ("appropriate error message") | Untestable | Define the exact behavior or reference where it is defined |
+| Compound requirements ("...and...") | Can't be tested or traced independently | Split into one sentence per SHALL |
+| Missing trigger ("The system SHALL validate input") | Validate when? On every call? | Add a WHEN, WHILE, or IF clause if the behavior isn't truly ubiquitous |
+| Vague qualifiers ("appropriate error message") | Untestable | Define the exact behavior, or reference where it's defined |
 | Escaping into prose mid-list | Ambiguity creeps back in | Every normative statement uses an EARS pattern |
 | Negation buried in a positive pattern ("WHEN X, the system SHALL avoid Y") | Weakens the prohibition | Use SHALL NOT: "WHEN X, the system SHALL NOT Y" |
-| Passive voice ("data SHALL be encrypted") | Actor is unspecified | Name the subject that performs the action |
-| SHOULD used to dodge a decision | Requirement strength left ambiguous | Decide: SHALL if mandatory, MAY if optional, SHOULD only with a known deviation case |
+| Passive voice ("data SHALL be encrypted") | The actor is unspecified | Name the subject that performs the action |
+| SHOULD used to dodge a decision | Requirement strength is left ambiguous | Decide: SHALL if mandatory, MAY if optional, SHOULD only with a known deviation case |
 
 ---
 
-## Examples Across Requirement Types
+## Examples across requirement types
 
 **Functional requirement:**
 
@@ -205,7 +208,7 @@ WHILE operating in degraded mode, the system SHALL continue serving
 cached read requests.
 ```
 
-**Policy / invariant:**
+**Policy or invariant:**
 
 ```markdown
 The system SHALL NOT transmit raw image data to any external service.
@@ -224,7 +227,7 @@ WHERE single sign-on is enabled, the system SHALL delegate authentication
 to the configured identity provider.
 ```
 
-**Process / authoring requirement:**
+**Process or authoring requirement:**
 
 ```markdown
 WHEN a template is used to author a new document, the author SHALL remove
@@ -233,12 +236,12 @@ HTML comment blocks after completing each section.
 
 ---
 
-## Requirements in Documents
+## Requirements in documents
 
-EARS governs the sentences, not the document. Whatever the document type —
-a requirements document, a standard, a specification, a template — the
-normative statements within it follow this convention, with an FRD's
-`Feature` blocks excepted as above:
+EARS governs the sentences, not the document. Whatever the document type (a
+requirements document, a standard, a specification, or a template), the
+normative statements in it follow this convention, except an FRD's
+`Feature` blocks, as described earlier:
 
 - Group related requirements under descriptive section headings.
 - Surrounding prose (context, rationale, examples) is welcome and SHOULD
@@ -246,14 +249,14 @@ normative statements within it follow this convention, with an FRD's
   If a statement is binding, write it as an EARS sentence.
 - A **Rationale** note after a requirement or group of requirements is the
   preferred place to explain *why* without diluting the requirement itself.
-- Cross-reference rather than restate requirements that live in another
-  document (see [[template-authoring-standards]] for reference syntax).
+- Cross-reference requirements that live in another document instead of
+  restating them (see [[template-authoring-standards]] for reference syntax).
 
 ---
 
-## Quick Checklist
+## Quick checklist
 
-Before committing a requirement, verify:
+Before you commit a requirement, check that:
 
 - [ ] It uses exactly one EARS pattern (or a justified combination).
 - [ ] Keywords and modal verbs are capitalized.
@@ -271,8 +274,8 @@ Before committing a requirement, verify:
 - [[adr-002]] — the decision this guide implements, and the scope it keeps
 - [[gherkin-guide]] — the notation for features and acceptance criteria, the
   one surface this guide does not cover
-- [[template-authoring-standards]] — Frontmatter, references, and modal verb
+- [[template-authoring-standards]] — frontmatter, references, and modal verb
   standards
 - Mavin, A., et al. (2009). "Easy Approach to Requirements Syntax (EARS)"
-- [RFC 2119](https://www.ietf.org/rfc/rfc2119.txt) — Modal verb definitions
+- [RFC 2119](https://www.ietf.org/rfc/rfc2119.txt) — modal verb definitions
 - [EARS on Wikipedia](https://en.wikipedia.org/wiki/Easy_Approach_to_Requirements_Syntax)

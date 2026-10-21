@@ -9,36 +9,31 @@ type: adr
 status: approved
 ---
 
-# ADR-021: Adopt Gherkin for Features and Acceptance Criteria
+# ADR-021: Adopt Gherkin for features and acceptance criteria
 
 **Status:** approved  
 **Date:** 2026-08-06
 
 ## Context
 
-A prior draft ADR at number 014 deferred this question and named the way
-to settle it: author real criteria both ways and compare. That comparison
-has been run, twice, against this repository's own corpus. This ADR
-replaces that draft, which is deleted rather than retained as a retired
-record — it was never ratified, and the decision log needs one document
-per question, not two. ADR number 014 is left unused.
+This ADR replaces a draft at number 014, which was never ratified. That draft
+is deleted rather than retained as a retired record, because the decision log
+needs one document per question, not two. ADR number 014 is unused.
 
-The first pass evaluated the notation against a **local markdown
-destination** — is an FRD easier to read, review and lint — and came out
-against adoption on margin.
+Against a **local markdown destination** (is an FRD easier to read, review, and
+lint?), the comparison comes out narrowly against adoption. That isn't the
+destination that matters. The stated direction is publication out of these
+repositories into a **central structured store for C4 models, features and
+acceptance criteria**, a knowledge graph fed the same content, or both. Beyond
+that, the direction is for acceptance criteria to live in product/QA tooling
+that product managers, engineers, and QA share, rather than in a source
+repository at all. [[frd-spec-index]] already carries this intent: "an
+organization pushes the index to a central service and sees its whole
+architecture."
 
-That was the wrong destination. The stated direction is publication out
-of these repositories into a **central structured store for C4 models,
-features and acceptance criteria**, a knowledge graph fed the same
-content, or both; and beyond that, acceptance criteria living in
-product/QA tooling that product managers, engineers and QA share rather
-than in a source repository at all. [[frd-spec-index]] already
-carries this intent — "an organization pushes the index to a central
-service and sees its whole architecture."
-
-Against a typed-record destination the criteria invert. What matters is
-no longer how a sentence reads in a diff but **how much structure
-survives extraction**, and prose loses that comparison decisively.
+Against a typed-record destination, the criteria invert. What matters is **how
+much structure survives extraction**, not how a sentence reads in a diff, and
+prose loses that comparison decisively.
 
 Everything below was measured with
 `github.com/cucumber/gherkin/go/v42` (v42.0.1, MIT).
@@ -47,10 +42,10 @@ Everything below was measured with
 
 An acceptance criterion in a structured store wants columns:
 precondition, trigger, expected outcome, polarity, verification level,
-example data, provenance. Prose EARS delivers **one string** —
-`"WHEN the CLI is invoked against a directory, the CLI SHALL treat…"` —
-and every column after that requires writing and maintaining an EARS
-parser over natural language.
+example data, and provenance. Prose EARS delivers **one string**
+(`"WHEN the CLI is invoked against a directory, the CLI SHALL treat…"`), and
+every column after that requires writing and maintaining an EARS parser over
+natural language.
 
 The Gherkin AST delivers those columns directly. Steps carry a typed
 `KeywordType`, not just text:
@@ -67,22 +62,20 @@ scenario "Slug pattern mismatch is reported with actual and expected"
 result as an enum, produced by a maintained parser rather than by our
 regexes over English.
 
-**Constraint 13 declines to persist this.** The capability is real and it
-is what distinguishes a parsed notation from prose, but nothing this
-framework does operates below the level of a whole criterion, and a
-record carrying typed steps would be fillable from Gherkin alone — a
-Gherkin-shaped model in a framework that treats the notation as
-replaceable. The AST keeps the capability available for the day a
-consumer needs it; the manifest does not spend it in advance.
+**Constraint 13 declines to persist this.** The capability is real, and it's
+what distinguishes a parsed notation from prose. But nothing this framework
+does operates below the level of a whole criterion. A record that carries typed
+steps would be fillable from Gherkin alone: a Gherkin-shaped model in a
+framework that treats the notation as replaceable. The AST keeps the
+capability available for the day a consumer needs it, and the manifest doesn't
+spend it in advance.
 
 ### Measured: `Scenario Outline` preserves the criterion/example split
 
-An earlier draft of this ADR found that a Gherkin scenario collapses the
-distinction the FRD template rests on — the EARS sentence carries the
-requirement, the `*Example:*` beneath it merely illustrates, and the
-criterion governs when they conflict. **That finding was wrong.** It was
-made against plain `Scenario`, and the corpus's 61 examples are exactly
-the case `Scenario Outline` exists for:
+The FRD template rests on a distinction: the EARS sentence carries the
+requirement, the `*Example:*` beneath it only illustrates, and the criterion
+governs when they conflict. A plain `Scenario` collapses that distinction, but
+the corpus's 61 examples are exactly the case `Scenario Outline` exists for:
 
 ```
 general (parameterised) form:
@@ -95,9 +88,9 @@ Examples header: [type slug pattern]
   row 2 -> {"type":"frd","slug":"checkout","pattern":"^frd-[a-z-]+$"}
 ```
 
-The parameterised steps are the governing general statement; the rows
-are the illustrative instances. The split not only survives — it becomes
-**queryable**, where today an example is an unparseable sentence.
+The parameterized steps are the governing general statement, and the rows are
+the illustrative instances. The split survives and becomes **queryable**, where
+a prose example is an unparseable sentence.
 
 ### Measured: the compiled form is the fact table
 
@@ -113,12 +106,11 @@ pickle "Files outside the spec root are never read"
                                        @negative @level-unit]  steps=1
 ```
 
-Three rows from two scenarios. That is the denormalised load target a
+Three rows come from two scenarios. That's the denormalized load target a
 structured store wants, produced by the library. The whole document also
-serialises to JSON out of the box (`{feature, comments}`), and
-`cucumber/messages` is a **published, versioned interchange schema** —
-adopting it beats inventing one, and it is what external test-management
-tools already ingest.
+serializes to JSON out of the box (`{feature, comments}`). `cucumber/messages`
+is a **published, versioned interchange schema**: adopting it beats inventing
+one, and it's what external test-management tools already ingest.
 
 ### Measured: rationale has a home, attached to the node
 
@@ -134,77 +126,82 @@ Feature.Description = "As an architecture owner / I want one machine-readable
 Rule.Name           = "A build failure is the checker's job, not the indexer's"
 ```
 
-Under the mapping fixed by constraint 1, `Feature.Description` carries
-the requirement's user story and design note, a `Rule` **name** carries
-rationale that states an assertion governing several criteria, and
-`Scenario.Description` carries per-criterion rationale. Each becomes a
-field with an explicit scope, where today a `*Rationale:*` paragraph's
-scope is inferred from position.
+Under the mapping that constraint 1 fixes, `Feature.Description` carries the
+requirement's user story and design note. A `Rule` **name** carries rationale
+that states an assertion governing several criteria, and
+`Scenario.Description` carries per-criterion rationale. Each becomes a field
+with an explicit scope, where a prose `*Rationale:*` paragraph's scope is
+inferred from position.
 
 ### The extraction mechanics are settled
 
-Fenced ` ```gherkin ` blocks in `.md` files. Under constraint 1 an FRD's
-blocks each declare their own `Feature`, so they are complete Gherkin
-documents and need no wrapper; the extractor still supplies a synthetic
-`Feature:` header for any block that omits one. Positions map back with
+Fenced ` ```gherkin ` blocks in `.md` files. Under constraint 1, an FRD's
+blocks each declare their own `Feature`, so they're complete Gherkin documents
+and need no wrapper. The extractor still supplies a synthetic `Feature:` header
+for any block that omits one. Positions map back with
 `fence_line + (parser_line - wrap)`, where `wrap` is 0 for a block that
 declares its own `Feature` and 1 for a wrapped fragment.
 
-Verified against a block containing one good criterion and three
-defective ones — correct `.md` line numbers, and untagged, malformed and
-duplicate identifiers all reported; and separately end to end into this
-project's `Span`, whose byte offsets were confirmed by slicing the
-source. **MDG (`.feature.md`) is JavaScript-only and is not needed.**
-The full extraction contract and its five gotchas are recorded in
+This is verified against a block that contains one good criterion and three
+defective ones: the `.md` line numbers are correct, and untagged, malformed,
+and duplicate identifiers are all reported. It's also verified end to end into
+this project's `Span`, whose byte offsets were confirmed by slicing the source.
+**MDG (`.feature.md`) is JavaScript-only and is not needed.** The full
+extraction contract and its five gotchas are recorded in
 `docs/research/gherkin/extraction-findings.md`.
 
-Semantic validation stays in the spec CLI by design: the parser
-enforces Gherkin's grammar, and the CLI enforces that every scenario
-carries exactly one tag matching
-`^@AC-[A-Z0-9]+-[0-9]{3}\.[0-9]+$`, that identifiers are unique and in
-sequence, and that a `Scenario` `Description` does not contain what
-should have been a criterion. A `Feature` description is exempt — under
-constraint 1 it legitimately carries the user story and design note.
+Semantic validation stays in the spec CLI by design. The parser enforces
+Gherkin's grammar, and the CLI enforces three rules:
+
+- Every scenario carries exactly one tag matching
+  `^@AC-[A-Z0-9]+-[0-9]{3}\.[0-9]+$`.
+- Identifiers are unique and in sequence.
+- A `Scenario` `Description` doesn't contain what should have been a
+  criterion.
+
+A `Feature` description is exempt, because under constraint 1 it legitimately
+carries the user story and design note.
 
 ### Tried on a real document
 
-The whole of [[frd-spec-index]] was rewritten in Gherkin as a
-trial — 52 criteria, nine blocks — and parsed with the extractor
-(findings in `docs/research/gherkin/ears-vs-gherkin-comparison.md`). All
-nine blocks parse and all 52 identifiers extract, so the design holds.
+The whole of [[frd-spec-index]] was rewritten in Gherkin as a trial (52
+criteria, nine blocks) and parsed with the extractor (findings in
+`docs/research/gherkin/ears-vs-gherkin-comparison.md`). All nine blocks parse
+and all 52 identifiers extract, so the design holds.
 
-The trial also settled where the FRD's other prose goes. Overview,
-Terminology and the numbering note stay markdown, being FRD-level with
-no Gherkin node above `Feature`. Everything at requirement level moved
-inside the blocks: nine user stories into `Feature` descriptions, and
-eight `*Rationale:*` paragraphs either into those descriptions as design
-notes or into a `Rule:` where they stated a real rule. None remains as
-loose prose. `Feature` descriptions hold multiple paragraphs and pass
-markdown through verbatim, with the two silent failures constraint 1
-guards against; the authoring rules are drafted in
-[[gherkin-guide]].
+The trial also settled where the FRD's other prose goes. Overview, Terminology,
+and the numbering note stay markdown, because they're FRD-level and Gherkin has
+no node above `Feature`. Everything at requirement level moved inside the
+blocks: nine user stories into `Feature` descriptions, and eight
+`*Rationale:*` paragraphs either into those descriptions as design notes or
+into a `Rule:` where they stated a real rule. None remains as loose prose.
+`Feature` descriptions hold multiple paragraphs and pass markdown through
+verbatim, with the two silent failures constraint 1 guards against. The
+authoring rules are in [[gherkin-guide]].
 
-Three costs are recorded in Consequences below rather than left to be
-discovered during migration: steps cannot wrap so long criteria become
-long lines, a `Scenario Outline` tagged at scenario level silently loses
-criteria, and the Requirements section grows 54%.
+Consequences records three costs up front, rather than leaving them to be
+discovered during migration:
+
+- Steps can't wrap, so long criteria become long lines.
+- A `Scenario Outline` tagged at scenario level silently loses criteria.
+- The Requirements section grows 54%.
 
 ### What is genuinely lost, and what it costs
 
-Honest accounting, since prose is not strictly worse:
+Prose isn't strictly worse. This is what it keeps and Gherkin loses:
 
 | Lost | Severity |
 |---|---|
-| **Grammatical negation.** `SHALL NOT` is greppable today; in a `Then` step a prohibition is ordinary prose | Replaced by a required `@negative` tag — machine-*better*, human-weaker. 9 criteria (12%) affected |
-| **Modality.** Gherkin cannot mark RFC 2119 levels, and its idiom uses "should" for mandatory behaviour | **Nil for acceptance criteria** — all 73 are `SHALL`/`SHALL NOT`, zero `SHOULD`, zero `MAY`. EARS keeps standards documents, where modality does vary |
-| **Invariants read oddly.** 26% of criteria are ubiquitous, becoming `Then`-only scenarios | Real for a human reader; clean as a record (`Outcome` with no `Context`/`Action`) |
+| **Grammatical negation.** `SHALL NOT` is greppable in EARS. In a `Then` step, a prohibition is ordinary prose | Replaced by a required `@negative` tag: machine-*better*, human-weaker. 9 criteria (12%) are affected |
+| **Modality.** Gherkin cannot mark RFC 2119 levels, and its idiom uses "should" for mandatory behavior | **Nil for acceptance criteria**: all 73 are `SHALL`/`SHALL NOT`, with zero `SHOULD` and zero `MAY`. Standards documents, where modality does vary, keep EARS |
+| **Invariants read oddly.** 26% of criteria are ubiquitous, becoming `Then`-only scenarios | Real for a human reader, but clean as a record (`Outcome` with no `Context`/`Action`) |
 | **FRD narrative flow.** The document becomes prose (overview, user stories, rationale) interleaved with fenced blocks | Real and permanent |
-| **Free rationale placement.** Rationale must attach to a `Feature`, `Rule` or `Scenario` | A constraint, and a good one |
+| **Free rationale placement.** Rationale must attach to a `Feature`, `Rule`, or `Scenario` | A constraint, and a good one |
 
 ### The mapping the migration follows
 
-Carried forward from the deleted draft at number 014, which established
-it, and extended with the tag conventions this decision adds:
+The migration follows this mapping, which includes the tag conventions this
+decision adds:
 
 | EARS pattern | Gherkin form |
 |---|---|
@@ -219,13 +216,12 @@ it, and extended with the tag conventions this decision adds:
 
 ### Why this splits [[adr-002]] along a real boundary
 
-The earlier draft counted "splits EARS into two scopes across 22 files"
-as a leading cost. Under this framing the split is **principled rather
-than arbitrary**: acceptance criteria are scenario-shaped, externally
-consumed, and destined to leave the repository for product/QA tooling.
-Standards documents, contracts and blueprints are invariant-shaped,
-internally consumed, and stay. EARS governs the second set, unchanged
-and unsplit within itself.
+Under this framing, splitting EARS into two scopes across 22 files is
+**principled rather than arbitrary**. Acceptance criteria are scenario-shaped,
+externally consumed, and destined to leave the repository for product/QA
+tooling. Standards documents, Contracts, and blueprints are invariant-shaped,
+internally consumed, and stay. EARS governs the second set, unchanged and
+unsplit within itself.
 
 ## Decision
 
@@ -238,20 +234,19 @@ criteria, in **two admissible forms**:
 - **Standalone `.feature` files** — for a feature that needs no
   surrounding prose, and for publication to external tooling.
 
-Both carry the same tagged content and produce the same extracted
-records; the spec CLI parses them with the official Go parser and
-performs semantic validation itself.
+Both carry the same tagged content and produce the same extracted records. The
+spec CLI parses them with the official Go parser and performs semantic
+validation itself.
 
-An earlier revision admitted only the first form, because a `.feature`
-file cannot carry frontmatter. It cannot — a raw `---` block does not
-parse — but that was the wrong objection: a feature file is not a
-document. It holds features, its owning document is the one its tag
-names, and it needs no metadata of its own. Whether it should ever have
-any is left open by the adoption FRD.
+A `.feature` file cannot carry frontmatter (a raw `---` block doesn't parse),
+and it needs none, because a feature file is not a document. It holds
+features, its owning document is the one its tag names, and it needs no
+metadata of its own. The adoption FRD leaves open whether it should ever have
+any.
 
-EARS remains the notation for every other normative statement —
-standards documents, contracts, blueprints, and requirement-level
-statements. [[adr-002]] is amended in scope, not retired.
+EARS remains the notation for every other normative statement: Standards
+documents, Contracts, blueprints, and requirement-level statements.
+[[adr-002]] is amended in scope, not retired.
 
 Binding constraints:
 
@@ -294,8 +289,9 @@ Binding constraints:
    in every consumer of it. The extracted record SHALL still state the
    notation it was written in, so the model stays notation-agnostic
    where that costs one property rather than a parser. This narrows the
-   notation-agnostic constraint carried forward from ADR-014, which
-   assumed a compatibility window this corpus is too small to need.
+   notation-agnostic constraint carried forward from the unratified draft
+   at number 014, which assumed a compatibility window this corpus is too
+   small to need.
 10. Every `Feature` SHALL carry an identifier composed of a prefix, a
     short uppercase group code and a number — `FEAT-GHK-001` — identifying
     it independently of the document that holds it. Features SHALL share
@@ -315,11 +311,6 @@ Binding constraints:
     written inside the document that owns it, whose frontmatter already
     declares the slug, so the tag would restate a fact the CLI derives
     and could come to contradict it.
-14. A wikilink written anywhere inside a Gherkin source SHALL be recorded
-    as a reference. Gherkin treats `[[slug]]` as ordinary text in every
-    position — description, scenario name, step, rule name, examples cell
-    — so nothing about the notation argues for treating it differently
-    from a wikilink in prose.
 12. The extracted record SHALL carry a content hash over the criterion's
     name and text, excluding node `Id`s and `Location`s, so that a
     criterion which moved but did not change hashes identically.
@@ -331,43 +322,47 @@ Binding constraints:
     recoverable from Gherkin and from almost nothing else — and no
     consumer this framework has needs them. The index schema is additive,
     so decomposition can be introduced later; withdrawing it could not.
+14. A wikilink written anywhere inside a Gherkin source SHALL be recorded
+    as a reference. Gherkin treats `[[slug]]` as ordinary text in every
+    position — description, scenario name, step, rule name, examples cell
+    — so nothing about the notation argues for treating it differently
+    from a wikilink in prose.
 
 Constraint 12 is what makes "which criteria changed locally" answerable.
-Node `Id`s are positional counters and shift on any edit above them, so
-they cannot carry identity; the hash is taken over the scenario name,
-its typed steps and its example rows.
+Node `Id`s are positional counters and shift on any edit above them, so they
+cannot carry identity. The hash is taken over the scenario name, its typed
+steps, and its example rows.
 
-Constraint 1 is the one the trial got wrong first. Mapping a requirement
-onto `Rule:` produced blocks headed `Rule: Configuration` — a topic,
-where the keyword means an assertion — and, because `Rule.Description`
-was then the only slot available, left the user story with nowhere to go
-but markdown. Mapping the requirement onto `Feature` puts the user story
+Constraint 1 maps a requirement onto `Feature`, not onto `Rule:`. Mapping a
+requirement onto `Rule:` produces blocks headed `Rule: Configuration`, which
+is a topic where the keyword means an assertion. And because
+`Rule.Description` is then the only slot available, the user story has nowhere
+to go but markdown. Mapping the requirement onto `Feature` puts the user story
 in the description slot built for it and frees `Rule:` for its purpose.
 
-Constraint 3 exists because the trial hit it: tagging one
-`Scenario Outline` at scenario level made two criteria disappear from a
-document that parsed cleanly, with every scenario tagged and no check
-firing. Constraint 7 exists because the trial's first pass invented a
-width limit that does not apply and compressed steps to fit it, changing
-the meaning of AC-SPEC-009.4 — the hazard is the invented constraint,
-not the notation.
+Constraint 3 guards against a silent loss. Tagging a `Scenario Outline` at
+scenario level makes criteria disappear from a document that parses cleanly,
+with every scenario tagged and no check firing (the trial lost two criteria
+this way). Constraint 7 guards against an invented width limit. In the trial,
+compressing steps to fit a limit that doesn't apply changed the meaning of
+AC-SPEC-009.4. The hazard is the invented constraint, not the notation.
 
-Constraint 8 is why the fenced form is the default rather than the only
-form: emitting `.feature` from fenced blocks is mechanical, so the FRD
-stays one reviewable document *and* the external artifact is available
-on demand. Level 3 pays the corpus-model cost — `.feature` files are
-inadmissible under AC-SPEC-001.6 and AC-SPEC-001.3, carry no
-frontmatter, no slug, no `status` — to obtain something level 2 can
-generate.
+Constraint 8 is why the fenced form is the default rather than the only form.
+Emitting `.feature` from fenced blocks is mechanical, so the FRD stays one
+reviewable document *and* the external artifact is available on demand. A
+standalone `.feature` file (level 3) pays the corpus-model cost to obtain
+something the fenced form (level 2) can generate, so it isn't the default:
+`.feature` files are inadmissible under AC-SPEC-001.6 and AC-SPEC-001.3, and
+they carry no frontmatter, no slug, and no `status`.
 
-## Alternatives Considered
+## Alternatives considered
 
 | Option | Pros | Cons | Why rejected |
 |--------|------|------|--------------|
-| **No adoption — EARS prose, with an AC index built over it** | No migration; [[adr-002]] keeps one scope<br>`SHALL NOT` stays greppable<br>FRD reads as continuous narrative<br>No new dependency or import churn | Yields **one string per criterion**; every typed column needs a hand-written EARS parser over English<br>Examples stay unparseable prose<br>Criterion enumeration stays a bullet-matching heuristic that must tolerate 61 `*Example:*` sub-bullets and 9 `*Rationale:*` paragraphs<br>Nothing downstream ingests it — no interchange schema, no tool support | Adequate for a markdown corpus, inadequate for a typed store; it optimises the destination we are leaving |
-| **`.feature` files as the only form** (level 3 alone) | Directly ingestible by external tooling with no export step<br>Proper editor highlighting | A feature that wants an overview, terminology or references has nowhere to put them<br>Corpus membership admits only `.md` today, so every standalone file needs the amendment of constraint 11 | Not rejected — **adopted alongside** the fenced form. Rejected only as the *sole* form, because much of this corpus's value is the prose around a feature |
-| **Structured AC record blocks** — a fenced block per criterion, schema authored in Strata | Total schema control, matching whatever the central store defines<br>Reuses [[adr-008]] record blocks and the [[adr-016]] pipeline<br>Zero new dependencies, generated Go structs | Bespoke: no external tool ingests it, so the product/QA-tooling destination needs a translator anyway<br>No published interchange schema<br>Far more verbose; an FRD becomes barely readable | The strongest rival, and the right answer if the store were the *only* destination — rejected because the stated endgame is shared product/engineering/QA tooling, and interop is the whole value there |
-| **Gherkin blocks embedded in an FRD** (level 2) | Typed `Context`/`Action`/`Outcome` steps instead of one string<br>`Scenario Outline` + `Examples` preserves the criterion/example split and makes examples queryable<br>`Pickles()` emits a denormalised fact table with tags inherited<br>`cucumber/messages` is a published, versioned interchange schema external tools already read<br>Rationale attaches to `Rule`/`Scenario` nodes<br>AST enumeration makes an untagged criterion a countable node<br>One artifact; `.feature` emitted on demand | Migrates 73 criteria plus four reference documents<br>Loses grammatical negation to a `@negative` tag convention<br>26% ubiquitous criteria read oddly as `Then`-only scenarios<br>Import path carries the major version and bumped six times in nine months on other languages' releases<br>Linguist's Gherkin grammar is unmaintained; VS Code needs an extension<br>FRD narrative becomes prose interleaved with fenced blocks | N/A — selected |
+| **No adoption — EARS prose, with an AC index built over it** | No migration, and [[adr-002]] keeps one scope<br>`SHALL NOT` stays greppable<br>FRD reads as continuous narrative<br>No new dependency or import churn | Yields **one string per criterion**, so every typed column needs a hand-written EARS parser over English<br>Examples stay unparseable prose<br>Criterion enumeration stays a bullet-matching heuristic that must tolerate 61 `*Example:*` sub-bullets and 9 `*Rationale:*` paragraphs<br>Nothing downstream ingests it: no interchange schema, no tool support | Adequate for a markdown corpus, inadequate for a typed store. It optimizes for the destination we're leaving |
+| **`.feature` files as the only form** (level 3 alone) | Directly ingestible by external tooling with no export step<br>Proper editor highlighting | A feature that wants an overview, terminology or references has nowhere to put them<br>Corpus membership admits only `.md`, so every standalone file is discovered separately as a feature source (constraint 11) | Not rejected: **adopted alongside** the fenced form. Rejected only as the *sole* form, because much of this corpus's value is the prose around a feature |
+| **Structured AC record blocks** — a fenced block per criterion, schema authored in Strata | Total schema control, matching whatever the central store defines<br>Reuses [[adr-008]] record blocks and the [[adr-016]] pipeline<br>Zero new dependencies, generated Go structs | Bespoke: no external tool ingests it, so the product/QA-tooling destination needs a translator anyway<br>No published interchange schema<br>Far more verbose, so an FRD becomes barely readable | The strongest rival, and the right answer if the store were the *only* destination. Rejected because the stated endgame is shared product/engineering/QA tooling, where interop is the whole value |
+| **Gherkin blocks embedded in an FRD** (level 2) | Typed `Context`/`Action`/`Outcome` steps instead of one string<br>`Scenario Outline` + `Examples` preserves the criterion/example split and makes examples queryable<br>`Pickles()` emits a denormalized fact table with tags inherited<br>`cucumber/messages` is a published, versioned interchange schema external tools already read<br>Rationale attaches to `Rule`/`Scenario` nodes<br>AST enumeration makes an untagged criterion a countable node<br>One artifact, with `.feature` emitted on demand | Migrates 73 criteria plus four reference documents<br>Loses grammatical negation to a `@negative` tag convention<br>26% ubiquitous criteria read oddly as `Then`-only scenarios<br>Import path carries the major version and bumped six times in nine months on other languages' releases<br>Linguist's Gherkin grammar is unmaintained, and VS Code needs an extension<br>FRD narrative becomes prose interleaved with fenced blocks | N/A — selected |
 
 ## Consequences
 
@@ -387,34 +382,34 @@ generate.
   tooling a build step, not a migration.
 
 **Negative:**
-- Prohibitions lose grammatical marking; finding them depends on the
+- Prohibitions lose grammatical marking. Finding them depends on the
   `@negative` tag convention holding, which is now a lint rather than a
   property of the sentence.
-- Ubiquitous criteria — 26% of the corpus — are expressed as `Then`-only
+- Ubiquitous criteria (26% of the corpus) are expressed as `Then`-only
   scenarios, which is legal but reads as an example of nothing.
-- An FRD is no longer continuous prose; readers alternate between
-  narrative and fenced blocks.
+- An FRD is no longer continuous prose. Readers alternate between narrative
+  and fenced blocks.
 - [[adr-002]]'s scope narrows, so authors must know which surface they
   are on, and both readiness checklists carry two syntaxes.
 - The Go import path changes with Gherkin's shared major version,
   roughly every six weeks, on releases driven by other languages.
-- Gherkin's cultural weight implies executable tests; these scenarios
-  are specification text and no runner executes them, so they can drift
-  toward imperative detail without a runner to punish it.
-- Syntax highlighting is partial: GitHub's Linguist grammar is
-  unmaintained and mis-colours `Rule:`; VS Code requires an extension.
+- Gherkin's cultural weight implies executable tests. These scenarios are
+  specification text and no runner executes them, so they can drift toward
+  imperative detail without a runner to punish it.
+- Syntax highlighting is partial. GitHub's Linguist grammar is unmaintained
+  and miscolors `Rule:`, and VS Code requires an extension.
 - **A step cannot wrap**, so a criterion that takes 150 columns to state
-  occupies one 150-column line. Gherkin imposes no length limit and this
+  occupies one 150-column line. Gherkin imposes no length limit, and this
   framework already exempts fenced blocks from `line_width`
-  (AC-SPECSTR-002.5), so nothing forces shortening — but a long line
-  reads worse in a narrow diff than a wrapped prose bullet does.
+  (AC-SPECSTR-002.5), so nothing forces shortening. But a long line reads
+  worse in a narrow diff than a wrapped prose bullet does.
 - **A mis-tagged `Scenario Outline` loses criteria silently.** Tagging
   the scenario rather than each `Examples` block collapses several
   criteria into one, in a document that parses, whose every scenario is
-  tagged, and against which no check fires. Constraint 7 and its
-  conformance check are the only defence.
-- **The Requirements section grows about 54%** — measured 410 to 633
-  lines, 7.9 to 12.2 lines per criterion. Two causes: 25 of 52 criteria
+  tagged, and against which no check fires. Constraint 3 and its
+  conformance check are the only defense.
+- **The Requirements section grows about 54%**: measured, 410 to 633 lines,
+  or 7.9 to 12.2 lines per criterion. Two causes: 25 of 52 criteria
   need a `Scenario Outline` to hold a single example row, and the
   requirement-level prose that was markdown now sits inside the blocks.
 
@@ -429,15 +424,15 @@ the target shape directly.
 - [[adr-002]] — EARS, whose scope this ADR narrows to non-AC normative
   statements
 - [[adr-015]] — chose Go partly for the official in-process Gherkin
-  parser; this decision exercises it
+  parser, which this decision exercises
 - [[adr-008]], [[adr-016]] — the record-block and Strata mechanisms
   behind the structured-record alternative
 - [[frd-spec-index]] — the central-publication intent this ADR
-  optimises for, and the corpus membership rules level 3 contradicts
+  optimizes for, and the corpus membership rules level 3 contradicts
 - `plugin/skills/spec/references/frd-template.md` — the criterion/example
   split `Scenario Outline` preserves
-- `plugin/skills/spec/references/ac-traceability-standards.md` — the
-  identifier format carried forward as the tag vocabulary
+- [[ac-traceability-standards]] — the identifier format carried forward as
+  the tag vocabulary
 - [cucumber/gherkin](https://github.com/cucumber/gherkin) — parser and
   release history
 - [cucumber/messages](https://github.com/cucumber/messages) — the
@@ -445,7 +440,7 @@ the target shape directly.
 - `docs/research/gherkin/extraction-findings.md` — the measured extraction
   contract, the AST type hierarchy, and the five integration gotchas
 - `docs/research/gherkin/ears-vs-gherkin-comparison.md` — the trial
-  migration of a real FRD and what it cost. The trial document itself was
-  removed once [[frd-gherkin-adoption]] became the worked example
+  migration of a real FRD and what it cost. [[frd-gherkin-adoption]] is the
+  worked example
 - [[gherkin-guide]] — how to write
   conforming Gherkin under this decision

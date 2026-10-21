@@ -4989,8 +4989,8 @@ func (v *Contract) UnmarshalJSON(data []byte) error {
 // across documents or components rather than to one of them.
 //
 // Carries no version of its own. A standard that ships to other
-// repositories is vendored into a skill, and the skill's version
-// identifies the text a reader followed.
+// repositories is vendored into a skill, and the release version of the
+// plugin that ships the skill identifies the text a reader followed.
 type Standards struct {
 	// A one- to two-sentence summary of what this is and what it is
 	// responsible for.
@@ -5084,7 +5084,7 @@ func (v *Standards) UnmarshalJSON(data []byte) error {
 // A system's dependency on another system is not recorded in frontmatter
 // at all. Where the dependency is a named interface it is a contract, and
 // `contracts_consumed` holds it. Where it is looser, the blueprint's own
-// "Consumed Systems and Contracts" section says what is depended on and
+// "Consumed systems and Contracts" section says what is depended on and
 // what for — which a slug list cannot, and which is what a reader actually
 // needs. A repository spanning more than one system is rare enough that a
 // frontmatter property for the untyped case would be maintained by nobody.
@@ -5717,7 +5717,7 @@ type FeatureBlueprint struct {
 	// follows a reference to it.
 	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// The delivery unit grooming plans against. When `staged`, each stage
-	// boundary is enumerated in the blueprint's Sequencing Constraints.
+	// boundary is enumerated in the blueprint's Sequencing constraints.
 	Delivery Delivery `json:"delivery"`
 	// Where this feature's implementation plan lives, stamped in by the
 	// groom-feature-blueprint skill once grooming serializes the plan:
@@ -5811,8 +5811,8 @@ func (v *FeatureBlueprint) UnmarshalJSON(data []byte) error {
 // A guide carries no relationships of its own: it explains a technique
 // rather than participating in the architecture graph. Like a standard,
 // it carries no version of its own: a guide that ships to other
-// repositories is vendored into a skill, and the skill's version
-// identifies the text.
+// repositories is vendored into a skill, and the release version of the
+// plugin that ships the skill identifies the text.
 type Guide struct {
 	// A one- to two-sentence summary of what this is and what it is
 	// responsible for.
@@ -8335,7 +8335,7 @@ type Delivery string
 const (
 	// The whole feature lands in one pull request.
 	DeliverySinglePr Delivery = "single-pr"
-	// The feature lands across several stages, each boundary enumerated in Sequencing Constraints.
+	// The feature lands across several stages, each boundary enumerated in Sequencing constraints.
 	DeliveryStaged Delivery = "staged"
 )
 

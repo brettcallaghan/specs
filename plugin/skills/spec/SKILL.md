@@ -12,7 +12,6 @@ description: Spec-first development using this framework's specification
   system, container, component, or interface. Covers choosing the right
   document type and authoring it from the framework templates using Gherkin
   and EARS syntax and the C4 model.
-version: "1.15"
 ---
 
 # Spec-First Development
@@ -134,7 +133,7 @@ specs.
 - A feature blueprint is authored after its FRD is stable, and the
   contracts and ADRs it introduces are drafted alongside it — the
   blueprint references them; it never contains them.
-- WHEN a feature blueprint reaches `approved` with no Open Questions,
+- WHEN a feature blueprint reaches `approved` with no Open questions,
   hand off to the `groom-feature-blueprint` skill — it translates the blueprint into
   an executable work-item graph. Authoring stops at the blueprint; task
   decomposition is grooming's job, not this skill's.
@@ -201,7 +200,9 @@ specs.
 2. **Follow the embedded instructions.** Each template carries its own
    guidance in HTML comment blocks — when to use it, how to complete each
    section, ID and slug conventions. Read them, complete the section, then
-   **delete the comment blocks** from the finished document.
+   **delete the comment blocks** from the finished document. Apply style
+   and tone with the `tech-writer` skill, taking the tone from the
+   template's reader profile (when revising, read it from the template).
 3. **Write normative statements in the notation their surface uses.**
    Two notations, and which applies is decided by what the statement is,
    not by the document type:
@@ -267,7 +268,7 @@ specs.
    `groom-feature-blueprint` enforces at its Phase 1 gate, so a first-pass
    blueprint lands groomable instead of discovering the checks by
    failing them. Authoring a feature blueprint includes surveying the
-   project's issue tracker to populate its Tracker Reconciliation
+   project's issue tracker to populate its Tracker reconciliation
    section — existing issues the feature subsumes, depends on, or must
    not absorb are design inputs, not groom-time discoveries. Flag BOTH
    status flips to the human reviewer: the blueprint's approval AND
@@ -296,9 +297,8 @@ specs.
 
 ## References
 
-Load the whole row. Where a row lists more than one file, those files are
-a **bundle** — the template alone is not enough to author the document
-correctly, and loading them together is one hop rather than a chain.
+Load the whole row. Where a row lists more than one file, they are a
+**bundle**: the template alone is not enough to author the document.
 
 | Working on | Load together |
 |------------|---------------|
@@ -324,8 +324,7 @@ correctly, and loading them together is one hop rather than a chain.
 | Frontmatter properties, status vocabulary, element records | `references/shared/frontmatter-standards.md` |
 | `[[slug]]` wikilinks, heading anchors, backticked paths | `references/shared/cross-document-references-standards.md` |
 
-Every file above is one hop from here. Read the bundle up front rather
-than following a pointer out of a template mid-authoring — a reference
+Read the bundle up front, not from a pointer mid-authoring: a reference
 reached at the second hop tends to get previewed rather than read.
 
 ---

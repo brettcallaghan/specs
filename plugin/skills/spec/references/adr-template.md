@@ -8,13 +8,12 @@ status: draft
 
 <!--
 Template: Architecture Decision Record (ADR)
-Version: 1.4
 Source: Adapted from Michael Nygard's ADR format
 
 Sections (complete each, then delete its instruction block)
   - Context
   - Decision
-  - Alternatives Considered
+  - Alternatives considered
   - Consequences
   - References
 
@@ -22,6 +21,17 @@ Purpose
   Records significant architectural and technology decisions, their context,
   alternatives considered, and consequences. ADRs create a decision log that
   explains "why we built it this way" for future maintainers.
+
+Reader profile (apply with the tech-writer skill)
+- Reader: a future maintainer, human or agent, asking "why is it this way?",
+  and today's reviewer.
+- Knows: the system now, not the context at the time of the decision.
+- Wants: the decision, its context, the alternatives, and the consequences,
+  including the costs.
+- Budget: a few minutes.
+- Tone: neutral and direct. State the decision as "We will..." and give the
+  rejected alternatives a fair hearing. Don't argue for the decision beyond
+  its reasons.
 
 When to use
   - Choosing between two or more real technology options
@@ -97,7 +107,7 @@ State the choice made as one clear statement.
 
 Guidance:
   - Be direct: "We will use X" not "We considered using X"
-  - Do NOT list options here (that goes in Alternatives Considered)
+  - Do NOT list options here (that goes in Alternatives considered)
   - Specify the technology, pattern, or approach chosen
   - Keep it brief (1-3 sentences maximum)
 
@@ -108,7 +118,7 @@ Example:
 
 <State the decision clearly and directly>
 
-## Alternatives Considered
+## Alternatives considered
 
 <!--
 List all realistic options that were evaluated, including the chosen option.
@@ -151,7 +161,7 @@ Guidance:
     not a consequence — leave it out (it belongs in the plan). Before
     flipping status to `active`, re-read every Negative and drop any that
     merely describe work already done; keep only costs that persist.
-    (Alternatives Considered keeps its full historical record; Consequences
+    (Alternatives considered keeps its full historical record; Consequences
     does not.)
   - Honest ADRs get trusted; sanitized ADRs get ignored
 

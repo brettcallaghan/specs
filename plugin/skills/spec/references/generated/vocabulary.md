@@ -132,6 +132,6 @@ The delivery unit a feature blueprint is groomed against.
 | Name | Value | Documentation |
 |------|-------|---------------|
 | SinglePr | "single-pr" | The whole feature lands in one pull request. |
-| Staged | "staged" | The feature lands across several stages, each boundary enumerated in Sequencing Constraints. |
+| Staged | "staged" | The feature lands across several stages, each boundary enumerated in Sequencing constraints. |
 
 

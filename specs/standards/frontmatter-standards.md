@@ -8,32 +8,33 @@ type: standards
 status: active
 ---
 
-# Frontmatter Standards
+# Frontmatter standards
 
 ## Contents
 
 - Format — YAML delimiters and placement
-- Required Properties — title, description, slug, type, status,
+- Required properties — title, description, slug, type, status,
   including the full `status` vocabulary and the state-vs-transient rule
-- Relationship Properties — provenance, composition, and the typed edges a
+- Relationship properties — provenance, composition, and the typed edges a
   consumer keys on
-- Optional Properties — version, tags, superseded_by
-- Embedded Element Records — declaring child components by record
+- Optional properties — version, tags, superseded_by
+- Embedded element records — declaring child components by record
   block, blueprint, or both
 
-Companion to `template-authoring-standards.md`, which owns document
-structure, slugs, instruction blocks, versioning, and content guidelines.
-Cross-document reference syntax is in `cross-document-references.md`.
+Document structure, slugs, instruction blocks, versioning, and content
+guidelines belong to the companion document,
+[[template-authoring-standards]]. Cross-document reference syntax is in
+[[cross-document-references]].
 
-This document is the normative prose. The **per-type property tables**
-derived from it — which properties each document type carries, and
-which are required — are generated into `generated/frontmatter.md` from
-the schemas in `schemas/`, alongside the JSON Schema that validates
-them. WHEN this document and a generated table disagree, the schema is
-the one tooling enforces, and the disagreement is a defect in one of
-them to be resolved rather than a precedence rule to apply.
+This document holds the normative prose. The **per-type property tables**
+derived from it list which properties each document type carries and which
+are required. They're generated from the schemas in `schemas/` into the `spec` skill's
+generated frontmatter reference, alongside the JSON Schema that validates
+them. When this document and a generated table
+disagree, tooling enforces the schema. The disagreement is a defect in one
+of them to resolve, not a precedence rule to apply.
 
-## Metadata (Frontmatter)
+## Metadata (frontmatter)
 
 ### Format
 
@@ -55,10 +56,10 @@ status: draft
 ---
 ```
 
-**Rationale:** YAML frontmatter is a widely-adopted convention (Jekyll, Hugo, 
-Obsidian) that provides machine-parseable metadata separate from content.
+**Rationale:** YAML frontmatter is a widely adopted convention (Jekyll,
+Hugo, Obsidian) that keeps machine-parseable metadata separate from content.
 
-### Required Properties
+### Required properties
 
 Templates SHALL include the following metadata properties in their frontmatter:
 
@@ -72,36 +73,35 @@ status: <status-value>
 ---
 ```
 
-#### Property Definitions
+#### Property definitions
 
 | Property | Type | Purpose | Format |
 |----------|------|---------|--------|
 | `title` | string | Human-readable document title | Free text |
 | `description` | string | Brief summary of the document, written to be triaged from | 1-2 sentences |
 | `slug` | string | Unique identifier for cross-references | Kebab-case (lowercase with hyphens) |
-| `type` | string | Document classification | Controlled vocabulary defined by document system |
+| `type` | string | Document classification | Controlled vocabulary defined by the document system |
 | `status` | string | Lifecycle state | One of: `draft`, `ready-for-review`, `approved`, `in-progress`, `active`, `retired` |
 
-The `description` property has two audiences, and the second one is why it
-is required. A reader who has already opened the document reads it as an
+The `description` property has two audiences, and the second is why it's
+required. A reader who has already opened the document reads it as an
 introduction. An agent deciding which documents to open reads it *instead
-of* the document: a corpus listing command reports every member's
-`description`, so it is the basis on which other agents decide whether to
-open this one at all. See [[spec-cli-reference]] for the command that
-reports it.
+of* the document. A corpus listing command reports every member's
+`description`, so other agents decide from it whether to open this
+document at all. [[spec-cli-reference]] documents the command that reports
+it.
 
 Authors SHALL write `description` to be triaged from rather than as an
-introduction. Name what the document decides, governs or specifies, and
-what distinguishes it from its neighbours of the same type. "Notes on the
-caching layer" tells a triaging agent nothing the title did not; "Why
+introduction. Name what the document decides, governs, or specifies, and
+what sets it apart from its neighbors of the same type. "Notes on the
+caching layer" tells a triaging agent nothing the title didn't. "Why
 reads are served from the replica and writes are not, and the staleness
 budget that follows" tells it whether to open the document.
 
 The one-to-two-sentence guidance above is a shape, not an enforced limit.
-Nothing truncates a description and no check measures one: whether a
-description is good enough to choose from is a judgement no check can
-make, and a length rule would pass a useless description of the right
-size.
+Nothing truncates a description, and no check measures one. Whether a
+description is good enough to choose from is a judgment no check can make,
+and a length rule would pass a useless description of the right size.
 
 The `type` property SHALL use a controlled vocabulary defined by the document 
 system using the templates.
@@ -120,17 +120,17 @@ to all document types:
 
 Status values SHALL be lowercase with hyphen separators (kebab-case).
 
-State documents (blueprints, standards, contracts — documents that
-describe what IS) use `active` and never `in-progress`. Transient
-change documents (e.g., feature blueprints — documents that describe a
-change) use `in-progress` in place of `active`: a change specification
-is implemented, not "in effect."
+State documents (blueprints, Standards, and Contracts) describe what is.
+They use `active` and never `in-progress`. Transient change documents,
+such as Feature Blueprints, describe a change. They use `in-progress` in
+place of `active`, because a change specification is implemented, not "in
+effect."
 
-### Relationship Properties
+### Relationship properties
 
-A relationship property names other documents by `slug`. Which properties
-exist is owned by `[[document-relationship-standards]]` and by the schemas in
-`schemas/`; this section states how a template declares one.
+A relationship property names other documents by `slug`.
+`[[document-relationship-standards]]` and the schemas in `schemas/` own
+which properties exist. This section states how a template declares one.
 
 WHEN a document has a relationship a body citation cannot carry, the template
 SHALL include a relationship property for it in the frontmatter:
@@ -157,11 +157,11 @@ from the template.
 All relationship properties SHALL reference documents by their `slug` value.
 
 A template SHALL NOT introduce a relationship property that only mirrors the
-document's own prose citations. Per `[[document-relationship-standards]]`, a
-relationship is declared at exactly one end and the index derives the reverse,
-so a property earns its place only if it carries a typed relationship a
-consumer keys on, names a target not reliably present in the prose, or is the
-only home for the edge.
+document's own prose citations. Under `[[document-relationship-standards]]`,
+a relationship is declared at exactly one end, and the index derives the
+reverse. So a property earns its place only if it carries a typed
+relationship a consumer keys on, names a target not reliably present in the
+prose, or is the only home for the edge.
 
 WHEN a document describes a change to the document set itself (e.g., a
 feature blueprint that will modify architecture blueprints and author new
@@ -169,14 +169,15 @@ contracts), the documents it creates and updates SHALL be named in its prose
 and tracked in its `plan`, not mirrored into frontmatter.
 
 **Rationale:** Relationship properties enable traceability, dependency
-management, and impact analysis across documents — but only where the graph
-derived from prose citations cannot already answer the question. A parent's
-membership roster is derivable — from the child's own declaration where a
-child may have several parents, and otherwise from the parent's roster
-section, which links each promoted child by `[[slug]]` anyway — and a change
-set is tracked to completion by the plan, so neither is carried here.
+management, and impact analysis across documents, but only where the graph
+derived from prose citations can't already answer the question. A parent's
+membership roster is derivable. Where a child may have several parents, it
+comes from the child's own declaration. Otherwise it comes from the
+parent's roster section, which links each promoted child by `[[slug]]`
+anyway. The plan tracks a change set to completion. So frontmatter carries
+neither.
 
-### Optional Properties
+### Optional properties
 
 Templates MAY include additional properties based on the needs of the document 
 system:
@@ -189,10 +190,10 @@ superseded_by: "<slug>"            # For superseded documents
 ---
 ```
 
-A document's history is git's: no document type carries a creation or
-last-modified date, and `version` is reserved for a version that is a
-promise to consumers — a contract's interface version, a public
-module's package version. A document's own revision is not one.
+Git holds a document's history, so no document type carries a creation or
+last-modified date. `version` is reserved for a version that is a promise
+to consumers: a contract's interface version or a public module's package
+version. A document's own revision isn't one.
 
 WHEN a document lifecycle includes supersession, templates SHALL include a 
 `superseded_by` property for use when a document is retired in favor of a 
@@ -211,7 +212,7 @@ successor.
 
 ---
 
-## Embedded Element Records
+## Embedded element records
 
 WHEN a document declares child elements it composes — the components of a
 container or a module — each child is declared by a record block, by its

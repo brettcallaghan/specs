@@ -199,6 +199,13 @@ for p in SKILLS + glob.glob('plugin/skills/*/references/*.md'):
     if re.search(r'\bmodel_reason\b', body):
         err(p, "uses `model_reason` — routing is by `tier`/`tier_reason`")
 
+# ---- 6. no `version` in SKILL.md frontmatter ------------------------------
+# The Agent Skills upload check (claude.ai, the Skills API) rejects it, and
+# Claude Code ignores it. The plugin's release version identifies a skill.
+for p in SKILLS:
+    if re.search(r'^version:', open(p).read().split('\n---', 1)[0], re.M):
+        err(p, "frontmatter has `version`; skills are identified by the plugin's release version")
+
 print("=== check-skills ===")
 for e in errors:   print(f"  ERROR {e}")
 for w in warnings: print(f"  WARN  {w}")

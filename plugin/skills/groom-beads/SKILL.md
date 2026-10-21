@@ -10,7 +10,6 @@ description: >-
   before a long-running or orchestrated session. Trigger even if the user
   just says "groom these" or "make these beads ready" in a repo that uses
   beads.
-version: "1.5"
 ---
 
 # Bead Grooming
@@ -46,7 +45,8 @@ can never disagree:
   - `references/shared/work-order-field-guide.md` — the three text fields kept
     distinct, and the tier-routing rubric.
   - `references/shared/work-order-template.md` — the work-order format this
-    skill materializes into beads.
+    skill materializes into beads. Write each work order's prose with the
+    `tech-writer` skill, taking the tone from the template's reader profile.
 - **Where work orders come from.** A standalone bug/chore you groom directly, or
   a feature blueprint decomposed by `groom-feature-blueprint` — which hands its
   finishing pass (tier, C4, validation) to this skill.

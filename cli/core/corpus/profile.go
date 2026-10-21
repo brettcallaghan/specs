@@ -27,7 +27,7 @@ import (
 // vocabulary, the record-block tags and the architecture vocabulary —
 // because it constrains everything downstream of it.
 // Required sections are a later capability, and will widen this
-// interface further. Per the Change Guidance in
+// interface further. Per the Change guidance in
 // specs/modules/spec-profile/spec-profile-module.md, that widening is a change to
 // the host reviewed on its own merits, never a special case granted to
 // one profile.

@@ -9,83 +9,75 @@ status: approved
 sources: [adr-018, frd-spec-reference-integrity]
 ---
 
-# Spec Corpus Markdown Links
+# Spec corpus Markdown links
 
 ## Overview
 
-Specification documents cite each other by slug — `[[frd-checkout]]` —
-and that citation resolves through the corpus index. The index is built
-by walking a spec root, so a slug only means something to a reader
-holding the corpus.
+Specification documents cite each other by slug (`[[frd-checkout]]`), and that
+citation resolves through the corpus index. The index is built by walking a spec
+root, so a slug means something only to a reader who holds the corpus.
 
-Documents get read where that index is absent, in two ways. This
-framework ships standards and guides inside its plugin: a copy is
-written into a skill's reference directory, travels to an adopting
-repository, and is read there by a human or an agent that has no index
-and no spec root. A corpus published as a browsable set of pages has the
-same problem from the other direction — every file is present, but a
-slug is not something a markdown renderer can follow. Either way the
-wikilink travels and the thing it resolves against does not. The reader
-sees a citation that points nowhere, and nothing reports it — `spec
-check` never sees the copy, because the copy is outside the corpus by
-construction.
+Documents are read where that index is absent, in two ways. This framework ships
+standards and guides inside its plugin: a copy is written into a skill's
+reference directory, travels to an adopting repository, and is read there by a
+human or an agent that has no index and no spec root. A corpus published as a
+browsable set of pages has the same problem from the other direction. Every file
+is present, but a Markdown renderer can't follow a slug. Either way, the
+wikilink travels and the thing it resolves against doesn't. The reader sees a
+citation that points nowhere, and nothing reports it: `specs check` never sees
+the copy, because the copy is outside the corpus by construction.
 
-This is not hypothetical. The shipped copy of `frontmatter-standards.md`
-cites `[[document-relationship-standards]]` twice. That document is a
-corpus member under `specs/standards/` and is not among the copies the
-plugin ships, so every adopting repository already holds two citations
-that resolve to nothing.
+This is not hypothetical. The shipped copy of `frontmatter-standards.md` cites
+`[[document-relationship-standards]]` twice. That document is a corpus member
+under `specs/standards/`, and the plugin doesn't ship a copy of it, so every
+adopting repository already holds two citations that resolve to nothing.
 
-This feature gives the Spec CLI one capability: rewrite a document's
-wikilinks into markdown links. Where those links point is settled one of
-two ways. Given a link map, the CLI substitutes the path the caller
-supplies for each slug and derives nothing — whoever performs the copy
-knows where things land, and a CLI that guessed would encode one
-layout's assumptions into everyone's. Given no map, the corpus keeps its
-own shape: each link is the cited document's path relative to the citing
-document, which is what makes an exported corpus browsable without a map
-that would do nothing but restate a layout the CLI already knows.
+This feature gives the Spec CLI one capability: rewrite a document's wikilinks
+into Markdown links. Where those links point is settled in one of two ways.
+Given a link map, the CLI substitutes the path the caller supplies for each slug
+and derives nothing. Whoever performs the copy knows where things land, and a
+CLI that guessed would encode one layout's assumptions into everyone's. Given no
+map, the corpus keeps its own shape: each link is the cited document's path
+relative to the citing document. That's what makes an exported corpus browsable
+without a map that would do nothing but restate a layout the CLI already knows.
 
-The capability belongs to the CLI rather than to that caller because
-deciding *what is a reference* is corpus knowledge the CLI already
-owns: it reads references through the same extractor `specs check` uses,
-which excludes any wikilink overlapping a code span, an indented block
-or a fenced block. A rewriter built on a regular expression would not
-draw that distinction, and would corrupt the teaching prose it was
-meant to preserve.
+The capability belongs to the CLI rather than to that caller because deciding
+*what is a reference* is corpus knowledge the CLI already owns. The CLI reads
+references through the same extractor `specs check` uses, which excludes any
+wikilink that overlaps a code span, an indented block, or a fenced block. A
+rewriter built on a regular expression wouldn't draw that distinction, and would
+corrupt the teaching prose it was meant to preserve.
 
 ## Terminology
 
 - **Corpus document** — a document beneath the spec root, indexed, and
   citable by slug.
-- **Rewritten copy** — a copy of a corpus document whose wikilinks have
-  been replaced by markdown links, written outside the spec root for
-  distribution or publication. Whatever marks the copy as generated is
-  written by the caller performing the copy, not by the rewrite.
-- **Link map** — an optional caller-supplied mapping from a document's
-  slug to the path a link to it should use. When one is given it is the
-  whole of what the CLI knows about where copies live: the CLI never
-  derives, resolves or normalizes a mapped path, and never learns the
-  destination of the document it is rewriting. A slug absent from a
-  given map is a citation the copy may not make. The map may carry
-  further per-slug data for the caller's own use; the CLI reads the path
-  and ignores the rest.
-- **Corpus-relative target** — the path of the cited document relative
-  to the directory holding the citing document, which is what a link
-  targets when no map is given.
+- **Rewritten copy** — a copy of a corpus document whose wikilinks are replaced
+  by Markdown links, written outside the spec root for distribution or
+  publication. The caller that performs the copy, not the rewrite, writes
+  whatever marks the copy as generated.
+- **Link map** — an optional caller-supplied mapping from a document's slug to
+  the path a link to it should use. When the caller gives one, it is the whole
+  of what the CLI knows about where copies live: the CLI never derives,
+  resolves, or normalizes a mapped path, and never learns the destination of the
+  document it's rewriting. A slug absent from a given map is a citation the copy
+  may not make. The map may carry further per-slug data for the caller's own
+  use. The CLI reads the path and ignores the rest.
+- **Corpus-relative target** — the path of the cited document relative to the
+  directory that holds the citing document. A link targets this path when no map
+  is given.
 - **Wikilink** — a slug citation in `[[slug]]` or `[[slug#Heading Text]]`
   form, resolved through the index.
 - **Anchor** — the heading-text fragment of a wikilink, per
-  `plugin/skills/spec/references/cross-document-references.md`, which
-  cites an un-promoted component as `[[container-<name>#Component Name]]`.
+  [[cross-document-references]], which cites an un-promoted component as
+  `[[container-<name>#Component Name]]`.
 
 ## Requirements
 
-A note on the blocks below. A wikilink written anywhere in a Gherkin
-source is recorded as a reference ([[adr-021]] constraint 14), so this
-feature — whose whole subject is wikilink syntax — writes its
-illustrations in backticked markdown beside each block rather than in a
-step, where a literal citation would enter the index as a reference this
+A wikilink written anywhere in a Gherkin source is recorded as a reference
+([[adr-021]] constraint 14). This feature's whole subject is wikilink syntax, so
+it writes its illustrations in backticked Markdown beside each block rather than
+in a step, where a literal citation would enter the index as a reference this
 document never made.
 
 ### FEAT-SPECMD-001: Rewrite wikilinks to markdown links
@@ -166,28 +158,27 @@ Feature: Rewrite wikilinks to markdown links
 `` `[[template-authoring-standards]]` `` becomes
 `[template-authoring-standards](template-authoring-standards.md)`
 (AC-SPECMD-001.1). With `container-api` mapped to `container-api.md`,
-`` `[[container-api#Request Router]]` `` emits
-`container-api#Request Router` as its visible text (AC-SPECMD-001.2) and
-targets `container-api.md#request-router`, the identifier of the heading
-that anchor resolves to rather than one derived from the anchor's own
-text — the two agree wherever an anchor names a heading in full, and the
-resolved heading is what the copy has to reach when they do not
-(AC-SPECMD-001.3). A citation whose anchor reaches no heading is still
-rewritten, on a fragment derived from what the author wrote, leaving the
-copy no worse than the source that names a section which is not there
-(AC-SPECMD-001.7). `` `[[#Decision]]` `` in a document carrying a
-`## Decision` heading becomes `[#Decision](#decision)`: the target is
-inside the document being rewritten, so there is no path in front of the
-fragment and no link-map entry that could name one — an empty slug names
-no corpus document to map (AC-SPECMD-001.8). A guide
-explaining citation syntax writes `` `[[document-slug]]` `` as an
-illustration, and the rewrite leaves it alone (AC-SPECMD-001.4).
+`` `[[container-api#Request Router]]` `` emits `container-api#Request Router` as
+its visible text (AC-SPECMD-001.2). It targets
+`container-api.md#request-router`, the identifier of the heading that anchor
+resolves to rather than one derived from the anchor's own text. The two agree
+wherever an anchor names a heading in full, and where they don't, the copy has
+to reach the resolved heading (AC-SPECMD-001.3). A citation whose anchor reaches
+no heading is still rewritten, on a fragment derived from what the author wrote.
+That leaves the copy no worse than the source, which names a section that isn't
+there (AC-SPECMD-001.7). `` `[[#Decision]]` `` in a document that carries a
+`## Decision` heading becomes `[#Decision](#decision)`. The target is inside the
+document being rewritten, so no path goes in front of the fragment and no
+link-map entry could name one: an empty slug names no corpus document to map
+(AC-SPECMD-001.8). A guide that explains citation syntax writes
+`` `[[document-slug]]` `` as an illustration, and the rewrite leaves it alone
+(AC-SPECMD-001.4).
 
-*Note:* a `gherkin` fence is a fenced code block for AC-SPECMD-001.4,
-although a wikilink inside it is still a reference to the index and the
-checks. The rewritten copy is for rendering, and a renderer shows a link
-inside a fenced block as literal text, so rewriting it there would only
-put markdown syntax into the requirement.
+*Note:* for AC-SPECMD-001.4, a `gherkin` fence is a fenced code block, although
+a wikilink inside it is still a reference to the index and the checks. The
+rewritten copy is for rendering, and a renderer shows a link inside a fenced
+block as literal text, so rewriting it there would only put Markdown syntax into
+the requirement.
 
 ### FEAT-SPECMD-002: Report a citation the copy cannot reach
 
@@ -265,20 +256,21 @@ Feature: Report a citation the copy cannot reach
 
 *Examples:* `frontmatter-standards` cites
 `` `[[document-relationship-standards]]` ``, a corpus document under
-`specs/standards/` the plugin does not ship; a link map omitting it
-reports both citations as errors (AC-SPECMD-002.1). `c4-guide` writes
-`` `[[component-<name>]]` `` and `` `[[module-<name>]]` `` in prose about
-element records, and each is reported as a warning (AC-SPECMD-002.4).
+`specs/standards/` that the plugin doesn't ship. Under a link map that omits it,
+the CLI reports both citations as errors (AC-SPECMD-002.1). The module
+blueprint template writes `` `[[component-<name>]]` `` and
+`` `[[module-<name>]]` `` in prose about element records, and the CLI reports
+each as a warning (AC-SPECMD-002.4).
 
-*Note:* AC-SPECMD-002.1 is the reason a given map is never completed by
-derivation — see AC-SPECMD-006.3.
+*Note:* AC-SPECMD-002.1 is the reason the CLI never completes a given map by
+derivation (see AC-SPECMD-006.3).
 
-*Note:* AC-SPECMD-001.8 is the one citation that reaches its target
-without naming a corpus document, so neither rule above applies to it
-while its anchor resolves: the document it points into is the one being
-rewritten. Where that anchor resolves to no heading, it reaches nothing
-and AC-SPECMD-002.4 and AC-SPECMD-002.7 govern it like any other slug
-naming no corpus document.
+*Note:* AC-SPECMD-001.8 is the one citation that reaches its target without
+naming a corpus document. That's why neither rule above applies to it while its
+anchor resolves: the document it points into is the one being rewritten. Where
+that anchor resolves to no heading, the citation reaches nothing, and
+AC-SPECMD-002.4 and AC-SPECMD-002.7 govern it like any other slug that names no
+corpus document.
 
 ### FEAT-SPECMD-003: Report what was rewritten
 
@@ -423,18 +415,18 @@ Feature: Command surface and link-map input
     And a finding for a link map not of that shape names the expected shape
 ```
 
-*Example:* the map above is written for copies that land beside each
-other, and `destinations` belongs to the script that performs the copy.
-The same documents published to a docs site are the same map with
-different paths, and no other change:
+*Example:* the map above is written for copies that land beside each other, and
+`destinations` belongs to the script that performs the copy. Published to a docs
+site, the same documents take the same map with different paths and no other
+change:
 
 ```yaml
 template-authoring-standards:
   path: /standards/template-authoring/
 ```
 
-The copying script loops over its map, invoking the command once per
-output file and redirecting standard output to it (AC-SPECMD-005.2).
+The copying script loops over its map. It invokes the command once per output
+file and redirects standard output to that file (AC-SPECMD-005.2).
 
 ### FEAT-SPECMD-006: Target the corpus's own layout when no map is given
 
@@ -474,17 +466,16 @@ Feature: Target the corpus's own layout when no map is given
 ```
 
 *Example:* this FRD cites `` `[[adr-018]]` ``, whose document is
-`specs/adrs/adr-018-references-as-index-edges.md`; with no map the
-emitted target is `../../adrs/adr-018-references-as-index-edges.md`
-(AC-SPECMD-006.1), keeping that file name rather than one derived from
-the `adr-018` slug (AC-SPECMD-006.2).
+`specs/adrs/adr-018-references-as-index-edges.md`. With no map, the emitted
+target is `../../adrs/adr-018-references-as-index-edges.md` (AC-SPECMD-006.1).
+It keeps that file name rather than one derived from the `adr-018` slug
+(AC-SPECMD-006.2).
 
 ## References
 
-- `plugin/skills/spec/references/cross-document-references.md` — the
-  wikilink and heading-anchor conventions this feature reads, and the
-  rule that documents outside the specification set are cited by
-  backticked path
+- [[cross-document-references]] — the wikilink and heading-anchor conventions
+  this feature reads, and the rule that documents outside the specification set
+  are cited by backticked path
 - [[adr-018]] — references as index edges, the model that makes a slug
   resolvable in the first place
 - [[frd-spec-reference-integrity]] — the reference extraction and

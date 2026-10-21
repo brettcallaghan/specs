@@ -11,7 +11,6 @@ description: Evidence-based retrospective on a SKILL that an agent just
   produced a wrong result, or when asked to retro a skill, critique a
   skill, report a bug in a skill, or capture how a skill could be
   improved.
-version: "1.0"
 ---
 
 # Skill Retro
@@ -138,8 +137,9 @@ issue is adopted, and how recurrence across runs is weighted, is the
 triage side's call — never the retro's. Record, at the head of the
 report:
 
-- **skill** and **skill_version** — the skill critiqued and its
-  SKILL.md frontmatter version.
+- **skill** and **skill_version** — the skill critiqued and the release
+  version of the plugin that shipped it (from its plugin manifest), or the
+  commit for a skill that ships in no plugin.
 - **model** and **effort** — exact model id and reasoning effort
   (e.g. `claude-opus-4-8[1m]`, effort high). Not "Claude".
 - **session** — the harness's session identifier, WHERE it exposes one.
@@ -153,7 +153,7 @@ report:
 - **origin** — `self` when this repo critiqued its own skill, otherwise
   the project the run happened in.
 - **harness**, the **task** the skill was applied to, the **run
-  dates**, and the versions of every reference/script/template invoked.
+  dates**, and every reference, script, and template invoked.
 
 Every candidate issue repeats the fields its template asks for
 (`skill_version`, `model`, `session`, `run`, `branch`), because an issue
@@ -219,7 +219,9 @@ Step 5 is a hard stop. Do not tick 6 before the user has answered.
    `references/shared/issue-template.md`. **One issue is one change** —
    the issue is the unit of decision, so the user must be able to accept
    one and decline the next. Findings about different skills are
-   different issues; so are two changes to one skill.
+   different issues; so are two changes to one skill. Write each issue
+   with the `tech-writer` skill, taking the tone from the template's reader
+   profile.
 
    **WHERE a finding is a property of several skills rather than of
    one** — the same gap present in each skill's text, not one skill's

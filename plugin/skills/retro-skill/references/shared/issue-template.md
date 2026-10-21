@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: plugin/skills/spec/references/issue-template.md (version 1.1)
+     Source of truth: plugin/skills/spec/references/issue-template.md
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -31,13 +31,12 @@ session: <session id>                # OPTIONAL — the authoring agent's sessio
                                      # same agent", which `model` cannot, since
                                      # two unrelated agents can share a model.
 branch: <branch the run worked on>
-skill_version: <what was being exercised>
+skill_version: <the plugin release that shipped the skill, or a commit>
 model: <model that produced the findings>   # load-bearing; never omit
 ---
 
 <!--
 Template: Issue
-Version: 1.1
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]]. The findings this issue cites are
   captured per [[findings-capture-protocol]].
@@ -58,6 +57,16 @@ Purpose
   report from someone who hit a defect, or arrives from a project reporting
   one. All use this template unchanged. A retro presents its issues to the
   user as candidates, and only the ones the user chooses are filed.
+
+Reader profile (apply with the tech-writer skill)
+- Reader: the person deciding whether to file or accept it, then whoever makes
+  the change.
+- Knows: the code or the skill, not your setup or your use case.
+- Wants: what happened or what's missing, the evidence, and the one change
+  proposed.
+- Budget: a minute or two to triage.
+- Tone: neutral and specific. Describe what happened, not how frustrating it
+  was. Persuade with evidence, not enthusiasm. No blame.
 
 Which audience — apply the merge test
   Findings and the issues built from them serve two audiences, and the

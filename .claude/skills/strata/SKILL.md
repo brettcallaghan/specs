@@ -8,7 +8,6 @@ description: Write, compile, and debug Strata schema definition files
   package dependencies, interpreting strata build errors, or when a
   task needs one cross-language data model or an LLM structured-output
   schema.
-version: "1.0"
 ---
 
 # Strata

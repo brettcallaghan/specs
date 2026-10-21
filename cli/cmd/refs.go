@@ -20,7 +20,7 @@ import (
 // of that document (AC-SPECANCH-003.1).
 //
 // This is the fifth subcommand FEAT-SPEC-011 anticipated growing into
-// (spec-cli-container.md's Change Guidance); it neither renames nor
+// (spec-cli-container.md's Change guidance); it neither renames nor
 // repurposes the four `newRootCmd` already builds.
 func newRefsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 	var jsonOut, outbound, full bool

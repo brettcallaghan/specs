@@ -13,7 +13,6 @@ version: "1.0"
 
 <!--
 Template: Contract
-Version: 1.6
 Source: Architecture documentation framework. C4 mapping rules and
   contract visibility tiers are defined in `shared/c4-standards.md`.
 
@@ -21,10 +20,10 @@ Sections (complete each, then delete its instruction block)
   - Overview
   - Specification
   - Guarantees
-  - Operational Expectations
-  - Versioning and Change Policy
-  - Key Decisions
-  - Open Questions
+  - Operational expectations
+  - Versioning and change policy
+  - Key decisions
+  - Open questions
   - References
 
 Purpose
@@ -33,6 +32,15 @@ Purpose
   subject, SQL DDL for a published view) is normative for SHAPE; this
   document is normative for SEMANTICS — the guarantees, operational
   expectations, and change policy that schema languages cannot express.
+
+Reader profile (apply with the tech-writer skill)
+- Reader: a consumer or provider building against the interface on its own
+  schedule.
+- Knows: the machine-readable spec's shape, not its semantics.
+- Wants: the guarantees: what each operation means, its errors, ordering, and
+  limits.
+- Budget: looked up repeatedly, one guarantee at a time.
+- Tone: exact and neutral, like reference. State guarantees, not rationale.
 
 Ownership
   A contract is owned by its PROVIDER, never by a relationship or a
@@ -144,7 +152,7 @@ error semantics, pagination stability, timezone/encoding conventions.
 - The provider SHALL NOT <thing consumers must not have to defend
   against>.
 
-## Operational Expectations
+## Operational expectations
 
 <!--
 The operational half of the contract: what consumers may assume about
@@ -160,7 +168,7 @@ rather than restating them.
 - **Consumer obligations:** consumers SHALL <e.g. handle out-of-order
   delivery, honor Retry-After, tolerate unknown fields>.
 
-## Versioning and Change Policy
+## Versioning and change policy
 
 <!--
 How this contract evolves. Both shape AND semantics changes are subject
@@ -177,7 +185,7 @@ to this policy.
   available for <window>, and the provider SHALL notify consumers via
   <channel>.
 
-## Key Decisions
+## Key decisions
 
 <!--
 One line per significant decision: restate the outcome and reference
@@ -186,7 +194,7 @@ the ADR. The trade-off analysis lives in the ADR, not here.
 
 - [[adr-<nnn>]] — <one-line statement of the decision>.
 
-## Open Questions
+## Open questions
 
 <!--
 Optional, draft only. Track unresolved questions while the document is

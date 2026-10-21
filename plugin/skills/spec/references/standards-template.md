@@ -8,11 +8,10 @@ status: draft
 
 <!--
 Template: Standards Document
-Version: 1.4
 
 Sections (complete each, then delete its instruction block)
-  - <Major Category>
-  - <Another Major Category>
+  - <Major category>
+  - <Another major category>
   - References
 
 Purpose
@@ -22,6 +21,15 @@ Purpose
   for the whole family of cross-cutting standards, policies, invariants, 
   and constraints. Requirements are organized hierarchically and 
   expressed using EARS (Easy Approach to Requirements Syntax).
+
+Reader profile (apply with the tech-writer skill)
+- Reader: an engineer or agent checking whether their work complies, often
+  from a review comment or a link in a spec.
+- Knows: their own work, not the rule.
+- Wants: the rule, its scope, and what compliant looks like.
+- Budget: a minute per rule.
+- Tone: firm and unambiguous, not scolding. Give the reason for any rule that
+  isn't obviously necessary, so readers can apply it to cases it doesn't name.
 
 Slug
   This type has no fixed prefix (it is the registry's one exception). Use 
@@ -88,7 +96,7 @@ Replace with a 2-3 sentence introduction that explains:
 
 ---
 
-## <Major Category>
+## <Major category>
 
 <!--
 Use level-2 headers (##) for major requirement categories.
@@ -166,7 +174,7 @@ WHILE <state holds>, the system SHALL <required behavior>.
 
 ---
 
-### <Another Subcategory>
+### <Another subcategory>
 
 <!--
 Continue with additional subcategories as needed.
@@ -182,7 +190,7 @@ The system MAY <optional behavior>.
 
 ---
 
-## <Another Major Category>
+## <Another major category>
 
 <!--
 Continue with additional major categories as needed.

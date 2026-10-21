@@ -8,26 +8,26 @@ type: standards
 status: approved
 ---
 
-# Spec CLI Output Standards
+# Spec CLI output standards
 
-These standards govern what every command [[container-spec-cli]] exposes
-writes to its output stream. They apply to every subcommand, present and
-future, because what a command prints is the command surface's business
-rather than any one subcommand's.
+These standards govern what every command that [[container-spec-cli]]
+exposes writes to its output stream. They apply to every subcommand,
+present and future, because what a command prints belongs to the command
+surface, not to any one subcommand.
 
 **The reader is an agent that knows which command it ran and nothing
-else.** Not the command's author, not someone holding this document. The
-skills over this CLI are being shrunk toward "run the command and read
-the output", and that is only safe where the output needs no key.
+else.** It isn't the command's author or someone holding this document.
+The skills over this CLI are being shrunk toward "run the command and
+read the output." That's safe only where the output needs no key.
 
 **The method is to stop inventing a format.** Structured output is YAML,
-so a reader who has met YAML once can read it and a consumer already has
-a parser for it. There is no line grammar to reverse-engineer, no column
-convention, no punctuation carrying meaning.
+so a reader who has met YAML once can read it, and a consumer already has
+a parser for it. There's no line grammar to reverse-engineer, no column
+convention, and no punctuation that carries meaning.
 
-[Current conformance](#current-conformance) is the per-command record of
-what each command prints, measured, and what it has to change. A command
-specified after this document SHALL conform from the start.
+[Current conformance](#current-conformance) records, for each command,
+what it prints (as measured) and what it has to change.
+A command specified after this document SHALL conform from the start.
 
 ---
 
@@ -41,25 +41,26 @@ answer is a document payload as defined below.
 WHERE a command's answer is structured, the CLI SHALL render it as YAML,
 and SHALL render it as JSON when `--json` is passed.
 
-**Rationale:** two renderings, one flag, no third form. YAML is the
-default because a human and an agent both read it without a schema, and
-because this CLI's values routinely carry multi-line text — a criterion's
-steps, a finding's message, a document's description — which survives YAML
-intact instead of arriving as `\n` inside a quoted string. JSON stays
-available so a consumer that already parses it need not acquire a YAML
-parser. "Every command" is the point: a caller that has parsed one
-command's answer has parsed them all, with no per-command recipe for a
-tab-separated line, a bare number or a sentence.
+**Rationale:** Two renderings, one flag, and no third form. YAML is the
+default because a human and an agent both read it without a schema. It's
+also the default because this CLI's values routinely carry multi-line
+text (a criterion's steps, a finding's message, a document's
+description), and that text survives YAML intact instead of arriving as
+`\n` inside a quoted string. JSON stays available so that a consumer that
+already parses JSON doesn't need to acquire a YAML parser. "Every
+command" is the point: a caller that has parsed one command's answer has
+parsed them all, with no per-command recipe for a tab-separated line, a
+bare number, or a sentence.
 
 ---
 
 The root of every structured answer SHALL be a mapping, in both
 renderings.
 
-**Rationale:** a root sequence or scalar has nowhere to put a property
+**Rationale:** A root sequence or scalar has nowhere to put a property
 added later, so the first property a command acquires would change its
 shape and break every caller. A mapping at the root takes a new key
-without disturbing the ones a caller already reads.
+without disturbing the keys a caller already reads.
 
 ---
 
@@ -79,14 +80,14 @@ content raw instead of as a structured answer.
 WHERE the CLI writes such content raw, it SHALL write that content
 alone, with no envelope, no added heading, and no trailing summary.
 
-**Rationale:** `links` emits a rewritten markdown document, `feature
---emit` a Gherkin source, and a heading query's emit form the text of a
-section; any other command that prints content from a document is the
-same case. Wrapping any of them in a mapping makes the caller unwrap it,
-and quoting a document into a scalar changes the bytes they asked for.
-The test is what the caller does next: text they will write to a file or
-read as prose is a payload; anything they would index by name is an
-answer.
+**Rationale:** `links` emits a rewritten Markdown document, `feature
+--emit` emits a Gherkin source, and a heading query's emit form emits the
+text of a section. Any other command that prints content from a document
+is the same case. Wrapping any of them in a mapping makes the caller
+unwrap it, and quoting a document into a scalar changes the bytes the
+caller asked for. The test is what the caller does next. Text they'll
+write to a file or read as prose is a payload, and anything they'd index
+by name is an answer.
 
 ---
 
@@ -96,15 +97,15 @@ WHERE a command writes an artifact whose format another document
 specifies, that format SHALL govern the artifact, and these standards
 SHALL govern only what the command prints about it.
 
-**Rationale:** the index is JSON because [[frd-spec-index]] says so and
-consumers parse it as such — including when `--out -` sends it to
-standard output, where it is still the artifact rather than a report
-about one. What `index` *prints* about a run it wrote to a file is an
+**Rationale:** The index is JSON because [[frd-spec-index]] says so, and
+consumers parse it as JSON. That includes when `--out -` sends it to
+standard output: there it's still the artifact, not a report about one.
+What `index` *prints* about a run that wrote the index to a file is an
 answer and follows the rules above.
 
 ---
 
-## The Answer
+## The answer
 
 ### The answer is the properties the command established
 
@@ -112,28 +113,28 @@ A command's answer SHALL be a YAML mapping whose keys are the properties
 the command established and whose values are those properties' values,
 and SHALL contain nothing else.
 
-**Rationale:** "nothing else" is doing the work. No header naming the
-command — the caller typed it. No count of what follows — the reader can
-see the collection. No summary — a summary of a mapping in view is a
-second copy of it. No outcome line — the exit status carries the outcome,
-and a process printing its own exit status tells the caller what they
-already hold.
+**Rationale:** "Nothing else" is doing the work. There's no header naming
+the command, because the caller typed it. There's no count of what
+follows, because the reader can see the collection. There's no summary,
+because a summary of a mapping in view is a second copy of it. There's no
+outcome line, because the exit status carries the outcome, and a process
+that prints its own exit status tells the caller what they already hold.
 
 WHERE a count is a property the run established rather than a
 restatement of a collection the answer renders, the answer MAY carry it.
 `check`'s `summary` is such a property: the number of findings of each
-severity the run raised, which decides the exit status and is what a
-reader scanning the head of the output needs before the findings
-themselves. It is rendered first, carries every severity the finding
-vocabulary defines whether or not its count is zero, and never replaces
-the findings it counts.
+severity the run raised. That number decides the exit status, and a
+reader scanning the head of the output needs it before the findings
+themselves. It's rendered first, carries every severity the finding
+vocabulary defines (whether or not its count is zero), and never
+replaces the findings it counts.
 
-**Rationale:** the rule forbids a second copy of what the reader can
+**Rationale:** The rule forbids a second copy of what the reader can
 already see, not a fact the run established. A count of findings by
-severity is the run's verdict in numbers — the property a gate reads —
-and a reader cannot see it at the head of a long answer without
-counting. The carve-out is narrow on purpose: a count that merely
-announces the length of the list beneath it remains forbidden.
+severity is the run's verdict in numbers—the property a gate reads—and
+a reader can't see it at the head of a long answer without counting.
+The carve-out is narrow on purpose: a count that merely announces the
+length of the list beneath it is still forbidden.
 
 ---
 
@@ -142,10 +143,11 @@ announces the length of the list beneath it remains forbidden.
 WHERE an answer carries several of a thing, the CLI SHALL render them as
 a sequence of mappings with one key per field.
 
-**Rationale:** `path:line:column  slug` is a format a reader must be
-told about and a consumer must split on punctuation nothing enforces. A
-mapping per reference names every field it carries, and the fields a
-later feature adds arrive as new keys rather than as a changed grammar.
+**Rationale:** `path:line:column  slug` is a format that a reader must be
+told about and that a consumer must split on punctuation nothing
+enforces. A mapping per reference names every field it carries, and the
+fields a later feature adds arrive as new keys instead of as a changed
+grammar.
 
 ---
 
@@ -155,9 +157,10 @@ A command SHALL answer with the same shape whatever its arguments
 select. A lookup by one identifier SHALL return the same sequence of
 records as a lookup that matches many, holding one record.
 
-**Rationale:** a caller should not have to branch on what it passed. A
+**Rationale:** A caller shouldn't have to branch on what it passed. A
 bare record for an identifier and a sequence for a filter are two shapes
-for one command, and a caller handed either must first find out which.
+for one command, and a caller handed either one must first find out
+which.
 
 ---
 
@@ -167,9 +170,9 @@ WHERE a query matches nothing, the CLI SHALL render the empty collection
 and SHALL exit `0`, as [[cli-exit-status-standards]] requires of every
 query that answered.
 
-**Rationale:** nothing found is a fact about the corpus, not a failure of
+**Rationale:** Nothing found is a fact about the corpus, not a failure of
 the invocation. Exiting non-zero would make a caller branch on the shape
-of the world rather than on whether the command worked.
+of the world instead of on whether the command worked.
 
 ### A malformed question is not an empty answer
 
@@ -179,10 +182,10 @@ that set, the CLI SHALL report the value and every registered name,
 SHALL NOT render an answer, and SHALL exit `2`, the invocation-error
 status of [[cli-exit-status-standards]].
 
-**Rationale:** an unregistered value is a fact about the invocation, not
+**Rationale:** An unregistered value is a fact about the invocation, not
 about the corpus. Answered as an empty collection or a clean report, a
-typo is indistinguishable from a real "nothing found", and a gate that
-passes a misspelt rule name to `check --only` passes forever.
+typo is indistinguishable from a real "nothing found," and a gate that
+passes a misspelled rule name to `check --only` passes forever.
 
 ---
 
@@ -191,14 +194,14 @@ passes a misspelt rule name to `check --only` passes forever.
 Properties SHALL appear in the order the command established them, and a
 collection SHALL appear in the order the command reports it.
 
-**Rationale:** one ordering, chosen by the command, so two runs over
-unchanged state produce byte-identical output and a diff of two runs is a
-diff of what changed. This extends AC-SPEC-009.7's determinism from the
-index to everything the surface prints.
+**Rationale:** There's one ordering, chosen by the command, so two runs
+over unchanged state produce byte-identical output, and a diff of two
+runs is a diff of what changed. This extends AC-SPEC-009.7's determinism
+from the index to everything the surface prints.
 
 ---
 
-## Nothing Is Shortened
+## Nothing is shortened
 
 A command SHALL render every value it reports in full.
 
@@ -206,11 +209,11 @@ A command SHALL NOT truncate a value, SHALL NOT elide one behind a
 description of it, and SHALL NOT answer with an instruction to run the
 same command again differently.
 
-**Rationale:** agents read long documents; a line budget protects a
-terminal width nobody is looking at. Worse, every form of shortening
-turns one invocation into two — and the second costs a round trip, may
-observe changed state, and can only be composed by a caller who decoded
-the elision notice.
+**Rationale:** Agents read long documents. A line budget protects a
+terminal width that nobody is looking at. Worse, every form of
+shortening turns one invocation into two. The second costs a round trip,
+may observe changed state, and can be composed only by a caller who
+decoded the elision notice.
 
 ---
 
@@ -226,11 +229,11 @@ list the fields it keeps.
 A named view SHALL NOT be selected by `--json`, which changes only the
 syntax of whichever view is rendered.
 
-**Rationale:** the common question an answer serves may need a fraction
-of its fields — "which documents cite this?" needs the path, not the byte
+**Rationale:** The common question an answer serves may need a fraction
+of its fields: "Which documents cite this?" needs the path, not the byte
 offset. A view names that fraction once, so the caller asks for it by
-name and knows what it holds; it is not shortening, because every record
-remains and every value kept is whole.
+name and knows what it holds. A view isn't shortening, because every
+record remains and every value it keeps is whole.
 
 #### `refs`: the compact view and `--full`
 
@@ -241,13 +244,13 @@ document's references.
 
 | field of the full answer | in the compact view |
 |---|---|
-| `path` | kept, as the grouping key — one entry per document |
+| `path` | kept, as the grouping key (one entry per document) |
 | `span.start_line` | kept, rendered `line` |
 | `text` | kept |
 | `origin` | kept only for a reference in frontmatter |
 | `resolution.state` | kept only when the reference is not resolved |
-| `slug` | dropped — the query names it |
-| `anchor` | dropped — `text` carries it |
+| `slug` | dropped: the query names it |
+| `anchor` | dropped: `text` carries it |
 | `resolution.target_path` | dropped |
 | `span.offset`, `span.length`, `span.start_column`, `span.end_line`, `span.end_column` | dropped |
 | `anchor_resolution.heading` | dropped |
@@ -261,19 +264,20 @@ as in the full answer.
 An outbound query's citing document is always the document queried, so
 its compact view groups references by the slug they cite instead: one
 entry per cited slug, in the order each is first cited, holding every
-reference to it. Inbound compact and every `--full` answer are as above.
+reference to it. The inbound compact view and every `--full` answer are
+as described above.
 
 | field of the full answer | in the outbound compact view |
 |---|---|
-| `slug` | kept, as the grouping key — one entry per cited slug, compared case-insensitively as slugs resolve, spelled as first cited |
+| `slug` | kept, as the grouping key (one entry per cited slug, compared case-insensitively as slugs resolve, spelled as first cited) |
 | `resolution.target_path` | kept, rendered `path`; `null` when the slug resolves to nothing |
 | `resolution.state` | kept, rendered `resolution: {state}`, only when the reference is not resolved |
 | `span.start_line` | kept, rendered `line`, one entry of `lines` per reference |
 | `text` | kept, in each entry of `lines` |
 | `origin` | kept in each entry of `lines`, only for a reference in frontmatter |
 | `ambiguous_anchor` | kept in each entry of `lines`, written only where true |
-| `path` | dropped — it is the document queried |
-| `anchor` | dropped — `text` carries it |
+| `path` | dropped: it's the document queried |
+| `anchor` | dropped: `text` carries it |
 | `span.offset`, `span.length`, `span.start_column`, `span.end_line`, `span.end_column` | dropped |
 | `anchor_resolution.heading` | dropped |
 
@@ -281,31 +285,31 @@ reference to it. Inbound compact and every `--full` answer are as above.
 
 `headings` answers with the compact view by default and with the full
 answer under `--full`. `--emit` writes a section as itself and takes
-neither view; `--full` with `--emit` is an invocation error.
+neither view. `--full` with `--emit` is an invocation error.
 
 | field of the full answer | in the compact view |
 |---|---|
 | `anchor` | kept |
 | `ref` | kept |
 | `level` | kept |
-| `path` | dropped — `ref` carries the document |
-| `text`, `identifier` | dropped — `anchor` carries the identifier |
+| `path` | dropped: `ref` carries the document |
+| `text`, `identifier` | dropped: `anchor` carries the identifier |
 | `section` (the span of the content beneath the heading) | dropped |
 
-`start_line` is the one field the compact view derives rather than
-selects: the line the heading itself stands on, which the full match
-does not carry as a field of its own (its `section` begins after the
+`start_line` is the one field the compact view derives instead of
+selecting: the line the heading itself stands on. The full match doesn't
+carry that line as a field of its own (its `section` begins after the
 heading line).
 
-The properties the query established above the matches — `declared`,
-where the selection names a document — are rendered as in the full
+The properties the query established above the matches (`declared`,
+where the selection names a document) are rendered as in the full
 answer.
 
 #### `feature`: the compact view and `--full`
 
 `feature` answers with the compact view by default and with the full
 record under `--full`. `--emit` writes a Gherkin source as itself and
-takes neither view; `--full` with `--emit` is an invocation error.
+takes neither view. `--full` with `--emit` is an invocation error.
 
 | field of the full answer | in the compact view |
 |---|---|
@@ -316,11 +320,11 @@ takes neither view; `--full` with `--emit` is an invocation error.
 | `criteria` | dropped; its length is rendered `criteria_count` |
 | `document_slug`, `description`, `source`, `span` | dropped |
 
-`criteria_count` is the one field the compact view derives rather than
-selects: the full record carries the criteria themselves, not their
-count. It is named apart from `criteria` so that one key never holds two
+`criteria_count` is the one field the compact view derives instead of
+selecting: the full record carries the criteria themselves, not their
+count. Its name differs from `criteria` so that one key never holds two
 types across the two views. The properties the query established above
-the features — `declared`, where the arguments name a subject — are
+the features (`declared`, where the arguments name a subject) are
 rendered as in the full answer.
 
 ---
@@ -329,18 +333,18 @@ WHERE a command's design says its output belongs in a file, the command
 SHALL write the file and report a property whose name ends `_path` and
 whose value is that file's path.
 
-**Rationale:** a per-command design decision, taken when the command is
-specified, and never a threshold that engages when a value grows large.
-A dynamic rule would make one invocation's shape depend on what it
-happened to find, so a caller could not know whether they held a value or
-a path without checking — and the check would be the elision notice the
-rule above forbids.
+**Rationale:** Writing to a file is a per-command design decision,
+taken when the command is specified, and never a threshold that engages
+when a value grows large. A dynamic rule would make one invocation's
+shape depend on what it happened to find, so a caller couldn't know
+whether they held a value or a path without checking. That check would
+be the elision notice the rule above forbids.
 
 ---
 
-## YAML Style
+## YAML style
 
-Valid YAML is not the bar; readable YAML is. Each rule below removes a
+Valid YAML isn't the bar. Readable YAML is. Each rule below removes a
 choice, so that two renderings of one value are the same bytes.
 
 The output SHALL use block style throughout, indented two spaces per
@@ -350,11 +354,11 @@ level, with a sequence indented one level under the key introducing it.
 
 An empty sequence SHALL be rendered `[]` and an empty mapping `{}`.
 
-**Rationale:** the one exception to block style, and it is forced. A
-block rendering of an empty collection is a key with nothing after it,
-which reads as a key whose value is null — so an empty list, an empty
-string and an unset key would be indistinguishable, and a caller could
-not tell "nothing is missing" from "nobody looked".
+**Rationale:** This is the one exception to block style, and it's
+forced. A block rendering of an empty collection is a key with nothing
+after it, which reads as a key whose value is null. So an empty list, an
+empty string, and an unset key would be indistinguishable, and a caller
+couldn't tell "nothing is missing" from "nobody looked."
 
 ---
 
@@ -362,11 +366,11 @@ A multi-line string SHALL be trimmed of leading and trailing whitespace
 and rendered as a block scalar. Whitespace inside the value SHALL NOT be
 touched.
 
-**Rationale:** the block scalar is the whole reason for choosing YAML —
+**Rationale:** The block scalar is the whole reason for choosing YAML:
 the value appears as itself, on its own lines. Trimming is what keeps the
-block form always available: a first line indented past the block's own
-indentation needs an explicit indicator to survive, and a last line
-ending in whitespace is read back differently by different parsers.
+block form always available. A first line indented past the block's own
+indentation needs an explicit indicator to survive, and different
+parsers read back a last line that ends in whitespace differently.
 Whitespace inside the value is content and is left alone.
 
 ---
@@ -375,7 +379,7 @@ WHERE a block scalar cannot carry a multi-line string faithfully, the
 CLI SHALL double-quote it instead. It cannot when the value carries a
 control character other than a line break or a tab.
 
-**Rationale:** readability is why the block scalar is preferred and
+**Rationale:** Readability is why the block scalar is preferred, and
 correctness outranks it. A block's only structure is the line break, so a
 carriage return folds into the break beside it and the value comes back
 shorter than it went in.
@@ -388,10 +392,11 @@ has leading or trailing whitespace, begins with a YAML indicator
 character, contains a control character, contains `: ` or ` #`, ends
 with `:`, or reads as a number, a boolean or a null.
 
-**Rationale:** quoting everything is safe and unreadable; quoting nothing
-is readable and wrong. This is the exact set of cases where a plain
-scalar parses back as something other than what was written, so a reader
-can tell a quoted value is quoted because it had to be.
+**Rationale:** Quoting everything is safe and unreadable. Quoting
+nothing is readable and wrong. The cases listed are exactly the cases
+where a plain scalar parses back as something other than what was
+written, so a reader can tell that a quoted value is quoted because it
+had to be.
 
 ---
 
@@ -403,32 +408,32 @@ as `true` or `false`, an absent value as `null`.
 The output SHALL NOT contain comments, anchors, aliases, explicit tags, a
 document-start marker, or a document-end marker.
 
-**Rationale:** each is a feature a reader must resolve before knowing
-what the document says. An alias in particular defines a value somewhere
-other than where it is read, which is the opposite of what this output is
-for.
+**Rationale:** Each is a feature that a reader must resolve before
+knowing what the document says. In particular, an alias defines a value
+somewhere other than where it's read, which is the opposite of what this
+output is for.
 
 ---
 
 The output SHALL NOT wrap or fold a long line.
 
-**Rationale:** folding changes the bytes of the value it carries, and any
-wrapping decision depends on a terminal width that is not a property of
-the data.
+**Rationale:** Folding changes the bytes of the value it carries, and
+any wrapping decision depends on a terminal width that isn't a property
+of the data.
 
 ---
 
-## What This Surface Does Not Adopt
+## What this surface does not adopt
 
-Stated because the absence is a decision rather than an omission.
+Each absence below is a decision, not an omission.
 
 - **No result envelope and no `--full-result`.** A specs command reads a
-  corpus and answers a question about it; it runs no plan whose steps a
-  caller would audit, so there is no provenance layer under the answer to
-  reveal. WHEN a command acquires one, it acquires the flag with it.
+  corpus and answers a question about it. It runs no plan whose steps a
+  caller would audit, so there's no provenance layer under the answer to
+  reveal. When a command acquires one, it acquires the flag with it.
 - **No per-property verdict shape.** This surface already has a finding
-  vocabulary — a rule identifier, a severity, a path, a span and a
-  message, generated from `schemas/finding.strata` — and a check run's
+  vocabulary (a rule identifier, a severity, a path, a span, and a
+  message, generated from `schemas/finding.strata`), and a check run's
   answer is the findings it raised. A second verdict shape beside it
   would be two ways to report the same defect.
 
@@ -438,9 +443,9 @@ Stated because the absence is a decision rather than an omission.
 
 "Prints today" is measured with a binary built at `47d4215`
 (`go build -C cli -o ../build/specs ./specs`), run against this
-repository's corpus. "Not yet conforming" names behavior the amended
-specifications require and that binary does not yet have; each row
-reads "conforms" once its command does.
+repository's corpus. The "to conform" column names behavior the
+specifications require and that binary doesn't have yet. Each row reads
+"conforms" once its command does.
 
 | command | prints today | to conform |
 |---|---|---|
@@ -449,17 +454,17 @@ reads "conforms" once its command does.
 | `feature` | a YAML mapping whose key `features` holds a list of feature records in the compact view (`id`, `code`, `name`, `path`, `criteria_count`) by default and every field under `--full`, whatever the arguments select, one identifier included, preceded by `declared` where the arguments name a subject; `--json` the same values in the same order | conforms (AC-GHK-007.10 to AC-GHK-007.12) |
 | `next-id <type>` | a YAML mapping carrying `number` and then `slug`, `number: 32` and `slug: adr-032`; `--json` the same values in the same order | conforms |
 | `criterion` | a YAML mapping whose key `criteria` holds a list of records whatever the arguments select, one identifier included, preceded by `declared` where the arguments name a subject; under `--changed`, `base` then `criteria` carrying `id`, `name`, `classification` and `path`, plus `record` and `base_record` under `--full`; `--json` the same values in the same order | conforms |
-| `links <path>` | the rewritten document | conforms — a document payload, written as itself |
+| `links <path>` | the rewritten document | conforms: a document payload, written as itself |
 | `refs <slug>[#<anchor>]` | a YAML mapping of the properties the query established, the references in the compact view beneath it, and every field of every reference under `--full`; `--json` the same values in the same order | conforms |
 | `index` | the artifact, or the bare path it wrote | the artifact is out of scope; the printed path is an answer |
 | `slug-exists <slug>` | a YAML mapping carrying `slug` (as the member declares it where one does, as given where none does), `declared` and `path` (`null` where undeclared); `--json` the same values in the same order | conforms |
-| `c4 [--root <slug>]` | a YAML mapping of the C4 model, carrying `root_declared` under `--root`; `--json` the same values in the same order | conforms — written against these standards, and renders through `renderYAML` unchanged |
-| `headings <selection>` | a YAML mapping whose key `matches` is the sequence of full matches, each carrying its heading path, preceded by `declared` where the selection names a document; `--json` the same values in the same order; `--emit` the one matched section as itself, and refused with exit `2` when several match | conforms — carries `anchor` and `ref`; answers in the compact view above by default and the full match under `--full`; omits members no longer in effect unless `--all`; refuses `--emit` matching nothing (AC-SPECSTR-003.1, AC-SPECSTR-003.12 to AC-SPECSTR-003.17). Its rendering is the source of the `renderYAML` the other commands adopt |
+| `c4 [--root <slug>]` | a YAML mapping of the C4 model, carrying `root_declared` under `--root`; `--json` the same values in the same order | conforms, and renders through `renderYAML` unchanged |
+| `headings <selection>` | a YAML mapping whose key `matches` is the sequence of matches in the compact view, and of full matches under `--full`, each carrying its heading path, preceded by `declared` where the selection names a document; `--json` the same values in the same order; `--emit` the one matched section as itself, and refused with exit `2` when several match | conforms: carries `anchor` and `ref`; answers in the compact view above by default and the full match under `--full`; omits members no longer in effect unless `--all`; refuses `--emit` matching nothing (AC-SPECSTR-003.1, AC-SPECSTR-003.12 to AC-SPECSTR-003.17) |
 
-Migration is per command and belongs to whichever feature next touches
-it. Every command carries snapshot cases under `cli/testdata/cases/`,
-which [[testing-standards]] requires be regenerated and reviewed when
-observable output changes.
+Migration is per command, and it belongs to whichever feature next
+touches that command. Every command carries snapshot cases under
+`cli/testdata/cases/`, and [[testing-standards]] requires them to be
+regenerated and reviewed when observable output changes.
 
 ---
 
@@ -471,8 +476,8 @@ observable output changes.
   this document governs only what is printed
 - [[frd-spec-index]] — the command surface, the finding engine and the
   index artifact these standards defer to
-- [[frd-spec-structure]] — the heading query, the first command
-  specified against these standards
+- [[frd-spec-structure]] — the heading query, a command specified
+  against these standards
 - [[frd-spec-anchor-references]] — the anchor query and checks, likewise
 - [[testing-standards]] — the snapshot cases that hold observable output
   still

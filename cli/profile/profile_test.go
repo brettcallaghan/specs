@@ -23,7 +23,7 @@ import (
 	"github.com/brettcallaghan/specs/cli/profile"
 )
 
-// The conformance test the module's own Change Guidance requires: this
+// The conformance test the module's own Change guidance requires: this
 // module satisfies Document Core's Profile interface at compile time,
 // not only by chance at runtime.
 var _ corpus.Profile = profile.New()

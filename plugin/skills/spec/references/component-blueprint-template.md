@@ -17,18 +17,17 @@ test_paths: []                       # repo-relative test roots
 
 <!--
 Template: Component Blueprint
-Version: 1.9
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 
 Sections (complete each, then delete its instruction block)
   - Overview
   - Interface
-  - Pattern Guidance
-  - Cross-Cutting Standards
-  - Change Guidance
-  - Key Decisions
-  - Open Questions
+  - Pattern guidance
+  - Cross-cutting Standards
+  - Change guidance
+  - Key decisions
+  - Open questions
   - References
 
 Purpose
@@ -44,6 +43,15 @@ Purpose
   The dividing line is the same one the framework draws for contract
   visibility: does it cross a boundary of independent change? See
   `shared/c4-standards.md`.
+
+Reader profile (apply with the tech-writer skill)
+- Reader: an engineer or agent changing this component inside its container.
+- Knows: the host container, not this component's internals.
+- Wants: its responsibilities, its interface, and the change guidance feature
+  work must respect.
+- Budget: one focused read.
+- Tone: matter-of-fact and exact: name functions, types, and files. Decisions
+  and their alternatives belong in ADRs.
 
 When to use — the trigger is the promotion predicate
   A component earns its own blueprint WHEN it has an interface other
@@ -103,7 +111,7 @@ Status vocabulary
 
 This is a living document — update it when the component changes. Remove
 all HTML comment blocks after completing each section. WHILE status is
-draft, the Open Questions section MAY contain open questions or the
+draft, the Open questions section MAY contain open questions or the
 literal text "None."; remove the section when the document becomes
 active.
 -->
@@ -151,7 +159,7 @@ interface may warrant a contract document.
   - The component SHALL NOT <thing consumers must not have to defend
     against>.
 
-## Pattern Guidance
+## Pattern guidance
 
 <!--
 kind: pattern only — delete this section otherwise.
@@ -182,7 +190,7 @@ specification.
 
 - **<InstanceName>** (<container or repo>) — <target/variant>.
 
-## Cross-Cutting Standards
+## Cross-cutting Standards
 
 <!--
 Standards this component complies with, by reference. Platform choices
@@ -194,7 +202,7 @@ This component SHALL comply with:
 
 - [[<standard-slug>]] — <one-line scope>.
 
-## Change Guidance
+## Change guidance
 
 <!--
 Rules for feature work touching this component: the constraints a
@@ -220,7 +228,7 @@ an agent changing the component runs to prove the change before handoff:
 running the whole suite for every change does not scale (a parallel sprint run
 slows to a crawl), so the blueprint is the authority on what THIS
 component's change must run. CI and downstream agents still run the full
-suite. Feature blueprints map their AC Coverage "Verified by" column onto
+suite. Feature blueprints map their AC coverage "Verified by" column onto
 these gates.
 -->
 
@@ -232,7 +240,7 @@ these gates.
   minimal targeted set an agent runs before handoff, not the full suite
   (which CI runs)>.
 
-## Key Decisions
+## Key decisions
 
 <!--
 One line per significant decision: restate the outcome and reference
@@ -241,7 +249,7 @@ the ADR. The trade-off analysis lives in the ADR, not here.
 
 - [[adr-<nnn>]] — <one-line statement of the decision>.
 
-## Open Questions
+## Open questions
 
 <!--
 Optional, draft only. Track unresolved questions while the document is

@@ -10,85 +10,86 @@ status: approved
 sources: []
 ---
 
-# Spec Corpus Index and Core Conformance Checks
+# Spec corpus index and core conformance checks
 
 ## Overview
 
 Specification documents in this framework carry machine-checkable
-structure — frontmatter properties, typed slugs, `[[slug]]` references,
-fenced record blocks, required sections — and nothing checks it. The
-rules are enforced by agents reading documents and reporting what they
-found. That is expensive, and it is unverifiable: an agent that claims a
-readiness checklist passed produces the same output as one that ran it.
-A prototype over this repository's own 50 documents found 26 broken
-references and one document whose frontmatter does not parse, none of
-which any reviewer had noticed.
+structure: frontmatter properties, typed slugs, `[[slug]]` references,
+fenced record blocks, and required sections. Without a tool, nothing
+checks it, and agents enforce the rules by reading documents and
+reporting what they found. That's expensive, and it's unverifiable: an
+agent that claims a readiness checklist passed produces the same output as
+one that ran it. A prototype over this repository's own 50 documents found
+26 broken references and one document whose frontmatter doesn't parse,
+and no reviewer had noticed any of them.
 
 This feature delivers a command-line tool that reads a specification
 corpus and produces two things: a **machine-readable index** of every
 document's metadata and location, and a **report of conformance
 findings** against the metadata and membership rules the framework
-already defines. It is the first increment of a larger tool: later
+already defines. It's the first increment of a larger tool. Later
 features add document **structure** (headings, section spans, record
-blocks, hygiene) and cross-document **references** to the same index and
-the same finding engine. This sprint's design is chosen to accommodate
-that growth — the index schema is versioned and additive, the finding
-record is uniform across every check, and the corpus walk established
-here is the one those later checks reuse.
-It serves three audiences from one engine. A team adopting the framework
-points it at their spec root and gets a failing build when documents
-drift. An agent runs one command instead of reading forty files, and
-cites the output instead of asserting a result. An organization pushes
-the index to a central service and sees its whole architecture — the
-payoff of modeling systems, containers, and components rigorously in the
-first place, which is felt at enterprise scale rather than in a single
-application.
+blocks, and hygiene) and cross-document **references** to the same index
+and the same finding engine. This feature's design is chosen to
+accommodate that growth: the index schema is versioned and additive, the
+finding record is uniform across every check, and those later checks
+reuse the corpus walk established here.
+
+The tool serves three audiences from one engine. A team adopting the
+framework points it at their spec root and gets a failing build when
+documents drift. An agent runs one command instead of reading forty
+files, and cites the output instead of asserting a result. An
+organization pushes the index to a central service and sees its whole
+architecture. That view is the payoff of modeling systems, containers,
+and components rigorously in the first place, and it's felt at enterprise
+scale rather than in a single application.
 
 The index is the primary artifact, not a by-product. Every check in this
-document is a query over it, and consumers outside this framework
-consume the index without running any check at all. That ordering
-governs the requirements below: indexing never fails, and validation is
-a separate consumer that may.
+document is a query over it, and consumers outside this framework read
+the index without running any check at all. That ordering governs the
+requirements below: indexing never fails, and validation is a separate
+consumer that may.
 
-**Out of scope for this feature.** Each of these is deferred
-deliberately, not overlooked:
+**Out of scope for this feature.** Each of these is deliberately
+deferred, not overlooked:
 
 - **Reference integrity.** Parsing `[[slug]]` references, resolving them
   against the corpus, emitting inbound and outbound references in the
-  index, and reporting broken links are a follow-on feature. This FRD
-  indexes a document's frontmatter and location but does not read its
+  index, and reporting broken links belong to a follow-on feature. This
+  FRD indexes a document's frontmatter and location but doesn't read its
   body for references.
 - **Document structure and hygiene.** Extracting headings and their
   section spans, parsing record blocks, and checking required sections,
-  line width, leftover scaffolding, and placeholders are a follow-on
-  feature. This FRD does not walk a document's headings or body
+  line width, leftover scaffolding, and placeholders belong to a
+  follow-on feature. This FRD doesn't walk a document's headings or body
   structure.
 - **Modifying documents.** This feature only reads and reports.
 - **Acceptance-criteria and feature-definition validation.** Out of
   scope for this feature. [[adr-021]] settles the notation and assigns
-  the extraction to a follow-on feature; the technology decision this
+  the extraction to a follow-on feature. The technology decision this
   feature defers to an ADR had to preserve the ability to parse and
-  validate structured feature definitions later, and does.
+  validate structured feature definitions later, and it does.
 - **Requirement quality judgment.** Whether a requirement is testable,
-  whether a qualifier is vague, whether a design carries enough intent —
-  these stay with a reviewing agent. This feature extracts the spans an
-  agent must read; it does not judge them.
+  whether a qualifier is vague, and whether a design carries enough
+  intent stay with a reviewing agent. This feature extracts the spans an
+  agent must read, but it doesn't judge them.
 - **Rendering or diagram generation**, and export to any third-party
   architecture format.
 - **Choosing an implementation language, runtime, or distribution
   channel.** FEAT-SPEC-009 states the latency, portability, and
-  installation requirements; the choice that satisfies them is recorded
-  in a separate ADR.
+  installation requirements, and a separate ADR records the choice that
+  satisfies them.
 
 ## Terminology
 
 - **Spec corpus** — the set of documents the CLI treats as
-  specifications. Membership is determined by content, not location: a
-  `.md` file with parseable frontmatter declaring a known `type`.
+  specifications. Content, not location, determines membership: a `.md`
+  file with parseable frontmatter declaring a known `type`.
 - **Spec root** — the configured directory the CLI walks to discover the
   corpus.
-- **Workspace** — a named collection of documents from one repository,
-  identified in configuration so that indexes produced by separate
+- **Workspace** — a named collection of documents from one repository.
+  Configuration identifies it, so indexes produced by separate
   repositories can be combined without slug collisions.
 - **Index** — the machine-readable JSON artifact describing every
   discovered document: its frontmatter properties, its file path, and the
@@ -107,18 +108,18 @@ deliberately, not overlooked:
   and byte length as its authoritative extent, plus the line and column
   of its start and end for readability. Byte offsets are required
   because spans address regions *within* a line as well as whole
-  sections — a malformed `slug` value occupies part of a line, not the
+  sections: a malformed `slug` value occupies part of a line, not the
   line itself.
 - **Warm index** — a persisted index whose inputs are unchanged since it
   was built, so a query or single-document check can be answered without
   re-reading the corpus (FEAT-SPEC-010).
 - **Latency target** — a stated elapsed-time figure for an operation,
-  measured at the 95th percentile. A target is advisory: it is measured
-  and reported wherever the suite runs, and a measurement over target is
-  a signal to investigate rather than a failure, except in a reference
-  environment.
+  measured at the 95th percentile. A target is advisory: it's measured
+  and reported wherever the suite runs. Outside a reference environment,
+  a measurement over target is a signal to investigate rather than a
+  failure.
 - **Reference environment** — a machine an operator has explicitly
-  declared to be the one a latency target is enforced on. Nothing
+  declared as the one a latency target is enforced on. No machine
   declares itself one, and neither a shared CI runner nor a developer
   machine under unknown load is one by default.
 
@@ -187,10 +188,10 @@ it that matches no document anywhere in `docs/` (AC-SPEC-001.2).
 `no-frontmatter` (AC-SPEC-001.3). A file declaring `type: rfc` under a
 profile with no `rfc` type is listed with `"type": "rfc"`, so a reviewing
 agent can judge whether the profile or the document is wrong
-(AC-SPEC-001.4). `docs/specs/specs.json` and `docs/adrs/README.rst` are
-ignored without appearing in the exclusions list, while
-`docs/adrs/ADR-004-module-blueprint-and-atomic-component.md` is
-considered (AC-SPEC-001.6).
+(AC-SPEC-001.4). The CLI ignores `docs/specs/specs.json` and
+`docs/adrs/README.rst` without listing them as exclusions, and it
+considers `docs/adrs/ADR-004-module-blueprint-and-atomic-component.md`
+(AC-SPEC-001.6).
 
 ### FEAT-SPEC-002: Document Index
 
@@ -244,12 +245,12 @@ add its headings and outbound references to the same entry
 (AC-SPEC-002.2). Every entry carries `"workspace": "agent-plugins"`, so
 merging this index with another repository's cannot collide two
 documents that both use the slug `adr-001` (AC-SPEC-002.3).
-`work-order-template.md` fails YAML parsing at line 28; the index still
+`work-order-template.md` fails YAML parsing at line 28. The index still
 contains the other 49 documents and lists that file with its parse error
 and position (AC-SPEC-002.4).
 
-*Rationale:* AC-SPEC-002.4 and AC-SPEC-002.5 together are what make the
-index usable as an architecture artifact. A repository with three broken
+*Rationale:* together, AC-SPEC-002.4 and AC-SPEC-002.5 make the index
+usable as an architecture artifact. A repository with three broken
 documents must still contribute its other nine hundred to an
 organization's graph.
 
@@ -328,62 +329,64 @@ Feature: Metadata Conformance
 ```
 
 *Examples:* a document declaring `type: adr` but omitting `description`
-produces one finding naming the missing property (AC-SPEC-003.1).
-A property the schema types as a date-time, written `2026-07-29`, fails an
+produces one finding naming the missing property (AC-SPEC-003.1). A
+property the schema types as a date-time, written `2026-07-29`, fails an
 RFC 3339 date-time check, even though a YAML parser would coerce it to a
-valid timestamp before any check could see it (AC-SPEC-003.2). Two documents both declaring `slug: adr-012` each
-produce a finding citing the other's file path (AC-SPEC-003.3).
-`frd-checkout` and `FRD-Checkout` are reported as duplicates, because a
-case-insensitive filesystem cannot hold both as distinct files
-(AC-SPEC-003.4). `slug: adr-011-targeted-verification-gates` under a
-profile registering `^adr-[0-9]{3}$` for type `adr` produces a finding
-quoting both (AC-SPEC-003.5). A document copied from a template and not
-yet completed carries `visibility: <public | internal>`, which is not
-a visibility; the check run reports it and exits non-zero,
-rather than reporting four passed checks against a document nothing was
-able to read (AC-SPEC-003.6). `status: actve` on `adr-012` fails
-frontmatter parsing, yet `slug: adr-012` is still legible on its own
-line: the check reports the one parse failure, every `[[adr-012]]`
-elsewhere resolves, and `slug-exists adr-012` answers that the slug is
-declared (AC-SPEC-003.7). A member whose fence is unterminated yields no
-legible slug; the check reports its parse failure and does not send the
-author to fix references elsewhere that were correct
+valid timestamp before any check could see it (AC-SPEC-003.2). Two
+documents that both declare `slug: adr-012` each produce a finding citing
+the other's file path (AC-SPEC-003.3). `frd-checkout` and `FRD-Checkout`
+are reported as duplicates, because a case-insensitive filesystem can't
+hold both as distinct files (AC-SPEC-003.4).
+`slug: adr-011-targeted-verification-gates` under a profile registering
+`^adr-[0-9]{3}$` for type `adr` produces a finding quoting both
+(AC-SPEC-003.5).
+
+A document copied from a template and not yet completed carries
+`visibility: <public | internal>`, which isn't a visibility. The check
+run reports it and exits non-zero, rather than reporting passed checks
+against a document nothing could read (AC-SPEC-003.6). `status: actve` on
+`adr-012` fails frontmatter parsing, yet `slug: adr-012` is still legible
+on its own line. The check reports the one parse failure, every
+`[[adr-012]]` elsewhere resolves, and `slug-exists adr-012` answers that
+the slug is declared (AC-SPEC-003.7). A member whose fence is
+unterminated yields no legible slug. The check reports its parse failure
+and doesn't send the author to fix correct references elsewhere
 (AC-SPEC-003.8).
 
-*Rationale for AC-SPEC-003.9 and AC-SPEC-003.10:* in YAML an unquoted
+*Rationale for AC-SPEC-003.9 and AC-SPEC-003.10:* in YAML, an unquoted
 ` #` begins a comment, so `description: replacing @ and the # element
 convention` is the value `replacing @ and the`. The file reads correctly
-to a person and the parsed value is silently shorter; every query that
-shows the value shows the truncated text faithfully. Only a comment
+to a person, but the parsed value is silently shorter, and every query
+that shows the value faithfully shows the truncated text. Only a comment
 trailing a value can cut one short, so a comment on a line of its own is
-an author's note and draws nothing. It is a warning rather than an
-error because the comment may be intended — and quoting the value is a
-fix either way.
+an author's note and draws no finding. It's a warning rather than an
+error because the comment may be intended, and quoting the value is a fix
+either way.
 
-*Rationale for AC-SPEC-003.7 and AC-SPEC-003.8:* one mistyped value
-must produce one finding. Were the slug of a member that failed to parse
-dropped from the corpus, every reference to it would read as broken, and
-an agent acting on the report would edit correct documents to chase a
+*Rationale for AC-SPEC-003.7 and AC-SPEC-003.8:* one mistyped value must
+produce one finding. If the slug of a member that failed to parse were
+dropped from the corpus, every reference to it would read as broken. An
+agent acting on the report would then edit correct documents to chase a
 defect that lives in one line of another.
 
 *Rationale for AC-SPEC-003.6:* every other criterion in this requirement
-presupposes parsed frontmatter, so before this was written the worst-formed
-document in a corpus was the one the checker was guaranteed to be silent
-about — the severity of a defect and the tool's willingness to mention it
-ran in opposite directions. FEAT-SPEC-002's rationale already assigned this
-work: an index containing parse failures exits zero because "a build
-failure is the checker's job, not the indexer's". This is the criterion
-that makes the checker do that job. A file with no frontmatter at all
-remains an exclusion under AC-SPEC-001.3 and is *not* covered here; it
-never claimed to be a specification, whereas a member with a parse error
-did and got the claim wrong.
+presupposes parsed frontmatter, so without this criterion the worst-formed
+document in a corpus would be the one the checker is guaranteed to be
+silent about. The severity of a defect and the tool's willingness to
+mention it would run in opposite directions. FEAT-SPEC-002's rule already
+assigns this work: an index containing parse failures exits zero because
+"a build failure is the checker's job, not the indexer's". This criterion
+makes the checker do that job. A file with no frontmatter at all remains
+an exclusion under AC-SPEC-001.3 and is *not* covered here. It never
+claimed to be a specification, whereas a member with a parse error did and
+got the claim wrong.
 
-*Note on numbering:* FEAT-SPEC-004 (reference integrity) and FEAT-SPEC-005
-(structure and hygiene conformance) covered behavior deferred to
-follow-on features. Their numbers are intentionally left unused here
-rather than reassigned: the retained requirements FEAT-SPEC-006, -008,
-and -009 are cited by ADRs and keep their numbers, so renumbering around
-the gap would break those citations. The gap is deliberate.
+*Note on numbering:* the numbers FEAT-SPEC-004 (reference integrity) and
+FEAT-SPEC-005 (structure and hygiene conformance) belong to behavior
+deferred to follow-on features. They're intentionally left unused here
+rather than reassigned. Other documents cite the retained requirements
+FEAT-SPEC-006, -008, and -009, which keep their numbers, so renumbering
+around the gap would break those citations. The gap is deliberate.
 
 ### FEAT-SPEC-006: Findings, Severities, and Diagnostics
 
@@ -466,32 +469,33 @@ Feature: Findings, Severities, and Diagnostics
 *Examples:* `slug/pattern-mismatch  error
 docs/adrs/ADR-011-targeted-verification-gates.md:4:7`
 "'adr-011-targeted-verification-gates' does not match pattern
-'^adr-[0-9]{3}$'" — self-contained, so the fixing agent needs no further
+'^adr-[0-9]{3}$'" is self-contained, so the fixing agent needs no further
 lookup (AC-SPEC-006.1). Asked to validate mermaid diagrams with no
 diagram validator available, the CLI emits one `unverified` finding per
 diagram naming the missing dependency (AC-SPEC-006.3). An agent running
-`check --only slug-uniqueness` gets a report covering that check alone
+`check --only slug/duplicate` gets a report covering that check alone
 (AC-SPEC-006.8), and that report distinguishes "slug uniqueness passed"
 from "frontmatter schema was not checked" (AC-SPEC-006.9). The same
 agent typing `check --only frontmatter/pars` gets an error naming the
-known checks rather than a report: a report covering no known check
-would pass every gate that runs it (AC-SPEC-006.10). The gate-failed
-and invocation-error statuses are the ones [[cli-exit-status-standards]]
-assigns: `1` and `2`. A clean `check` answers
-`summary: {errors: 0, warnings: 0, unverified: 0}` and `findings: []`
-and nothing more, so the first lines of a failing run are its findings
-rather than thirty-odd passed checks (AC-SPEC-006.11, AC-SPEC-006.12);
-`check --verbose` adds the per-check outcomes, which is where "slug
-uniqueness passed" and "frontmatter schema was not checked" are told
-apart.
+known checks rather than a report, because a report covering no known
+check would pass every gate that runs it (AC-SPEC-006.10). The
+gate-failed and invocation-error statuses are the ones
+[[cli-exit-status-standards]] assigns: `1` and `2`.
+
+A clean `check` answers `summary: {errors: 0, warnings: 0, unverified: 0}`
+and `findings: []` and nothing more, so the first lines of a failing run
+are its findings rather than a list of passed checks (AC-SPEC-006.11,
+AC-SPEC-006.12). `check --verbose` adds the per-check outcomes, which is
+where "slug uniqueness passed" and "frontmatter schema was not checked"
+are told apart.
 
 *Rationale for AC-SPEC-006.11 and AC-SPEC-006.12:* the summary's counts
-are properties the run established — how many findings of each severity
-it raised — not a restatement of the answer, and they are what a reader
-scanning the head of the output needs first. The per-check outcomes are
-the run's accounting rather than its result: a failed check is already
-visible as its findings, and the checks not run are the ones the caller
-excluded, so the list is printed only when asked for.
+are properties the run established: how many findings of each severity
+it raised. They aren't a restatement of the answer, and they're what a
+reader scanning the head of the output needs first. The per-check
+outcomes are the run's accounting rather than its result. A failed check
+is already visible as its findings, and the checks not run are the ones
+the caller excluded, so the list is printed only when asked for.
 
 ### FEAT-SPEC-007: Corpus Queries
 
@@ -526,10 +530,10 @@ Feature: Corpus Queries
 *Examples:* with ADRs numbered 001 through 030 in the corpus,
 `next-id adr` answers `number: 31` and `slug: adr-031`, so the author
 names the new file without formatting the number (AC-SPEC-007.1).
-`slug-exists adr-004` answers `slug: adr-004`, `declared: true` and
-`path: specs/adrs/adr-004-module-blueprint-and-atomic-component.md`, and
-`slug-exists ADR-004` answers the same, its slug as declared;
-`slug-exists NOPE-999` answers `slug: NOPE-999`, `declared: false`
+`slug-exists adr-004` answers `slug: adr-004`, `declared: true`, and
+`path: specs/adrs/adr-004-module-blueprint-and-atomic-component.md`.
+`slug-exists ADR-004` answers the same, with its slug as declared.
+`slug-exists NOPE-999` answers `slug: NOPE-999` and `declared: false`
 (AC-SPEC-007.2).
 
 ### FEAT-SPEC-008: Configuration
@@ -600,21 +604,23 @@ Feature: Configuration
 
 *Examples:* `specs.toml` declares `root = "docs/specs"` and the workspace
 identifier, and the spec root resolves beside that file wherever the CLI
-was run from (AC-SPEC-008.1). A `[[type]]` table for `adr` declares
+runs from (AC-SPEC-008.1). A `[[type]]` table for `adr` declares
 `slug_pattern = "^adr-[0-9]{3}$"` and points at the schema FEAT-SPEC-003
-validates against; later features add each type's required headings, its
-line-width limit and its reference-bearing properties to this same file,
-the config schema being additive (AC-SPEC-008.2). Run in a repository
-with no `specs.toml`, the CLI names the file it looked for and every
-directory it looked in, and exits `3`, the environment-error status of
-[[cli-exit-status-standards]] (AC-SPEC-008.3). Run from `specs/adrs/` in
-this repository, the CLI finds `specs.toml` at the repository root; run
-from `notes/drafts/` in a repository that also holds `notes/specs.toml`,
-it uses that nearer file (AC-SPEC-008.7). `--config build/alt.toml` reads
-that file even where a `specs.toml` sits in the working directory
-(AC-SPEC-008.8). Run from a directory unpacked from an archive, with no
-`.git` above it, the CLI searches up to `/` and uses the first
-`specs.toml` on the way (AC-SPEC-008.9).
+validates against. Later features add each type's required headings, its
+line-width limit, and its reference-bearing properties to this same file,
+which the additive config schema allows (AC-SPEC-008.2).
+
+Run in a repository with no `specs.toml`, the CLI names the file it
+looked for and every directory it looked in, and exits `3`, the
+environment-error status of [[cli-exit-status-standards]]
+(AC-SPEC-008.3). Run from `specs/adrs/` in this repository, the CLI finds
+`specs.toml` at the repository root. Run from `notes/drafts/` in a
+repository that also holds `notes/specs.toml`, it uses that nearer file
+(AC-SPEC-008.7). `--config build/alt.toml` reads that file even where a
+`specs.toml` sits in the working directory (AC-SPEC-008.8). Run from a
+directory unpacked from an archive, with no `.git` above it, the CLI
+searches up to `/` and uses the first `specs.toml` on the way
+(AC-SPEC-008.9).
 
 ### FEAT-SPEC-009: Invocation, Performance, and Portability
 
@@ -684,33 +690,33 @@ Feature: Invocation, Performance, and Portability
 
 *Examples:* an agent asking `slug-exists frd-checkout` before writing a
 document waits imperceptibly (AC-SPEC-009.1), and a validation hook
-firing on every document write does not make editing feel slow
+firing on every document write doesn't make editing feel slow
 (AC-SPEC-009.2). The CLI runs in a container image containing only a
 shell and the CLI binary (AC-SPEC-009.4). Installing from a package
 registry mirrored inside a network that blocks all other outbound traffic
 succeeds (AC-SPEC-009.5). A corpus checked out with CRLF line endings on
-Windows yields byte-identical JSON output to the same corpus on Linux
-(AC-SPEC-009.7). A contended shared runner that measures 82 milliseconds
-against the 50-millisecond query target reports the number and passes;
-the same measurement on a machine declared a reference environment fails
-(AC-SPEC-009.9).
+Windows yields JSON output byte-identical to the same corpus's output on
+Linux (AC-SPEC-009.7). A contended shared runner that measures 82
+milliseconds against the 50-millisecond query target reports the number
+and passes. The same measurement on a machine declared a reference
+environment fails (AC-SPEC-009.9).
 
 *Rationale:* AC-SPEC-009.1 through AC-SPEC-009.3 come from the two
 invocation patterns that dominate: an agent asking one question, and a
-write-time hook checking one file. They are targets rather than gates
-(AC-SPEC-009.9) because they are stated against no hardware and the same
-code measures 13.7 ms on Linux, 69.1 ms on macOS and 123.6 ms on
-Windows: the dominant cost on the warm path is one `stat` per document,
-so a shared runner's number measures the runner. Gated, they also make
-any change that costs milliseconds for correctness' sake — a decoder
-that must distinguish an absent required property from a zero value, for
-one — indistinguishable from a defect, and the margin a stated hardware
-class would preserve is a few milliseconds wide. The targets stay
-stated, measured and reported, so a real slowdown is still visible in
-any run's log. AC-SPEC-009.5 exists because the common
-packaging pattern of downloading a binary during install fails in
-exactly the networks that most need this tool, and adds a supply-chain
-surface an adopting security review will reject.
+write-time hook checking one file. They're targets rather than gates
+(AC-SPEC-009.9) because they're stated against no hardware, and the same
+code measures 13.7 ms on Linux, 69.1 ms on macOS, and 123.6 ms on
+Windows. The dominant cost on the warm path is one `stat` per document,
+so a shared runner's number measures the runner. Gated, the targets would
+also make any change that costs milliseconds for correctness' sake
+indistinguishable from a defect. A decoder that must distinguish an
+absent required property from a zero value is one such change. The margin
+a stated hardware class would preserve is a few milliseconds wide. The
+targets stay stated, measured, and reported, so a real slowdown is
+still visible in any run's log. AC-SPEC-009.5 exists because the common
+packaging pattern of downloading a binary during install fails in exactly
+the networks that most need this tool, and it adds a supply-chain surface
+an adopting security review will reject.
 
 ### FEAT-SPEC-010: Index Output and Persistence
 
@@ -779,39 +785,38 @@ Feature: Index Output and Persistence
 ```
 
 *Examples:* with `root = "docs/specs"` in the configuration, running
-`index` with no output option writes `docs/specs/specs.json` and the CLI
+`index` with no output option writes `docs/specs/specs.json`, and the CLI
 prints that relative path (AC-SPEC-010.1). `--out build/spec-index.json`
 writes the artifact under `build/` for a CI job that publishes everything
 in that directory (AC-SPEC-010.2). `--out -` lets an agent pipe the index
 straight into `jq` without leaving a file behind (AC-SPEC-010.3). A
-`PostToolUse` hook rebuilding the index while a query reads it never
-yields the query a truncated document (AC-SPEC-010.4).
-`slug-exists frd-checkout` run twice in a row reads `specs.json` the
-second time and returns within the AC-SPEC-009.1 budget
-(AC-SPEC-010.5). Editing one ADR and immediately querying returns an
-answer reflecting the edit, because the changed input invalidated the
-warm index (AC-SPEC-010.6). In a read-only checkout every query still
-answers and exits as it would in a writable one; it only stays cold
+`PostToolUse` hook that rebuilds the index while a query reads it never
+hands the query a truncated document (AC-SPEC-010.4). Run twice in a row,
+`slug-exists frd-checkout` reads `specs.json` the second time and returns
+within the AC-SPEC-009.1 budget (AC-SPEC-010.5). Editing one ADR and
+immediately querying returns an answer that reflects the edit, because
+the changed input invalidated the warm index (AC-SPEC-010.6). In a
+read-only checkout, every query still answers and exits as it would in a
+writable one. The only difference is that the index stays cold
 (AC-SPEC-010.7).
 
 *Rationale:* The index artifact and the check report are different
-outputs: FEAT-SPEC-006.5 writes the *findings* of a check run to standard
-output, while this requirement governs where the *index* — the primary
-artifact of FEAT-SPEC-002 — is persisted. One file serves both of the
-index's roles: the deliverable a CI job publishes to a catalogue, and
-the warm cache that satisfies the latency budgets of FEAT-SPEC-009.
-Placing `specs.json` inside the spec root keeps the artifact beside the
-documents it describes, and because discovery reads only `.md` files
-(AC-SPEC-001.6) the index is never mistaken for a corpus member. A fixed
-default name means every skill body, CI config, and hook can refer to
-`specs.json` without configuration, while the output-path option keeps
-the CI-publish and pipe-to-stdout cases first-class. Whether an adopting
-repository commits the file or ignores it is the adopter's choice; the
-CLI requires neither. Persisting from a query is a cache side effect, so
-its failure must not reach the answer: [[cli-exit-status-standards]]
-holds that "A status that depends on whether the cache was warm is a
-defect", and a write that failed is only a cache that stayed cold
-(AC-SPEC-010.7).
+outputs. AC-SPEC-006.5 writes the *findings* of a check run to standard
+output, while this requirement governs where the *index* (the primary
+artifact of FEAT-SPEC-002) is persisted. One file serves both of the
+index's roles: the deliverable a CI job publishes to a catalogue, and the
+warm cache that satisfies the latency budgets of FEAT-SPEC-009. Placing
+`specs.json` inside the spec root keeps the artifact beside the documents
+it describes. Because discovery reads only `.md` files (AC-SPEC-001.6),
+the index is never mistaken for a corpus member. A fixed default name
+means every skill body, CI config, and hook can refer to `specs.json`
+without configuration, while the output-path option keeps the CI-publish
+and pipe-to-stdout cases first-class. Whether an adopting repository
+commits the file or ignores it is the adopter's choice. The CLI requires
+neither. Persisting from a query is a cache side effect, so its failure
+must not reach the answer: [[cli-exit-status-standards]] holds that "A
+status that depends on whether the cache was warm is a defect", and a
+write that failed is only a cache that stayed cold (AC-SPEC-010.7).
 
 ### FEAT-SPEC-011: Command Surface
 
@@ -867,48 +872,47 @@ Feature: Command Surface
     And "revision", "time" and "modified" are the binary's version-control build settings, each null where the build recorded none
 ```
 
-*Examples:* `index` writes the default `specs.json` and `index --out -`
+*Examples:* `index` writes the default `specs.json`, and `index --out -`
 streams it to standard output (AC-SPEC-011.1). `check` validates the
 whole corpus, while
 `check docs/adrs/ADR-004-module-blueprint-and-atomic-component.md --json`
 validates one document and emits JSON (AC-SPEC-011.2).
-`slug-exists frd-checkout` (AC-SPEC-011.3). `next-id adr` answers the
-mapping of AC-SPEC-007.1 (AC-SPEC-011.4). Bare invocation prints the
-four subcommands above with a one-line synopsis of each
-(AC-SPEC-011.5). `check docs/adrs/ADR-04.md`, a path no corpus member
-has, exits `2` and reports nothing, because a gate that could not
-inspect its subject has decided nothing (AC-SPEC-011.6). `--version`
-from a local build in a git checkout answers `version: (devel)` and the
-checkout's commit as `revision`, which is what a bug report needs
-(AC-SPEC-011.7).
+`slug-exists frd-checkout` answers the slug query (AC-SPEC-011.3).
+`next-id adr` answers the mapping of AC-SPEC-007.1 (AC-SPEC-011.4). A
+bare invocation prints every subcommand, the four above among them, with
+a one-line synopsis of each (AC-SPEC-011.5). `check docs/adrs/ADR-04.md`,
+a path no corpus member has, exits `2` and reports nothing, because a gate
+that couldn't inspect its subject has decided nothing (AC-SPEC-011.6).
+`--version` from a local build in a git checkout answers
+`version: (devel)` and the checkout's commit as `revision`, which is what
+a bug report needs (AC-SPEC-011.7).
 
 *Rationale:* The subcommand vocabulary is the tool's public interface,
-so it is fixed here rather than left to implementation. Later features
+so it's fixed here rather than left to implementation. Later features
 extend `check` with additional checks and add their own query
-subcommands, but they do not rename or repurpose the four established
+subcommands, but they don't rename or repurpose the four established
 here. The name of the executable itself is a distribution decision
-recorded separately; this requirement fixes only the subcommands beneath
+recorded separately. This requirement fixes only the subcommands beneath
 it.
 
 ## References
 
-- [[adr-015]] — records Go as the implementation language, deferred to
-  by FEAT-SPEC-009
+- [[adr-015]] — records Go as the implementation language, which
+  FEAT-SPEC-009 defers to
 - [[adr-021]] — Gherkin, the notation these features and acceptance
-  criteria are written in, whose extraction is a follow-on feature
-  rather than part of this one
+  criteria are written in, whose extraction belongs to a follow-on
+  feature rather than to this one
 - [[gherkin-guide]] — how to write them
-- [[cli-exit-status-standards]] — the statuses the gate-failed,
-  invocation-error and environment-error outcomes above name
+- [[cli-exit-status-standards]] — the statuses that the gate-failed,
+  invocation-error, and environment-error outcomes above name
 - [[cli-output-standards]] — the YAML and JSON renderings the query
   answers above take
-- `plugin/skills/spec/references/template-authoring-standards.md` —
-  frontmatter properties, slug conventions, and the frontmatter index
-  this feature implements
-- `plugin/skills/spec/references/document-readiness-checklist.md` — the
-  checks whose mechanical metadata subset this feature absorbs
-- `plugin/skills/spec/references/frontmatter-standards.md` — the status
-  vocabulary and element record schemas
+- [[template-authoring-standards]] — frontmatter properties, slug
+  conventions, and the frontmatter index this feature implements
+- [[document-readiness-checklist]] — the checks whose mechanical metadata
+  subset this feature absorbs
+- [[frontmatter-standards]] — the status vocabulary and element record
+  schemas
 - `docs/plans/spec-validation-cli-brief.md` — the research and prototype
   results behind this feature, including the corpus measurements cited
   in the Overview
