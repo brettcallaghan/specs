@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.0
+
+**Specs now write in a developer documentation style, with a new tech-writer skill.**
+
+This release gives the plugin a writing style. A new `tech-writer` skill drafts, revises and audits documentation, and the `spec`, grooming and retro skills use it for everything they write.
+
+### 🚀 Features
+
+- **skills/tech-writer:** The new `tech-writer` skill drafts, revises and audits documentation in the project's style guide, which is the Google developer documentation style guide unless `AGENTS.md` or `CLAUDE.md` names another. ([#76](https://github.com/brettcallaghan/specs/pull/76), [c5a930b](https://github.com/brettcallaghan/specs/commit/c5a930b291b100e84d252d0555b3039fcad61240))
+
+  It adds what the style guide leaves open: a reader profile that sets each document's voice and tone, sentence-case headings, timeless prose that describes how things are, and a rule that a rewrite never changes front matter, code, Gherkin, EARS or SHALL statements, ids or links. Call it directly on any document.
+
+- **skills:** The `spec` skill writes every document with `tech-writer`, and the grooming and retro skills use it for what they write. ([#76](https://github.com/brettcallaghan/specs/pull/76), [c5a930b](https://github.com/brettcallaghan/specs/commit/c5a930b291b100e84d252d0555b3039fcad61240))
+
+  Every spec template's header comment carries its document type's reader profile.
+
+### 🪲 Bugs
+
+- **skills:** Skills can be uploaded to claude.ai: `SKILL.md` files no longer carry a `version` key, which claude.ai rejects. ([#76](https://github.com/brettcallaghan/specs/pull/76), [c5a930b](https://github.com/brettcallaghan/specs/commit/c5a930b291b100e84d252d0555b3039fcad61240))
+
+  The plugin's release version identifies the skills and templates instead.
+
 ## 0.1.0
 
 **The project is now specs, installed from the agent-plugins marketplace, and the plugin provisions its own CLI.**
