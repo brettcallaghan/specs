@@ -1,7 +1,7 @@
 {
   "name": "specs",
   "description": "Spec-first development: authoring specs in Gherkin and EARS (ADRs, FRDs, requirements documents, architecture and feature blueprints, contracts), grooming feature blueprints and backlog items into portable, dispatch-ready work orders, and retrospectives that turn friction into filed work",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "Brett Callaghan",
     "email": "14969027+brettcallaghan@users.noreply.github.com"
