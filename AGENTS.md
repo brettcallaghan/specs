@@ -413,12 +413,13 @@ cloud sessions, and anyone can run it locally. It is a no-op when
 
 ## Where documents live
 
-Three homes, distinguished by what the document is *for* rather than by
+Four homes, distinguished by what the document is *for* rather than by
 what it is about.
 
 | Home | Holds | Lifespan |
 |---|---|---|
 | `specs/` | The specification corpus — ADRs, FRDs, standards, blueprints, contracts. Indexed, validated, referenced by `[[slug]]` | Durable |
+| `docs/{tutorials,how-to,reference,explanation}/` | User documentation, one Diátaxis type per directory, indexed by `docs/README.md` and linked from the root `README.md`. Write it with the `tech-writer` skill | Durable |
 | `docs/research/<topic>/` | Research findings, recorded objectively | Kept while useful |
 | `docs/plans/` | Plans for carrying out a change in this repository | Transient — delete when the change lands |
 
