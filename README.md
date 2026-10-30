@@ -1,4 +1,4 @@
-# Specs: spec-first development
+# Specs for spec-first development
 
 <!-- coverage:badge:start -->
 [![coverage](https://img.shields.io/badge/cli%20coverage-91.4%25-brightgreen)](docs/code-coverage.md)
@@ -8,8 +8,8 @@
 
 Specs is a Claude Code plugin for spec-first development with agents. Its
 skills write feature requirements, C4 architecture blueprints, architecture
-decision records (ADRs), and Standards. They then turn an approved design into
-Work Orders that agents can run without asking questions. Its `specs` CLI
+decision records (ADRs), and standards. They then turn an approved design into
+plans that agents can implement without asking questions. Its `specs` CLI
 checks, numbers, and traces those documents, so a reviewer can rerun any check
 the CLI made.
 
