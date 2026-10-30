@@ -10,11 +10,7 @@ Specs is a Claude Code plugin for spec-first development with agents. Its
 skills write feature requirements, C4 architecture blueprints, architecture
 decision records (ADRs), and standards. They then turn an approved design into
 plans that agents can implement without asking questions. Its `specs` CLI
-checks, numbers, and traces those documents, so a reviewer can rerun any check
-the CLI made.
-
-Use it when agents build your software and you need them to make the right
-call when the plan meets reality, instead of guessing or stopping to ask.
+helps agents efficiently navigate, validate, and maintain those documents.
 
 ## What's included
 
