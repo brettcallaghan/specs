@@ -24,6 +24,19 @@ Every command also accepts `--config <file>` to name a `specs.toml` file
 instead of searching for one. `specs --version` prints the build's version,
 revision, time, and modified state as YAML.
 
+## Checks in CI
+
+`specs check` is the command to run in CI. It exits 0 when the corpus passes
+and 1 when it finds a problem, and prints its findings on standard output.
+
+| Command | Fails the build on |
+|:---|:---|
+| `specs check` | Error findings only. |
+| `specs check --strict` | Any finding, including warnings and unverified findings such as a reference to a retired document. |
+
+Use `--strict` when warnings should block a merge. This repository's own CI
+runs `specs check --strict`.
+
 ## Configuration
 
 The CLI reads `specs.toml`. See [Configuration](configuration.md).
