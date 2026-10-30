@@ -64,8 +64,6 @@ For a guided first run, follow
 
 ## Documentation
 
-The documentation follows the [Diátaxis](https://diataxis.fr/) framework.
-
 | If you want to | Read |
 |:---|:---|
 | Learn by writing a first spec | [Specify your first feature](docs/tutorials/specify-your-first-feature.md) |
