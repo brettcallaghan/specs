@@ -18,12 +18,12 @@ call when the plan meets reality, instead of guessing or stopping to ask.
 
 ## What's included
 
-- **Skills:** `spec`, `groom-feature-blueprint`, `groom-beads`, `retro-spec`,
-  `retro-skill`, and `tech-writer`. See [Skills](docs/reference/skills.md).
-- **Document types:** a small, closed set of ten, from the FRD to the Work
-  Order. See [Document types](docs/reference/document-types.md).
-- **The `specs` CLI:** eleven deterministic commands that index, check, and
-  query a spec corpus. See [The `specs` CLI](docs/reference/cli.md).
+- **[Skills](docs/reference/skills.md):** `spec`, `groom-feature-blueprint`, `groom-beads`, `retro-spec`,
+  `retro-skill`, and `tech-writer`.
+- **[Document types](docs/reference/document-types.md):** a small, closed set of ten, from the FRD to the Work
+  Order.
+- **[The `specs` CLI](docs/reference/cli.md):** eleven deterministic commands that index, check, and
+  query a spec corpus.
 
 ## Get started
 
