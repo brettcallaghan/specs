@@ -22,7 +22,7 @@ call when the plan meets reality, instead of guessing or stopping to ask.
   `retro-skill`, and `tech-writer`.
 - **[Document types](docs/reference/document-types.md):** a small, closed set of ten, from the FRD to the Work
   Order.
-- **[The `specs` CLI](docs/reference/cli.md):** eleven deterministic commands that index, check, and
+- **[The specs CLI](docs/reference/cli.md):** eleven deterministic commands that index, check, and
   query a spec corpus.
 
 ## Get started
