@@ -14,11 +14,9 @@ kind: <standard | pattern>           # see instructions below
 contracts_consumed: []               # contract slugs this component depends on
 source_paths: []                     # repo-relative source roots; required
                                      # WHEN status is active; never overlaps
-                                     # a sibling's (see
-                                     # "Own a disjoint part of the source tree")
+                                     # a sibling's
 test_paths: []                       # repo-relative test roots; required
-                                     # WHEN status is active (see
-                                     # "Own a disjoint part of the source tree")
+                                     # WHEN status is active
 ---
 
 <!--

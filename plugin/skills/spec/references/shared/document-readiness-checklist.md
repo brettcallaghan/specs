@@ -226,7 +226,7 @@ Blueprint. [[blueprint-content-standards]] owns the rules behind them.
 11. In a blueprint that declares `source_paths`, every backticked path names a
     tracked file. A Component or Module Blueprint's `source_paths` don't overlap
     a sibling's
-    ([[blueprint-content-standards#Own a disjoint part of the source tree]]).
+    ([[blueprint-content-standards#Own a disjoint branch of the source tree]]).
     Every section the type's template requires is present.
 
 ---

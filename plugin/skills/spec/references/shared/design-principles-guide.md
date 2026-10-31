@@ -21,11 +21,13 @@ guide for the element's level. The answers feed a blueprint's Design section
 and, in a Component or Module Blueprint, its Responsibility and Interface
 sections. [[blueprint-content-standards]] sets what those sections may say.
 
+Cite adopted design principles according to the standard
+[[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]].
+
 The lists are a starting point, not a catalog. They hold the principles and
 patterns that apply most widely in current architectures, with priority given to
 those that keep a design modular and extensible. When another pattern fits the
-problem better, use it, and name it with its own progenitor
-([[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]]).
+problem better, use it.
 
 ## Choose the level guide
 
@@ -42,11 +44,7 @@ A Container, Module, or Component Blueprint may also name entries from
 follows, such as Make Illegal States Unrepresentable.
 
 Adopt a pattern only when its question has a real answer for the element today.
-A question with no answer means the pattern doesn't belong. Record each pattern
-you adopt as
-[[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]]
-requires: its name, its progenitor, the constraint it implies, and the need it
-serves.
+A question with no answer means the pattern doesn't belong.
 
 ## Universal principles
 
@@ -112,18 +110,14 @@ By language:
 - **Java and C#:** dependency injection containers, records.
 - **F# and other ML-family languages:** Result and Railway-Oriented Programming.
 
-Identify the element's application type and language. Find the patterns that fit
-them, whether this guide lists them or not, and record each one the design
-adopts in its Design section, as
-[[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]]
-requires.
+Identify the element's application type and language, and find the patterns
+that fit them, whether this guide lists them or not.
 
 The guides leave out three kinds of pattern. Some are tied to one language or
 runtime, such as Pimpl, Visitor where the language has pattern matching, and
 typeclass-based patterns. Some are provided by a modern language or framework,
 such as Iterator. Others are performance patterns, such as Flyweight and Object
-Pool. An author can still adopt any of them under
-[[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]].
+Pool. An author can still adopt any of them.
 
 ## References
 

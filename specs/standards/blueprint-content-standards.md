@@ -12,9 +12,8 @@ status: active
 
 ## Contents
 
-- Every architecture blueprint
-- Component and Module Blueprints
-- Design patterns
+- Rules for every architecture blueprint
+- Rules for Component and Module Blueprints
 - Blueprint audit — the checklist to run before `ready-for-review`
 - References
 
@@ -30,7 +29,7 @@ skills cite these rules by number and don't restate them.
 
 ---
 
-## Every architecture blueprint
+## Rules for every architecture blueprint
 
 ### State only what must stay true
 
@@ -118,9 +117,29 @@ restated ([[c4-standards]]).
 
 ---
 
-## Component and Module Blueprints
+### Name each pattern with its progenitor, constraint, and need
 
-### Own a disjoint part of the source tree
+A blueprint SHALL name each pattern it adopts, with its progenitor, as the
+universal guide ([[guide-design-principles]]) or the level guide for the
+blueprint's C4 level names it. A pattern the guides don't list SHALL be named
+with its own progenitor. For each pattern, the blueprint SHALL state:
+
+- The constraint the pattern implies and what it rules out, as an EARS
+  invariant that ends with "Enforced by:"
+  ([[#Say what enforces each invariant]]).
+- The present need it serves: an existing variation, an FRD criterion, or a
+  stated extension point. An anticipated need doesn't qualify.
+
+**Rationale:** A name alone drifts: "Decorator" is also Python syntax, and
+"Repository" is confused with a data access object. The progenitor fixes the
+meaning, and the constraint is what a reviewer or a check can verify. The
+need keeps a pattern from being adopted for its own sake.
+
+---
+
+## Rules for Component and Module Blueprints
+
+### Own a disjoint branch of the source tree
 
 WHILE status is `active`, a Component or Module Blueprint SHALL declare
 `source_paths` and `test_paths`. Its `source_paths` SHALL NOT overlap a
@@ -176,30 +195,6 @@ can't measure quality.
 
 ---
 
-## Design patterns
-
-This rule applies to every architecture blueprint.
-
-### Name each pattern with its progenitor, constraint, and need
-
-A blueprint SHALL name each pattern it adopts, with its progenitor, as the
-universal guide ([[guide-design-principles]]) or the level guide for the
-blueprint's C4 level names it. A pattern the guides don't list SHALL be named
-with its own progenitor. For each pattern, the blueprint SHALL state:
-
-- The constraint the pattern implies and what it rules out, as an EARS
-  invariant that ends with "Enforced by:"
-  ([[#Say what enforces each invariant]]).
-- The present need it serves: an existing variation, an FRD criterion, or a
-  stated extension point. An anticipated need doesn't qualify.
-
-**Rationale:** A name alone drifts: "Decorator" is also Python syntax, and
-"Repository" is confused with a data access object. The progenitor fixes the
-meaning, and the constraint is what a reviewer or a check can verify. The
-need keeps a pattern from being adopted for its own sake.
-
----
-
 ## Blueprint audit
 
 Run this audit on an architecture blueprint before you set it to
@@ -207,8 +202,7 @@ Run this audit on an architecture blueprint before you set it to
 
 1. Run `specs check <path>` and fix what it reports.
 2. Classify each statement as a rule, a fact, a behavior, or an edge.
-3. Apply the rules under [[#Every architecture blueprint]] and
-   [[#Design patterns]].
+3. Apply the rules under [[#Rules for every architecture blueprint]].
 4. Confirm that the extension points and an "Enforced by:" note on each
    invariant exist. In a Component or Module Blueprint, confirm the Hides
    section too.
