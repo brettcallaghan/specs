@@ -83,7 +83,10 @@ spec	specs/standards/frontmatter-standards.md
 spec	specs/standards/template-authoring-standards.md
 spec	specs/standards/work-order-definition-of-ready.md
 spec	specs/guides/anti-patterns-guide.md
-spec	specs/guides/component-design-guide.md
+spec	specs/guides/design-principles-guide.md
+spec	specs/guides/design-principles-systems-guide.md
+spec	specs/guides/design-principles-containers-guide.md
+spec	specs/guides/design-principles-components-guide.md
 spec	specs/guides/document-type-boundaries-guide.md
 spec	specs/guides/ears-guide.md
 spec	specs/standards/gherkin-guide.md

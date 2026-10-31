@@ -19,6 +19,7 @@ status: active
 
 - Every architecture blueprint — rules 1 to 8
 - Component and Module Blueprints — rules 9 to 13
+- Design patterns — rule 14
 - Blueprint audit — the checklist to run before `ready-for-review`
 - References
 
@@ -29,10 +30,10 @@ stays with its owner. The code owns implementation detail. The FRD owns
 behavior and acceptance criteria ([[adr-033]]). The host blueprint owns how
 sibling elements interact ([[adr-009]]).
 
-Rules 1 to 8 apply to every System, Container, Module, and Component
-Blueprint. Rules 9 to 13 apply to Component and Module Blueprints. A
-Container Blueprint also follows rules 10 and 12, and a System Blueprint
-follows rule 10 with its system-level suites as tier 1. Templates and
+Rules 1 to 8 and rule 14 apply to every System, Container, Module, and
+Component Blueprint. Rules 9 to 13 apply to Component and Module Blueprints. A
+Container Blueprint also follows rules 10 and 12. A System Blueprint follows
+rule 12, and rule 10 with its system-level suites as tier 1. Templates and
 skills cite these rules by number and don't restate them.
 
 Each rule ends with what enforces it. "Planned" marks a `specs check` finding
@@ -208,6 +209,29 @@ can't measure quality.
 
 ---
 
+## Design patterns
+
+### 14. Name each pattern with its progenitor, constraint, and need
+
+A blueprint SHALL name each pattern it adopts, with its progenitor, as the
+universal guide ([[guide-design-principles]]) or the level guide for the
+blueprint's C4 level names it. A pattern the guides don't list SHALL be named
+with its own progenitor. For each pattern, the blueprint SHALL state:
+
+- The constraint the pattern implies and what it rules out, as an EARS
+  invariant that ends with "Enforced by:" (rule 5).
+- The present need it serves: an existing variation, an FRD criterion, or a
+  stated extension point. An anticipated need doesn't qualify.
+
+**Rationale:** A name alone drifts: "Decorator" is also Python syntax, and
+"Repository" is confused with a data access object. The progenitor fixes the
+meaning, and the constraint is what a reviewer or a check can verify. The
+need keeps a pattern from being adopted for its own sake.
+
+**Enforced by:** the blueprint audit.
+
+---
+
 ## Blueprint audit
 
 Run this audit on an architecture blueprint before you set it to
@@ -215,10 +239,12 @@ Run this audit on an architecture blueprint before you set it to
 
 1. Run `specs check <path>` and fix what it reports.
 2. Classify each statement as a rule, a fact, a behavior, or an edge.
-3. Apply rules 1 to 8.
+3. Apply rules 1 to 8 and rule 14.
 4. Confirm that the extension points and an "Enforced by:" note on each
    invariant exist. In a Component or Module Blueprint, confirm the Hides
    line too.
+5. For each named pattern, ask what breaks if you remove it. Remove a pattern
+   whose removal breaks nothing the blueprint states.
 
 ---
 
@@ -230,4 +256,6 @@ Run this audit on an architecture blueprint before you set it to
 - [[adr-011]] — blueprints declare targeted verification gates
 - [[c4-standards]] — the C4 levels, and where edges and scope statements live
 - [[ac-traceability-standards]] — how tests cite acceptance criteria
-- [[guide-component-design]] — the design questions behind these rules
+- [[adr-034]] — design principles come from curated guides by C4 level
+- [[guide-design-principles]] — the design questions behind these rules, and
+  the guide for each C4 level

@@ -22,8 +22,12 @@ Template: Feature Blueprint
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]].
   Load `shared/blueprint-content-standards.md` and
-  `shared/component-design-guide.md` before authoring. "Rule N" below
-  cites a rule in the content standards.
+  `shared/design-principles-guide.md` before authoring, plus the level
+  guide for the level of each element a delta changes:
+  `shared/design-principles-systems-guide.md`,
+  `shared/design-principles-containers-guide.md`, or
+  `shared/design-principles-components-guide.md`. "Rule N" below cites a
+  rule in the content standards.
 
 Sections (complete each, then delete its instruction block)
   - Overview
@@ -206,6 +210,8 @@ in at retirement is a mechanical copy:
     (store, what it holds, EARS invariants)
   - a new or changed guarantee → the owning blueprint's Provides,
     Requires, Invariants, or Extension points, in EARS
+  - an adopted pattern → the owning blueprint's Design section, named
+    under rule 14
 
 Each block contains, as applicable:
   - Intent: what changes and WHY, in prose (design intent, not tasks)
