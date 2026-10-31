@@ -183,7 +183,7 @@ How the containers interact and stay consistent, for example
 Event-Driven Architecture, with a Saga for each transaction that spans
 containers. Draw on the universal guide and the systems guide. Name each
 pattern with its progenitor, the roles its containers play, and the
-present need it serves; state what it rules out as an invariant
+present need it serves. State what it rules out as an invariant
 (rule 14).
 -->
 
@@ -282,12 +282,13 @@ Rules for feature work touching this system as a whole: the constraints
 a feature blueprint — and the planning agent downstream of it — must
 respect when a change spans containers. Write normative rules in EARS.
 
-This section carries SYSTEM-LEVEL architectural constraints:
+This section carries system-level architectural constraints:
 cross-container lockstep-update rules and boundary rules for what may talk
-to what. Invariants that hold across containers belong in Design. Constraints scoped to a single
-container belong in that [[container-<name>]] blueprint's Change guidance,
-not here; organization-wide rules belong in a cross-cutting requirements
-document referenced from Cross-cutting Standards.
+to what. Invariants that hold across containers belong in Design.
+Constraints scoped to a single container belong in that
+[[container-<name>]] blueprint's Change guidance, not here.
+Organization-wide rules belong in a cross-cutting requirements document
+referenced from Cross-cutting Standards.
 -->
 
 - WHEN <a change spans containers>, <the artifacts that must change

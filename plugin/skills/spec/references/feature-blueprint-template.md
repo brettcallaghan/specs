@@ -16,9 +16,9 @@ frd: frd-<feature-name>              # the FRD this blueprint realizes (1:1)
 Template: Feature Blueprint
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]].
-  Load `shared/blueprint-content-standards.md` and
-  `shared/design-principles-guide.md` before authoring, plus the level
-  guide for the level of each element a delta changes:
+  Before authoring, load `shared/blueprint-content-standards.md` and
+  `shared/design-principles-guide.md`. Also load the level guide for the
+  level of each element a delta changes:
   `shared/design-principles-systems-guide.md`,
   `shared/design-principles-containers-guide.md`, or
   `shared/design-principles-components-guide.md`. "Rule N" below cites a

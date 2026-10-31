@@ -42,11 +42,11 @@ which meaning the blueprint intends.
 ## Decision
 
 We will have architecture blueprints draw principles and patterns from curated
-guides organized by C4 level: a universal guide for principles that hold at
-every level, plus one guide each for Systems, Containers, and Components. A
-blueprint names each pattern it adopts at its own level. It gives the pattern's
-progenitor, which fixes its meaning, the constraint the pattern implies, and the
-present need it serves. [[blueprint-content-standards]] rule 14 applies this
+guides organized by C4 level. A universal guide covers the principles that hold
+at every level, and one guide each covers Systems, Containers, and Components.
+A blueprint names each pattern it adopts at its own level. It gives three
+things: the pattern's progenitor (which fixes its meaning), the constraint the
+pattern implies, and the present need it serves. [[blueprint-content-standards]] rule 14 applies this
 decision, and [[guide-design-principles]] is the universal guide.
 
 ## Alternatives considered
@@ -65,7 +65,7 @@ decision, and [[guide-design-principles]] is the universal guide.
   anchored to a progenitor.
 - An agent authoring a blueprint loads only the universal guide and the guides
   for the element's level.
-- Agents that implement a change get the pattern names through the work order
+- Agents that implement a change get the pattern names through the Work Order
   and never load the guides.
 
 **Negative:**

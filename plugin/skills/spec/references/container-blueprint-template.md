@@ -318,7 +318,7 @@ The style its components follow and the patterns between them, for
 example Ports and Adapters: which components are the core, and which
 adapt it to I/O. Draw on the universal guide and the containers guide.
 Name each pattern with its progenitor, the roles its components play, and
-the present need it serves; state what it rules out as an invariant
+the present need it serves. State what it rules out as an invariant
 (rule 14). Also name entries from the components guide that all of the
 container's code follows.
 -->

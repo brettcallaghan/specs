@@ -258,7 +258,7 @@ Each pattern the module follows. Draw on the universal guide, the
 containers guide for how its components and submodules compose, and the
 components guide for the code it holds directly. Name each pattern with
 its progenitor, its roles mapped to this module's types, and the present
-need it serves; state what it rules out as an invariant (rule 14). Also
+need it serves. State what it rules out as an invariant (rule 14). Also
 name entries from the components guide that all of the module's code
 follows.
 -->

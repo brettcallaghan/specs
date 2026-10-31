@@ -207,7 +207,7 @@ Each pattern the component follows, including entries all of its code
 follows, such as Make Illegal States Unrepresentable. Draw on the
 universal guide and the components guide. Name each pattern with its
 progenitor, its roles mapped to this component's types, and the present
-need it serves; state what it rules out as an invariant (rule 14).
+need it serves. State what it rules out as an invariant (rule 14).
 -->
 
 - <Pattern> (<progenitor>) — <roles mapped to this component's types>;
