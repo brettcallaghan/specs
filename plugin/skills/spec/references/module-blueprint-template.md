@@ -26,9 +26,11 @@ version: "0.1"                       # required WHEN visibility: public
 Template: Module Blueprint
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md`. Load it,
-  `shared/blueprint-content-standards.md`, and
-  `shared/component-design-guide.md` before authoring. "Rule N" below
-  cites a rule in the content standards.
+  `shared/blueprint-content-standards.md`,
+  `shared/design-principles-guide.md`,
+  `shared/design-principles-containers-guide.md`,
+  and `shared/design-principles-components-guide.md` before
+  authoring. "Rule N" below cites a rule in the content standards.
 
 Sections (complete each, then delete its instruction block)
   - Responsibility
@@ -252,12 +254,17 @@ How the module is built to stay sound as it changes.
 ### Patterns and principles
 
 <!--
-For each pattern the code uses: its roles mapped to this module's types,
-why it fits here, and what would break it.
+Each pattern the module follows. Draw on the universal guide, the
+containers guide for how its components and submodules compose, and the
+components guide for the code it holds directly. Name each pattern with
+its progenitor, its roles mapped to this module's types, and the present
+need it serves. State what it rules out as an invariant (rule 14). Also
+name entries from the components guide that all of the module's code
+follows.
 -->
 
-- <Pattern> — <roles mapped to this module's types>; <why it fits here>;
-  <what would break it>.
+- <Pattern> (<progenitor>) — <roles mapped to this module's types>; <the
+  present need it serves>.
 
 ### Invariants
 

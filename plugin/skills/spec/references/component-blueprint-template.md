@@ -23,9 +23,10 @@ test_paths: []                       # repo-relative test roots; required
 Template: Component Blueprint
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md`. Load it,
-  `shared/blueprint-content-standards.md`, and
-  `shared/component-design-guide.md` before authoring. "Rule N" below
-  cites a rule in the content standards.
+  `shared/blueprint-content-standards.md`,
+  `shared/design-principles-guide.md`,
+  and `shared/design-principles-components-guide.md` before
+  authoring. "Rule N" below cites a rule in the content standards.
 
 Sections (complete each, then delete its instruction block)
   - Responsibility
@@ -202,12 +203,15 @@ How the component is built to stay sound as it changes.
 ### Patterns and principles
 
 <!--
-For each pattern the code uses: its roles mapped to this component's
-types, why it fits here, and what would break it.
+Each pattern the component follows, including entries all of its code
+follows, such as Make Illegal States Unrepresentable. Draw on the
+universal guide and the components guide. Name each pattern with its
+progenitor, its roles mapped to this component's types, and the present
+need it serves. State what it rules out as an invariant (rule 14).
 -->
 
-- <Pattern> — <roles mapped to this component's types>; <why it fits
-  here>; <what would break it>.
+- <Pattern> (<progenitor>) — <roles mapped to this component's types>;
+  <the present need it serves>.
 
 ### Invariants
 

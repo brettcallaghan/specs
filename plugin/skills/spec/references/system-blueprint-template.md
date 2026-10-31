@@ -17,14 +17,16 @@ contracts_consumed: []               # contract slugs this system consumes
 Template: System Blueprint
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md`. Load it,
-  `shared/blueprint-content-standards.md`, and
-  `shared/component-design-guide.md` before authoring. "Rule N" below
-  cites a rule in the content standards.
+  `shared/blueprint-content-standards.md`,
+  `shared/design-principles-guide.md`,
+  and `shared/design-principles-systems-guide.md` before
+  authoring. "Rule N" below cites a rule in the content standards.
 
 Sections (complete each, then delete its instruction block)
   - Overview
   - System context
   - Containers
+  - Design
   - Public Contracts
   - Consumed systems and Contracts
   - Deployment
@@ -168,6 +170,47 @@ C4Container
 - **<Data Store Name>** (<technology>) — <brief description>. <Detailed
   description: what it holds, which container owns its schema.>
 
+## Design
+
+<!--
+How the system is built to stay sound as its containers change.
+-->
+
+### Integration style and patterns
+
+<!--
+How the containers interact and stay consistent, for example
+Event-Driven Architecture, with a Saga for each transaction that spans
+containers. Draw on the universal guide and the systems guide. Name each
+pattern with its progenitor, the roles its containers play, and the
+present need it serves. State what it rules out as an invariant
+(rule 14).
+-->
+
+- <Pattern> (<progenitor>) — <the roles its containers play>; <the
+  present need it serves>.
+
+### Invariants
+
+<!--
+EARS statements that hold across the system, each ending "Enforced by:
+<test, check, lint, or review only>" (rule 5).
+-->
+
+- The system SHALL <invariant that holds across containers>.
+  Enforced by: <test, check, lint, or review only>.
+
+### Extension points
+
+<!--
+Where a new container or integration joins, the intended way in, and the
+wrong way to extend the system. If it has none, write "None: <why it is
+closed>" (rule 12).
+-->
+
+- <Where a new container or integration joins> — <the intended way in>.
+  Not by <the wrong way to extend it>.
+
 ## Public Contracts
 
 <!--
@@ -239,18 +282,18 @@ Rules for feature work touching this system as a whole: the constraints
 a feature blueprint — and the planning agent downstream of it — must
 respect when a change spans containers. Write normative rules in EARS.
 
-This section carries SYSTEM-LEVEL architectural constraints: invariants
-that hold across containers, cross-container lockstep-update rules, and
-boundary rules for what may talk to what. Constraints scoped to a single
-container belong in that [[container-<name>]] blueprint's Change guidance,
-not here; organization-wide rules belong in a cross-cutting requirements
-document referenced from Cross-cutting Standards.
+This section carries system-level architectural constraints:
+cross-container lockstep-update rules and boundary rules for what may talk
+to what. Invariants that hold across containers belong in Design.
+Constraints scoped to a single container belong in that
+[[container-<name>]] blueprint's Change guidance, not here.
+Organization-wide rules belong in a cross-cutting requirements document
+referenced from Cross-cutting Standards.
 -->
 
 - WHEN <a change spans containers>, <the artifacts that must change
   together> SHALL be updated in the same change.
-- <A cross-container boundary or invariant rule any change must respect,
-  in EARS.>
+- <A cross-container boundary rule any change must respect, in EARS.>
 
 ### Verification gates
 

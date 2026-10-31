@@ -19,6 +19,7 @@ status: active
 
 - Every architecture blueprint — rules 1 to 8
 - Component and Module Blueprints — rules 9 to 13
+- Design patterns — rule 14
 - Blueprint audit — the checklist to run before `ready-for-review`
 - References
 
@@ -189,7 +190,7 @@ where it lives and how it differs.
 A blueprint SHALL state where its element is designed to grow and the wrong
 way to extend it, or state that the element has no extension points and why.
 
-Container Blueprints follow this rule too.
+Container and System Blueprints follow this rule too.
 
 **Rationale:** Code shows a seam's mechanism. It doesn't show that the seam
 is the intended way in.
@@ -210,6 +211,31 @@ can't measure quality.
 
 ---
 
+## Design patterns
+
+This rule applies to every architecture blueprint.
+
+### 14. Name each pattern with its progenitor, constraint, and need
+
+A blueprint SHALL name each pattern it adopts, with its progenitor, as the
+universal guide ([[guide-design-principles]]) or the level guide for the
+blueprint's C4 level names it. A pattern the guides don't list SHALL be named
+with its own progenitor. For each pattern, the blueprint SHALL state:
+
+- The constraint the pattern implies and what it rules out, as an EARS
+  invariant that ends with "Enforced by:" (rule 5).
+- The present need it serves: an existing variation, an FRD criterion, or a
+  stated extension point. An anticipated need doesn't qualify.
+
+**Rationale:** A name alone drifts: "Decorator" is also Python syntax, and
+"Repository" is confused with a data access object. The progenitor fixes the
+meaning, and the constraint is what a reviewer or a check can verify. The
+need keeps a pattern from being adopted for its own sake.
+
+**Enforced by:** the blueprint audit.
+
+---
+
 ## Blueprint audit
 
 Run this audit on an architecture blueprint before you set it to
@@ -217,10 +243,12 @@ Run this audit on an architecture blueprint before you set it to
 
 1. Run `specs check <path>` and fix what it reports.
 2. Classify each statement as a rule, a fact, a behavior, or an edge.
-3. Apply rules 1 to 8.
+3. Apply rules 1 to 8 and rule 14.
 4. Confirm that the extension points and an "Enforced by:" note on each
    invariant exist. In a Component or Module Blueprint, confirm the Hides
    line too.
+5. For each named pattern, ask what breaks if you remove it. Remove a pattern
+   whose removal breaks nothing the blueprint states.
 
 ---
 
@@ -232,4 +260,6 @@ Run this audit on an architecture blueprint before you set it to
 - [[adr-011]] — blueprints declare targeted verification gates
 - [[c4-standards]] — the C4 levels, and where edges and scope statements live
 - [[ac-traceability-standards]] — how tests cite acceptance criteria
-- [[guide-component-design]] — the design questions behind these rules
+- [[adr-034]] — design principles come from curated guides by C4 level
+- [[guide-design-principles]] — the design questions behind these rules, and
+  the guide for each C4 level

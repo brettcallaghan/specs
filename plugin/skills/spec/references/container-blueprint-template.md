@@ -25,9 +25,11 @@ test_paths: []                       # optional; repo-relative test roots
 Template: Container Blueprint
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md`. Load it,
-  `shared/blueprint-content-standards.md`, and
-  `shared/component-design-guide.md` before authoring. "Rule N" below
-  cites a rule in the content standards.
+  `shared/blueprint-content-standards.md`,
+  `shared/design-principles-guide.md`,
+  `shared/design-principles-containers-guide.md`,
+  and `shared/design-principles-components-guide.md` before
+  authoring. "Rule N" below cites a rule in the content standards.
 
 Sections (complete each, then delete its instruction block)
   - Overview
@@ -309,14 +311,20 @@ versioning.
 How the container is built to stay sound as it changes.
 -->
 
-### Architectural style
+### Architectural style and patterns
 
 <!--
-The style its components follow, for example ports and adapters: which
-components are the core, and which adapt it to I/O.
+The style its components follow and the patterns between them, for
+example Ports and Adapters: which components are the core, and which
+adapt it to I/O. Draw on the universal guide and the containers guide.
+Name each pattern with its progenitor, the roles its components play, and
+the present need it serves. State what it rules out as an invariant
+(rule 14). Also name entries from the components guide that all of the
+container's code follows.
 -->
 
-<Style> — <which components are the core, and which adapt it to I/O>.
+- <Style or pattern> (<progenitor>) — <the roles its components play>;
+  <the present need it serves>.
 
 ### Invariants
 

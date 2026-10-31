@@ -43,6 +43,9 @@ a reviewer can cite the row instead of arguing from taste.
 | Listing a component's neighbors in its Component Blueprint | Edges belong to the host's blueprint and drift when restated. Name the owner of each excluded responsibility instead ([[blueprint-content-standards]] rule 8). |
 | Subcomponents in a component | A unit whose parts each need their own interface or change guidance is a module. Author a Module Blueprint. |
 | Verification gates that start with whole-system suites | They're slow and don't point at the broken element. List isolation tests first, and wider suites with the condition that requires each ([[blueprint-content-standards]] rule 10). |
+| Naming a pattern at the wrong C4 level, such as an in-process Observer where the design meant a message broker | Agents build the code-level version of a system-level decision. Name the pattern for the element's level ([[guide-design-principles#Same idea, different level]]). |
+| Naming a pattern without the constraint it implies | A name alone doesn't make an agent follow the pattern, and a reviewer has nothing to check. State the constraint as an enforced invariant ([[blueprint-content-standards]] rule 14). |
+| Adopting a pattern without a present need, such as an interface with one implementation and no stated extension point | The pattern adds indirection that nothing uses. Name the need it serves, or remove it ([[blueprint-content-standards]] rule 14). |
 | Per-container diagrams redrawing shared deployment topology | N copies drift. The System Blueprint's deployment diagrams are authoritative. |
 | Modeling ambient platforms (logging, mesh) as diagram elements | They dilute every view. Use prose plus a cross-cutting Standards document. |
 | Authoring a Contract for a third-party (SaaS) interface | The vendor's published contract governs. Reference it by URL instead. |
