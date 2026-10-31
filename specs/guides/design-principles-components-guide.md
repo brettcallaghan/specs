@@ -17,8 +17,8 @@ list that all of the element's code follows.
 
 Use these entries with the universal guide, [[guide-design-principles]], which
 also explains how to choose patterns and notes that these lists are incomplete.
-Record each pattern the design adopts under rule 14 of
-[[blueprint-content-standards]].
+Record each pattern the design adopts under
+[[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]].
 
 | Entry | Progenitors | Questions it answers |
 |-------|-------------|----------------------|
@@ -40,4 +40,5 @@ Record each pattern the design adopts under rule 14 of
 ## References
 
 - [[guide-design-principles]] — the universal guide, and how to choose patterns
-- [[blueprint-content-standards]] — rule 14 and the blueprint audit
+- [[blueprint-content-standards]] — how a blueprint names patterns, and the
+  blueprint audit

@@ -17,9 +17,10 @@ and, in a Component or Module Blueprint, its Responsibility and Interface
 sections. [[blueprint-content-standards]] sets what those sections may say.
 
 The lists are a starting point, not a catalog. They hold the principles and
-patterns that apply most widely in current architectures, with priority given
-to those that keep a design modular and extensible. When another pattern fits
-the problem better, use it, and name it with its own progenitor (rule 14).
+patterns that apply most widely in current architectures, with priority given to
+those that keep a design modular and extensible. When another pattern fits the
+problem better, use it, and name it with its own progenitor
+([[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]]).
 
 ## Choose the level guide
 
@@ -35,10 +36,12 @@ A Container, Module, or Component Blueprint may also name entries from
 [[guide-design-principles-components]] that all of the element's code
 follows, such as Make Illegal States Unrepresentable.
 
-Adopt a pattern only when its question has a real answer for the element
-today. A question with no answer means the pattern doesn't belong. Record
-each pattern you adopt under rule 14: its name, its progenitor, the
-constraint it implies, and the need it serves.
+Adopt a pattern only when its question has a real answer for the element today.
+A question with no answer means the pattern doesn't belong. Record each pattern
+you adopt as
+[[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]]
+requires: its name, its progenitor, the constraint it implies, and the need it
+serves.
 
 ## Universal principles
 
@@ -104,22 +107,25 @@ By language:
 - **Java and C#:** dependency injection containers, records.
 - **F# and other ML-family languages:** Result and Railway-Oriented Programming.
 
-Identify the element's application type and language. Find the patterns that
-fit them, whether this guide lists them or not, and record each one
-the design adopts in its Design section under rule 14.
+Identify the element's application type and language. Find the patterns that fit
+them, whether this guide lists them or not, and record each one the design
+adopts in its Design section, as
+[[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]]
+requires.
 
 The guides leave out three kinds of pattern. Some are tied to one language or
 runtime, such as Pimpl, Visitor where the language has pattern matching, and
 typeclass-based patterns. Some are provided by a modern language or framework,
 such as Iterator. Others are performance patterns, such as Flyweight and Object
-Pool. An author can still adopt any of them under rule 14.
+Pool. An author can still adopt any of them under
+[[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]].
 
 ## References
 
 - [[guide-design-principles-systems]] — patterns for composing containers
 - [[guide-design-principles-containers]] — patterns for composing components
 - [[guide-design-principles-components]] — patterns for composing code
-- [[blueprint-content-standards]] — what a blueprint states, rule 14, and the
-  audit
+- [[blueprint-content-standards]] — what a blueprint states, how it names
+  patterns, and the audit
 - [[adr-034]] — design principles come from curated guides by C4 level
 - [[c4-standards]] — the C4 levels an element maps to

@@ -5,8 +5,8 @@ technology: <language, framework or package type>
                                      # optional; the technology line drawn on
                                      # diagrams — omit WHEN not meaningful
 description: <What it owns>. Change it to <kinds of change>.
-                                     # rule 7; the brief description, shown
-                                     # on diagrams
+                                     # the brief description, shown on diagrams;
+                                     # see "Write the description for triage"
 slug: container-<container-name>
 type: container-blueprint
 status: draft
@@ -29,7 +29,9 @@ Source: Architecture documentation framework. C4 mapping rules are
   `shared/design-principles-guide.md`,
   `shared/design-principles-containers-guide.md`,
   and `shared/design-principles-components-guide.md` before
-  authoring. "Rule N" below cites a rule in the content standards.
+  authoring. A quoted rule name below, such as
+  "Name owners, not neighbors", is the heading of a rule in the content
+  standards.
 
 Sections (complete each, then delete its instruction block)
   - Overview
@@ -62,8 +64,8 @@ Reader profile (apply with the tech-writer skill)
   feature work must respect.
 - Budget: one focused read.
 - Tone: matter-of-fact, describing the container as it is, with exact names,
-  linked rather than described (rule 2). Decisions and their alternatives
-  belong in ADRs.
+  linked rather than described ("Link what the code reveals"). Decisions
+  and their alternatives belong in ADRs.
 
 When to use
   - Documenting an application your team builds and runs: API server, web
@@ -121,20 +123,17 @@ technologies it is built from go in Tech stack, below. Keep reasoning
 out: decisions go in Key decisions.
 -->
 
-<What this container is and does.>
-
 ### Responsibility
 
 <!--
 What this container does within the system.
 -->
 
-<What this container does within the system.>
-
 ### Does not own
 
 <!--
-Each excluded responsibility, with its owner's [[slug]] (rule 8).
+Each excluded responsibility, with its owner's [[slug]]
+("Name owners, not neighbors").
 -->
 
 <Excluded responsibility> — [[<owner-slug>]] owns it.
@@ -144,8 +143,6 @@ Each excluded responsibility, with its owner's [[slug]] (rule 8).
 <!--
 How and where it runs: its platform and scaling model.
 -->
-
-<How and where it runs.>
 
 ## Tech stack
 
@@ -163,9 +160,9 @@ author an ADR only to fill the slot. An ADR cited here SHALL also be
 listed under Key decisions, which stays the complete index of decisions
 governing this container.
 
-Do not state dependency versions (rule 1). WHEN a version is
-contractual (a minimum supported runtime, a pinned toolchain), state
-it as a requirement in EARS in Change guidance instead.
+Do not state dependency versions ("State only what must stay true"). WHEN
+a version is contractual (a minimum supported runtime, a pinned
+toolchain), state it as a requirement in EARS in Change guidance instead.
 
 The frontmatter `technology` value is the short label diagrams draw; it
 SHALL agree with the primary entries here.
@@ -200,9 +197,6 @@ C4Container
     Rel(this, db, "reads/writes", "<protocol>")
     Rel(this, ext, "<publishes to>", "<protocol>")
 ```
-
-<One paragraph per relationship: direction, payload, governing contract,
-and intent. Do not restate what the neighbor does — link its blueprint.>
 
 ## Components
 
@@ -315,13 +309,14 @@ How the container is built to stay sound as it changes.
 ### Architectural style and patterns
 
 <!--
-The style its components follow and the patterns between them, for
-example Ports and Adapters: which components are the core, and which
-adapt it to I/O. Draw on the universal guide and the containers guide.
-Name each pattern with its progenitor, the roles its components play, and
-the present need it serves. State what it rules out as an invariant
-(rule 14). Also name entries from the components guide that all of the
-container's code follows.
+The style its components follow and the patterns between them, for example
+Ports and Adapters: which components are the core, and which adapt it to
+I/O. Draw on the universal guide and the containers guide. Name each
+pattern with its progenitor, the roles its components play, and the
+present need it serves. State what it rules out as an invariant
+("Name each pattern with its progenitor, constraint, and need"). Also name
+entries from the components guide that all of the container's code
+follows.
 -->
 
 <Style or pattern> (<progenitor>) — <the roles its components play>;
@@ -331,7 +326,7 @@ container's code follows.
 
 <!--
 EARS statements that hold across the container, each ending "Enforced by:
-<test, check, lint, or review only>" (rule 5).
+<test, check, lint, or review only>" ("Say what enforces each invariant").
 -->
 
 The container SHALL <invariant that holds across the container>.
@@ -342,7 +337,7 @@ Enforced by: <test, check, lint, or review only>.
 <!--
 Where the container is designed to grow, the intended way in, and the
 wrong way to extend it. If it has none, write "None: <why it is closed>"
-(rule 12).
+("State where the element grows").
 -->
 
 <Where it grows> — <the intended way in>. Not by <the wrong way to
@@ -417,8 +412,6 @@ The nodes that exist only for this container, such as its Redis or its
 dead-letter queue.
 -->
 
-<Nodes that exist only for this container.>
-
 ### Deployment
 
 <!--
@@ -477,14 +470,13 @@ from Cross-cutting Standards, not here.
 WHEN <a kind of change is made>, <the artifacts that must change
 together> SHALL be updated in the same change.
 
-<A layering or boundary rule any change must respect, in EARS.>
-
 ### Verification gates
 
 <!--
-The gates in two groups (rule 10), each gate in its own paragraph. CI and
-downstream agents still run the full suite. Feature Blueprints map their
-AC coverage "Verified by" column onto these gates.
+The gates in two groups ("Verify isolation tests always"), each gate in
+its own paragraph. CI and downstream agents still run the full suite.
+Feature Blueprints map their AC coverage "Verified by" column onto these
+gates.
 -->
 
 #### Verify always
@@ -493,8 +485,6 @@ AC coverage "Verified by" column onto these gates.
 The isolation tests under test_paths, as runnable targets (test paths,
 ids, or task names).
 -->
-
-<Isolation tests under test_paths, as runnable targets.>
 
 #### Verify conditionally
 
@@ -538,5 +528,3 @@ C4 mapping rules and diagram conventions are in this skill's
 `shared/c4-standards.md`. Read it while authoring, but do not cite it
 here: it is not a document in your corpus.
 -->
-
-<Additional references>

@@ -103,7 +103,7 @@ the message names the exclusion reason. It never reports a clean
 document for a path that the corpus doesn't hold.
 
 A `frontmatter/parse` finding (row 0 in the following table) comes
-before all the others and isn't one of the eleven checks. It means the
+before all the others and isn't one of the numbered checks. It means the
 frontmatter couldn't be read as a document envelope, so no other check
 examined the document. Fix it and run the check again before you read
 anything else in the report. The usual cause is a `status` or other
@@ -117,18 +117,17 @@ enumerated value outside its vocabulary.
 | 3 | Status is in the controlled vocabulary | `specs check` |
 | 4 | Every EARS normative statement uses an EARS pattern | you |
 | 5 | No requirement joins two modal verbs | you |
-| 6 | No prose line exceeds the width limit | you — CLI planned |
+| 6 | No prose line exceeds the width limit | you |
 | 7 | No template instruction blocks survive | you |
 | 8 | Every `[[slug]]` reference resolves | `specs check` |
 | 9 | Every feature and criterion is well formed and identified | `specs check`, plus you |
 | 10 | An architecture blueprint passes the blueprint audit | you |
-| 11 | An architecture blueprint's code references resolve, its source paths don't overlap a sibling's, and its required sections are present | you — CLI planned |
+| 11 | An architecture blueprint's code references resolve, its source paths don't overlap a sibling's, and its required sections are present | you |
 
 **A clean `specs check` isn't a passing document.** It means that row
 0, checks 1–3 and 8, and the machine-checkable half of check 9 passed.
-Checks 4, 5, 7, and 10 are judgment calls the tool doesn't make, check 6
-is specified but not built, and check 11 is planned. For those six, a
-silent tool isn't a passing grade.
+The tool doesn't make checks 4 to 7, 10, and 11. For those, a silent tool
+isn't a passing grade.
 
 Check 8 covers heading anchors too: `specs check` resolves
 `[[container-x#Some Heading]]` on `container-x`, and then matches the
@@ -224,10 +223,11 @@ Blueprint. [[blueprint-content-standards]] owns the rules behind them.
 
 10. The blueprint passes the blueprint audit in
     [[blueprint-content-standards]].
-11. In a blueprint that declares `source_paths`, every backticked path
-    names a tracked file. A Component or Module Blueprint's
-    `source_paths` don't overlap a sibling's (rule 9). Every section the
-    type's template requires is present.
+11. In a blueprint that declares `source_paths`, every backticked path names a
+    tracked file. A Component or Module Blueprint's `source_paths` don't overlap
+    a sibling's
+    ([[blueprint-content-standards#Own a disjoint part of the source tree]]).
+    Every section the type's template requires is present.
 
 ---
 

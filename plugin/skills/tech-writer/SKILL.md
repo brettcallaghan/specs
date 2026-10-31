@@ -67,6 +67,28 @@ the document doesn't count.
 - When prose names a heading, write it in the heading's case.
 - Never trade an exact term for a casual one to make the tone conversational.
 
+## Stable prose
+
+Write prose that stays true when what it describes changes. Each rule removes
+a fact that goes stale while nobody touches the sentence.
+
+- Don't count what a list, table, directory, or codebase holds ("the eleven
+  checks," "all four templates"). Write "each check" or "the checks below."
+  Keep a count only when the design fixes it and the number is the point, such
+  as a protocol's two phases. Changelogs and release notes may count.
+- Cite a rule, step, or section by its heading, or a link to it, never by its
+  number or position ("rule 14," "step 6," "the table above"). Numbers shift
+  when an item is added or removed, and a heading can be searched for.
+- Don't restate what has a canonical source, such as a list kept elsewhere, a
+  default set in code, or a version in a manifest. Link the source.
+- Don't describe a mechanism that doesn't exist, such as a planned check.
+  Describe it when it ships.
+- Leave out volatile measurements, such as line numbers, file sizes, and
+  warning counts. Where one matters, give the command that measures it.
+
+When you revise, apply these rules to how each fact is worded. A count or
+position you can't replace without changing a fact becomes a finding.
+
 ## Project terms
 
 The spec skill's document types are proper names. Write them in title case

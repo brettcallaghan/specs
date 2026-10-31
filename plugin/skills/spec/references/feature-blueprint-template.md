@@ -21,8 +21,8 @@ Source: This specification framework. Reference conventions follow
   level of each element a delta changes:
   `shared/design-principles-systems-guide.md`,
   `shared/design-principles-containers-guide.md`, or
-  `shared/design-principles-components-guide.md`. "Rule N" below cites a
-  rule in the content standards.
+  `shared/design-principles-components-guide.md`. A quoted rule name
+  below is the heading of a rule in the content standards.
 
 Sections (complete each, then delete its instruction block)
   - Overview
@@ -166,9 +166,6 @@ reviewers and groomers orient by.
 
 **FRD:** [[frd-<feature-name>]]
 
-<How the system delivers this feature, at a glance: the approach chosen
-and the elements it touches.>
-
 ## Element deltas
 
 <!--
@@ -206,7 +203,7 @@ in at retirement is a mechanical copy:
   - a new or changed guarantee → the owning blueprint's Provides,
     Requires, Invariants, or Extension points, in EARS
   - an adopted pattern → the owning blueprint's Design section, named
-    under rule 14
+    under "Name each pattern with its progenitor, constraint, and need"
 
 Each block contains, as applicable:
   - Intent: what changes and WHY, in prose (design intent, not tasks)
@@ -218,8 +215,8 @@ Each block contains, as applicable:
     fields, constraints, and the EARS invariants maintained over them.
     Shared surfaces do NOT go here; they get a contract document.
   - Anchors: existing paths or symbols where the change lands, in
-    backticks (rule 2). Anchors, not signatures — see document
-    instructions.
+    backticks ("Link what the code reveals"). Anchors, not signatures —
+    see document instructions.
 
 A new component's block declares it with the Component Blueprint's
 Owns, Hides, and Does not own entries alongside its record block.
@@ -520,5 +517,3 @@ blocks are written against are in this skill's `shared/c4-standards.md`.
 Read it while authoring, but do not cite it here: it is not a document
 in your corpus.
 -->
-
-<Additional references>

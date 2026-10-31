@@ -5,8 +5,8 @@ technology: <language, framework or package type>
                                      # optional; the technology line drawn on
                                      # diagrams — omit WHEN not meaningful
 description: <What it owns>. Change it to <kinds of change>.
-                                     # rule 7; the brief description, shown
-                                     # on diagrams
+                                     # the brief description, shown on diagrams;
+                                     # see "Write the description for triage"
 slug: module-<module-name>
 type: module-blueprint
 status: draft
@@ -30,7 +30,9 @@ Source: Architecture documentation framework. C4 mapping rules are
   `shared/design-principles-guide.md`,
   `shared/design-principles-containers-guide.md`,
   and `shared/design-principles-components-guide.md` before
-  authoring. "Rule N" below cites a rule in the content standards.
+  authoring. A quoted rule name below, such as
+  "Name owners, not neighbors", is the heading of a rule in the content
+  standards.
 
 Sections (complete each, then delete its instruction block)
   - Responsibility
@@ -76,8 +78,8 @@ Reader profile (apply with the tech-writer skill)
 - Budget: one focused read.
 - Tone: matter-of-fact and exact. For a public module, name interfaces,
   versions, and compatibility promises. Link the code a rule depends on;
-  don't describe what the code shows (rule 2). Decisions and their
-  alternatives belong in ADRs.
+  don't describe what the code shows ("Link what the code reveals").
+  Decisions and their alternatives belong in ADRs.
 
 When to use — either trigger is sufficient
   - SHARED / PUBLISHED: the unit is vended or consumed across containers
@@ -115,9 +117,9 @@ When NOT to use
 
 Edges — light on outward, authoritative on internal
   Each host [[container-<name>]] blueprint owns this module's edges to its
-  siblings; point to the hosts (rule 8). WHERE a module has internal
-  components, it DOES own the relationships among them, declared in the
-  Components section.
+  siblings; point to the hosts ("Name owners, not neighbors"). WHERE a
+  module has internal components, it DOES own the relationships among
+  them, declared in the Components section.
 
 Lifecycle migration
   WHEN an internal module is published to a registry, THEN its
@@ -156,15 +158,11 @@ One paragraph on why this module exists. Source and test roots go in the
 source_paths and test_paths frontmatter, not in the body.
 -->
 
-<Why this module exists.>
-
 ### Owns
 
 <!--
 The responsibilities and data this module is the sole authority for.
 -->
-
-<The responsibilities and data it is the sole authority for.>
 
 ### Hides
 
@@ -174,14 +172,11 @@ on. Required, and "none" is not an answer: an element that hides no
 decision is a candidate to merge into a neighbor.
 -->
 
-<The design decision likely to change that no other element may depend
-on.>
-
 ### Does not own
 
 <!--
-Each excluded responsibility, with its owner's [[slug]] (rule 8), each in
-its own paragraph.
+Each excluded responsibility, with its owner's [[slug]]
+("Name owners, not neighbors"), each in its own paragraph.
 -->
 
 <Excluded responsibility> — [[<owner-slug>]] owns it.
@@ -205,8 +200,6 @@ Maven), monorepo build target, plugin loaded at runtime, IaC module
 registry, module-federation remote, or generated code.
 -->
 
-<How it is vended and composed.>
-
 ## Tech stack
 
 <!--
@@ -223,9 +216,9 @@ author an ADR only to fill the slot. An ADR cited here SHALL also be
 listed under Key decisions, which stays the complete index of decisions
 governing this module.
 
-Do not state dependency versions (rule 1). WHEN a version is
-contractual (a minimum supported runtime, a pinned toolchain), state
-it as a requirement in EARS in Change guidance instead.
+Do not state dependency versions ("State only what must stay true"). WHEN
+a version is contractual (a minimum supported runtime, a pinned
+toolchain), state it as a requirement in EARS in Change guidance instead.
 
 The frontmatter `technology` value is the short label diagrams draw; it
 SHALL agree with the primary entries here.
@@ -248,7 +241,7 @@ inline.
 
 <!--
 The path or symbol that defines the interface: type definitions, plugin
-API, or module schema (rule 3).
+API, or module schema ("Point the interface at its definition").
 -->
 
 `<path or symbol>`
@@ -268,7 +261,7 @@ The module SHALL NOT <thing consumers must not have to defend against>.
 <!--
 The abstractions and contracts this module depends on, with their
 preconditions, in EARS. List abstractions and contracts, not edges: a
-module's edges belong to each host (rule 8).
+module's edges belong to each host ("Name owners, not neighbors").
 -->
 
 WHEN <operation> is called, <abstraction or [[contract-<name>]]> SHALL
@@ -287,9 +280,9 @@ Each pattern the module follows. Draw on the universal guide, the
 containers guide for how its components and submodules compose, and the
 components guide for the code it holds directly. Name each pattern with
 its progenitor, its roles mapped to this module's types, and the present
-need it serves. State what it rules out as an invariant (rule 14). Also
-name entries from the components guide that all of the module's code
-follows.
+need it serves. State what it rules out as an invariant
+("Name each pattern with its progenitor, constraint, and need"). Also name
+entries from the components guide that all of the module's code follows.
 -->
 
 <Pattern> (<progenitor>) — <roles mapped to this module's types>; <the
@@ -299,7 +292,7 @@ present need it serves>.
 
 <!--
 EARS statements that hold across all operations, each ending "Enforced
-by: <test, check, lint, or review only>" (rule 5).
+by: <test, check, lint, or review only>" ("Say what enforces each invariant").
 -->
 
 The module SHALL <invariant that holds across all operations>.
@@ -310,7 +303,7 @@ Enforced by: <test, check, lint, or review only>.
 <!--
 Where the module is designed to grow, the intended way in, and the wrong
 way to extend it. If it has none, write "None: <why it is closed>"
-(rule 12).
+("State where the element grows").
 -->
 
 <Where it grows> — <the intended way in>. Not by <the wrong way to
@@ -365,6 +358,9 @@ Reference an un-promoted component with a wikilink heading anchor into
 this roster, `[[module-<name>#Component Name]]`; reference a promoted one
 by its own slug, `[[component-<name>]]`. The heading persists through
 promotion, so anchor references survive it.
+
+Follow the diagram with one paragraph per relationship: who depends on
+whom, what crosses, and why.
 -->
 
 ```mermaid
@@ -393,8 +389,6 @@ description: its responsibility and the decision it hides.>
 ### <ComponentB>
 
 See [[component-<name>]]. (<kind>) — <brief description>.
-
-<Relationship paragraphs: who depends on whom, what crosses, why.>
 
 ## Pattern guidance
 
@@ -436,7 +430,8 @@ Every instance SHALL NOT <divergence that would break the pattern>.
 ### Instances
 
 <!--
-One paragraph per instance: where it lives and how it differs (rule 11).
+One paragraph per instance: where it lives and how it differs
+("Give each pattern instance one line").
 -->
 
 **<InstanceName>** (<container or repo>) — <target/variant>.
@@ -493,8 +488,6 @@ Standards, not here.
 WHEN <a kind of change is made>, <the artifacts that must change
 together> SHALL be updated in the same change.
 
-<A layering or boundary rule any change must respect, in EARS.>
-
 WHILE visibility is public, the module SHALL preserve backwards
 compatibility within a major version; WHEN a breaking change is
 unavoidable, it SHALL bump the major per its versioning scheme and
@@ -508,9 +501,10 @@ the consumer updates, with no compatibility window.
 ### Verification gates
 
 <!--
-The gates in two groups (rule 10), each gate in its own paragraph. CI and
-downstream agents still run the full suite. Feature Blueprints map their
-AC coverage "Verified by" column onto these gates.
+The gates in two groups ("Verify isolation tests always"), each gate in
+its own paragraph. CI and downstream agents still run the full suite.
+Feature Blueprints map their AC coverage "Verified by" column onto these
+gates.
 -->
 
 #### Verify always
@@ -519,8 +513,6 @@ AC coverage "Verified by" column onto these gates.
 The isolation tests under test_paths, as runnable targets (test paths,
 ids, or task names).
 -->
-
-<Isolation tests under test_paths, as runnable targets.>
 
 #### Verify conditionally
 
@@ -566,5 +558,3 @@ here: it is not a document in your corpus.
 -->
 
 [[container-<name>]] — the container(s) this module is composed into
-
-<Additional references>

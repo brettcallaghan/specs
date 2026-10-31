@@ -273,16 +273,14 @@ specs.
    its FRD's (the FRD must be `approved` or `active` before grooming
    can start).
 7. **Self-check the finished document.** Before setting any document to
-   `ready-for-review`, run `specs check <path>` and then
-   `references/shared/document-readiness-checklist.md` against it. The
-   checklist marks which of its eleven checks the CLI settles and which
-   are yours; a clean `specs check` is not a passing document, and the
-   checks it does not yet make are named there rather than left to
-   silence. Fix what both report and re-run; do not set
-   `ready-for-review` while any check fails. Feature blueprints
-   additionally run the blueprint readiness checklist in step 6 — that
-   one is about groomability, this one about conformance, and a
-   blueprint passes both.
+   `ready-for-review`, run `specs check <path>`, then check it against
+   `references/shared/document-readiness-checklist.md` and
+   `references/shared/anti-patterns-guide.md`. The checklist marks which
+   checks the CLI settles and which are yours: a clean `specs check` is
+   not a passing document. Fix what each reports and re-run; do not set
+   `ready-for-review` while any check fails. A Feature Blueprint also
+   passes the preflight above, which tests groomability, not
+   conformance.
 
    Architecture blueprints also run the blueprint audit in
    `references/shared/blueprint-content-standards.md`.

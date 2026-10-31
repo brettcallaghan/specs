@@ -61,4 +61,5 @@ under each element's `test_paths`, not listed in blueprints.
   obligations
 - [[adr-020]] — FRDs evolve in place, keyed on AC ids
 - [[adr-032]] — blueprints state rules, not code facts
-- [[blueprint-content-standards]] — rule 4 applies this decision
+- [[blueprint-content-standards#Leave behavior to the FRD]] — applies this
+  decision

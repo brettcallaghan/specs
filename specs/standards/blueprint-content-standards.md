@@ -12,9 +12,9 @@ status: active
 
 ## Contents
 
-- Every architecture blueprint — rules 1 to 8
-- Component and Module Blueprints — rules 9 to 13
-- Design patterns — rule 14
+- Every architecture blueprint
+- Component and Module Blueprints
+- Design patterns
 - Blueprint audit — the checklist to run before `ready-for-review`
 - References
 
@@ -32,7 +32,7 @@ skills cite these rules by number and don't restate them.
 
 ## Every architecture blueprint
 
-### 1. State only what must stay true
+### State only what must stay true
 
 A blueprint SHALL NOT state counts, versions, member lists, or line numbers
 of code under its `source_paths`.
@@ -42,7 +42,7 @@ Rules are enforced or reviewable.
 
 ---
 
-### 2. Link what the code reveals
+### Link what the code reveals
 
 WHEN reading `source_paths` would reveal a fact, the blueprint SHALL link the
 code instead of stating the fact. A link names a repository-relative path or
@@ -55,7 +55,7 @@ name that a tool can resolve against the source tree.
 
 ---
 
-### 3. Point the interface at its definition
+### Point the interface at its definition
 
 The Interface section SHALL point to the defining type or export map. It
 SHALL name a member only to state a guarantee that the signature can't
@@ -65,7 +65,7 @@ express.
 
 ---
 
-### 4. Leave behavior to the FRD
+### Leave behavior to the FRD
 
 A blueprint SHALL NOT restate FRD behavior or list implemented features or
 acceptance criteria. It SHALL NOT cite an AC id except as the reason for
@@ -77,7 +77,7 @@ that tests cite. Element-to-AC traceability comes from test citations
 
 ---
 
-### 5. Say what enforces each invariant
+### Say what enforces each invariant
 
 Each invariant SHALL end with "Enforced by:" naming a test, a check, a lint,
 or "review only".
@@ -87,7 +87,7 @@ only" marks a missing test.
 
 ---
 
-### 6. State a shared rule once
+### State a shared rule once
 
 WHEN two elements share a rule, the blueprint of the element that enforces it
 SHALL state the rule, and the other blueprint SHALL link to it.
@@ -97,7 +97,7 @@ the copies diverge.
 
 ---
 
-### 7. Write `description` for triage
+### Write the description for triage
 
 The `description` property SHALL take the form "<what it owns>. Change it to
 <kinds of change>."
@@ -107,7 +107,7 @@ description.
 
 ---
 
-### 8. Name owners, not neighbors
+### Name owners, not neighbors
 
 A blueprint SHALL name the owner of each responsibility it excludes. It SHALL
 NOT describe interactions with sibling elements. Its References section SHALL
@@ -120,7 +120,7 @@ restated ([[c4-standards]]).
 
 ## Component and Module Blueprints
 
-### 9. Own a disjoint part of the source tree
+### Own a disjoint part of the source tree
 
 WHILE status is `active`, a Component or Module Blueprint SHALL declare
 `source_paths` and `test_paths`. Its `source_paths` SHALL NOT overlap a
@@ -131,7 +131,7 @@ never touches the same files.
 
 ---
 
-### 10. List isolation tests first
+### Verify isolation tests always
 
 The Verification gates SHALL list isolation tests from `test_paths` under
 Verify always. They SHALL list wider suites under Verify conditionally, each
@@ -145,7 +145,7 @@ condition says when the slow suite is owed.
 
 ---
 
-### 11. Give each pattern instance one line
+### Give each pattern instance one line
 
 In a pattern blueprint (`kind: pattern`), each instance SHALL get one line:
 where it lives and how it differs.
@@ -154,7 +154,7 @@ where it lives and how it differs.
 
 ---
 
-### 12. State where the element grows
+### State where the element grows
 
 A blueprint SHALL state where its element is designed to grow and the wrong
 way to extend it, or state that the element has no extension points and why.
@@ -166,7 +166,7 @@ is the intended way in.
 
 ---
 
-### 13. Keep a Component Blueprint near 250 lines
+### Keep a Component Blueprint near 250 lines
 
 A Component Blueprint SHOULD stay near 250 lines. Past that, cut it or split
 the component.
@@ -180,7 +180,7 @@ can't measure quality.
 
 This rule applies to every architecture blueprint.
 
-### 14. Name each pattern with its progenitor, constraint, and need
+### Name each pattern with its progenitor, constraint, and need
 
 A blueprint SHALL name each pattern it adopts, with its progenitor, as the
 universal guide ([[guide-design-principles]]) or the level guide for the
@@ -188,7 +188,8 @@ blueprint's C4 level names it. A pattern the guides don't list SHALL be named
 with its own progenitor. For each pattern, the blueprint SHALL state:
 
 - The constraint the pattern implies and what it rules out, as an EARS
-  invariant that ends with "Enforced by:" (rule 5).
+  invariant that ends with "Enforced by:"
+  ([[#Say what enforces each invariant]]).
 - The present need it serves: an existing variation, an FRD criterion, or a
   stated extension point. An anticipated need doesn't qualify.
 
@@ -206,7 +207,8 @@ Run this audit on an architecture blueprint before you set it to
 
 1. Run `specs check <path>` and fix what it reports.
 2. Classify each statement as a rule, a fact, a behavior, or an edge.
-3. Apply rules 1 to 8 and rule 14.
+3. Apply the rules under [[#Every architecture blueprint]] and
+   [[#Design patterns]].
 4. Confirm that the extension points and an "Enforced by:" note on each
    invariant exist. In a Component or Module Blueprint, confirm the Hides
    section too.

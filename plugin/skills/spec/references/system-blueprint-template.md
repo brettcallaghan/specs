@@ -5,8 +5,8 @@ technology: <language, framework or package type>
                                      # optional; the technology line drawn on
                                      # diagrams — omit WHEN not meaningful
 description: <What it owns>. Change it to <kinds of change>.
-                                     # rule 7; the brief description, shown
-                                     # on diagrams
+                                     # the brief description, shown on diagrams;
+                                     # see "Write the description for triage"
 slug: system-<system-name>
 type: system-blueprint
 status: draft
@@ -20,7 +20,9 @@ Source: Architecture documentation framework. C4 mapping rules are
   `shared/blueprint-content-standards.md`,
   `shared/design-principles-guide.md`,
   and `shared/design-principles-systems-guide.md` before
-  authoring. "Rule N" below cites a rule in the content standards.
+  authoring. A quoted rule name below, such as
+  "Name owners, not neighbors", is the heading of a rule in the content
+  standards.
 
 Sections (complete each, then delete its instruction block)
   - Overview
@@ -109,8 +111,6 @@ not describe internal structure here — that is what the sections below
 are for.
 -->
 
-<What this system does, for whom, and who owns it>
-
 ## System context
 
 <!--
@@ -132,9 +132,6 @@ C4Context
     Rel(this, neighbor, "<calls / publishes>", "<protocol>")
 ```
 
-<One paragraph per relationship: who depends on whom, what crosses the
-boundary, which [[contract-slug]] governs it, and why the boundary is here.>
-
 ## Containers
 
 <!--
@@ -143,7 +140,8 @@ is a view rendered from those declarations (see `shared/c4-standards.md`). Each
 declaration captures: the container's name (canonical — used verbatim on
 diagrams), its technology, and a brief description that doubles as the
 diagram's description text. Each declaration states the container's
-responsibility only, and rule 1 applies to the brief descriptions.
+responsibility only, and "State only what must stay true" applies to the
+brief descriptions.
 
 The detailed description of an active container lives in its
 [[container-<name>]] blueprint — do not restate internals here. Passive
@@ -185,7 +183,7 @@ Event-Driven Architecture, with a Saga for each transaction that spans
 containers. Draw on the universal guide and the systems guide. Name each
 pattern with its progenitor, the roles its containers play, and the
 present need it serves. State what it rules out as an invariant
-(rule 14).
+("Name each pattern with its progenitor, constraint, and need").
 -->
 
 <Pattern> (<progenitor>) — <the roles its containers play>; <the
@@ -195,7 +193,7 @@ present need it serves>.
 
 <!--
 EARS statements that hold across the system, each ending "Enforced by:
-<test, check, lint, or review only>" (rule 5).
+<test, check, lint, or review only>" ("Say what enforces each invariant").
 -->
 
 The system SHALL <invariant that holds across containers>.
@@ -206,7 +204,7 @@ Enforced by: <test, check, lint, or review only>.
 <!--
 Where a new container or integration joins, the intended way in, and the
 wrong way to extend the system. If it has none, write "None: <why it is
-closed>" (rule 12).
+closed>" ("State where the element grows").
 -->
 
 <Where a new container or integration joins> — <the intended way in>.
@@ -294,13 +292,12 @@ referenced from Cross-cutting Standards.
 WHEN <a change spans containers>, <the artifacts that must change
 together> SHALL be updated in the same change.
 
-<A cross-container boundary rule any change must respect, in EARS.>
-
 ### Verification gates
 
 <!--
-The gates in two groups (rule 10), each gate in its own paragraph. Feature
-Blueprints map their AC coverage "Verified by" column onto these gates.
+The gates in two groups ("Verify isolation tests always"), each gate in
+its own paragraph. Feature Blueprints map their AC coverage "Verified by"
+column onto these gates.
 -->
 
 #### Verify always
@@ -309,9 +306,6 @@ Blueprints map their AC coverage "Verified by" column onto these gates.
 The system-level suites every cross-container change runs, as runnable
 targets.
 -->
-
-<System-level suites every cross-container change runs, as runnable
-targets.>
 
 #### Verify conditionally
 
@@ -355,5 +349,3 @@ C4 mapping rules and diagram conventions are in this skill's
 `shared/c4-standards.md`. Read it while authoring, but do not cite it
 here: it is not a document in your corpus.
 -->
-
-<Additional references>

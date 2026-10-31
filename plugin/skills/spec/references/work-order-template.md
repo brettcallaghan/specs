@@ -192,9 +192,10 @@ mechanically from the repo is fine. Name existing code anchors;
 do NOT prescribe new function signatures or file layouts — that is the
 executing agent's choice. Omit for `kind: epic`. Maps to the bead `design`.
 
-WHEN the owning blueprint's Design section names patterns (rule 14 of
-[[blueprint-content-standards]]), carry each pattern line the change touches
-into Design, with its name, progenitor, and constraint. Leave out the need,
+WHEN the owning blueprint's Design section names patterns
+("Name each pattern with its progenitor, constraint, and need" in the
+content standards), carry each pattern line the change touches into
+Design, with its name, progenitor, and constraint. Leave out the need,
 which the blueprint records.
 
 If a line tells you WHAT TO TYPE, it belongs here. If it tells you WHAT MUST

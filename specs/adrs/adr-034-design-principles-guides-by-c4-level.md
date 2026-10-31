@@ -21,13 +21,18 @@ know about each pattern: its roles, its consequences, and the ways it fails.
 A name that points at the wrong concept, or at no concept in particular,
 leads the agent to apply the wrong pattern's roles and constraints.
 
-The blueprint at each C4 level makes different decisions. A System Blueprint
-decides how containers integrate and stay consistent. A Container Blueprint
-decides how components are arranged and which way dependencies point. A
-Component Blueprint decides how code is structured. One flat list of principles
-leaves the author to work out which level each entry belongs to. Agents then
-name a pattern at the wrong level, such as an in-process Observer where the
-design meant a message broker.
+Each C4 level makes different decisions, so different patterns belong in its
+blueprint. A System Blueprint decides how containers are composed and
+interact: integration style, data ownership, consistency, and failure
+containment across process boundaries. A Container Blueprint decides how
+components are composed and interact: the container's internal architecture
+style, which way dependencies point, and where it is extended. A Component
+Blueprint decides how code is composed: type design, error handling, and the
+object and function patterns that keep a component open to new cases.
+
+One flat list of principles leaves the author to work out which level each
+entry belongs to. Agents then name a pattern at the wrong level, such as an
+in-process Observer where the design meant a message broker.
 
 Pattern catalogs are long, and most of their entries are language-specific,
 provided by a modern language or framework, or no longer current practice. An
@@ -43,11 +48,12 @@ which meaning the blueprint intends.
 
 We will have architecture blueprints draw principles and patterns from curated
 guides organized by C4 level. A universal guide covers the principles that hold
-at every level, and one guide each covers Systems, Containers, and Components.
-A blueprint names each pattern it adopts at its own level. It gives three
-things: the pattern's progenitor (which fixes its meaning), the constraint the
-pattern implies, and the present need it serves. [[blueprint-content-standards]] rule 14 applies this
-decision, and [[guide-design-principles]] is the universal guide.
+at every level, and one guide each covers Systems, Containers, and Components. A
+blueprint names each pattern it adopts at its own level. It gives three things:
+the pattern's progenitor (which fixes its meaning), the constraint the pattern
+implies, and the present need it serves.
+[[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]]
+applies this decision, and [[guide-design-principles]] is the universal guide.
 
 ## Alternatives considered
 
@@ -73,12 +79,13 @@ decision, and [[guide-design-principles]] is the universal guide.
   to add or cut.
 - The lists are incomplete by design. An author still has to consider patterns
   the guides don't list.
-- Naming a pattern doesn't make an agent follow it. Rule 14 pairs each name
-  with a constraint written as an enforced invariant.
+- Naming a pattern doesn't make an agent follow it. The pattern-naming rule
+  pairs each name with a constraint written as an enforced invariant.
 
 ## References
 
-- [[blueprint-content-standards]] — rule 14 applies this decision
+- [[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]]
+  — applies this decision
 - [[guide-design-principles]] — the universal guide
 - [[guide-design-principles-systems]] — patterns for composing containers
 - [[guide-design-principles-containers]] — patterns for composing components

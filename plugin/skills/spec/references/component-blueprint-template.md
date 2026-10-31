@@ -5,8 +5,8 @@ technology: <language, framework or package type>
                                      # optional; the technology line drawn on
                                      # diagrams — omit WHEN not meaningful
 description: <What it owns>. Change it to <kinds of change>.
-                                     # rule 7; the brief description, shown
-                                     # on diagrams
+                                     # the brief description, shown on diagrams;
+                                     # see "Write the description for triage"
 slug: component-<component-name>
 type: component-blueprint
 status: draft
@@ -14,9 +14,11 @@ kind: <standard | pattern>           # see instructions below
 contracts_consumed: []               # contract slugs this component depends on
 source_paths: []                     # repo-relative source roots; required
                                      # WHEN status is active; never overlaps
-                                     # a sibling's (rule 9)
+                                     # a sibling's (see
+                                     # "Own a disjoint part of the source tree")
 test_paths: []                       # repo-relative test roots; required
-                                     # WHEN status is active (rule 9)
+                                     # WHEN status is active (see
+                                     # "Own a disjoint part of the source tree")
 ---
 
 <!--
@@ -26,7 +28,9 @@ Source: Architecture documentation framework. C4 mapping rules are
   `shared/blueprint-content-standards.md`,
   `shared/design-principles-guide.md`,
   and `shared/design-principles-components-guide.md` before
-  authoring. "Rule N" below cites a rule in the content standards.
+  authoring. A quoted rule name below, such as
+  "Name owners, not neighbors", is the heading of a rule in the content
+  standards.
 
 Sections (complete each, then delete its instruction block)
   - Responsibility
@@ -60,8 +64,10 @@ Reader profile (apply with the tech-writer skill)
   work must respect.
 - Budget: one focused read.
 - Tone: matter-of-fact and exact. Name the file or type a rule depends on
-  and link it; don't describe what the code shows (rules 2 and 3). Decisions
-  and their alternatives belong in ADRs.
+  and link it; don't describe what the code shows
+  ("Link what the code reveals" and
+  "Point the interface at its definition"). Decisions and their
+  alternatives belong in ADRs.
 
 When to use — the trigger is the promotion predicate
   A component earns its own blueprint WHEN it has an interface other
@@ -97,9 +103,9 @@ When NOT to use
 
 Edges
   The host [[container-<name>]] blueprint owns this component's edges to
-  its siblings; point to it (rule 8).
+  its siblings; point to it ("Name owners, not neighbors").
 
-Keep the blueprint near 250 lines (rule 13).
+Keep the blueprint near 250 lines ("Keep a Component Blueprint near 250 lines").
 
 Lifecycle migration
   WHEN a component becomes shared across containers (an internal module)
@@ -136,15 +142,11 @@ One paragraph on why this component exists. Source and test roots go in the
 source_paths and test_paths frontmatter, not in the body.
 -->
 
-<Why this component exists.>
-
 ### Owns
 
 <!--
 The responsibilities and data this component is the sole authority for.
 -->
-
-<The responsibilities and data it is the sole authority for.>
 
 ### Hides
 
@@ -154,14 +156,11 @@ on. Required, and "none" is not an answer: an element that hides no
 decision is a candidate to merge into a neighbor.
 -->
 
-<The design decision likely to change that no other element may depend
-on.>
-
 ### Does not own
 
 <!--
-Each excluded responsibility, with its owner's [[slug]] (rule 8), each in
-its own paragraph.
+Each excluded responsibility, with its owner's [[slug]]
+("Name owners, not neighbors"), each in its own paragraph.
 -->
 
 <Excluded responsibility> — [[<owner-slug>]] owns it.
@@ -188,7 +187,8 @@ a contract document.
 ### Surface
 
 <!--
-The path or symbol that defines the interface (rule 3).
+The path or symbol that defines the interface
+("Point the interface at its definition").
 -->
 
 `<path or symbol>`
@@ -209,7 +209,7 @@ against>.
 <!--
 The abstractions and contracts this component depends on, with their
 preconditions, in EARS. Name an abstraction or a contract, never a sibling
-component: edges belong to the host (rule 8).
+component: edges belong to the host ("Name owners, not neighbors").
 -->
 
 WHEN <operation> is called, <abstraction or [[contract-<name>]]> SHALL
@@ -228,7 +228,8 @@ Each pattern the component follows, including entries all of its code
 follows, such as Make Illegal States Unrepresentable. Draw on the
 universal guide and the components guide. Name each pattern with its
 progenitor, its roles mapped to this component's types, and the present
-need it serves. State what it rules out as an invariant (rule 14).
+need it serves. State what it rules out as an invariant
+("Name each pattern with its progenitor, constraint, and need").
 -->
 
 <Pattern> (<progenitor>) — <roles mapped to this component's types>;
@@ -238,7 +239,7 @@ need it serves. State what it rules out as an invariant (rule 14).
 
 <!--
 EARS statements that hold across all operations, each ending "Enforced
-by: <test, check, lint, or review only>" (rule 5).
+by: <test, check, lint, or review only>" ("Say what enforces each invariant").
 -->
 
 The component SHALL <invariant that holds across all operations>.
@@ -249,7 +250,7 @@ Enforced by: <test, check, lint, or review only>.
 <!--
 Where the component is designed to grow, the intended way in, and the
 wrong way to extend it. If it has none, write "None: <why it is closed>"
-(rule 12).
+("State where the element grows").
 -->
 
 <Where it grows> — <the intended way in>. Not by <the wrong way to
@@ -295,7 +296,8 @@ Every instance SHALL NOT <divergence that would break the pattern>.
 ### Instances
 
 <!--
-One paragraph per instance: where it lives and how it differs (rule 11).
+One paragraph per instance: where it lives and how it differs
+("Give each pattern instance one line").
 -->
 
 **<InstanceName>** — `<path>`; <how it differs>.
@@ -328,8 +330,6 @@ cutting requirements document, not here.
 WHEN <a kind of change is made>, <the artifacts that must change
 together> SHALL be updated in the same change.
 
-<A layering or boundary rule any change must respect, in EARS.>
-
 ### Anti-patterns
 
 <!--
@@ -341,9 +341,10 @@ Each a wrong change that caused a real defect, and the defect it caused.
 ### Verification gates
 
 <!--
-The gates in two groups (rule 10), each gate in its own paragraph. CI and
-downstream agents still run the full suite. Feature Blueprints map their
-AC coverage "Verified by" column onto these gates.
+The gates in two groups ("Verify isolation tests always"), each gate in
+its own paragraph. CI and downstream agents still run the full suite.
+Feature Blueprints map their AC coverage "Verified by" column onto these
+gates.
 -->
 
 #### Verify always
@@ -352,8 +353,6 @@ AC coverage "Verified by" column onto these gates.
 The isolation tests under test_paths, as runnable targets (test paths,
 ids, or task names).
 -->
-
-<Isolation tests under test_paths, as runnable targets.>
 
 #### Verify conditionally
 
@@ -391,8 +390,9 @@ information. Remove the whole section when the document leaves draft.
 <!--
 Optional. What a reader needs next, one paragraph each: [[slug]] for
 documents in this corpus, a URL for anything outside it. Limit it to the
-host, Contracts, ADRs, and guides (rule 8). Don't list sibling elements
-or FRDs. Remove the section when there is nothing to cite.
+host, Contracts, ADRs, and guides ("Name owners, not neighbors"). Don't
+list sibling elements or FRDs. Remove the section when there is nothing to
+cite.
 
 C4 mapping rules and diagram conventions are in this skill's
 `shared/c4-standards.md`. Read it while authoring, but do not cite it
@@ -400,5 +400,3 @@ here: it is not a document in your corpus.
 -->
 
 [[container-<name>]] — the container this component is composed into
-
-<Additional references>

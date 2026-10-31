@@ -19,7 +19,8 @@ components and submodules of a module, compose. Ask them again when you audit
 that element's blueprint. Use them with the universal guide,
 [[guide-design-principles]], which also explains how to choose patterns and
 notes that these lists are incomplete. Record each pattern the design adopts
-under rule 14 of [[blueprint-content-standards]].
+under
+[[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]].
 
 | Entry | Progenitors | Questions it answers |
 |-------|-------------|----------------------|
@@ -42,4 +43,5 @@ under rule 14 of [[blueprint-content-standards]].
 - [[guide-design-principles]] — the universal guide, and how to choose patterns
 - [[guide-design-principles-components]] — patterns for the code inside a
   component
-- [[blueprint-content-standards]] — rule 14 and the blueprint audit
+- [[blueprint-content-standards]] — how a blueprint names patterns, and the
+  blueprint audit
