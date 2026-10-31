@@ -485,10 +485,6 @@ truthful again. Keep one checkbox per affected document.
 - [ ] Run the blueprint audit on each blueprint a delta folds into
 - [ ] Every AC in the coverage table is verified at its declared level
   and cited from its tests per [[ac-traceability-standards]]
-- [ ] Every behaviour this blueprint decided that no FRD criterion asks
-  for (a refusal, an error path, a registration) is lifted into the FRD
-  as a criterion and cited from its test; it must not retire with this
-  document
 - [ ] Every issue listed as subsumed in Tracker reconciliation is
   closed or re-scoped (omit WHERE that section states "None.")
 - [ ] No live document references this blueprint (`specs refs

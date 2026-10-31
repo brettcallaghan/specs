@@ -54,8 +54,6 @@ under each element's `test_paths`, not listed in blueprints.
 **Negative:**
 - Deriving traceability needs every active Component and Module Blueprint to
   declare `test_paths`.
-- A behavior that a Feature Blueprint decides and no criterion states must be
-  lifted into the FRD before the Feature Blueprint retires.
 
 ## References
 
