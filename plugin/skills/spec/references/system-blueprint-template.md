@@ -174,29 +174,42 @@ C4Container
 
 <!--
 How the system is built to stay sound as its containers change.
-
-- Integration style and patterns: how the containers interact and stay
-  consistent, for example Event-Driven Architecture, with a Saga for each
-  transaction that spans containers. Draw on the universal guide and the
-  systems guide. Name each pattern with its progenitor, the roles its
-  containers play, and the present need it serves; state what it rules out
-  as an invariant (rule 14).
-- Invariants: EARS statements that hold across the system, each ending
-  "Enforced by: <test, check, lint, or review only>" (rule 5).
-- Extension points: where a new container or integration joins, the
-  intended way in, and the wrong way to extend the system. WHEN it has
-  none, write "None: <why it is closed>" (rule 12).
 -->
 
-- **Integration style and patterns:**
-  - <Pattern> (<progenitor>) — <the roles its containers play>; <the
-    present need it serves>.
-- **Invariants:**
-  - The system SHALL <invariant that holds across containers>.
-    Enforced by: <test, check, lint, or review only>.
-- **Extension points:**
-  - <Where a new container or integration joins> — <the intended way in>.
-    Not by <the wrong way to extend it>.
+### Integration style and patterns
+
+<!--
+How the containers interact and stay consistent, for example
+Event-Driven Architecture, with a Saga for each transaction that spans
+containers. Draw on the universal guide and the systems guide. Name each
+pattern with its progenitor, the roles its containers play, and the
+present need it serves; state what it rules out as an invariant
+(rule 14).
+-->
+
+- <Pattern> (<progenitor>) — <the roles its containers play>; <the
+  present need it serves>.
+
+### Invariants
+
+<!--
+EARS statements that hold across the system, each ending "Enforced by:
+<test, check, lint, or review only>" (rule 5).
+-->
+
+- The system SHALL <invariant that holds across containers>.
+  Enforced by: <test, check, lint, or review only>.
+
+### Extension points
+
+<!--
+Where a new container or integration joins, the intended way in, and the
+wrong way to extend the system. If it has none, write "None: <why it is
+closed>" (rule 12).
+-->
+
+- <Where a new container or integration joins> — <the intended way in>.
+  Not by <the wrong way to extend it>.
 
 ## Public Contracts
 
@@ -275,13 +288,16 @@ to what. Invariants that hold across containers belong in Design. Constraints sc
 container belong in that [[container-<name>]] blueprint's Change guidance,
 not here; organization-wide rules belong in a cross-cutting requirements
 document referenced from Cross-cutting Standards.
+-->
 
-WHEN prose anywhere in this blueprint mentions a known defect or other
-open tracker issue, it SHOULD cite the tracker ID in greppable form
-(e.g. `proj-ab12`) — feature-blueprint authors harvest these IDs when
-reconciling their deltas against the tracker.
+- WHEN <a change spans containers>, <the artifacts that must change
+  together> SHALL be updated in the same change.
+- <A cross-container boundary rule any change must respect, in EARS.>
 
-End with the Verification gates, in two tiers (rule 10):
+### Verification gates
+
+<!--
+List the gates in two tiers (rule 10):
   - Tier 1, always: the system-level suites every cross-container change
     runs, as runnable targets.
   - Tier 2, WHEN <condition>: each wider suite (integration, end-to-end,
@@ -290,13 +306,9 @@ Feature blueprints map their AC coverage "Verified by" column onto these
 gates.
 -->
 
-- WHEN <a change spans containers>, <the artifacts that must change
-  together> SHALL be updated in the same change.
-- <A cross-container boundary rule any change must respect, in EARS.>
-- **Verification gates:**
-  - Tier 1 (always): <system-level suites every cross-container change
-    runs, as runnable targets>.
-  - Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
+- Tier 1 (always): <system-level suites every cross-container change runs, as
+  runnable targets>.
+- Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
 
 ## Key decisions
 

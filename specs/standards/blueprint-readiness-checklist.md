@@ -78,19 +78,15 @@ time.
    are the stable identity that Work Orders carry through grooming and
    re-grooming.
 9. For every lockstep-update rule in the owning blueprints' Change
-   Guidance whose coupled artifacts span more than one delta block,
-   the blueprint states how the rule is satisfied (in the delta or in
-   Sequencing constraints). Reconciling such a rule is a design
-   decision. Its absence is a content gap, not a groom-time judgment
-   call.
+   guidance whose coupled artifacts span more than one delta block, the
+   blueprint states how the rule is satisfied.
 10. The Tracker reconciliation section exists and either classifies
     every listed issue as subsumed, prerequisite, or out-of-scope, or
     states "None." Where the project has no tracker, "None." also
     satisfies the check.
-11. No element delta carries FRD behavior. When an FRD criterion already
-    states a behavior, the delta cites its AC id in AC coverage and
-    doesn't restate it. A behavior the blueprint decides that no criterion
-    states is marked "(lift to FRD)" ([[adr-033]]).
+11. No element delta restates FRD behavior, and every behavior the
+    blueprint decides that no criterion states is marked "(lift to FRD)"
+    ([[adr-033]]).
 
 ### The decision sweep — authoring preflight for check 7
 

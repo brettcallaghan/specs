@@ -159,55 +159,80 @@ not in the body.
 ## Interface
 
 <!--
-What the host container's other components may depend on.
-
-- Surface: the path or symbol that defines the interface (rule 3).
-- Provides: the postconditions consumers rely on, in EARS.
-- Requires: the abstractions and contracts this component depends on,
-  with their preconditions, in EARS. Name an abstraction or a contract,
-  never a sibling component: edges belong to the host (rule 8).
-
-An interface consumed ACROSS containers is a contract on a shared unit —
-that unit is a module, not a component (module blueprint), and its
-interface may warrant a contract document.
+What the host container's other components may depend on. An interface
+consumed ACROSS containers is a contract on a shared unit: that unit is a
+module, not a component (module blueprint), and its interface may warrant
+a contract document.
 -->
 
-- **Surface:** `<path or symbol>`
-- **Provides:**
-  - The component SHALL <postcondition consumers rely on>.
-  - The component SHALL NOT <thing consumers must not have to defend
-    against>.
-- **Requires:**
-  - WHEN <operation> is called, <abstraction or [[contract-<name>]]> SHALL
-    <precondition this component depends on>.
+### Surface
+
+<!--
+The path or symbol that defines the interface (rule 3).
+-->
+
+`<path or symbol>`
+
+### Provides
+
+<!--
+The postconditions consumers rely on, in EARS.
+-->
+
+- The component SHALL <postcondition consumers rely on>.
+- The component SHALL NOT <thing consumers must not have to defend
+  against>.
+
+### Requires
+
+<!--
+The abstractions and contracts this component depends on, with their
+preconditions, in EARS. Name an abstraction or a contract, never a sibling
+component: edges belong to the host (rule 8).
+-->
+
+- WHEN <operation> is called, <abstraction or [[contract-<name>]]> SHALL
+  <precondition this component depends on>.
 
 ## Design
 
 <!--
 How the component is built to stay sound as it changes.
-
-- Patterns and principles: each pattern the component follows, including
-  entries all of its code follows, such as Make Illegal States
-  Unrepresentable. Draw on the universal guide and the components guide.
-  Name each pattern with its progenitor, its roles mapped to this
-  component's types, and the present need it serves; state what it rules
-  out as an invariant (rule 14).
-- Invariants: EARS statements that hold across all operations, each
-  ending "Enforced by: <test, check, lint, or review only>" (rule 5).
-- Extension points: where the component is designed to grow, the
-  intended way in, and the wrong way to extend it. WHEN it has none,
-  write "None: <why it is closed>" (rule 12).
 -->
 
-- **Patterns and principles:**
-  - <Pattern> (<progenitor>) — <roles mapped to this component's types>;
-    <the present need it serves>.
-- **Invariants:**
-  - The component SHALL <invariant that holds across all operations>.
-    Enforced by: <test, check, lint, or review only>.
-- **Extension points:**
-  - <Where it grows> — <the intended way in>. Not by <the wrong way to
-    extend it>.
+### Patterns and principles
+
+<!--
+Each pattern the component follows, including entries all of its code
+follows, such as Make Illegal States Unrepresentable. Draw on the
+universal guide and the components guide. Name each pattern with its
+progenitor, its roles mapped to this component's types, and the present
+need it serves; state what it rules out as an invariant (rule 14).
+-->
+
+- <Pattern> (<progenitor>) — <roles mapped to this component's types>;
+  <the present need it serves>.
+
+### Invariants
+
+<!--
+EARS statements that hold across all operations, each ending "Enforced
+by: <test, check, lint, or review only>" (rule 5).
+-->
+
+- The component SHALL <invariant that holds across all operations>.
+  Enforced by: <test, check, lint, or review only>.
+
+### Extension points
+
+<!--
+Where the component is designed to grow, the intended way in, and the
+wrong way to extend it. If it has none, write "None: <why it is closed>"
+(rule 12).
+-->
+
+- <Where it grows> — <the intended way in>. Not by <the wrong way to
+  extend it>.
 
 ## Pattern guidance
 
@@ -225,19 +250,33 @@ and conformance gates here, and reference the existing document (by
 repo-relative path, per [[template-authoring-standards]]) as the detailed
 specification.
 
-Building a new instance follows the extension point in Design; refer to
-it rather than repeating it. Give each instance one line: where it lives
-and how it differs (rule 11).
 -->
 
-**Building a new instance:** see the extension point in Design.
+### Building a new instance
 
-**Conformance — every instance:**
+<!--
+Building a new instance follows the extension point in Design. Refer to it
+rather than repeating it.
+-->
+
+See the extension point in Design.
+
+### Conformance
+
+<!--
+The rules every instance meets, in EARS.
+-->
+
+Every instance:
 
 - SHALL <structural or behavioral rule all instances meet>.
 - SHALL NOT <divergence that would break the pattern>.
 
-**Instances:**
+### Instances
+
+<!--
+One line per instance: where it lives and how it differs (rule 11).
+-->
 
 - **<InstanceName>** — `<path>`; <how it differs>.
 
@@ -266,16 +305,24 @@ It is not a task list or a commands reference — reference the repository's bui
 contributor docs for procedure rather than duplicating them (duplication
 drifts). Constraints that span multiple elements belong in a cross-
 cutting requirements document, not here.
+-->
 
-List anti-patterns: each a wrong change that caused a real defect, with
-its tracker id.
+- WHEN <a kind of change is made>, <the artifacts that must change
+  together> SHALL be updated in the same change.
+- <A layering or boundary rule any change must respect, in EARS.>
 
-WHEN prose anywhere in this blueprint mentions a known defect or other
-open tracker issue, it SHOULD cite the tracker ID in greppable form
-(e.g. `proj-ab12`) — feature-blueprint authors harvest these IDs when
-reconciling their deltas against the tracker.
+### Anti-patterns
 
-End with the Verification gates, in two tiers (rule 10):
+<!--
+Each a wrong change that caused a real defect, and the defect it caused.
+-->
+
+- <The wrong change> — <the defect it caused>.
+
+### Verification gates
+
+<!--
+List the gates in two tiers (rule 10):
   - Tier 1, always: the isolation tests under test_paths, as runnable
     targets (test paths, ids, or task names).
   - Tier 2, WHEN <condition>: each wider suite, with the change that
@@ -285,15 +332,8 @@ CI and downstream agents still run the full suite. Feature blueprints
 map their AC coverage "Verified by" column onto these gates.
 -->
 
-- WHEN <a kind of change is made>, <the artifacts that must change
-  together> SHALL be updated in the same change.
-- <A layering or boundary rule any change must respect, in EARS.>
-- **Anti-patterns:**
-  - <The wrong change> — <the defect it caused> (`<tracker-id>`).
-- **Verification gates:**
-  - Tier 1 (always): <isolation tests under test_paths, as runnable
-    targets>.
-  - Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
+- Tier 1 (always): <isolation tests under test_paths, as runnable targets>.
+- Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
 
 ## Key decisions
 
