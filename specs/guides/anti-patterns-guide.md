@@ -32,6 +32,12 @@ a reviewer can cite the row instead of arguing from taste.
 | Filing a private schema as a standalone Contract | It freezes a container's internal implementation into a de facto public interface. |
 | Deep component internals in a Container Blueprint | They bloat the Container Blueprint. Extract a component to a Component Blueprint or Module Blueprint when it warrants its own document. |
 | Filing a shared, published, or composite unit as a component | The unit crosses a boundary of independent change. Author a Module Blueprint (versioning and change rules). |
+| Restating code facts in a blueprint: counts, versions, member lists, file layouts | Nothing updates them when the code changes, so they drift. Link the code instead ([[blueprint-content-standards]] rules 1 and 2). |
+| Restating acceptance criteria in a blueprint | Two owners of one behavior diverge, and the FRD is the copy tests cite. Cite an AC id only as the reason for a rule ([[blueprint-content-standards]] rule 4). |
+| Listing implemented features in a blueprint | The list drifts, and test citations already record which element implements which criterion ([[blueprint-content-standards]] rule 4). |
+| Listing a component's neighbors in its Component Blueprint | Edges belong to the host's blueprint and drift when restated. Name the owner of each excluded responsibility instead ([[blueprint-content-standards]] rule 8). |
+| Subcomponents in a component | A unit whose parts each need their own interface or change guidance is a module. Author a Module Blueprint. |
+| Verification gates that start with whole-system suites | They're slow and don't point at the broken element. List isolation tests first, and wider suites with the condition that requires each ([[blueprint-content-standards]] rule 10). |
 | Per-container diagrams redrawing shared deployment topology | N copies drift. The System Blueprint's deployment diagrams are authoritative. |
 | Modeling ambient platforms (logging, mesh) as diagram elements | They dilute every view. Use prose plus a cross-cutting Standards document. |
 | Authoring a Contract for a third-party (SaaS) interface | The vendor's published contract governs. Reference it by URL instead. |

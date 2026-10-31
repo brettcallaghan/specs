@@ -27,6 +27,9 @@ status: active
   width, instruction blocks, reference resolution)
 - Gherkin check #9 — are the features and acceptance criteria well
   formed?
+- Architecture blueprint checks #10–#11 — does the blueprint state only
+  what the code can't? (blueprint audit, code references, ownership,
+  sections)
 
 This list applies to every document type. The `spec` skill runs these
 checks before any document is set to `ready-for-review`. Only this
@@ -100,7 +103,7 @@ the message names the exclusion reason. It never reports a clean
 document for a path that the corpus doesn't hold.
 
 A `frontmatter/parse` finding (row 0 in the following table) comes
-before all the others and isn't one of the nine checks. It means the
+before all the others and isn't one of the eleven checks. It means the
 frontmatter couldn't be read as a document envelope, so no other check
 examined the document. Fix it and run the check again before you read
 anything else in the report. The usual cause is a `status` or other
@@ -118,12 +121,14 @@ enumerated value outside its vocabulary.
 | 7 | No template instruction blocks survive | you |
 | 8 | Every `[[slug]]` reference resolves | `specs check` |
 | 9 | Every feature and criterion is well formed and identified | `specs check`, plus you |
+| 10 | An architecture blueprint passes the blueprint audit | you |
+| 11 | An architecture blueprint's code references resolve, its source paths don't overlap a sibling's, and its required sections are present | you — CLI planned |
 
 **A clean `specs check` isn't a passing document.** It means that row
 0, checks 1–3 and 8, and the machine-checkable half of check 9 passed.
-Checks 4, 5, and 7 are judgment calls the tool doesn't make, and check 6
-is specified but not built. For those four, a silent tool isn't a
-passing grade.
+Checks 4, 5, 7, and 10 are judgment calls the tool doesn't make, and
+checks 6 and 11 are specified but not built. For those six, a silent tool
+isn't a passing grade.
 
 Check 8 covers heading anchors too: `specs check` resolves
 `[[container-x#Some Heading]]` on `container-x`, and then matches the
@@ -212,6 +217,18 @@ tests for.
      a fence. Compressing a step to satisfy one silently changes what
      the criterion says.
 
+## Architecture blueprint checks
+
+Run these checks only on a System, Container, Module, or Component
+Blueprint. [[blueprint-content-standards]] owns every rule they test for.
+
+10. The blueprint passes the blueprint audit in
+    [[blueprint-content-standards]].
+11. Every backticked path and symbol names something under the
+    blueprint's `source_paths` or `test_paths`. A Component or Module
+    Blueprint's `source_paths` don't overlap a sibling's. Every section
+    the type's template requires is present.
+
 ---
 
 ## Running the checklist
@@ -237,3 +254,5 @@ while any check fails.
   failures that check 9 tests for
 - [[blueprint-readiness-checklist]] — the separate groomability gate
   that Feature Blueprints also run
+- [[blueprint-content-standards]] — the rules and the audit that checks
+  10 and 11 test for
