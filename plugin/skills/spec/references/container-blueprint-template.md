@@ -114,17 +114,36 @@ active.
 ## Overview
 
 <!--
-What this container is and does, in 1-2 paragraphs, plus the facts a
-newcomer needs: its responsibility, what it does not own and who does
-(rule 8), and its runtime/hosting model. The technologies it is built
-from go in Tech stack, below.
-Keep reasoning out — decisions go in Key decisions.
+What this container is and does, in one or two paragraphs. The
+technologies it is built from go in Tech stack, below. Keep reasoning
+out: decisions go in Key decisions.
 -->
 
-- **Responsibility:** <what this container does within the system>
-  - **Does not own:** <excluded responsibility> — [[<owner-slug>]] owns
-    it.
-- **Runtime:** <how and where it runs — platform, scaling model>
+<What this container is and does.>
+
+### Responsibility
+
+<!--
+What this container does within the system.
+-->
+
+<What this container does within the system.>
+
+### Does not own
+
+<!--
+Each excluded responsibility, with its owner's [[slug]] (rule 8).
+-->
+
+- <Excluded responsibility> — [[<owner-slug>]] owns it.
+
+### Runtime
+
+<!--
+How and where it runs: its platform and scaling model.
+-->
+
+<How and where it runs.>
 
 ## Tech stack
 
