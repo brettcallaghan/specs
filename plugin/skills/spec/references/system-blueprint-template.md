@@ -4,8 +4,9 @@ entity_name: <System Name>           # the element, as diagrams draw it
 technology: <language, framework or package type>
                                      # optional; the technology line drawn on
                                      # diagrams — omit WHEN not meaningful
-description: <One-sentence summary of the system and the capabilities it
-  bundles — its brief description, shown on diagrams>
+description: <What it owns>. Change it to <kinds of change>.
+                                     # rule 7; the brief description, shown
+                                     # on diagrams
 slug: system-<system-name>
 type: system-blueprint
 status: draft
@@ -16,6 +17,9 @@ contracts_consumed: []               # contract slugs this system consumes
 Template: System Blueprint
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
+  Load `shared/blueprint-content-standards.md` and
+  `shared/component-design-guide.md` before authoring. "Rule N" below
+  cites a rule in the content standards.
 
 Sections (complete each, then delete its instruction block)
   - Overview
@@ -136,7 +140,8 @@ The containers are DECLARED in the list below; the C4 Container diagram
 is a view rendered from those declarations (see `shared/c4-standards.md`). Each
 declaration captures: the container's name (canonical — used verbatim on
 diagrams), its technology, and a brief description that doubles as the
-diagram's description text.
+diagram's description text. Each declaration states the container's
+responsibility only, and rule 1 applies to the brief descriptions.
 
 The detailed description of an active container lives in its
 [[container-<name>]] blueprint — do not restate internals here. Passive
@@ -246,18 +251,23 @@ open tracker issue, it SHOULD cite the tracker ID in greppable form
 (e.g. `proj-ab12`) — feature-blueprint authors harvest these IDs when
 reconciling their deltas against the tracker.
 
-End with a Verification gates entry naming the system-level suites
-(integration, end-to-end, contract tests) that gate cross-container
-changes. Feature blueprints map their AC coverage "Verified by" column
-onto these gates.
+End with the Verification gates, in two tiers (rule 10):
+  - Tier 1, always: the system-level suites every cross-container change
+    runs, as runnable targets.
+  - Tier 2, WHEN <condition>: each wider suite (integration, end-to-end,
+    contract tests), with the change that requires it.
+Feature blueprints map their AC coverage "Verified by" column onto these
+gates.
 -->
 
 - WHEN <a change spans containers>, <the artifacts that must change
   together> SHALL be updated in the same change.
 - <A cross-container boundary or invariant rule any change must respect,
   in EARS.>
-- **Verification gates:** <the system-level integration / end-to-end /
-  contract-test suites that gate cross-container changes>.
+- **Verification gates:**
+  - Tier 1 (always): <system-level suites every cross-container change
+    runs, as runnable targets>.
+  - Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
 
 ## Key decisions
 

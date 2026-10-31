@@ -4,8 +4,9 @@ entity_name: <Module Name>           # the element, as diagrams draw it
 technology: <language, framework or package type>
                                      # optional; the technology line drawn on
                                      # diagrams — omit WHEN not meaningful
-description: <One-sentence summary of the module and why it warrants
-  standalone documentation — its brief description, shown on diagrams>
+description: <What it owns>. Change it to <kinds of change>.
+                                     # rule 7; the brief description, shown
+                                     # on diagrams
 slug: module-<module-name>
 type: module-blueprint
 status: draft
@@ -25,11 +26,15 @@ version: "0.1"                       # required WHEN visibility: public
 Template: Module Blueprint
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
+  Load `shared/blueprint-content-standards.md` and
+  `shared/component-design-guide.md` before authoring. "Rule N" below
+  cites a rule in the content standards.
 
 Sections (complete each, then delete its instruction block)
-  - Overview
+  - Responsibility
   - Tech stack
   - Interface
+  - Design
   - Components
   - Pattern guidance
   - Versioning and compatibility
@@ -67,8 +72,10 @@ Reader profile (apply with the tech-writer skill)
 - Wants: its interface, versioning and compatibility rules, and the change
   guidance feature work must respect.
 - Budget: one focused read.
-- Tone: matter-of-fact and exact: name interfaces, versions, and compatibility
-  promises. Decisions and their alternatives belong in ADRs.
+- Tone: matter-of-fact and exact. For a public module, name interfaces,
+  versions, and compatibility promises. Link the code a rule depends on;
+  don't describe what the code shows (rule 2). Decisions and their
+  alternatives belong in ADRs.
 
 When to use — either trigger is sufficient
   - SHARED / PUBLISHED: the unit is vended or consumed across containers
@@ -105,13 +112,10 @@ When NOT to use
   - An interface's shape and semantics → `contract-template.md`.
 
 Edges — light on outward, authoritative on internal
-  A module does NOT document its outward relationships (to the sibling
-  components of its host container): those edges are owned by the host
-  [[container-<name>]] blueprint — a shared module has different neighbors
-  in each host, so they cannot live here. Point to the host(s) instead.
-  WHERE a module has internal components, it DOES own the relationships
-  among them, declared in the Components section — "the container owns
-  the edges among its children," applied one level down.
+  Each host [[container-<name>]] blueprint owns this module's edges to its
+  siblings; point to the hosts (rule 8). WHERE a module has internal
+  components, it DOES own the relationships among them, declared in the
+  Components section.
 
 Lifecycle migration
   WHEN an internal module is published to a registry, THEN its
@@ -143,30 +147,36 @@ active.
 
 # <Module Name>
 
-## Overview
+## Responsibility
 
 <!--
-What this module is, why it exists as a documented unit, and how it is
-vended. Cover, in 1-2 paragraphs plus the facts below:
-  - its role — what it does within the container(s) that host it;
-  - its scope — what is in scope and, explicitly, what is out of scope;
-  - how it is vended/composed — package registry (npm/PyPI/Maven),
-    monorepo build target, plugin loaded at runtime, IaC module
-    registry, module-federation remote, generated code.
+One paragraph on why this module exists, then the five bullets below.
+
+- Owns: the responsibilities and data this module is the sole authority
+  for.
+- Hides: the design decision likely to change that no other element may
+  depend on. Required, and "none" is not an answer: an element that hides
+  no decision is a candidate to merge into a neighbor.
+- Does not own: each excluded responsibility, with its owner's [[slug]]
+  (rule 8).
+- Composed into: each host container.
+- Vended as: package registry (npm, PyPI, Maven), monorepo build target,
+  plugin loaded at runtime, IaC module registry, module-federation
+  remote, or generated code.
 
 Source and test roots go in the source_paths and test_paths frontmatter,
 not in the body.
-
-Relationships: point to the host [[container-<name>]]; do NOT restate the
-edges to sibling components here (see the instruction block above).
 -->
 
-- **Role:** <what this module does within its host container>
-- **Scope:** in — <what this module owns>; out — <what it deliberately
-  does not do>.
-- **Composed into:** [[container-<name>]] (one per host container) — <how
-  it is vended and composed>; see those blueprints for this module's
-  relationships to sibling components.
+<Why this module exists.>
+
+- **Owns:** <the responsibilities and data it is the sole authority for>.
+- **Hides:** <the design decision likely to change that no other element
+  may depend on>.
+- **Does not own:** <excluded responsibility> — [[<owner-slug>]] owns it.
+- **Composed into:** [[container-<name>]] (one per host container); see
+  those blueprints for this module's relationships to sibling components.
+- **Vended as:** <how it is vended and composed>.
 
 ## Tech stack
 
@@ -184,9 +194,8 @@ author an ADR only to fill the slot. An ADR cited here SHALL also be
 listed under Key decisions, which stays the complete index of decisions
 governing this module.
 
-Do not state dependency versions: they are volatile facts (see
-[[template-authoring-standards]] § Avoid Volatile Facts). WHEN a version
-is contractual (a minimum supported runtime, a pinned toolchain), state
+Do not state dependency versions (rule 1). WHEN a version is
+contractual (a minimum supported runtime, a pinned toolchain), state
 it as a requirement in EARS in Change guidance instead.
 
 The frontmatter `technology` value is the short label diagrams draw; it
@@ -199,26 +208,53 @@ SHALL agree with the primary entries here.
 ## Interface
 
 <!--
-The module's public surface — what its host and consumers may depend on.
-Point at the source of truth for the shape (type definitions, plugin
-API, module schema) rather than duplicating it. State the semantic
-guarantees consumers can rely on, in EARS.
+What this module's hosts and consumers may depend on.
 
-This section documents what the module PROVIDES; there is deliberately
-no consumed-dependencies section — a module's dependencies are outward
-edges, owned by its host container and discovered from code (see the
-Edges note in the instruction block above).
+- Surface: the path or symbol that defines the interface: type
+  definitions, plugin API, or module schema (rule 3).
+- Provides: the postconditions consumers rely on, in EARS.
+- Requires: the abstractions and contracts this module depends on, with
+  their preconditions, in EARS. Requires lists abstractions and
+  contracts, not edges: a module's edges belong to each host (rule 8).
 
 IF the interface is formally specified and consumed across team
 boundaries, THEN author a contract document for it and reference it
 here instead of documenting the surface inline.
 -->
 
-- **Surface:** <link to exported API / plugin contract / module schema>
-- **Guarantees:**
-  - The module SHALL <semantic guarantee consumers can rely on>.
+- **Surface:** `<path or symbol>`
+- **Provides:**
+  - The module SHALL <postcondition consumers rely on>.
   - The module SHALL NOT <thing consumers must not have to defend
     against>.
+- **Requires:**
+  - WHEN <operation> is called, <abstraction or [[contract-<name>]]> SHALL
+    <precondition this module depends on>.
+
+## Design
+
+<!--
+How the module is built to stay sound as it changes.
+
+- Patterns and principles: for each pattern the code uses, its roles
+  mapped to this module's types, why it fits here, and what would break
+  it.
+- Invariants: EARS statements that hold across all operations, each
+  ending "Enforced by: <test, check, lint, or review only>" (rule 5).
+- Extension points: where the module is designed to grow, the intended
+  way in, and the wrong way to extend it. WHEN it has none, write "None:
+  <why it is closed>" (rule 12).
+-->
+
+- **Patterns and principles:**
+  - <Pattern> — <roles mapped to this module's types>; <why it fits
+    here>; <what would break it>.
+- **Invariants:**
+  - The module SHALL <invariant that holds across all operations>.
+    Enforced by: <test, check, lint, or review only>.
+- **Extension points:**
+  - <Where it grows> — <the intended way in>. Not by <the wrong way to
+    extend it>.
 
 ## Components
 
@@ -234,11 +270,13 @@ Component diagram is a view rendered from those declarations (see
 
 Each declaration captures: the component's name (canonical — used
 verbatim on diagrams), its technology or kind, a brief description that
-doubles as the diagram's description text, and a detailed description —
+doubles as the diagram's description text, and a detailed description.
+The detailed description states the component's responsibility and the
+decision it hides, never its functions, files, or other internals.
   - atomic internal component: a follow-on sentence or two here IS the
     detailed description, AND the declaration carries a machine-readable
     record block (see below);
-  - complex or shared internal component (itself a composite): link its
+  - an internal component or module with its own blueprint: link its
     [[component-<name>]] or [[module-<name>]] blueprint and do not restate its
     internals.
 
@@ -289,7 +327,7 @@ technology: <technology / kind>      # optional; the technology line drawn on
 ```
 
 (<kind>) — <brief description, as it appears on diagrams>. <Detailed
-description: responsibilities and boundaries.>
+description: its responsibility and the decision it hides.>
 
 ### <ComponentB>
 
@@ -368,8 +406,8 @@ visibility where it matters: a public (published) module must honor
 backwards compatibility and record change history; an internal module
 may break in lockstep with its in-repo consumers.
 
-This section carries ARCHITECTURAL constraints: invariants, lockstep-
-update rules, layering boundaries between internal components,
+This section carries ARCHITECTURAL constraints: lockstep-update rules,
+layering boundaries between internal components,
 regeneration obligations. It is not a task list or a commands
 reference — reference the repository's build and contributor docs for
 procedure rather than duplicating them (duplication drifts). Constraints
@@ -381,15 +419,16 @@ open tracker issue, it SHOULD cite the tracker ID in greppable form
 (e.g. `proj-ab12`) — feature-blueprint authors harvest these IDs when
 reconciling their deltas against the tracker.
 
-End with a Verification gates entry. Name the SPECIFIC tests that MUST
-run when this module changes — real runnable targets (test paths, ids,
-or task names), not "the suite." This is the minimal, targeted set an
-agent changing the module runs to prove the change before handoff:
-running the whole suite for every change does not scale (a parallel sprint run
-slows to a crawl), so the blueprint is the authority on what THIS
-module's change must run. CI and downstream agents still run the full
-suite. Feature blueprints map their AC coverage "Verified by" column onto
-these gates.
+Invariants go in Design.
+
+End with the Verification gates, in two tiers (rule 10):
+  - Tier 1, always: the isolation tests under test_paths, as runnable
+    targets (test paths, ids, or task names).
+  - Tier 2, WHEN <condition>: each wider suite, with the change that
+    requires it, such as "WHEN the public interface changes, run the
+    integration suite".
+CI and downstream agents still run the full suite. Feature blueprints
+map their AC coverage "Verified by" column onto these gates.
 -->
 
 - WHEN <a kind of change is made>, <the artifacts that must change
@@ -403,10 +442,10 @@ these gates.
 - WHILE visibility is internal, the module and its in-repo consumers
   evolve together: a breaking change MAY be made in the same change as
   the consumer updates, with no compatibility window.
-- **Verification gates:** <the specific tests that MUST run when this
-  module changes — runnable targets (paths / ids / task names); the
-  minimal targeted set an agent runs before handoff, not the full suite
-  (which CI runs)>.
+- **Verification gates:**
+  - Tier 1 (always): <isolation tests under test_paths, as runnable
+    targets>.
+  - Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
 
 ## Key decisions
 

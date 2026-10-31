@@ -1149,6 +1149,16 @@
           "$ref": "#/definitions/Slug",
           "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
+        "source_paths": {
+          "description": "Repository-relative source roots.\n\nOptional: a container may be assembled entirely from modules, whose\nown blueprints declare their roots.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "status": {
           "$ref": "#/definitions/Status",
           "description": "The document's lifecycle state."
@@ -1189,6 +1199,16 @@
           "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nThe technology line drawn on diagrams.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "test_paths": {
+          "description": "Repository-relative test roots.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -4617,6 +4637,15 @@
             "slug": {
               "$ref": "#/definitions/Slug"
             },
+            "source_paths": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
             "status": {
               "$ref": "#/definitions/Status"
             },
@@ -4652,6 +4681,15 @@
             "technology": {
               "type": [
                 "string",
+                "null"
+              ]
+            },
+            "test_paths": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
                 "null"
               ]
             },

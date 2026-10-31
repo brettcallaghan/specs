@@ -4,8 +4,9 @@ entity_name: <Container Name>        # the element, as diagrams draw it
 technology: <language, framework or package type>
                                      # optional; the technology line drawn on
                                      # diagrams — omit WHEN not meaningful
-description: <One-sentence summary of the container and its responsibility
-  — its brief description, shown on diagrams>
+description: <What it owns>. Change it to <kinds of change>.
+                                     # rule 7; the brief description, shown
+                                     # on diagrams
 slug: container-<container-name>
 type: container-blueprint
 status: draft
@@ -16,18 +17,24 @@ contracts_consumed: []               # contract slugs this container consumes
 modules: []                          # module slugs composed into this
                                      # container; each module's hosts are
                                      # derived from these lists
+source_paths: []                     # optional; repo-relative source roots
+test_paths: []                       # optional; repo-relative test roots
 ---
 
 <!--
 Template: Container Blueprint
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
+  Load `shared/blueprint-content-standards.md` and
+  `shared/component-design-guide.md` before authoring. "Rule N" below
+  cites a rule in the content standards.
 
 Sections (complete each, then delete its instruction block)
   - Overview
   - Tech stack
   - Container context
   - Components
+  - Design
   - Provided Contracts
   - Consumed Contracts
   - Data
@@ -52,8 +59,9 @@ Reader profile (apply with the tech-writer skill)
 - Wants: its stack, components, contracts, owned data, and the change guidance
   feature work must respect.
 - Budget: one focused read.
-- Tone: matter-of-fact, describing the container as it is, with exact names.
-  Decisions and their alternatives belong in ADRs.
+- Tone: matter-of-fact, describing the container as it is, with exact names,
+  linked rather than described (rule 2). Decisions and their alternatives
+  belong in ADRs.
 
 When to use
   - Documenting an application your team builds and runs: API server, web
@@ -107,12 +115,15 @@ active.
 
 <!--
 What this container is and does, in 1-2 paragraphs, plus the facts a
-newcomer needs: its responsibility and runtime/hosting model. The
-technologies it is built from go in Tech stack, below.
+newcomer needs: its responsibility, what it does not own and who does
+(rule 8), and its runtime/hosting model. The technologies it is built
+from go in Tech stack, below.
 Keep reasoning out — decisions go in Key decisions.
 -->
 
 - **Responsibility:** <what this container does within the system>
+  - **Does not own:** <excluded responsibility> — [[<owner-slug>]] owns
+    it.
 - **Runtime:** <how and where it runs — platform, scaling model>
 
 ## Tech stack
@@ -131,9 +142,8 @@ author an ADR only to fill the slot. An ADR cited here SHALL also be
 listed under Key decisions, which stays the complete index of decisions
 governing this container.
 
-Do not state dependency versions: they are volatile facts (see
-[[template-authoring-standards]] § Avoid Volatile Facts). WHEN a version
-is contractual (a minimum supported runtime, a pinned toolchain), state
+Do not state dependency versions (rule 1). WHEN a version is
+contractual (a minimum supported runtime, a pinned toolchain), state
 it as a requirement in EARS in Change guidance instead.
 
 The frontmatter `technology` value is the short label diagrams draw; it
@@ -187,7 +197,9 @@ diagrams), its technology or kind, a brief description that doubles as
 the diagram's description text, and a detailed description. A composed
 unit is declared by a record block, by its own blueprint, or both:
   - un-promoted (a simple internal component): the follow-on sentence(s)
-    here ARE the detailed description, AND the declaration carries a
+    here ARE the detailed description. They state the component's
+    responsibility and the decision it hides, never its internals. The
+    declaration also carries a
     machine-readable record block holding entity_name, slug and
     description (and optionally technology), validated against the
     shared element-record schema:
@@ -247,8 +259,7 @@ technology: <technology / kind>      # optional; the technology line drawn on
 ```
 
 (<technology / kind>) — <brief description, as it appears on diagrams>.
-<Detailed description: responsibilities and boundaries a maintainer needs
-beyond the diagram label.>
+<Detailed description: its responsibility and the decision it hides.>
 
 ### <Component B>
 
@@ -272,6 +283,30 @@ description>.
 See [[module-<name>]] (internal | public).
 (<technology>) — <brief description>; when public, its blueprint carries
 versioning.
+
+## Design
+
+<!--
+How the container is built to stay sound as it changes.
+
+- Architectural style: the style its components follow, for example
+  ports and adapters: which components are the core, and which adapt it
+  to I/O.
+- Invariants: EARS statements that hold across the container, each
+  ending "Enforced by: <test, check, lint, or review only>" (rule 5).
+- Extension points: where the container is designed to grow, the
+  intended way in, and the wrong way to extend it. WHEN it has none,
+  write "None: <why it is closed>" (rule 12).
+-->
+
+- **Architectural style:** <style> — <which components are the core, and
+  which adapt it to I/O>.
+- **Invariants:**
+  - The container SHALL <invariant that holds across the container>.
+    Enforced by: <test, check, lint, or review only>.
+- **Extension points:**
+  - <Where it grows> — <the intended way in>. Not by <the wrong way to
+    extend it>.
 
 ## Provided Contracts
 
@@ -378,8 +413,8 @@ Rules for feature work touching this container: the constraints a
 feature blueprint — and the planning agent downstream of it — must
 respect when changing this container. Write normative rules in EARS.
 
-This section carries ARCHITECTURAL constraints: invariants,
-lockstep-update rules, layering boundaries, regeneration obligations.
+This section carries ARCHITECTURAL constraints: lockstep-update rules,
+layering boundaries, regeneration obligations. Invariants go in Design.
 It is not a task list or a commands reference — reference the
 repository's build/contributor docs for procedure rather than
 duplicating them (duplication drifts). Constraints that span multiple
@@ -391,24 +426,23 @@ open tracker issue, it SHOULD cite the tracker ID in greppable form
 (e.g. `proj-ab12`) — feature-blueprint authors harvest these IDs when
 reconciling their deltas against the tracker.
 
-End with a **Verification gates** entry. Name the SPECIFIC tests that
-MUST run when this container changes — real runnable targets (test
-paths, ids, or task names), not "the suite." This is the minimal,
-targeted set an agent changing the container runs to prove the change
-before handoff: running the whole suite for every change does not scale
-(a parallel sprint run slows to a crawl), so the blueprint is the authority on
-what THIS container's change must run. CI and downstream agents still
-run the full suite. Feature blueprints map their AC coverage "Verified
-by" column onto these gates.
+End with the **Verification gates**, in two tiers (rule 10):
+  - Tier 1, always: the isolation tests under test_paths, as runnable
+    targets (test paths, ids, or task names).
+  - Tier 2, WHEN <condition>: each wider suite, with the change that
+    requires it, such as "WHEN the public interface changes, run the
+    integration suite".
+CI and downstream agents still run the full suite. Feature blueprints
+map their AC coverage "Verified by" column onto these gates.
 -->
 
 - WHEN <a kind of change is made>, <the artifacts that must change
   together> SHALL be updated in the same change.
 - <A layering or boundary rule any change must respect, in EARS.>
-- **Verification gates:** <the specific tests that MUST run when this
-  container changes — runnable targets (paths / ids / task names); the
-  minimal targeted set an agent runs before handoff, not the full suite
-  (which CI runs)>.
+- **Verification gates:**
+  - Tier 1 (always): <isolation tests under test_paths, as runnable
+    targets>.
+  - Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
 
 ## Key decisions
 

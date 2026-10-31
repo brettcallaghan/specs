@@ -16,6 +16,9 @@ frd: frd-<feature-name>              # the FRD this blueprint realizes (1:1)
 Template: Feature Blueprint
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]].
+  Load `shared/blueprint-content-standards.md` and
+  `shared/component-design-guide.md` before authoring. "Rule N" below
+  cites a rule in the content standards.
 
 Sections (complete each, then delete its instruction block)
   - Overview
@@ -196,16 +199,31 @@ in at retirement is a mechanical copy:
     change rules (see the module's Change guidance)
   - a schema change → the container blueprint's Data section shape
     (store, what it holds, EARS invariants)
-  - a new behavior or guarantee → EARS statements
+  - a new or changed guarantee → the owning blueprint's Provides,
+    Requires, Invariants, or Extension points, in EARS
 
 Each block contains, as applicable:
   - Intent: what changes and WHY, in prose (design intent, not tasks)
-  - Behavior: new or changed guarantees, in EARS
+  - Guarantees: changes to the owning blueprint's Provides, Requires,
+    Invariants, or Extension points, in that blueprint's vocabulary, so
+    the fold-in stays a mechanical copy. A behavior that an FRD criterion
+    already states is cited by AC id in AC coverage, not restated here.
+    A behavior this blueprint decides that no criterion states stays as
+    an EARS line marked "(lift to FRD)"; the Definition of done lifts it.
   - Data: schema deltas for stores this element exclusively owns —
     fields, constraints, and the EARS invariants maintained over them.
     Shared surfaces do NOT go here; they get a contract document.
-  - Anchors: existing packages / symbols / migration dirs where the
-    change lands (anchors, not signatures — see document instructions)
+  - Anchors: existing paths or symbols where the change lands, in
+    backticks (rule 2). Anchors, not signatures — see document
+    instructions.
+
+A new component's block declares it with the Component Blueprint's
+Responsibility bullets (Owns, Hides, Does not own) alongside its record
+block.
+
+WHEN a delta changes an element outside the extension points its
+blueprint declares, the block SHALL say so and give the reason.
+groom-feature-blueprint flags such a delta.
 
 Deltas SHALL be independently implementable and testable wherever
 possible; where two deltas cannot land independently, say so in
@@ -224,7 +242,7 @@ a content-check failure at groom time, not a call the groomer makes.
 Before setting `ready-for-review`, run the decision sweep from
 [[blueprint-readiness-checklist]] over every delta: pin each silent
 decision an implementer would otherwise have to make (paths and names,
-defaults, scope cuts, edge-case rules) as an EARS behavior line here,
+defaults, scope cuts, edge-case rules) as an EARS line in Guarantees,
 or raise it as an Open Question. "Anchors, not signatures" warns
 against pinning too much; the sweep guards against pinning too little.
 -->
@@ -233,17 +251,24 @@ against pinning too much; the sweep guards against pinning too little.
 
 **Intent:** <what changes in this container and why.>
 
-**Behavior:**
+**Guarantees** (Invariants of [[container-<name>]]):
 - WHEN <event>, `<ComponentName>` SHALL <new or changed action>.
+- WHEN <event the blueprint decides>, `<ComponentName>` SHALL <action no
+  FRD criterion states>. (lift to FRD)
 
 **New components** (declared in container/module vocabulary, with a
 record block):
 - **<NewComponentName>** (<technology / kind>) — <brief description, as
-  it will appear on diagrams>. <Detailed description: responsibilities
-  and boundaries.>
+  it will appear on diagrams>.
+  - **Owns:** <the responsibilities and data it is the sole authority
+    for>.
+  - **Hides:** <the design decision likely to change that no other
+    element may depend on>.
+  - **Does not own:** <excluded responsibility> — [[<owner-slug>]] owns
+    it.
 
   ```component
-  title: <NewComponentName>
+  entity_name: <NewComponentName>
   slug: component-<new-component-name>
   description: <brief description>
   ```
@@ -253,17 +278,16 @@ record block):
   and constraints>. Migration source of truth: <link>.
   - The container SHALL <invariant maintained over the new data>.
 
-**Anchors:** <existing packages, symbols, or directories where this
-change lands.>
+**Anchors:** `<existing path or symbol where this change lands>`
 
 ### `<ComponentName>` in [[container-<name>]] (modified)
 
 **Intent:** <what changes in this component and why.>
 
-**Behavior:**
+**Guarantees** (Provides of [[component-<name>]]):
 - The component SHALL <new or changed guarantee>.
 
-**Anchors:** <existing code anchors.>
+**Anchors:** `<existing path or symbol>`
 
 ### Relied-upon elements (unchanged)
 
@@ -404,7 +428,9 @@ notes for participating items that become ready before the proving
 item.
 
 Verified by:  the level at which the AC is proven —
-              unit | integration | e2e | manual.
+              unit | integration | e2e | manual. Map it onto the owning
+              blueprint's tier 1 gates first. Name a tier 2 suite only
+              with its condition.
 
 This table is design-time intent; the durable record is the tests
 themselves, which cite their ACs in citation comments per
@@ -447,6 +473,7 @@ truthful again. Keep one checkbox per affected document.
   - [ ] [[component-<name>]] — <sections affected>
 - [ ] [[contract-<name>]] status: draft → active
 - [ ] New ADRs are referenced from the owning blueprints' Key decisions
+- [ ] Run the blueprint audit on each blueprint a delta folds into
 - [ ] Every AC in the coverage table is verified at its declared level
   and cited from its tests per [[ac-traceability-standards]]
 - [ ] Every behaviour this blueprint decided that no FRD criterion asks
