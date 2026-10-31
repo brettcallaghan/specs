@@ -24,8 +24,8 @@ test_paths: []                       # optional; repo-relative test roots
 <!--
 Template: Container Blueprint
 Source: Architecture documentation framework. C4 mapping rules are
-  defined in `shared/c4-standards.md` — load it before authoring.
-  Load `shared/blueprint-content-standards.md` and
+  defined in `shared/c4-standards.md`. Load it,
+  `shared/blueprint-content-standards.md`, and
   `shared/component-design-guide.md` before authoring. "Rule N" below
   cites a rule in the content standards.
 

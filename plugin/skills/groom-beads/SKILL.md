@@ -255,9 +255,9 @@ level, so phase 4's tier keys survive without restating them.
 
 - Distinguish **changes** (code this bead edits) from **impacts** (downstream
   components affected but not edited). Both matter; see below.
-- Derive both from the paths a bead edits. Run `specs owner <path>…` when the
-  installed CLI has that command; it names the elements that own each path.
-  Otherwise, match the paths against each blueprint's `source_paths`.
+- Derive changes from the paths a bead edits. Run `specs owner <path>…` when
+  the installed CLI has that command; it names the elements that own each
+  path. Otherwise, match the paths against each blueprint's `source_paths`.
 - Use a **controlled vocabulary**: read the actual C4 docs and only use component
   names that exist. If a bead targets a component with no doc, flag it in the
   report — that mismatch is either a stale doc or a misunderstanding, and both are

@@ -25,8 +25,8 @@ version: "0.1"                       # required WHEN visibility: public
 <!--
 Template: Module Blueprint
 Source: Architecture documentation framework. C4 mapping rules are
-  defined in `shared/c4-standards.md` — load it before authoring.
-  Load `shared/blueprint-content-standards.md` and
+  defined in `shared/c4-standards.md`. Load it,
+  `shared/blueprint-content-standards.md`, and
   `shared/component-design-guide.md` before authoring. "Rule N" below
   cites a rule in the content standards.
 
@@ -407,19 +407,18 @@ backwards compatibility and record change history; an internal module
 may break in lockstep with its in-repo consumers.
 
 This section carries ARCHITECTURAL constraints: lockstep-update rules,
-layering boundaries between internal components,
-regeneration obligations. It is not a task list or a commands
-reference — reference the repository's build and contributor docs for
-procedure rather than duplicating them (duplication drifts). Constraints
-that span multiple modules or containers belong in a cross-cutting
-requirements document referenced from Cross-cutting Standards, not here.
+layering boundaries between internal components, regeneration
+obligations. Invariants go in Design. It is not a task list or a
+commands reference — reference the repository's build and contributor
+docs for procedure rather than duplicating them (duplication drifts).
+Constraints that span multiple modules or containers belong in a
+cross-cutting requirements document referenced from Cross-cutting
+Standards, not here.
 
 WHEN prose anywhere in this blueprint mentions a known defect or other
 open tracker issue, it SHOULD cite the tracker ID in greppable form
 (e.g. `proj-ab12`) — feature-blueprint authors harvest these IDs when
 reconciling their deltas against the tracker.
-
-Invariants go in Design.
 
 End with the Verification gates, in two tiers (rule 10):
   - Tier 1, always: the isolation tests under test_paths, as runnable

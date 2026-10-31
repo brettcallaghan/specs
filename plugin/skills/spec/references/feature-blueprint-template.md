@@ -206,8 +206,8 @@ Each block contains, as applicable:
   - Intent: what changes and WHY, in prose (design intent, not tasks)
   - Guarantees: changes to the owning blueprint's Provides, Requires,
     Invariants, or Extension points, in that blueprint's vocabulary, so
-    the fold-in stays a mechanical copy. A behavior that an FRD criterion
-    already states is cited by AC id in AC coverage, not restated here.
+    the fold-in stays a mechanical copy. When an FRD criterion already
+    states a behavior, cite its AC id in AC coverage; don't restate it.
     A behavior this blueprint decides that no criterion states stays as
     an EARS line marked "(lift to FRD)"; the Definition of done lifts it.
   - Data: schema deltas for stores this element exclusively owns —

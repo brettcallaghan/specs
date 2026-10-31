@@ -25,8 +25,10 @@ behavior and acceptance criteria ([[adr-033]]). The host blueprint owns how
 sibling elements interact ([[adr-009]]).
 
 Rules 1 to 8 apply to every System, Container, Module, and Component
-Blueprint. Rules 9 to 13 apply to Component and Module Blueprints. Templates
-and skills cite these rules by number and don't restate them.
+Blueprint. Rules 9 to 13 apply to Component and Module Blueprints. A
+Container Blueprint also follows rules 10 and 12, and a System Blueprint
+follows rule 10 with its system-level suites as tier 1. Templates and
+skills cite these rules by number and don't restate them.
 
 Each rule ends with what enforces it. "Planned" marks a `specs check` finding
 that the CLI doesn't report yet. Until it does, the blueprint audit covers
@@ -78,7 +80,8 @@ express.
 ### 4. Leave behavior to the FRD
 
 A blueprint SHALL NOT restate FRD behavior or list implemented features or
-acceptance criteria. It MAY cite an AC id as the reason for a rule.
+acceptance criteria. It SHALL NOT cite an AC id except as the reason for
+a rule.
 
 **Rationale:** Two owners of one behavior diverge, and the FRD is the copy
 that tests cite. Element-to-AC traceability comes from test citations
@@ -208,8 +211,9 @@ Run this audit on an architecture blueprint before you set it to
 1. Run `specs check <path>` and fix what it reports.
 2. Classify each statement as a rule, a fact, a behavior, or an edge.
 3. Apply rules 1 to 8.
-4. Confirm that the Hides line, the extension points, and an "Enforced by:"
-   note on each invariant exist.
+4. Confirm that the extension points and an "Enforced by:" note on each
+   invariant exist. In a Component or Module Blueprint, confirm the Hides
+   line too.
 
 ---
 

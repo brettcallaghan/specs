@@ -22,8 +22,8 @@ test_paths: []                       # repo-relative test roots; required
 <!--
 Template: Component Blueprint
 Source: Architecture documentation framework. C4 mapping rules are
-  defined in `shared/c4-standards.md` — load it before authoring.
-  Load `shared/blueprint-content-standards.md` and
+  defined in `shared/c4-standards.md`. Load it,
+  `shared/blueprint-content-standards.md`, and
   `shared/component-design-guide.md` before authoring. "Rule N" below
   cites a rule in the content standards.
 
@@ -256,9 +256,9 @@ Rules for feature work touching this component: the constraints a
 feature blueprint — and the planning agent downstream of it — must
 respect when changing this component. Write normative rules in EARS.
 
-This section carries lockstep-update rules, layering boundaries, and
-regeneration obligations. Invariants go in Design. It is not a task list
-or a commands reference — reference the repository's build and
+This section carries ARCHITECTURAL constraints: lockstep-update rules,
+layering boundaries, regeneration obligations. Invariants go in Design.
+It is not a task list or a commands reference — reference the repository's build and
 contributor docs for procedure rather than duplicating them (duplication
 drifts). Constraints that span multiple elements belong in a cross-
 cutting requirements document, not here.

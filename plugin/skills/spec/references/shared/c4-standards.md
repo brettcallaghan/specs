@@ -96,7 +96,7 @@ lockstep with its container and isn't vended or versioned independently.
 Its home is a Component Blueprint (or, un-promoted, a record block in its
 container's Components section).
 
-- A unit whose parts each need their own interface and change guidance is
+- A unit whose parts each need their own interface or change guidance is
   a module, not a component ([[adr-004]], [[adr-005]]).
 - A Component Blueprint MAY describe the component's own code layout where
   a rule depends on it, in prose and without a diagram.

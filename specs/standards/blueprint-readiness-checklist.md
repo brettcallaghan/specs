@@ -87,9 +87,9 @@ time.
     every listed issue as subsumed, prerequisite, or out-of-scope, or
     states "None." Where the project has no tracker, "None." also
     satisfies the check.
-11. No element delta carries FRD behavior. A delta cites a behavior that
-    an FRD criterion states by its AC id in AC coverage, and doesn't
-    restate it. A behavior the blueprint decides that no criterion
+11. No element delta carries FRD behavior. When an FRD criterion already
+    states a behavior, the delta cites its AC id in AC coverage and
+    doesn't restate it. A behavior the blueprint decides that no criterion
     states is marked "(lift to FRD)" ([[adr-033]]).
 
 ### The decision sweep — authoring preflight for check 7

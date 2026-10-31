@@ -37,7 +37,7 @@ where the obvious answer is wrong.
   own schedules.
 - Composite unit vs. component: a unit whose parts each need their own
   interface or change guidance is a module. A component has no internal
-  components. Its blueprint MAY describe its code layout in prose where a
+  components. Its blueprint can describe its code layout in prose where a
   rule depends on it ([[c4-standards]]).
 - Rule vs. behavior: a rule that must stay true across every change
   belongs in the element's blueprint. A behavior that users or consumers
