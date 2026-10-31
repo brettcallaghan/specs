@@ -288,25 +288,37 @@ versioning.
 
 <!--
 How the container is built to stay sound as it changes.
-
-- Architectural style: the style its components follow, for example
-  ports and adapters: which components are the core, and which adapt it
-  to I/O.
-- Invariants: EARS statements that hold across the container, each
-  ending "Enforced by: <test, check, lint, or review only>" (rule 5).
-- Extension points: where the container is designed to grow, the
-  intended way in, and the wrong way to extend it. WHEN it has none,
-  write "None: <why it is closed>" (rule 12).
 -->
 
-- **Architectural style:** <style> — <which components are the core, and
-  which adapt it to I/O>.
-- **Invariants:**
-  - The container SHALL <invariant that holds across the container>.
-    Enforced by: <test, check, lint, or review only>.
-- **Extension points:**
-  - <Where it grows> — <the intended way in>. Not by <the wrong way to
-    extend it>.
+### Architectural style
+
+<!--
+The style its components follow, for example ports and adapters: which
+components are the core, and which adapt it to I/O.
+-->
+
+<Style> — <which components are the core, and which adapt it to I/O>.
+
+### Invariants
+
+<!--
+EARS statements that hold across the container, each ending "Enforced by:
+<test, check, lint, or review only>" (rule 5).
+-->
+
+- The container SHALL <invariant that holds across the container>.
+  Enforced by: <test, check, lint, or review only>.
+
+### Extension points
+
+<!--
+Where the container is designed to grow, the intended way in, and the
+wrong way to extend it. If it has none, write "None: <why it is closed>"
+(rule 12).
+-->
+
+- <Where it grows> — <the intended way in>. Not by <the wrong way to
+  extend it>.
 
 ## Provided Contracts
 
@@ -420,13 +432,16 @@ repository's build/contributor docs for procedure rather than
 duplicating them (duplication drifts). Constraints that span multiple
 containers belong in a cross-cutting requirements document referenced
 from Cross-cutting Standards, not here.
+-->
 
-WHEN prose anywhere in this blueprint mentions a known defect or other
-open tracker issue, it SHOULD cite the tracker ID in greppable form
-(e.g. `proj-ab12`) — feature-blueprint authors harvest these IDs when
-reconciling their deltas against the tracker.
+- WHEN <a kind of change is made>, <the artifacts that must change
+  together> SHALL be updated in the same change.
+- <A layering or boundary rule any change must respect, in EARS.>
 
-End with the **Verification gates**, in two tiers (rule 10):
+### Verification gates
+
+<!--
+List the gates in two tiers (rule 10):
   - Tier 1, always: the isolation tests under test_paths, as runnable
     targets (test paths, ids, or task names).
   - Tier 2, WHEN <condition>: each wider suite, with the change that
@@ -436,13 +451,8 @@ CI and downstream agents still run the full suite. Feature blueprints
 map their AC coverage "Verified by" column onto these gates.
 -->
 
-- WHEN <a kind of change is made>, <the artifacts that must change
-  together> SHALL be updated in the same change.
-- <A layering or boundary rule any change must respect, in EARS.>
-- **Verification gates:**
-  - Tier 1 (always): <isolation tests under test_paths, as runnable
-    targets>.
-  - Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
+- Tier 1 (always): <isolation tests under test_paths, as runnable targets>.
+- Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
 
 ## Key decisions
 

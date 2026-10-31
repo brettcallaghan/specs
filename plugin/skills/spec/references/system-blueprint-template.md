@@ -245,13 +245,17 @@ boundary rules for what may talk to what. Constraints scoped to a single
 container belong in that [[container-<name>]] blueprint's Change guidance,
 not here; organization-wide rules belong in a cross-cutting requirements
 document referenced from Cross-cutting Standards.
+-->
 
-WHEN prose anywhere in this blueprint mentions a known defect or other
-open tracker issue, it SHOULD cite the tracker ID in greppable form
-(e.g. `proj-ab12`) — feature-blueprint authors harvest these IDs when
-reconciling their deltas against the tracker.
+- WHEN <a change spans containers>, <the artifacts that must change
+  together> SHALL be updated in the same change.
+- <A cross-container boundary or invariant rule any change must respect,
+  in EARS.>
 
-End with the Verification gates, in two tiers (rule 10):
+### Verification gates
+
+<!--
+List the gates in two tiers (rule 10):
   - Tier 1, always: the system-level suites every cross-container change
     runs, as runnable targets.
   - Tier 2, WHEN <condition>: each wider suite (integration, end-to-end,
@@ -260,14 +264,9 @@ Feature blueprints map their AC coverage "Verified by" column onto these
 gates.
 -->
 
-- WHEN <a change spans containers>, <the artifacts that must change
-  together> SHALL be updated in the same change.
-- <A cross-container boundary or invariant rule any change must respect,
-  in EARS.>
-- **Verification gates:**
-  - Tier 1 (always): <system-level suites every cross-container change
-    runs, as runnable targets>.
-  - Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
+- Tier 1 (always): <system-level suites every cross-container change runs, as
+  runnable targets>.
+- Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
 
 ## Key decisions
 

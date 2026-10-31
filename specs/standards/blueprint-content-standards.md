@@ -24,10 +24,7 @@ stays with its owner. The code owns implementation detail. The FRD owns
 behavior and acceptance criteria ([[adr-033]]). The host blueprint owns how
 sibling elements interact ([[adr-009]]).
 
-Rules 1 to 8 apply to every System, Container, Module, and Component
-Blueprint. Rules 9 to 13 apply to Component and Module Blueprints. A
-Container Blueprint also follows rules 10 and 12, and a System Blueprint
-follows rule 10 with its system-level suites as tier 1. Templates and
+Each section heading names the blueprints its rules apply to. Templates and
 skills cite these rules by number and don't restate them.
 
 Each rule ends with what enforces it. "Planned" marks a `specs check` finding
@@ -161,6 +158,9 @@ The Verification gates SHALL list isolation tests from `test_paths` first.
 They SHALL list wider suites second, each with the condition that requires
 it.
 
+Container Blueprints follow this rule too. A System Blueprint follows it with
+its system-level suites as tier 1.
+
 **Rationale:** Isolation tests are fast and point at the broken element. The
 condition says when the slow suite is owed.
 
@@ -183,6 +183,8 @@ where it lives and how it differs.
 
 A blueprint SHALL state where its element is designed to grow and the wrong
 way to extend it, or state that the element has no extension points and why.
+
+Container Blueprints follow this rule too.
 
 **Rationale:** Code shows a seam's mechanism. It doesn't show that the seam
 is the intended way in.

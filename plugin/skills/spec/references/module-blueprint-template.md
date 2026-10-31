@@ -208,53 +208,77 @@ SHALL agree with the primary entries here.
 ## Interface
 
 <!--
-What this module's hosts and consumers may depend on.
-
-- Surface: the path or symbol that defines the interface: type
-  definitions, plugin API, or module schema (rule 3).
-- Provides: the postconditions consumers rely on, in EARS.
-- Requires: the abstractions and contracts this module depends on, with
-  their preconditions, in EARS. Requires lists abstractions and
-  contracts, not edges: a module's edges belong to each host (rule 8).
-
-IF the interface is formally specified and consumed across team
-boundaries, THEN author a contract document for it and reference it
-here instead of documenting the surface inline.
+What this module's hosts and consumers may depend on. If the interface is
+formally specified and consumed across team boundaries, author a contract
+document for it and reference it here instead of documenting the surface
+inline.
 -->
 
-- **Surface:** `<path or symbol>`
-- **Provides:**
-  - The module SHALL <postcondition consumers rely on>.
-  - The module SHALL NOT <thing consumers must not have to defend
-    against>.
-- **Requires:**
-  - WHEN <operation> is called, <abstraction or [[contract-<name>]]> SHALL
-    <precondition this module depends on>.
+### Surface
+
+<!--
+The path or symbol that defines the interface: type definitions, plugin
+API, or module schema (rule 3).
+-->
+
+`<path or symbol>`
+
+### Provides
+
+<!--
+The postconditions consumers rely on, in EARS.
+-->
+
+- The module SHALL <postcondition consumers rely on>.
+- The module SHALL NOT <thing consumers must not have to defend against>.
+
+### Requires
+
+<!--
+The abstractions and contracts this module depends on, with their
+preconditions, in EARS. List abstractions and contracts, not edges: a
+module's edges belong to each host (rule 8).
+-->
+
+- WHEN <operation> is called, <abstraction or [[contract-<name>]]> SHALL
+  <precondition this module depends on>.
 
 ## Design
 
 <!--
 How the module is built to stay sound as it changes.
-
-- Patterns and principles: for each pattern the code uses, its roles
-  mapped to this module's types, why it fits here, and what would break
-  it.
-- Invariants: EARS statements that hold across all operations, each
-  ending "Enforced by: <test, check, lint, or review only>" (rule 5).
-- Extension points: where the module is designed to grow, the intended
-  way in, and the wrong way to extend it. WHEN it has none, write "None:
-  <why it is closed>" (rule 12).
 -->
 
-- **Patterns and principles:**
-  - <Pattern> — <roles mapped to this module's types>; <why it fits
-    here>; <what would break it>.
-- **Invariants:**
-  - The module SHALL <invariant that holds across all operations>.
-    Enforced by: <test, check, lint, or review only>.
-- **Extension points:**
-  - <Where it grows> — <the intended way in>. Not by <the wrong way to
-    extend it>.
+### Patterns and principles
+
+<!--
+For each pattern the code uses: its roles mapped to this module's types,
+why it fits here, and what would break it.
+-->
+
+- <Pattern> — <roles mapped to this module's types>; <why it fits here>;
+  <what would break it>.
+
+### Invariants
+
+<!--
+EARS statements that hold across all operations, each ending "Enforced
+by: <test, check, lint, or review only>" (rule 5).
+-->
+
+- The module SHALL <invariant that holds across all operations>.
+  Enforced by: <test, check, lint, or review only>.
+
+### Extension points
+
+<!--
+Where the module is designed to grow, the intended way in, and the wrong
+way to extend it. If it has none, write "None: <why it is closed>"
+(rule 12).
+-->
+
+- <Where it grows> — <the intended way in>. Not by <the wrong way to
+  extend it>.
 
 ## Components
 
@@ -353,17 +377,31 @@ repo-relative path, per [[template-authoring-standards]]) as the detailed
 specification.
 -->
 
-**Building a new instance:**
+### Building a new instance
+
+<!--
+The steps to build a new instance, in order.
+-->
 
 1. <step>
 2. <step>
 
-**Conformance — every instance:**
+### Conformance
+
+<!--
+The rules every instance meets, in EARS.
+-->
+
+Every instance:
 
 - SHALL <structural or behavioral rule all instances meet>.
 - SHALL NOT <divergence that would break the pattern>.
 
-**Instances:**
+### Instances
+
+<!--
+One line per instance: where it lives and how it differs (rule 11).
+-->
 
 - **<InstanceName>** (<container or repo>) — <target/variant>.
 
@@ -414,20 +452,6 @@ docs for procedure rather than duplicating them (duplication drifts).
 Constraints that span multiple modules or containers belong in a
 cross-cutting requirements document referenced from Cross-cutting
 Standards, not here.
-
-WHEN prose anywhere in this blueprint mentions a known defect or other
-open tracker issue, it SHOULD cite the tracker ID in greppable form
-(e.g. `proj-ab12`) — feature-blueprint authors harvest these IDs when
-reconciling their deltas against the tracker.
-
-End with the Verification gates, in two tiers (rule 10):
-  - Tier 1, always: the isolation tests under test_paths, as runnable
-    targets (test paths, ids, or task names).
-  - Tier 2, WHEN <condition>: each wider suite, with the change that
-    requires it, such as "WHEN the public interface changes, run the
-    integration suite".
-CI and downstream agents still run the full suite. Feature blueprints
-map their AC coverage "Verified by" column onto these gates.
 -->
 
 - WHEN <a kind of change is made>, <the artifacts that must change
@@ -441,10 +465,22 @@ map their AC coverage "Verified by" column onto these gates.
 - WHILE visibility is internal, the module and its in-repo consumers
   evolve together: a breaking change MAY be made in the same change as
   the consumer updates, with no compatibility window.
-- **Verification gates:**
-  - Tier 1 (always): <isolation tests under test_paths, as runnable
-    targets>.
-  - Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
+
+### Verification gates
+
+<!--
+List the gates in two tiers (rule 10):
+  - Tier 1, always: the isolation tests under test_paths, as runnable
+    targets (test paths, ids, or task names).
+  - Tier 2, WHEN <condition>: each wider suite, with the change that
+    requires it, such as "WHEN the public interface changes, run the
+    integration suite".
+CI and downstream agents still run the full suite. Feature blueprints
+map their AC coverage "Verified by" column onto these gates.
+-->
+
+- Tier 1 (always): <isolation tests under test_paths, as runnable targets>.
+- Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
 
 ## Key decisions
 
