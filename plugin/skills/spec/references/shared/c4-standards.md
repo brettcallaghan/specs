@@ -96,6 +96,11 @@ lockstep with its container and isn't vended or versioned independently.
 Its home is a Component Blueprint (or, un-promoted, a record block in its
 container's Components section).
 
+- A unit whose parts each need their own interface and change guidance is
+  a module, not a component ([[adr-004]], [[adr-005]]).
+- A Component Blueprint MAY describe the component's own code layout where
+  a rule depends on it, in prose and without a diagram.
+
 **Module** — this framework's named level between container and
 component, and the deliberate extension of strict C4:
 
@@ -156,7 +161,8 @@ in backticks (`ElementName`), not referenced this way.
 WHERE an element has its own blueprint, that blueprint IS the
 declaration: the frontmatter `entity_name` carries the name, the
 frontmatter `description` is the brief description, and the Overview
-section is the detailed description. The document `title` names the
+section (Responsibility, in a Component or Module Blueprint) is the
+detailed description. The document `title` names the
 blueprint, not the element. Documents that reference the element repeat
 only its name, technology, and brief description, and they link the
 blueprint for detail.
@@ -241,6 +247,10 @@ files each fact at exactly one altitude:
   view: a component's neighbors are owned by its container, and a shared
   module has different neighbors in every host. Both therefore point to
   their host containers for relationships instead of restating them.
+- **A scope statement MAY name the owner of what an element excludes.**
+  `Does not own X; [[component-y]] owns it` names an owner. It doesn't
+  declare an edge. Interactions with sibling elements are edges, and edges
+  belong to the host's blueprint.
 - **Each element is light on the level below.** A container is light on
   component internals, which the Component or Module Blueprint owns. A
   component or module is light on code: the code is the source of truth,
