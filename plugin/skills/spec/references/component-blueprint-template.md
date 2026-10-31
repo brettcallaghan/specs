@@ -68,7 +68,7 @@ When to use — the trigger is the promotion predicate
   components depend on AND enough internal behavior that a change to it
   is a self-contained unit of work — a seam an agent can reason about
   locally — AND it can be documented so as to stand alone. A component
-  that cannot be described context-independently should stay a bullet
+  that cannot be described context-independently should stay an entry
   (with a record block) in its container's Components section, not
   become a blueprint.
 
@@ -85,7 +85,7 @@ When NOT to use
     concern), OR one with internal components of its own → that is a
     module; use a module blueprint.
   - A component that cannot be described context-independently, or a
-    trivial one (glue, a single helper, no defined interface) — a bullet
+    trivial one (glue, a single helper, no defined interface) — an entry
     with a record block in the container's Components section is enough.
   - A capability with runtime elements of its own (a service, a worker,
     a queue) — that is a container or system (container blueprint /
@@ -132,29 +132,49 @@ active.
 ## Responsibility
 
 <!--
-One paragraph on why this component exists, then the four bullets below.
-
-- Owns: the responsibilities and data this component is the sole
-  authority for.
-- Hides: the design decision likely to change that no other element may
-  depend on. Required, and "none" is not an answer: an element that hides
-  no decision is a candidate to merge into a neighbor.
-- Does not own: each excluded responsibility, with its owner's [[slug]]
-  (rule 8).
-- Composed into: the host container.
-
-Source and test roots go in the source_paths and test_paths frontmatter,
-not in the body.
+One paragraph on why this component exists. Source and test roots go in the
+source_paths and test_paths frontmatter, not in the body.
 -->
 
 <Why this component exists.>
 
-- **Owns:** <the responsibilities and data it is the sole authority for>.
-- **Hides:** <the design decision likely to change that no other element
-  may depend on>.
-- **Does not own:** <excluded responsibility> — [[<owner-slug>]] owns it.
-- **Composed into:** [[container-<name>]] — <how it is composed into the
-  container>; see it for this component's relationships.
+### Owns
+
+<!--
+The responsibilities and data this component is the sole authority for.
+-->
+
+<The responsibilities and data it is the sole authority for.>
+
+### Hides
+
+<!--
+The design decision likely to change that no other element may depend
+on. Required, and "none" is not an answer: an element that hides no
+decision is a candidate to merge into a neighbor.
+-->
+
+<The design decision likely to change that no other element may depend
+on.>
+
+### Does not own
+
+<!--
+Each excluded responsibility, with its owner's [[slug]] (rule 8), each in
+its own paragraph.
+-->
+
+<Excluded responsibility> — [[<owner-slug>]] owns it.
+
+### Composed into
+
+<!--
+The host container, and how this component is composed into it.
+-->
+
+[[container-<name>]] — <how it is composed into the container>; see it
+for this component's relationships.
+
 
 ## Interface
 
@@ -179,9 +199,10 @@ The path or symbol that defines the interface (rule 3).
 The postconditions consumers rely on, in EARS.
 -->
 
-- The component SHALL <postcondition consumers rely on>.
-- The component SHALL NOT <thing consumers must not have to defend
-  against>.
+The component SHALL <postcondition consumers rely on>.
+
+The component SHALL NOT <thing consumers must not have to defend
+against>.
 
 ### Requires
 
@@ -191,8 +212,8 @@ preconditions, in EARS. Name an abstraction or a contract, never a sibling
 component: edges belong to the host (rule 8).
 -->
 
-- WHEN <operation> is called, <abstraction or [[contract-<name>]]> SHALL
-  <precondition this component depends on>.
+WHEN <operation> is called, <abstraction or [[contract-<name>]]> SHALL
+<precondition this component depends on>.
 
 ## Design
 
@@ -210,8 +231,8 @@ progenitor, its roles mapped to this component's types, and the present
 need it serves. State what it rules out as an invariant (rule 14).
 -->
 
-- <Pattern> (<progenitor>) — <roles mapped to this component's types>;
-  <the present need it serves>.
+<Pattern> (<progenitor>) — <roles mapped to this component's types>;
+<the present need it serves>.
 
 ### Invariants
 
@@ -220,8 +241,8 @@ EARS statements that hold across all operations, each ending "Enforced
 by: <test, check, lint, or review only>" (rule 5).
 -->
 
-- The component SHALL <invariant that holds across all operations>.
-  Enforced by: <test, check, lint, or review only>.
+The component SHALL <invariant that holds across all operations>.
+Enforced by: <test, check, lint, or review only>.
 
 ### Extension points
 
@@ -231,8 +252,8 @@ wrong way to extend it. If it has none, write "None: <why it is closed>"
 (rule 12).
 -->
 
-- <Where it grows> — <the intended way in>. Not by <the wrong way to
-  extend it>.
+<Where it grows> — <the intended way in>. Not by <the wrong way to
+extend it>.
 
 ## Pattern guidance
 
@@ -267,18 +288,17 @@ See the extension point in Design.
 The rules every instance meets, in EARS.
 -->
 
-Every instance:
+Every instance SHALL <structural or behavioral rule all instances meet>.
 
-- SHALL <structural or behavioral rule all instances meet>.
-- SHALL NOT <divergence that would break the pattern>.
+Every instance SHALL NOT <divergence that would break the pattern>.
 
 ### Instances
 
 <!--
-One line per instance: where it lives and how it differs (rule 11).
+One paragraph per instance: where it lives and how it differs (rule 11).
 -->
 
-- **<InstanceName>** — `<path>`; <how it differs>.
+**<InstanceName>** — `<path>`; <how it differs>.
 
 ## Cross-cutting Standards
 
@@ -288,9 +308,7 @@ that apply everywhere are mentioned in prose or standards docs, never
 modeled as elements on this component's diagrams — see `shared/c4-standards.md`.
 -->
 
-This component SHALL comply with:
-
-- [[<standard-slug>]] — <one-line scope>.
+This component SHALL comply with [[<standard-slug>]]: <one-line scope>.
 
 ## Change guidance
 
@@ -307,9 +325,10 @@ drifts). Constraints that span multiple elements belong in a cross-
 cutting requirements document, not here.
 -->
 
-- WHEN <a kind of change is made>, <the artifacts that must change
-  together> SHALL be updated in the same change.
-- <A layering or boundary rule any change must respect, in EARS.>
+WHEN <a kind of change is made>, <the artifacts that must change
+together> SHALL be updated in the same change.
+
+<A layering or boundary rule any change must respect, in EARS.>
 
 ### Anti-patterns
 
@@ -317,32 +336,42 @@ cutting requirements document, not here.
 Each a wrong change that caused a real defect, and the defect it caused.
 -->
 
-- <The wrong change> — <the defect it caused>.
+<The wrong change> — <the defect it caused>.
 
 ### Verification gates
 
 <!--
-List the gates in two tiers (rule 10):
-  - Tier 1, always: the isolation tests under test_paths, as runnable
-    targets (test paths, ids, or task names).
-  - Tier 2, WHEN <condition>: each wider suite, with the change that
-    requires it, such as "WHEN the public interface changes, run the
-    integration suite".
-CI and downstream agents still run the full suite. Feature blueprints
-map their AC coverage "Verified by" column onto these gates.
+The gates in two groups (rule 10), each gate in its own paragraph. CI and
+downstream agents still run the full suite. Feature Blueprints map their
+AC coverage "Verified by" column onto these gates.
 -->
 
-- Tier 1 (always): <isolation tests under test_paths, as runnable targets>.
-- Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
+#### Verify always
+
+<!--
+The isolation tests under test_paths, as runnable targets (test paths,
+ids, or task names).
+-->
+
+<Isolation tests under test_paths, as runnable targets.>
+
+#### Verify conditionally
+
+<!--
+Each wider suite, with the change that requires it, such as "WHEN the
+public interface changes, run the integration suite."
+-->
+
+WHEN <condition>, run <the wider suite that condition requires>.
 
 ## Key decisions
 
 <!--
-One line per significant decision: restate the outcome and reference
+One paragraph per significant decision: restate the outcome and reference
 the ADR. The trade-off analysis lives in the ADR, not here.
 -->
 
-- [[adr-<nnn>]] — <one-line statement of the decision>.
+[[adr-<nnn>]] — <one-line statement of the decision>.
 
 ## Open questions
 
@@ -360,7 +389,7 @@ information. Remove the whole section when the document leaves draft.
 ## References
 
 <!--
-Optional. What a reader needs next, one line each: [[slug]] for
+Optional. What a reader needs next, one paragraph each: [[slug]] for
 documents in this corpus, a URL for anything outside it. Limit it to the
 host, Contracts, ADRs, and guides (rule 8). Don't list sibling elements
 or FRDs. Remove the section when there is nothing to cite.
@@ -370,5 +399,6 @@ C4 mapping rules and diagram conventions are in this skill's
 here: it is not a document in your corpus.
 -->
 
-- [[container-<name>]] — the container this component is composed into
-- <Additional references>
+[[container-<name>]] — the container this component is composed into
+
+<Additional references>

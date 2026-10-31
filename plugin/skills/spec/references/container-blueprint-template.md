@@ -137,7 +137,7 @@ What this container does within the system.
 Each excluded responsibility, with its owner's [[slug]] (rule 8).
 -->
 
-- <Excluded responsibility> — [[<owner-slug>]] owns it.
+<Excluded responsibility> — [[<owner-slug>]] owns it.
 
 ### Runtime
 
@@ -171,8 +171,9 @@ The frontmatter `technology` value is the short label diagrams draw; it
 SHALL agree with the primary entries here.
 -->
 
-- **<Category>:** <technology> — <what it is used for>. [[adr-<nnn>]]
-- **<Category>:** <technology> — <what it is used for>.
+**<Category>:** <technology> — <what it is used for>. [[adr-<nnn>]]
+
+**<Category>:** <technology> — <what it is used for>.
 
 ## Container context
 
@@ -207,11 +208,11 @@ and intent. Do not restate what the neighbor does — link its blueprint.>
 
 <!--
 The container's full component roster — every component and module this
-container composes, enumerated here. They are DECLARED in the list
-below; the C4 Component diagram is a view rendered from those
+container composes, enumerated here. They are DECLARED under the
+headings below; the C4 Component diagram is a view rendered from those
 declarations and from the component/module blueprints this container
-composes (see `shared/c4-standards.md`). This container owns the relationships AMONG
-its components.
+composes (see `shared/c4-standards.md`). This container owns the
+relationships AMONG its components.
 
 Each declaration captures: the name (canonical — used verbatim on
 diagrams), its technology or kind, a brief description that doubles as
@@ -323,8 +324,8 @@ the present need it serves. State what it rules out as an invariant
 container's code follows.
 -->
 
-- <Style or pattern> (<progenitor>) — <the roles its components play>;
-  <the present need it serves>.
+<Style or pattern> (<progenitor>) — <the roles its components play>;
+<the present need it serves>.
 
 ### Invariants
 
@@ -333,8 +334,8 @@ EARS statements that hold across the container, each ending "Enforced by:
 <test, check, lint, or review only>" (rule 5).
 -->
 
-- The container SHALL <invariant that holds across the container>.
-  Enforced by: <test, check, lint, or review only>.
+The container SHALL <invariant that holds across the container>.
+Enforced by: <test, check, lint, or review only>.
 
 ### Extension points
 
@@ -344,8 +345,8 @@ wrong way to extend it. If it has none, write "None: <why it is closed>"
 (rule 12).
 -->
 
-- <Where it grows> — <the intended way in>. Not by <the wrong way to
-  extend it>.
+<Where it grows> — <the intended way in>. Not by <the wrong way to
+extend it>.
 
 ## Provided Contracts
 
@@ -357,11 +358,11 @@ Private interfaces do not appear here — they are in the Data section.
 
 **Public** (consumable outside the system):
 
-- [[contract-<name>]] — <what it vends, via what mechanism>.
+[[contract-<name>]] — <what it vends, via what mechanism>.
 
 **Internal** (this system only — SHALL NOT be consumed outside it):
 
-- [[contract-<name>]] — <what it vends, to which sibling containers>.
+[[contract-<name>]] — <what it vends, to which sibling containers>.
 
 ## Consumed Contracts
 
@@ -376,9 +377,10 @@ interfaces the organization provides — SHALL NOT be authored for
 third-party interfaces.
 -->
 
-- [[contract-<name>]] (provided by <container or system>) — <used for>.
-- <Vendor / SaaS product> — <used for>; contract: <URL to the vendor's
-  published specification>.
+[[contract-<name>]] (provided by <container or system>) — <used for>.
+
+<Vendor / SaaS product> — <used for>; contract: <URL to the vendor's
+published specification>.
 
 ## Data
 
@@ -406,23 +408,36 @@ extracted to a contract document and listed under Provided Contracts.
 Infrastructure exclusively supporting this container (its cache, its
 queue, its bucket) and how the container reaches the environments it
 runs in.
+-->
 
+### Exclusive infrastructure
+
+<!--
+The nodes that exist only for this container, such as its Redis or its
+dead-letter queue.
+-->
+
+<Nodes that exist only for this container.>
+
+### Deployment
+
+<!--
 The system blueprint's Deployment section is authoritative for shared
-topology. A container-scoped deployment view MAY be included here: a
-filtered view showing only this container and the infrastructure nodes
-that exist solely for it. Omit it when the system-level diagram already
-tells the story.
+topology: link it and add only what is specific to this container, such
+as its scaling policy, resource envelope, or rollout order.
 
 WHEN the container does not belong to a documented system (standalone),
 this section is authoritative for the container's deployment: describe
 it here instead of referencing a system blueprint.
+
+A container-scoped deployment view MAY be included here: a filtered view
+showing only this container and the infrastructure nodes that exist
+solely for it. Omit it when the system-level diagram already tells the
+story.
 -->
 
-- **Exclusive infrastructure:** <nodes that exist only for this
-  container, e.g. its Redis, its DLQ>.
-- **Deployment:** see [[system-<system-name>]] § Deployment — or, WHEN
-  standalone, the authoritative description here. <Anything
-  container-specific: scaling policy, resource envelope, rollout order.>
+See [[system-<system-name>]] § Deployment. <Anything container-specific:
+scaling policy, resource envelope, rollout order.>
 
 ```mermaid
 C4Deployment
@@ -441,9 +456,7 @@ are mentioned in prose or standards docs, never modeled as elements on
 this container's diagrams — see `shared/c4-standards.md`.
 -->
 
-This container SHALL comply with:
-
-- [[<standard-slug>]] — <one-line scope>.
+This container SHALL comply with [[<standard-slug>]]: <one-line scope>.
 
 ## Change guidance
 
@@ -461,34 +474,45 @@ containers belong in a cross-cutting requirements document referenced
 from Cross-cutting Standards, not here.
 -->
 
-- WHEN <a kind of change is made>, <the artifacts that must change
-  together> SHALL be updated in the same change.
-- <A layering or boundary rule any change must respect, in EARS.>
+WHEN <a kind of change is made>, <the artifacts that must change
+together> SHALL be updated in the same change.
+
+<A layering or boundary rule any change must respect, in EARS.>
 
 ### Verification gates
 
 <!--
-List the gates in two tiers (rule 10):
-  - Tier 1, always: the isolation tests under test_paths, as runnable
-    targets (test paths, ids, or task names).
-  - Tier 2, WHEN <condition>: each wider suite, with the change that
-    requires it, such as "WHEN the public interface changes, run the
-    integration suite".
-CI and downstream agents still run the full suite. Feature blueprints
-map their AC coverage "Verified by" column onto these gates.
+The gates in two groups (rule 10), each gate in its own paragraph. CI and
+downstream agents still run the full suite. Feature Blueprints map their
+AC coverage "Verified by" column onto these gates.
 -->
 
-- Tier 1 (always): <isolation tests under test_paths, as runnable targets>.
-- Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
+#### Verify always
+
+<!--
+The isolation tests under test_paths, as runnable targets (test paths,
+ids, or task names).
+-->
+
+<Isolation tests under test_paths, as runnable targets.>
+
+#### Verify conditionally
+
+<!--
+Each wider suite, with the change that requires it, such as "WHEN the
+public interface changes, run the integration suite."
+-->
+
+WHEN <condition>, run <the wider suite that condition requires>.
 
 ## Key decisions
 
 <!--
-One line per significant decision: restate the outcome and reference
+One paragraph per significant decision: restate the outcome and reference
 the ADR. The trade-off analysis lives in the ADR, not here.
 -->
 
-- [[adr-<nnn>]] — <one-line statement of the decision>.
+[[adr-<nnn>]] — <one-line statement of the decision>.
 
 ## Open questions
 
@@ -506,7 +530,7 @@ information. Remove the whole section when the document leaves draft.
 ## References
 
 <!--
-Optional. What a reader needs next, one line each: [[slug]] for
+Optional. What a reader needs next, one paragraph each: [[slug]] for
 documents in this corpus, a URL for anything outside it. Remove the
 section when there is nothing to cite.
 
@@ -515,4 +539,4 @@ C4 mapping rules and diagram conventions are in this skill's
 here: it is not a document in your corpus.
 -->
 
-- <Additional references>
+<Additional references>

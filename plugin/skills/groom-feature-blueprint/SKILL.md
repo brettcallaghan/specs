@@ -145,7 +145,7 @@ Deriving them here would fork routing logic that must live in one place.
   graph inherits, and its absence when coupled artifacts span deltas
   is a Phase 1 content failure (checklist #9), never the groomer's
   interpretation. Each item's test obligation takes the owning
-  blueprint's tier 1 verification gates always, and a tier 2 gate only
+  blueprint's Verify always gates, and a Verify conditionally gate only
   when the item's change meets that gate's condition.
 - **Tracker reconciliation becomes graph structure.** For each issue
   the blueprint's Tracker reconciliation section classifies: a

@@ -130,7 +130,7 @@ Lifecycle migration
   at the successor. Its contract usually survives the move.
   WHEN a module stops being shared AND has no internal components, THEN
   it has become a plain component: fold it into the single consuming
-  container (as a component blueprint or a roster bullet) and retire
+  container (as a component blueprint or a roster entry) and retire
   this document.
 
 Slug format
@@ -152,33 +152,60 @@ active.
 ## Responsibility
 
 <!--
-One paragraph on why this module exists, then the five bullets below.
-
-- Owns: the responsibilities and data this module is the sole authority
-  for.
-- Hides: the design decision likely to change that no other element may
-  depend on. Required, and "none" is not an answer: an element that hides
-  no decision is a candidate to merge into a neighbor.
-- Does not own: each excluded responsibility, with its owner's [[slug]]
-  (rule 8).
-- Composed into: each host container.
-- Vended as: package registry (npm, PyPI, Maven), monorepo build target,
-  plugin loaded at runtime, IaC module registry, module-federation
-  remote, or generated code.
-
-Source and test roots go in the source_paths and test_paths frontmatter,
-not in the body.
+One paragraph on why this module exists. Source and test roots go in the
+source_paths and test_paths frontmatter, not in the body.
 -->
 
 <Why this module exists.>
 
-- **Owns:** <the responsibilities and data it is the sole authority for>.
-- **Hides:** <the design decision likely to change that no other element
-  may depend on>.
-- **Does not own:** <excluded responsibility> — [[<owner-slug>]] owns it.
-- **Composed into:** [[container-<name>]] (one per host container); see
-  those blueprints for this module's relationships to sibling components.
-- **Vended as:** <how it is vended and composed>.
+### Owns
+
+<!--
+The responsibilities and data this module is the sole authority for.
+-->
+
+<The responsibilities and data it is the sole authority for.>
+
+### Hides
+
+<!--
+The design decision likely to change that no other element may depend
+on. Required, and "none" is not an answer: an element that hides no
+decision is a candidate to merge into a neighbor.
+-->
+
+<The design decision likely to change that no other element may depend
+on.>
+
+### Does not own
+
+<!--
+Each excluded responsibility, with its owner's [[slug]] (rule 8), each in
+its own paragraph.
+-->
+
+<Excluded responsibility> — [[<owner-slug>]] owns it.
+
+### Composed into
+
+<!--
+Each host container. Its blueprint holds this module's relationships to
+sibling components.
+-->
+
+[[container-<name>]] (one paragraph per host container); see those
+blueprints for this module's relationships to sibling components.
+
+
+### Vended as
+
+<!--
+How the module is vended and composed: package registry (npm, PyPI,
+Maven), monorepo build target, plugin loaded at runtime, IaC module
+registry, module-federation remote, or generated code.
+-->
+
+<How it is vended and composed.>
 
 ## Tech stack
 
@@ -204,8 +231,9 @@ The frontmatter `technology` value is the short label diagrams draw; it
 SHALL agree with the primary entries here.
 -->
 
-- **<Category>:** <technology> — <what it is used for>. [[adr-<nnn>]]
-- **<Category>:** <technology> — <what it is used for>.
+**<Category>:** <technology> — <what it is used for>. [[adr-<nnn>]]
+
+**<Category>:** <technology> — <what it is used for>.
 
 ## Interface
 
@@ -231,8 +259,9 @@ API, or module schema (rule 3).
 The postconditions consumers rely on, in EARS.
 -->
 
-- The module SHALL <postcondition consumers rely on>.
-- The module SHALL NOT <thing consumers must not have to defend against>.
+The module SHALL <postcondition consumers rely on>.
+
+The module SHALL NOT <thing consumers must not have to defend against>.
 
 ### Requires
 
@@ -242,8 +271,8 @@ preconditions, in EARS. List abstractions and contracts, not edges: a
 module's edges belong to each host (rule 8).
 -->
 
-- WHEN <operation> is called, <abstraction or [[contract-<name>]]> SHALL
-  <precondition this module depends on>.
+WHEN <operation> is called, <abstraction or [[contract-<name>]]> SHALL
+<precondition this module depends on>.
 
 ## Design
 
@@ -263,8 +292,8 @@ name entries from the components guide that all of the module's code
 follows.
 -->
 
-- <Pattern> (<progenitor>) — <roles mapped to this module's types>; <the
-  present need it serves>.
+<Pattern> (<progenitor>) — <roles mapped to this module's types>; <the
+present need it serves>.
 
 ### Invariants
 
@@ -273,8 +302,8 @@ EARS statements that hold across all operations, each ending "Enforced
 by: <test, check, lint, or review only>" (rule 5).
 -->
 
-- The module SHALL <invariant that holds across all operations>.
-  Enforced by: <test, check, lint, or review only>.
+The module SHALL <invariant that holds across all operations>.
+Enforced by: <test, check, lint, or review only>.
 
 ### Extension points
 
@@ -284,8 +313,8 @@ way to extend it. If it has none, write "None: <why it is closed>"
 (rule 12).
 -->
 
-- <Where it grows> — <the intended way in>. Not by <the wrong way to
-  extend it>.
+<Where it grows> — <the intended way in>. Not by <the wrong way to
+extend it>.
 
 ## Components
 
@@ -295,9 +324,10 @@ own. An atomic shared library (a logging client, a single-purpose SDK)
 has none; delete this section for it.
 
 The module's internal components — the container-like half of a module
-blueprint. The components are DECLARED in the list below; the C4
+blueprint. The components are DECLARED under the headings below; the C4
 Component diagram is a view rendered from those declarations (see
-`shared/c4-standards.md`). This module owns the relationships AMONG these components.
+`shared/c4-standards.md`). This module owns the relationships AMONG
+these components.
 
 Each declaration captures: the component's name (canonical — used
 verbatim on diagrams), its technology or kind, a brief description that
@@ -313,7 +343,7 @@ decision it hides, never its functions, files, or other internals.
 
 Machine-readable record (un-promoted components): every internal
 component that does NOT have its own blueprint SHALL carry a fenced
-record block immediately under its bullet, holding entity_name, slug
+record block immediately under its heading, holding entity_name, slug
 and description (and optionally technology) — validated against the
 shared element-record schema, the same schema a promoted component's
 frontmatter satisfies:
@@ -399,18 +429,17 @@ The steps to build a new instance, in order.
 The rules every instance meets, in EARS.
 -->
 
-Every instance:
+Every instance SHALL <structural or behavioral rule all instances meet>.
 
-- SHALL <structural or behavioral rule all instances meet>.
-- SHALL NOT <divergence that would break the pattern>.
+Every instance SHALL NOT <divergence that would break the pattern>.
 
 ### Instances
 
 <!--
-One line per instance: where it lives and how it differs (rule 11).
+One paragraph per instance: where it lives and how it differs (rule 11).
 -->
 
-- **<InstanceName>** (<container or repo>) — <target/variant>.
+**<InstanceName>** (<container or repo>) — <target/variant>.
 
 ## Versioning and compatibility
 
@@ -420,12 +449,14 @@ version-awareness a published artifact needs: consumers may span
 multiple majors and cannot be updated in lockstep.
 -->
 
-- **Versioning scheme:** <semver | calver | pinned-by-consumer>
-- **Compatibility policy:** WHEN a breaking change is released, the
-  module SHALL <major bump / migration notes / support window for the
-  prior major>.
-- **Deprecation:** WHEN an API is deprecated, it SHALL remain functional
-  for <window> and SHALL emit <deprecation signal>.
+**Versioning scheme:** <semver | calver | pinned-by-consumer>
+
+**Compatibility policy:** WHEN a breaking change is released, the
+module SHALL <major bump / migration notes / support window for the
+prior major>.
+
+**Deprecation:** WHEN an API is deprecated, it SHALL remain functional
+for <window> and SHALL emit <deprecation signal>.
 
 ## Cross-cutting Standards
 
@@ -437,9 +468,7 @@ standards docs, never modeled as elements on this module's diagrams —
 see `shared/c4-standards.md`.
 -->
 
-This module SHALL comply with:
-
-- [[<standard-slug>]] — <one-line scope>.
+This module SHALL comply with [[<standard-slug>]]: <one-line scope>.
 
 ## Change guidance
 
@@ -461,42 +490,55 @@ cross-cutting requirements document referenced from Cross-cutting
 Standards, not here.
 -->
 
-- WHEN <a kind of change is made>, <the artifacts that must change
-  together> SHALL be updated in the same change.
-- <A layering or boundary rule any change must respect, in EARS.>
-- WHILE visibility is public, the module SHALL preserve backwards
-  compatibility within a major version; WHEN a breaking change is
-  unavoidable, it SHALL bump the major per its versioning scheme and
-  record the change, its rationale, and a migration note in
-  <changelog / history location>.
-- WHILE visibility is internal, the module and its in-repo consumers
-  evolve together: a breaking change MAY be made in the same change as
-  the consumer updates, with no compatibility window.
+WHEN <a kind of change is made>, <the artifacts that must change
+together> SHALL be updated in the same change.
+
+<A layering or boundary rule any change must respect, in EARS.>
+
+WHILE visibility is public, the module SHALL preserve backwards
+compatibility within a major version; WHEN a breaking change is
+unavoidable, it SHALL bump the major per its versioning scheme and
+record the change, its rationale, and a migration note in
+<changelog / history location>.
+
+WHILE visibility is internal, the module and its in-repo consumers
+evolve together: a breaking change MAY be made in the same change as
+the consumer updates, with no compatibility window.
 
 ### Verification gates
 
 <!--
-List the gates in two tiers (rule 10):
-  - Tier 1, always: the isolation tests under test_paths, as runnable
-    targets (test paths, ids, or task names).
-  - Tier 2, WHEN <condition>: each wider suite, with the change that
-    requires it, such as "WHEN the public interface changes, run the
-    integration suite".
-CI and downstream agents still run the full suite. Feature blueprints
-map their AC coverage "Verified by" column onto these gates.
+The gates in two groups (rule 10), each gate in its own paragraph. CI and
+downstream agents still run the full suite. Feature Blueprints map their
+AC coverage "Verified by" column onto these gates.
 -->
 
-- Tier 1 (always): <isolation tests under test_paths, as runnable targets>.
-- Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
+#### Verify always
+
+<!--
+The isolation tests under test_paths, as runnable targets (test paths,
+ids, or task names).
+-->
+
+<Isolation tests under test_paths, as runnable targets.>
+
+#### Verify conditionally
+
+<!--
+Each wider suite, with the change that requires it, such as "WHEN the
+public interface changes, run the integration suite."
+-->
+
+WHEN <condition>, run <the wider suite that condition requires>.
 
 ## Key decisions
 
 <!--
-One line per significant decision: restate the outcome and reference
+One paragraph per significant decision: restate the outcome and reference
 the ADR. The trade-off analysis lives in the ADR, not here.
 -->
 
-- [[adr-<nnn>]] — <one-line statement of the decision>.
+[[adr-<nnn>]] — <one-line statement of the decision>.
 
 ## Open questions
 
@@ -514,7 +556,7 @@ information. Remove the whole section when the document leaves draft.
 ## References
 
 <!--
-Optional. What a reader needs next, one line each: [[slug]] for
+Optional. What a reader needs next, one paragraph each: [[slug]] for
 documents in this corpus, a URL for anything outside it. Remove the
 section when there is nothing to cite.
 
@@ -523,5 +565,6 @@ C4 mapping rules and diagram conventions are in this skill's
 here: it is not a document in your corpus.
 -->
 
-- [[container-<name>]] — the container(s) this module is composed into
-- <Additional references>
+[[container-<name>]] — the container(s) this module is composed into
+
+<Additional references>

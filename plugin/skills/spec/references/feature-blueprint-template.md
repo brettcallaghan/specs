@@ -214,8 +214,6 @@ Each block contains, as applicable:
     Invariants, or Extension points, in that blueprint's vocabulary, so
     the fold-in stays a mechanical copy. When an FRD criterion already
     states a behavior, cite its AC id in AC coverage; don't restate it.
-    A behavior this blueprint decides that no criterion states stays as
-    an EARS line marked "(lift to FRD)"; the Definition of done lifts it.
   - Data: schema deltas for stores this element exclusively owns —
     fields, constraints, and the EARS invariants maintained over them.
     Shared surfaces do NOT go here; they get a contract document.
@@ -224,8 +222,7 @@ Each block contains, as applicable:
     instructions.
 
 A new component's block declares it with the Component Blueprint's
-Responsibility bullets (Owns, Hides, Does not own) alongside its record
-block.
+Owns, Hides, and Does not own entries alongside its record block.
 
 WHEN a delta changes an element outside the extension points its
 blueprint declares, the block SHALL say so and give the reason.
@@ -258,9 +255,8 @@ against pinning too much; the sweep guards against pinning too little.
 **Intent:** <what changes in this container and why.>
 
 **Guarantees** (Invariants of [[container-<name>]]):
-- WHEN <event>, `<ComponentName>` SHALL <new or changed action>.
-- WHEN <event the blueprint decides>, `<ComponentName>` SHALL <action no
-  FRD criterion states>. (lift to FRD)
+
+WHEN <event>, `<ComponentName>` SHALL <new or changed action>.
 
 **New components** (declared in container/module vocabulary, with a
 record block):
@@ -291,21 +287,23 @@ record block):
 **Intent:** <what changes in this component and why.>
 
 **Guarantees** (Provides of [[component-<name>]]):
-- The component SHALL <new or changed guarantee>.
+
+The component SHALL <new or changed guarantee>.
 
 **Anchors:** `<existing path or symbol>`
 
 ### Relied-upon elements (unchanged)
 
-<!--
-Elements the feature depends on but does not change. One line each: what
-is relied upon and for what. This is the blast-radius map — it tells
-reviewers what could break and planners what to regression-test.
--->
+<!-- Elements the feature depends on but does not change. One paragraph
+each: what is relied upon and for what. This is the blast-radius map —
+it tells reviewers what could break and planners what to
+regression-test. -->
 
-- [[contract-<name>]] — <what this feature depends on it for>.
-- [[module-<name>]] — <what this feature relies on it for>.
-- [[container-<name>#ComponentName]] — <what is relied upon>.
+[[contract-<name>]] — <what this feature depends on it for>.
+
+[[module-<name>]] — <what this feature relies on it for>.
+
+[[container-<name>#ComponentName]] — <what is relied upon>.
 
 ## Contracts
 
@@ -315,15 +313,16 @@ itself is NEVER here: new contracts are authored as contract documents
 in draft status alongside this blueprint, and changes to existing
 contracts are drafted as revisions in the contract document itself. Name
 both below and in Documentation Changes; the `plan` tracks them to
-completion. One line each.
+completion. One paragraph each.
 
 Private schema changes (a container and its own store) belong in the
 owning container's delta block above, not here.
 -->
 
-- [[contract-<name>]] (new, draft) — <what it vends, to whom>.
-- [[contract-<name>]] (revised, drafted in place) — <what changes for
-  consumers>.
+[[contract-<name>]] (new, draft) — <what it vends, to whom>.
+
+[[contract-<name>]] (revised, drafted in place) — <what changes for
+consumers>.
 
 ## Tracker reconciliation
 
@@ -335,7 +334,7 @@ twice, divergently. WHERE the project has no tracker, or the survey
 finds no overlapping issues, state "None." — the absence is
 information.
 
-One line per overlapping issue, classified as exactly one of:
+One paragraph per overlapping issue, classified as exactly one of:
 
   subsumed      — this feature's deltas supersede the issue (including
                   tracked defects the feature rolls in and fixes); name
@@ -357,9 +356,11 @@ goes to Open questions — the same escalation path as any other design
 gap.
 -->
 
-- <tracker-id> — subsumed by the <KEY> delta: <what supersedes it>.
-- <tracker-id> — prerequisite: <why it must land before <KEY>>.
-- <tracker-id> — out-of-scope: <the boundary this feature respects>.
+<tracker-id> — subsumed by the <KEY> delta: <what supersedes it>.
+
+<tracker-id> — prerequisite: <why it must land before <KEY>>.
+
+<tracker-id> — out-of-scope: <the boundary this feature respects>.
 
 ## Sequencing constraints
 
@@ -367,7 +368,7 @@ gap.
 Hard ordering constraints that are DESIGN decisions — the planner cannot
 be allowed to derive them wrong. Migration ordering, backward
 compatibility windows, feature flags, contract-first requirements. In
-EARS, one per line.
+EARS, one per paragraph.
 
 Ordering between this feature's own deltas belongs here too, not in
 Intent prose. IF delta B extends state or interfaces introduced by
@@ -388,11 +389,13 @@ here as a constraint — the reviewer approves the delivery unit as part
 of the design; grooming reads it rather than assuming it.
 -->
 
-- The <schema migration> SHALL deploy before <the element that reads it>.
-- WHILE <rollout is incomplete>, the feature SHALL be gated behind
-  `<flag-name>`.
-- The system SHALL maintain backward compatibility with <surface> until
-  <condition>.
+The <schema migration> SHALL deploy before <the element that reads it>.
+
+WHILE <rollout is incomplete>, the feature SHALL be gated behind
+`<flag-name>`.
+
+The system SHALL maintain backward compatibility with <surface> until
+<condition>.
 
 ## AC coverage
 
@@ -435,8 +438,8 @@ item.
 
 Verified by:  the level at which the AC is proven —
               unit | integration | e2e | manual. Map it onto the owning
-              blueprint's tier 1 gates first. Name a tier 2 suite only
-              with its condition.
+              blueprint's Verify always gates first. Name a Verify
+              conditionally suite only with its condition.
 
 This table is design-time intent; the durable record is the tests
 themselves, which cite their ACs in citation comments per
@@ -462,7 +465,7 @@ while authoring this blueprint, author the ADR and reference it here
 (and from the owning architecture blueprint at retirement).
 -->
 
-- [[adr-<nnn>]] — <one-line statement of the decision>.
+[[adr-<nnn>]] — <one-line statement of the decision>.
 
 ## Definition of done
 
@@ -513,7 +516,7 @@ state "None." explicitly — the absence of questions is information.
 ## References
 
 <!--
-Optional. What a reader needs next, one line each: [[slug]] for
+Optional. What a reader needs next, one paragraph each: [[slug]] for
 documents in this corpus, a URL for anything outside it.
 
 The system, container, module and component definitions that delta
@@ -522,4 +525,4 @@ Read it while authoring, but do not cite it here: it is not a document
 in your corpus.
 -->
 
-- <Additional references>
+<Additional references>

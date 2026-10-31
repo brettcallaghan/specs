@@ -33,10 +33,6 @@ sibling elements interact ([[adr-009]]).
 Each section heading names the blueprints its rules apply to. Templates and
 skills cite these rules by number and don't restate them.
 
-Each rule ends with what enforces it. "Planned" marks a `specs check` finding
-that the CLI doesn't report yet. Until it does, the blueprint audit covers
-that rule.
-
 ---
 
 ## Every architecture blueprint
@@ -48,8 +44,6 @@ of code under its `source_paths`.
 
 **Rationale:** Facts change with the code and nothing updates the blueprint.
 Rules are enforced or reviewable.
-
-**Enforced by:** the code-reference check (planned); the blueprint audit.
 
 ---
 
@@ -64,8 +58,6 @@ number.
 once to doubt it, and it buries the rules. A backticked path or symbol is a
 name that a tool can resolve against the source tree.
 
-**Enforced by:** the blueprint audit.
-
 ---
 
 ### 3. Point the interface at its definition
@@ -75,8 +67,6 @@ SHALL name a member only to state a guarantee that the signature can't
 express.
 
 **Rationale:** Generated API docs are the member reference.
-
-**Enforced by:** the blueprint audit.
 
 ---
 
@@ -90,8 +80,6 @@ a rule.
 that tests cite. Element-to-AC traceability comes from test citations
 ([[ac-traceability-standards]]).
 
-**Enforced by:** the blueprint audit.
-
 ---
 
 ### 5. Say what enforces each invariant
@@ -101,8 +89,6 @@ or "review only".
 
 **Rationale:** Readers know which rules to trust and which to verify. "Review
 only" marks a missing test.
-
-**Enforced by:** the blueprint audit.
 
 ---
 
@@ -114,8 +100,6 @@ SHALL state the rule, and the other blueprint SHALL link to it.
 **Rationale:** One rule stated in two places is information leakage in prose:
 the copies diverge.
 
-**Enforced by:** the blueprint audit.
-
 ---
 
 ### 7. Write `description` for triage
@@ -125,8 +109,6 @@ The `description` property SHALL take the form "<what it owns>. Change it to
 
 **Rationale:** Agents choose elements from `specs list`, which shows the
 description.
-
-**Enforced by:** review.
 
 ---
 
@@ -138,8 +120,6 @@ list only the host, Contracts, ADRs, and guides.
 
 **Rationale:** Edges belong to the host's blueprint, and they drift when
 restated ([[c4-standards]]).
-
-**Enforced by:** the blueprint audit.
 
 ---
 
@@ -154,23 +134,19 @@ sibling's.
 **Rationale:** A file maps to one blueprint, so parallel work on siblings
 never touches the same files.
 
-**Enforced by:** the ownership check (planned).
-
 ---
 
 ### 10. List isolation tests first
 
-The Verification gates SHALL list isolation tests from `test_paths` first.
-They SHALL list wider suites second, each with the condition that requires
-it.
+The Verification gates SHALL list isolation tests from `test_paths` under
+Verify always. They SHALL list wider suites under Verify conditionally, each
+with the condition that requires it.
 
 Container Blueprints follow this rule too. A System Blueprint follows it with
-its system-level suites as tier 1.
+its system-level suites under Verify always.
 
 **Rationale:** Isolation tests are fast and point at the broken element. The
 condition says when the slow suite is owed.
-
-**Enforced by:** the gate check (planned); review.
 
 ---
 
@@ -180,8 +156,6 @@ In a pattern blueprint (`kind: pattern`), each instance SHALL get one line:
 where it lives and how it differs.
 
 **Rationale:** An instance's mechanics are in its code.
-
-**Enforced by:** the blueprint audit.
 
 ---
 
@@ -195,8 +169,6 @@ Container and System Blueprints follow this rule too.
 **Rationale:** Code shows a seam's mechanism. It doesn't show that the seam
 is the intended way in.
 
-**Enforced by:** the blueprint audit.
-
 ---
 
 ### 13. Keep a Component Blueprint near 250 lines
@@ -206,8 +178,6 @@ the component.
 
 **Rationale:** A budget prompts the audit. It's advice only, because length
 can't measure quality.
-
-**Enforced by:** none.
 
 ---
 
@@ -232,8 +202,6 @@ with its own progenitor. For each pattern, the blueprint SHALL state:
 meaning, and the constraint is what a reviewer or a check can verify. The
 need keeps a pattern from being adopted for its own sake.
 
-**Enforced by:** the blueprint audit.
-
 ---
 
 ## Blueprint audit
@@ -246,7 +214,7 @@ Run this audit on an architecture blueprint before you set it to
 3. Apply rules 1 to 8 and rule 14.
 4. Confirm that the extension points and an "Enforced by:" note on each
    invariant exist. In a Component or Module Blueprint, confirm the Hides
-   line too.
+   section too.
 5. For each named pattern, ask what breaks if you remove it. Remove a pattern
    whose removal breaks nothing the blueprint states.
 

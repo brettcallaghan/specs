@@ -165,10 +165,11 @@ C4Container
     Rel(api, db, "reads/writes", "<protocol>")
 ```
 
-- **<Container Name>** ([[container-<name>]]; <technology>) — <brief
-  description, as it appears on diagrams>.
-- **<Data Store Name>** (<technology>) — <brief description>. <Detailed
-  description: what it holds, which container owns its schema.>
+**<Container Name>** ([[container-<name>]]; <technology>) — <brief
+description, as it appears on diagrams>.
+
+**<Data Store Name>** (<technology>) — <brief description>. <Detailed
+description: what it holds, which container owns its schema.>
 
 ## Design
 
@@ -187,8 +188,8 @@ present need it serves. State what it rules out as an invariant
 (rule 14).
 -->
 
-- <Pattern> (<progenitor>) — <the roles its containers play>; <the
-  present need it serves>.
+<Pattern> (<progenitor>) — <the roles its containers play>; <the
+present need it serves>.
 
 ### Invariants
 
@@ -197,8 +198,8 @@ EARS statements that hold across the system, each ending "Enforced by:
 <test, check, lint, or review only>" (rule 5).
 -->
 
-- The system SHALL <invariant that holds across containers>.
-  Enforced by: <test, check, lint, or review only>.
+The system SHALL <invariant that holds across containers>.
+Enforced by: <test, check, lint, or review only>.
 
 ### Extension points
 
@@ -208,8 +209,8 @@ wrong way to extend the system. If it has none, write "None: <why it is
 closed>" (rule 12).
 -->
 
-- <Where a new container or integration joins> — <the intended way in>.
-  Not by <the wrong way to extend it>.
+<Where a new container or integration joins> — <the intended way in>.
+Not by <the wrong way to extend it>.
 
 ## Public Contracts
 
@@ -222,7 +223,7 @@ Interfaces used only between this system's own containers are internal
 contracts — list them in the providing container's blueprint, not here.
 -->
 
-- [[contract-<name>]] — <what it vends, to whom, via what mechanism>.
+[[contract-<name>]] — <what it vends, to whom, via what mechanism>.
 
 ## Consumed systems and Contracts
 
@@ -238,9 +239,10 @@ interfaces the organization provides — SHALL NOT be authored for
 third-party interfaces.
 -->
 
-- [[contract-<name>]] (provided by <system>) — <what we use it for>.
-- <Vendor / SaaS product> — <what we use it for>; contract:
-  <URL to the vendor's published specification>.
+[[contract-<name>]] (provided by <system>) — <what we use it for>.
+
+<Vendor / SaaS product> — <what we use it for>; contract:
+<URL to the vendor's published specification>.
 
 ## Deployment
 
@@ -271,9 +273,7 @@ The standards and platform obligations this system complies with, by
 reference. Never restate a standard's requirements here.
 -->
 
-This system SHALL comply with:
-
-- [[<standard-slug>]] — <one-line scope of the standard>.
+This system SHALL comply with [[<standard-slug>]]: <one-line scope of the standard>.
 
 ## Change guidance
 
@@ -291,34 +291,45 @@ Organization-wide rules belong in a cross-cutting requirements document
 referenced from Cross-cutting Standards.
 -->
 
-- WHEN <a change spans containers>, <the artifacts that must change
-  together> SHALL be updated in the same change.
-- <A cross-container boundary rule any change must respect, in EARS.>
+WHEN <a change spans containers>, <the artifacts that must change
+together> SHALL be updated in the same change.
+
+<A cross-container boundary rule any change must respect, in EARS.>
 
 ### Verification gates
 
 <!--
-List the gates in two tiers (rule 10):
-  - Tier 1, always: the system-level suites every cross-container change
-    runs, as runnable targets.
-  - Tier 2, WHEN <condition>: each wider suite (integration, end-to-end,
-    contract tests), with the change that requires it.
-Feature blueprints map their AC coverage "Verified by" column onto these
-gates.
+The gates in two groups (rule 10), each gate in its own paragraph. Feature
+Blueprints map their AC coverage "Verified by" column onto these gates.
 -->
 
-- Tier 1 (always): <system-level suites every cross-container change runs, as
-  runnable targets>.
-- Tier 2 (WHEN <condition>): <the wider suite that condition requires>.
+#### Verify always
+
+<!--
+The system-level suites every cross-container change runs, as runnable
+targets.
+-->
+
+<System-level suites every cross-container change runs, as runnable
+targets.>
+
+#### Verify conditionally
+
+<!--
+Each wider suite (integration, end-to-end, contract tests), with the
+change that requires it.
+-->
+
+WHEN <condition>, run <the wider suite that condition requires>.
 
 ## Key decisions
 
 <!--
-One line per significant decision: restate the outcome and reference
+One paragraph per significant decision: restate the outcome and reference
 the ADR. The trade-off analysis lives in the ADR, not here.
 -->
 
-- [[adr-<nnn>]] — <one-line statement of the decision>.
+[[adr-<nnn>]] — <one-line statement of the decision>.
 
 ## Open questions
 
@@ -336,7 +347,7 @@ information. Remove the whole section when the document leaves draft.
 ## References
 
 <!--
-Optional. What a reader needs next, one line each: [[slug]] for
+Optional. What a reader needs next, one paragraph each: [[slug]] for
 documents in this corpus, a URL for anything outside it. Remove the
 section when there is nothing to cite.
 
@@ -345,4 +356,4 @@ C4 mapping rules and diagram conventions are in this skill's
 here: it is not a document in your corpus.
 -->
 
-- <Additional references>
+<Additional references>
