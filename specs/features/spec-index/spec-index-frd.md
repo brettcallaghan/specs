@@ -907,7 +907,7 @@ it.
   invocation-error, and environment-error outcomes above name
 - [[cli-output-standards]] — the YAML and JSON renderings the query
   answers above take
-- [[template-authoring-standards]] — frontmatter properties, slug
+- [[spec-authoring-standards]] — frontmatter properties, slug
   conventions, and the frontmatter index this feature implements
 - [[specs-cli-reference]] — the checks this feature's metadata subset
   makes mechanical

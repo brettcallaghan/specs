@@ -187,4 +187,4 @@ Blueprints.
   Gherkin scenario
 - The `spec` skill's Feature Blueprint template — AC coverage table and
   Definition of done
-- [[template-authoring-standards]] — EARS and referencing conventions
+- [[spec-authoring-standards]] — slugs and document structure

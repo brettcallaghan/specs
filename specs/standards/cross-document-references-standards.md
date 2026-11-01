@@ -20,7 +20,7 @@ status: active
   that a path is written relative to the file containing it
 
 [[adr-012]] records the decision behind these conventions. This standard
-is a companion to [[template-authoring-standards]].
+is a companion to [[spec-authoring-standards]].
 
 These conventions are mechanically checked. `specs check` resolves every
 `[[slug]]` in a document's body and every slug-typed frontmatter
@@ -46,7 +46,7 @@ double-bracket wikilink notation SHALL be used.
 **Examples:**
 - `[[security-standards]]`
 - `[[contract-payments-api]]`
-- `[[template-authoring-standards]]`
+- `[[spec-authoring-standards]]`
 
 A reference resolves against the target document's frontmatter `slug`,
 never a file path. The namespace is flat and location-independent, so a

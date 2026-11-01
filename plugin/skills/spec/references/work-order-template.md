@@ -38,7 +38,7 @@ c4_docs: []                          # C4 doc files that may need updating
 <!--
 Template: Work Order
 Source: This specification framework. Reference conventions follow
-  [[template-authoring-standards]]. Readiness criteria are defined in
+  `shared/cross-document-references-standards.md`. Readiness criteria are defined in
   [[work-order-definition-of-ready]] and [[work-order-field-guide]].
 
 Sections (complete each, then delete its instruction block)
@@ -140,7 +140,7 @@ Slug format
   slug is the stable human handle.
 
 UNRESOLVED — no lifecycle status field (deliberate deviation)
-  [[template-authoring-standards]] makes `status` a REQUIRED frontmatter
+  `shared/frontmatter-standards.md` makes `status` a REQUIRED frontmatter
   property. This template omits it on purpose: a work order has two
   orthogonal lifecycles — grooming readiness and execution state — and both
   are owned by the tracker (bead `status` + `grooming_status`), not

@@ -1122,7 +1122,7 @@ The extraction half pins ten semantics:
   reported by Corpus's `reference/unresolved` check (below), not by a rule of
   its own.
 - **An HTML comment block is read as body text.** Only code is excluded, and
-  [[template-authoring-standards]] requires a finished document's comment
+  [[spec-authoring-standards]] requires a finished document's comment
   blocks to be deleted. So masking them would hide a reference in a document
   that shouldn't be carrying the block at all.
 - **A reference splits on its first `#`,** into the slug half this feature

@@ -20,7 +20,7 @@ frd: frd-<feature-name>              # the FRD this blueprint realizes (1:1)
 <!--
 Template: Feature Blueprint
 Source: This specification framework. Reference conventions follow
-  [[template-authoring-standards]].
+  `shared/cross-document-references-standards.md`.
   Before authoring, load `shared/blueprint-content-standards.md` and
   `shared/design-principles-guide.md`. Also load the level guide for the
   level of each element a delta changes:

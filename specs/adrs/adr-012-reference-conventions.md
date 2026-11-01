@@ -15,7 +15,7 @@ status: ready-for-review
 
 Framework documents reference each other and reference C4 model elements. Two
 separate systems had grown up for it: `@document-slug` for documents (defined
-in [[template-authoring-standards]]) and a homegrown `#ComponentName`
+in [[spec-authoring-standards]]) and a homegrown `#ComponentName`
 reference-id for elements (defined in [[c4-standards]]).
 Both conventions are authored and consumed mainly inside coding agents and
 edited in Obsidian-style Markdown tooling, and both interact badly with those
@@ -99,7 +99,7 @@ reference-id convention are both removed.
 
 ## References
 
-- [[template-authoring-standards]] — normative slug rules
+- [[spec-authoring-standards]] — normative slug rules
 - [[cross-document-references]] — normative reference rules
 - [[c4-standards#Element Declarations: Model in Prose, Views in Diagrams]] —
   element declarations and anchor resolution

@@ -195,7 +195,7 @@ Feature: Structure Configuration
 - [[adr-021]] — Gherkin, the notation these features and acceptance
   criteria are written in
 - [[gherkin-guide]] — how to write them
-- [[template-authoring-standards]] — frontmatter properties, slug conventions,
+- [[spec-authoring-standards]] — frontmatter properties, slug conventions,
   line width, and required sections
 - [[specs-cli-reference]] — what `specs check` covers today, which this
   feature extends to structure

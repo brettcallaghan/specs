@@ -141,7 +141,7 @@ IGNORE = {'AGENTS.md','CLAUDE.md','CONTRIBUTING.md','SKILL.md','index.md',
           # is nothing here to resolve.
           'strata.config.json','strata-config.json','strata.config.schema.json',
           'options.strata'}
-TEACHING = {'template-authoring-standards.md','cross-document-references.md'}
+TEACHING = {'spec-authoring-standards.md','cross-document-references.md'}
 for p in glob.glob('plugin/skills/**/*.md', recursive=True) + glob.glob('.claude/skills/**/*.md', recursive=True):
     if '/references/shared/' in p or is_generated(p): continue
     d = os.path.dirname(p)

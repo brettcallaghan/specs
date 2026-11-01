@@ -58,4 +58,4 @@ in-container, carry only `kind`.
 - [[adr-005]] — the tiers this encodes
 - [[adr-011]] — visibility also gates the change rules
 - Template: `plugin/skills/spec/references/module-blueprint-template.md`;
-  [[template-authoring-standards]]
+  [[spec-authoring-standards]]

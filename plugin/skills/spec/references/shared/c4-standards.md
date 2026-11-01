@@ -377,7 +377,7 @@ Rules for authoring the Mermaid C4 diagrams embedded in blueprints:
   `Container(...)`, `Rel(...)`, and friends) SHALL be written on a
   single line. Quoted strings in these declarations cannot span lines.
   Wrapping them breaks the diagram. The 80-character line limit does
-  not apply inside diagram fences ([[template-authoring-standards]]
+  not apply inside diagram fences ([[spec-authoring-standards]]
   exempts code-block content).
 - Keep each element's description text short: it's the element's
   declared brief description, verbatim, not a place for extra prose.
@@ -551,6 +551,6 @@ documents describing the system as it is.
 
 ## References
 
-- [[template-authoring-standards]] — frontmatter, slugs, EARS, references
+- [[spec-authoring-standards]] — line length, slugs, filenames
 - [C4 model — abstractions](https://c4model.com/abstractions)
 - [C4 model — queues and topics](https://c4model.com/abstractions/queues-and-topics)

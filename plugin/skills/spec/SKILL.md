@@ -223,9 +223,9 @@ specs.
    Either way the illustration is never normative: the criterion or the
    EARS sentence carries the requirement, and edge-case enumeration
    belongs in tests, not the spec.
-4. **Follow the template-authoring standards** for frontmatter (title,
-   description, slug, type, status), kebab-case slugs with
-   type prefixes, 80-character lines, and `[[document-slug]]`
+4. **Follow the spec-authoring and frontmatter standards** for
+   frontmatter (title, description, slug, type, status), kebab-case slugs
+   with type prefixes, 80-character lines, and `[[document-slug]]`
    cross-references. `[[slug]]` is reserved for documents in the
    project's spec set: everything under `references/` — the templates,
    the guides, and the standards shipped with this skill — is cited by
@@ -315,7 +315,7 @@ Load the whole row. Where a row lists more than one file, they are a
 | Mapping any element to a C4 level; diagram conventions | `references/shared/c4-standards.md` |
 | Writing a feature or an acceptance criterion (Gherkin) | `references/shared/gherkin-guide.md` |
 | Writing any other normative statement (EARS) | `references/shared/ears-guide.md` |
-| Slugs, instruction blocks, versioning, placeholders, validation | `references/shared/template-authoring-standards.md` |
+| Slugs, filenames, line length, title and H1 | `references/shared/spec-authoring-standards.md` |
 | Frontmatter properties, status vocabulary, element records | `references/shared/frontmatter-standards.md` |
 | `[[slug]]` wikilinks, heading anchors, backticked paths | `references/shared/cross-document-references-standards.md` |
 

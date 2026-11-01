@@ -66,7 +66,7 @@ Slug format
   - The slug is independent of the filename. Name the FILE
     descriptively — adr-003-local-tesseract-for-ocr.md — so humans can
     find it; the slug stays adr-003 so [[adr-003]] resolves.
-  - See template-authoring-standards.md, Prefix Registry.
+  - See `shared/spec-authoring-standards.md`, Prefix registry.
 -->
 
 # ADR-<NNN>: <Decision Title>

@@ -274,7 +274,7 @@ WHEN an authoritative pattern document already exists outside the
 framework (a pre-existing architecture or tenets doc), this blueprint
 MAY wrap it rather than rewrite it: declare the pattern, its instances,
 and conformance gates here, and reference the existing document (by
-repo-relative path, per [[template-authoring-standards]]) as the detailed
+repo-relative path, per `shared/cross-document-references-standards.md`) as the detailed
 specification.
 
 -->

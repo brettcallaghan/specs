@@ -21,9 +21,8 @@ status: active
 - Embedded element records — declaring child components by record
   block, blueprint, or both
 
-Document structure, slugs, instruction blocks, versioning, and content
-guidelines belong to the companion document,
-[[template-authoring-standards]]. Cross-document reference syntax is in
+Document structure, slugs, and filenames belong to the companion
+document, [[spec-authoring-standards]]. Cross-document reference syntax is in
 [[cross-document-references]].
 
 This document holds the normative prose. The **per-type property tables**

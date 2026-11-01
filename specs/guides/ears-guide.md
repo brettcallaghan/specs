@@ -245,7 +245,7 @@ normative statements in it follow this convention, except an FRD's
 - A **Rationale** note after a requirement or group of requirements is the
   preferred place to explain *why* without diluting the requirement itself.
 - Cross-reference requirements that live in another document instead of
-  restating them (see [[template-authoring-standards]] for reference syntax).
+  restating them (see [[cross-document-references]] for reference syntax).
 
 ---
 
@@ -269,7 +269,7 @@ Before you commit a requirement, check that:
 - [[adr-002]] — the decision this guide implements, and the scope it keeps
 - [[gherkin-guide]] — the notation for features and acceptance criteria, the
   one surface this guide does not cover
-- [[template-authoring-standards]] — frontmatter, references, and modal verb
+- [[spec-authoring-standards]] — document structure, slugs, and modal verb
   standards
 - Mavin, A., et al. (2009). "Easy Approach to Requirements Syntax (EARS)"
 - [RFC 2119](https://www.ietf.org/rfc/rfc2119.txt) — modal verb definitions
