@@ -151,6 +151,58 @@ Slug format
   feature-<feature-name>, lowercase kebab-case, matching the FRD:
   frd-checkout → feature-checkout
 
+Readiness checks
+  These checks define "ready to groom." Run them before you set
+  `ready-for-review`, fix what fails, and run them again, because one fix
+  can break another check. The `groom-feature-blueprint` skill enforces
+  the same checks as its gate, and it cites each one by its name below.
+
+  Readiness checks: is grooming premature?
+  - FRD approved: the FRD's status is `approved` or `active`.
+  - Blueprint approved: the blueprint's status is `approved`.
+  - No open questions: the Open questions section is absent, empty, or
+    states only "None."
+  WHEN you submit the blueprint for review, flag BOTH status changes to
+  the human reviewer: the blueprint's approval AND its FRD's.
+
+  Content checks: is the approved design plannable?
+  - Every AC covered: every AC the FRD defines appears in the AC
+    coverage table, and every row names a delta block that exists, by
+    the row validity rules in that section. List the FRD's ACs with
+    `specs feature <id> --full` instead of by reading it: each tagged
+    `Examples` block is its own criterion, and only the first looks like
+    one in a diff.
+  - References resolve: `specs check <path>` reports no unresolved
+    reference or anchor.
+  - Component references resolve: every component a delta names
+    resolves to exactly one declaration across the Components sections
+    of the containers and modules it cites, qualified in prose where the
+    name is ambiguous.
+  - Design intent complete: every delta can be implemented without a
+    design decision the blueprint doesn't record. Run the decision sweep
+    below.
+  - Delta keys unique: the AC coverage legend gives every delta block a
+    unique key, every key expands to an existing block, and no earlier
+    key is reused for a different delta.
+  - Lockstep rules satisfied: WHEN a lockstep-update rule in an owning
+    blueprint's Change guidance couples artifacts in more than one delta
+    block, the blueprint states how the rule is satisfied.
+  - Tracker reconciled: the Tracker reconciliation section classifies
+    every listed issue, or states "None."
+  - No FRD behavior in deltas: no delta restates behavior the FRD owns
+    ([[adr-033]]).
+
+  The decision sweep
+  Walk each delta and ask what an implementer would have to choose there:
+  paths and names, defaults and default resolution bases, runtime or
+  build-time access to generated artifacts, scope cuts, behavior on
+  half-valid input, and rules for several instances at once. Pin each
+  choice as an EARS line in the delta's Guarantees, or raise it as an
+  Open question. Leave implementation structure unpinned: "anchors, not
+  signatures" guards against pinning too much, and the sweep guards
+  against pinning too little. Guarantees are EARS, never Gherkin: the
+  FRD holds the acceptance criteria.
+
 This is a living document while in flight — update it when the design
 changes, and update `status` when you do. Remove all
 HTML comment blocks after completing each section.
@@ -242,14 +294,11 @@ an owning blueprint's lockstep-update rule are assigned to different
 delta blocks, the blueprint SHALL state how the rule is satisfied —
 in the delta or in Sequencing constraints (e.g., "single-PR delivery;
 the DOC delta lands in the same change as the CLI delta"). Absence is
-a content-check failure at groom time, not a call the groomer makes.
+a Lockstep rules satisfied failure at groom time, not a call the
+groomer makes.
 
-Before setting `ready-for-review`, run the decision sweep from
-[[blueprint-readiness-checklist]] over every delta: pin each silent
-decision an implementer would otherwise have to make (paths and names,
-defaults, scope cuts, edge-case rules) as an EARS line in Guarantees,
-or raise it as an Open Question. "Anchors, not signatures" warns
-against pinning too much; the sweep guards against pinning too little.
+Before setting `ready-for-review`, run the decision sweep under
+Readiness checks over every delta.
 -->
 
 ### [[container-<name>]] (modified)

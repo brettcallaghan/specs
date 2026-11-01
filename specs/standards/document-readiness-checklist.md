@@ -32,10 +32,8 @@ document defines the checks. The skill cites it instead of restating
 it, so the authoring workflow and this checklist can't disagree about
 what "conformant" means.
 
-Feature Blueprints also run [[blueprint-readiness-checklist]]. The two
-checklists don't overlap: that one asks whether an approved design is
-*groomable*, and this one asks whether a document of any type
-*conforms* to the framework's authoring rules.
+Feature Blueprints also run the Readiness checks in their template,
+which ask whether an approved design is *groomable*.
 
 Most checks below enforce rules that the framework already owns
 elsewhere. Where that's so, the check cites the owner instead of
@@ -247,7 +245,5 @@ while any check fails.
 - [[guide-ears]] — the EARS patterns that checks 4 and 5 test for
 - [[gherkin-guide]] — the tag vocabulary, description slots, and silent
   failures that check 9 tests for
-- [[blueprint-readiness-checklist]] — the separate groomability gate
-  that Feature Blueprints also run
 - [[blueprint-content-standards]] — the rules and the audit that checks
   10 and 11 test for

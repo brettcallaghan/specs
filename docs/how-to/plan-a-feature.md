@@ -48,8 +48,8 @@ For what each type holds, see [Document types](../reference/document-types.md).
    issue tracker for existing issues the feature subsumes or depends on.
 
    Before it sets the blueprint to `ready-for-review`, the skill runs the
-   blueprint readiness checklist, the same checks that grooming enforces. It
-   then flags two status changes for you to make.
+   readiness checks in the Feature Blueprint template, the same checks that
+   grooming enforces. It then flags two status changes for you to make.
 
 2. Review the blueprint. Answer or remove everything in its Open questions
    section.

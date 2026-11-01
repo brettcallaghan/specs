@@ -33,9 +33,7 @@ skills that own them — this skill deliberately keeps no copies, so
 authoring and grooming can never disagree):
 
 - `references/shared/feature-blueprint-template.md` — the document
-  being groomed
-- `references/shared/blueprint-readiness-checklist.md` — the Phase 1
-  check definitions
+  being groomed, and its Readiness checks, which are the Phase 1 gate
 - `references/shared/work-order-template.md` — the format each work
   item is emitted in
 - `references/shared/ac-traceability-standards.md` — test citation
@@ -53,7 +51,7 @@ Copy this into your response and check items off as you go.
 
 ```
 Blueprint grooming:
-- [ ] 1. Readiness gate run from the checklist document (not from memory)
+- [ ] 1. Readiness gate run from the template's Readiness checks (not from memory)
 - [ ]    Readiness check failed?  -> reported and STOPPED, nothing modified
 - [ ]    Content check failed?    -> gaps written to Open questions, status
                                      back to draft, reported, STOPPED
@@ -67,24 +65,25 @@ Blueprint grooming:
 
 ## Phase 1 — Readiness Gate
 
-The checks are defined in
-`references/shared/blueprint-readiness-checklist.md` — the single definition
+The checks are the Readiness checks in the header of
+`references/shared/feature-blueprint-template.md`: the single definition
 of "ready to groom," which the `spec` skill runs as an authoring
-preflight and this skill enforces as the gate. Do not restate or
-paraphrase the checks; run them from that document. Resolve every
-`[[slug]]` reference by reading the referenced document.
+preflight and this skill enforces as the gate. Don't restate or
+paraphrase them; run them from the template. Resolve every `[[slug]]`
+reference by reading the referenced document.
 
 Two kinds of checks with different failure responses:
 
-**Readiness checks** (checklist #1–#3) — is grooming premature?
+**Readiness checks** (FRD approved, Blueprint approved, No open
+questions): is grooming premature?
 
 WHEN a readiness check fails, report why grooming cannot start and
 stop. Do NOT modify any document — a blueprint still being authored or
 reviewed is not defective, just not ready; demoting it or injecting
 questions would disrupt the specification loop mid-flight.
 
-**Content checks** (checklist #4–#11) — is the approved design
-plannable? Check 11 rejects a delta that carries FRD behavior.
+**Content checks** (Every AC covered through No FRD behavior in deltas):
+is the approved design plannable?
 
 WHEN a content check fails, the skill SHALL NOT produce a plan.
 Instead:
@@ -143,7 +142,7 @@ Deriving them here would fork routing logic that must live in one place.
   item UNLESS the blueprint states how the rule is otherwise satisfied
   (e.g., single-PR delivery); that statement is a design decision the
   graph inherits, and its absence when coupled artifacts span deltas
-  is a Phase 1 content failure (checklist #9), never the groomer's
+  is a Lockstep rules satisfied failure in Phase 1, never the groomer's
   interpretation. Each item's test obligation takes the owning
   blueprint's Verify always gates, and a Verify conditionally gate only
   when the item's change meets that gate's condition.

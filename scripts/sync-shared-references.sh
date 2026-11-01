@@ -65,7 +65,6 @@ groom-beads	specs/standards/work-order-definition-of-ready.md
 groom-beads	specs/guides/work-order-field-guide.md
 groom-beads	spec/references/work-order-template.md
 groom-feature-blueprint	specs/standards/ac-traceability-standards.md
-groom-feature-blueprint	specs/standards/blueprint-readiness-checklist.md
 groom-feature-blueprint	spec/references/feature-blueprint-template.md
 groom-feature-blueprint	spec/references/work-order-template.md
 groom-feature-blueprint	specs/standards/findings-capture-protocol.md
@@ -74,7 +73,6 @@ retro-skill	spec/references/issue-template.md
 retro-spec	specs/standards/findings-capture-protocol.md
 retro-spec	spec/references/issue-template.md
 spec	specs/standards/ac-traceability-standards.md
-spec	specs/standards/blueprint-readiness-checklist.md
 spec	specs/standards/blueprint-content-standards.md
 spec	specs/standards/c4-standards.md
 spec	specs/standards/cross-document-references-standards.md

@@ -259,17 +259,13 @@ specs.
    breakage in the documents citing it: run `specs refs <slug>` before
    the change and a whole-corpus `specs check` after it.
 6. **Preflight feature blueprints.** Before setting a feature blueprint
-   to `ready-for-review`, run the decision sweep and self-check against
-   `references/shared/blueprint-readiness-checklist.md`, then re-run the checklist
-   after fixing what it surfaced, because one fix can break another check.
-   Do not set `ready-for-review` while any check fails: they are the
-   checks `groom-feature-blueprint` enforces at its Phase 1 gate. Authoring a feature blueprint includes surveying the
-   project's issue tracker to populate its Tracker reconciliation
-   section — existing issues the feature subsumes, depends on, or must
-   not absorb are design inputs, not groom-time discoveries. Flag BOTH
-   status flips to the human reviewer: the blueprint's approval AND
-   its FRD's (the FRD must be `approved` or `active` before grooming
-   can start).
+   to `ready-for-review`, run the Readiness checks in the template's
+   header, including the decision sweep, and re-run them after fixing
+   what they surfaced. Don't set `ready-for-review` while any check
+   fails: `groom-feature-blueprint` enforces the same checks as its
+   gate. Survey the project's issue tracker to fill the Tracker
+   reconciliation section: issues the feature subsumes, depends on, or
+   must not absorb are design inputs, not groom-time discoveries.
 7. **Self-check the finished document.** Before setting any document to
    `ready-for-review`, run `specs check <path>`, then check it against
    `references/shared/document-readiness-checklist.md`. It marks which
@@ -311,7 +307,6 @@ Load the whole row. Where a row lists more than one file, they are a
 | Designing how a specified feature will be built (deltas, AC coverage) | `references/feature-blueprint-template.md` + `references/shared/ac-traceability-standards.md` + the architecture bundle |
 | Understanding, filling, or gating a work order | `references/work-order-template.md` + `references/shared/work-order-field-guide.md` + `references/shared/work-order-definition-of-ready.md` |
 | Reporting one actionable change, from a retro or from another project | `references/issue-template.md` |
-| Preflighting a feature blueprint before review handoff | `references/shared/blueprint-readiness-checklist.md` |
 | Specifying an interface's semantics, SLOs, and change policy | `references/contract-template.md` + `references/shared/c4-standards.md` |
 | Mapping any element to a C4 level; diagram conventions | `references/shared/c4-standards.md` |
 | Writing a feature or an acceptance criterion (Gherkin) | `references/shared/gherkin-guide.md` |
