@@ -210,7 +210,9 @@ Run this audit on an architecture blueprint before you set it to
 4. Confirm that the extension points and an "Enforced by:" note on each
    invariant exist. In a Component or Module Blueprint, confirm the Hides
    section too.
-5. For each named pattern, ask what breaks if you remove it. Remove a pattern
+5. Confirm that every section the template requires is present, and that
+   every backticked path names a tracked file.
+6. For each named pattern, ask what breaks if you remove it. Remove a pattern
    whose removal breaks nothing the blueprint states.
 
 ---

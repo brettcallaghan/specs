@@ -318,6 +318,18 @@ pile than as a sentence. Consider whether it's really several criteria.
 **Don't restate the criteria in prose.** If a description says what the
 scenarios below already say, delete it.
 
+### Review list
+
+The spec CLI checks a criterion's structure and identifiers. Review these
+by reading, because no parser sees intent:
+
+- [ ] Each `Examples` block meant as its own criterion carries its own tag.
+- [ ] Each prohibition carries `@negative`, and each hand-verified
+  criterion carries `@manual`.
+- [ ] No step was shortened to fit a margin.
+- [ ] None of the mistakes under Seven ways to break a document silently
+  appears.
+
 ---
 
 ## Seven ways to break a document silently

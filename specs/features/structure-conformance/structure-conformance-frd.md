@@ -197,5 +197,5 @@ Feature: Structure Configuration
 - [[gherkin-guide]] — how to write them
 - [[template-authoring-standards]] — frontmatter properties, slug conventions,
   line width, and required sections
-- [[document-readiness-checklist]] — the structure checks whose mechanical
-  subset this feature absorbs
+- [[specs-cli-reference]] — what `specs check` covers today, which this
+  feature extends to structure

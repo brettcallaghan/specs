@@ -267,16 +267,20 @@ specs.
    reconciliation section: issues the feature subsumes, depends on, or
    must not absorb are design inputs, not groom-time discoveries.
 7. **Self-check the finished document.** Before setting any document to
-   `ready-for-review`, run `specs check <path>`, then check it against
-   `references/shared/document-readiness-checklist.md`. It marks which
-   checks the CLI settles and which are yours: a clean `specs check` is
-   not a passing document. Fix what each reports and re-run; do not set
-   `ready-for-review` while any check fails. A Feature Blueprint also
-   passes the preflight above, which tests groomability, not
-   conformance.
+   `ready-for-review`:
 
-   Architecture blueprints also run the blueprint audit in
-   `references/shared/blueprint-content-standards.md`.
+   - Run `specs check <path>` and fix every finding. A clean run covers
+     only what `references/shared/specs-cli-reference.md` says it checks.
+   - Search for `<!--`: no template instruction block survives.
+   - Keep prose lines within `line_width`.
+   - Check each EARS statement against the EARS guide's Quick checklist,
+     and an FRD's Gherkin against the Gherkin guide's review list.
+   - Run the blueprint audit in
+     `references/shared/blueprint-content-standards.md` on an
+     architecture blueprint.
+
+   Re-run after each fix, and don't set `ready-for-review` while any
+   check fails. Where `specs` isn't installed, check by hand and say so.
 8. **Offer a retro.** WHEN an authored document consumed upstream
    documents (a feature blueprint from its FRD and architecture
    blueprints; any spec from prior specs) and the review loop has
@@ -296,7 +300,7 @@ Load the whole row. Where a row lists more than one file, they are a
 |------------|---------------|
 | Checking a document, picking an identifier, querying the corpus | `references/shared/specs-cli-reference.md` |
 | Choosing between two document types that both look plausible | `references/shared/document-type-boundaries-guide.md` |
-| Reviewing a draft, or self-reviewing before `ready-for-review` | `references/shared/anti-patterns-guide.md` + `references/shared/document-readiness-checklist.md`; for a blueprint, also `references/shared/blueprint-content-standards.md` |
+| Reviewing a draft, or self-reviewing before `ready-for-review` | The document's template + `references/shared/anti-patterns-guide.md`; for a blueprint, also `references/shared/blueprint-content-standards.md` |
 | Recording an architecture or technology decision | `references/adr-template.md` |
 | Specifying a feature (user stories + acceptance criteria) | `references/frd-template.md` + `references/shared/gherkin-guide.md` |
 | Defining cross-cutting standards, policies, or constraints | `references/standards-template.md` + `references/shared/ears-guide.md` |

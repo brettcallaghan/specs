@@ -21,8 +21,8 @@ Spec CLI is a Go binary that `.github/workflows/release.yml` publishes through
 two channels: the Go module proxy (`go install …/cli/specs@cli/vX.Y.Z`) and
 per-platform release archives with a `SHA256SUMS` file.
 
-The skills call it throughout. `specs check` decides four of the nine checks in
-[[document-readiness-checklist]] outright, and part of a fifth. `specs next-id`
+The skills call it throughout. `specs check` decides the mechanical checks that
+[[specs-cli-reference]] lists. `specs next-id`
 and `specs slug-exists` answer questions an agent would otherwise answer by
 reading the corpus, which is expensive and unverifiable: an agent that scanned
 the corpus and one that assumed the answer produce identical output.
@@ -81,7 +81,7 @@ plugin carries would rest on the same root.
 
 Skills call `specs` directly, in a single code path. They don't branch on
 whether it's installed. The fallback is stated once, where the checks are
-defined ([[document-readiness-checklist]]). Every check remains defined
+described ([[specs-cli-reference]]). Every check remains defined
 independently of the tool, so all of them can be run by hand, and the agent
 SHALL say which happened. "`specs check` reports no findings" and "I read the
 frontmatter and it looks right" are different claims, and only the first can be
@@ -130,5 +130,5 @@ re-run by a reviewer.
   contract
 - `plugin/skills/spec/references/shared/specs-cli-reference.md` — the
   command surface the skills call
-- [[document-readiness-checklist]] — where the mechanized/human split is
+- [[specs-cli-reference]] — what `specs check` decides, and the fallback without it
   recorded

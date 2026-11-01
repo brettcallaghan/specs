@@ -76,7 +76,6 @@ spec	specs/standards/ac-traceability-standards.md
 spec	specs/standards/blueprint-content-standards.md
 spec	specs/standards/c4-standards.md
 spec	specs/standards/cross-document-references-standards.md
-spec	specs/standards/document-readiness-checklist.md
 spec	specs/standards/frontmatter-standards.md
 spec	specs/standards/template-authoring-standards.md
 spec	specs/standards/work-order-definition-of-ready.md

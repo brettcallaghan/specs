@@ -79,8 +79,8 @@ Describe your feature to the `spec` skill. For example:
 The skill confirms that the document is an FRD, writes it from the FRD
 template, and saves it as
 `specs/features/<feature-name>/<feature-name>-frd.md`. Before it sets the FRD
-to `ready-for-review`, it runs `specs check` on the file and then the
-document readiness checklist, and fixes what both report.
+to `ready-for-review`, it runs `specs check` on the file, then reviews what
+the CLI doesn't check, and fixes what both find.
 
 ## Read what the skill wrote
 
@@ -117,9 +117,9 @@ it.
 A reviewer can run the same two commands and get the same answer. That's the
 difference between a check the CLI ran and a check an agent says it ran.
 
-A clean `specs check` doesn't mean the FRD is finished, though. The document
-readiness checklist names the checks the CLI doesn't make, and the skill
-makes those by reading the document.
+A clean `specs check` doesn't mean the FRD is finished, though. The CLI
+doesn't judge whether a criterion means what it should, so the skill reviews
+that by reading the document.
 
 ## Approve the FRD
 
