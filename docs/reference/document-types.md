@@ -26,11 +26,15 @@ container, and component levels.
 |:---|:---|:---|:---|
 | **System Blueprint** | A system's context, its containers, its public contracts, and its deployment (C4 levels 1 and 2). | - | [`system-blueprint-template.md`](../../plugin/skills/spec/references/system-blueprint-template.md) |
 | **Container Blueprint** | One deployable unit: its components, the contracts that it provides and consumes, the data that it owns, and change guidance. | [Container: Spec CLI](../../specs/containers/spec-cli/spec-cli-container.md) | [`container-blueprint-template.md`](../../plugin/skills/spec/references/container-blueprint-template.md) |
-| **Component Blueprint** | An atomic internal building block of one container, and its interface. | - | [`component-blueprint-template.md`](../../plugin/skills/spec/references/component-blueprint-template.md) |
+| **Component Blueprint** | An atomic building block of one container or module: what it owns, the design decision it hides, its interface guarantees, its invariants, and where it's designed to grow. | - | [`component-blueprint-template.md`](../../plugin/skills/spec/references/component-blueprint-template.md) |
 | **Module Blueprint** | A unit that crosses a boundary of independent change, because it's shared or published across containers or because it's composite. Includes versioning and change rules. | [Module: Document Core](../../specs/modules/document-core/document-core-module.md) | [`module-blueprint-template.md`](../../plugin/skills/spec/references/module-blueprint-template.md) |
 | **ADR** (architecture decision record) | One significant decision: its context, the alternatives, the choice, and the consequences. | [ADR-015: Go for the Spec CLI](../../specs/adrs/adr-015-go-for-the-spec-cli.md) | [`adr-template.md`](../../plugin/skills/spec/references/adr-template.md) |
 | **Standards** | Cross-cutting standards, policies, invariants, and constraints. | [Testing Standards](../../specs/standards/testing-standards.md) | [`standards-template.md`](../../plugin/skills/spec/references/standards-template.md) |
 | **Contract** | The meaning of an interface that's used across a boundary, such as an API, an event stream, or a data product. | [Contract: Specs Configuration](../../specs/contracts/specs-configuration-contract.md) | [`contract-template.md`](../../plugin/skills/spec/references/contract-template.md) |
+
+An architecture blueprint states the rules that the code can't show and
+links the code for everything else. To learn why, see
+[How architecture blueprints work](../explanation/architecture-blueprints.md).
 
 These documents cover systems, containers, modules, and components, and they
 stop there. Code is the last level of the C4 hierarchy, and only Work Orders,

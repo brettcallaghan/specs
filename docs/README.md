@@ -30,6 +30,7 @@ things up, and explanation to understand the design.
 - [Why specs](explanation/why-specs.md)
 - [Workflow](explanation/workflow.md)
 - [How the document model works](explanation/document-model.md)
+- [How architecture blueprints work](explanation/architecture-blueprints.md)
 
 ## Working on this repository
 
