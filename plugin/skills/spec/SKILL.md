@@ -212,7 +212,7 @@ specs.
      `@AC-<CODE>-NNN.N` tag. Load
      `references/shared/gherkin-guide.md` before writing one; it holds
      the tag vocabulary, what belongs in each description slot, and the
-     seven constructs that parse cleanly while losing meaning. Prefer a
+     constructs that parse cleanly while losing meaning. Prefer a
      `Scenario Outline` with an `Examples` table where a criterion
      carries concrete example data.
    - **Every other normative statement is EARS** with capitalized RFC
@@ -261,11 +261,9 @@ specs.
 6. **Preflight feature blueprints.** Before setting a feature blueprint
    to `ready-for-review`, run the decision sweep and self-check against
    `references/shared/blueprint-readiness-checklist.md`, then re-run the checklist
-   after fixing what it surfaced — a first pass that fixes check 4 often
-   breaks check 8. Do not set `ready-for-review` while any check fails — the same checks
-   `groom-feature-blueprint` enforces at its Phase 1 gate, so a first-pass
-   blueprint lands groomable instead of discovering the checks by
-   failing them. Authoring a feature blueprint includes surveying the
+   after fixing what it surfaced, because one fix can break another check.
+   Do not set `ready-for-review` while any check fails: they are the
+   checks `groom-feature-blueprint` enforces at its Phase 1 gate. Authoring a feature blueprint includes surveying the
    project's issue tracker to populate its Tracker reconciliation
    section — existing issues the feature subsumes, depends on, or must
    not absorb are design inputs, not groom-time discoveries. Flag BOTH
@@ -302,7 +300,7 @@ Load the whole row. Where a row lists more than one file, they are a
 |------------|---------------|
 | Checking a document, picking an identifier, querying the corpus | `references/shared/spec-cli-reference.md` |
 | Choosing between two document types that both look plausible | `references/shared/document-type-boundaries-guide.md` |
-| Reviewing a draft, or self-reviewing before `ready-for-review` | `references/shared/anti-patterns-guide.md` + `references/shared/document-readiness-checklist.md` |
+| Reviewing a draft, or self-reviewing before `ready-for-review` | `references/shared/anti-patterns-guide.md` + `references/shared/document-readiness-checklist.md`; for a blueprint, also `references/shared/blueprint-content-standards.md` |
 | Recording an architecture or technology decision | `references/adr-template.md` |
 | Specifying a feature (user stories + acceptance criteria) | `references/frd-template.md` + `references/shared/gherkin-guide.md` |
 | Defining cross-cutting standards, policies, or constraints | `references/standards-template.md` + `references/shared/ears-guide.md` |

@@ -46,7 +46,8 @@ Purpose
   container, with a defined interface and — as a leaf — no internal
   components of its own. A component changes in lockstep with its
   container: it is NOT vended or versioned independently. It is the unit
-  of change within a container.
+  of change within a container. A module's internal components use this
+  template too; for them, read "host" as that module.
 
   WHEN a unit is shared or vended across containers on their own
   schedules (so versioning and compatibility become concerns), OR it has
@@ -57,7 +58,7 @@ Purpose
 
 Reader profile (apply with the tech-writer skill)
 - Reader: an engineer or agent changing this component inside its container.
-- Knows: the host container, not this component's internals.
+- Knows: the host container or module, not this component's internals.
 - Wants: its responsibilities, its interface, and the change guidance feature
   work must respect.
 - Budget: one focused read.
@@ -75,6 +76,10 @@ When to use — the trigger is the promotion predicate
   that cannot be described context-independently should stay an entry
   (with a record block) in its container's Components section, not
   become a blueprint.
+
+  WHEN you promote an entry, lift its record block into this frontmatter,
+  rewrite its description in the triage form, and replace the entry in
+  the host with a link, as the host's template describes.
 
   kind:
   standard — the default: an internal component of one container (a
@@ -100,8 +105,8 @@ When NOT to use
     guidance. It is a module; use a module blueprint.
 
 Edges
-  The host [[container-<name>]] blueprint owns this component's edges to
-  its siblings; point to it ("Name owners, not neighbors").
+  The host's blueprint owns this component's edges to its siblings;
+  point to it ("Name owners, not neighbors").
 
 Keep the blueprint near 250 lines ("Keep a Component Blueprint near 250 lines").
 
@@ -166,17 +171,17 @@ Each excluded responsibility, with its owner's [[slug]]
 ### Composed into
 
 <!--
-The host container, and how this component is composed into it.
+The host container or module, and how this component is composed into it.
 -->
 
-[[container-<name>]] — <how it is composed into the container>; see it
-for this component's relationships.
+[[<host-slug>]] — <how it is composed into the host>; see it for this
+component's relationships.
 
 
 ## Interface
 
 <!--
-What the host container's other components may depend on. An interface
+What the host's other components may depend on. An interface
 consumed ACROSS containers is a contract on a shared unit: that unit is a
 module, not a component (module blueprint), and its interface may warrant
 a contract document.
@@ -194,7 +199,9 @@ The path or symbol that defines the interface
 ### Provides
 
 <!--
-The postconditions consumers rely on, in EARS.
+The postconditions the host's other components rely on, in EARS. A
+behavior the product's users observe belongs to the FRD, not here
+("Leave behavior to the FRD").
 -->
 
 The component SHALL <postcondition consumers rely on>.
@@ -226,7 +233,7 @@ Each pattern the component follows, including entries all of its code
 follows, such as Make Illegal States Unrepresentable. Draw on the
 universal guide and the components guide. Name each pattern with its
 progenitor, its roles mapped to this component's types, and the present
-need it serves. State what it rules out as an invariant
+need it serves. Follow it with what it rules out, as an invariant
 ("Name each pattern with its progenitor, constraint, and need").
 -->
 
@@ -305,7 +312,8 @@ One paragraph per instance: where it lives and how it differs
 <!--
 Standards this component complies with, by reference. Platform choices
 that apply everywhere are mentioned in prose or standards docs, never
-modeled as elements on this component's diagrams — see `shared/c4-standards.md`.
+modeled as elements on this component's diagrams — see
+`shared/c4-standards.md`.
 -->
 
 This component SHALL comply with [[<standard-slug>]]: <one-line scope>.
@@ -319,8 +327,9 @@ respect when changing this component. Write normative rules in EARS.
 
 This section carries ARCHITECTURAL constraints: lockstep-update rules,
 layering boundaries, regeneration obligations. Invariants go in Design.
-It is not a task list or a commands reference — reference the repository's build and
-contributor docs for procedure rather than duplicating them (duplication
+It is not a task list or a commands reference — reference the
+repository's build and contributor docs for procedure rather than
+duplicating them (duplication
 drifts). Constraints that span multiple elements belong in a cross-
 cutting requirements document, not here.
 -->
@@ -332,6 +341,7 @@ together> SHALL be updated in the same change.
 
 <!--
 Each a wrong change that caused a real defect, and the defect it caused.
+Delete the subsection when there is none; don't invent one.
 -->
 
 <The wrong change> — <the defect it caused>.
@@ -397,4 +407,4 @@ C4 mapping rules and diagram conventions are in this skill's
 here: it is not a document in your corpus.
 -->
 
-[[container-<name>]] — the container this component is composed into
+[[<host-slug>]] — the container or module this component is composed into

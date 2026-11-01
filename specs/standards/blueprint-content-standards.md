@@ -25,7 +25,7 @@ behavior and acceptance criteria ([[adr-033]]). The host blueprint owns how
 sibling elements interact ([[adr-009]]).
 
 Each section heading names the blueprints its rules apply to. Templates and
-skills cite these rules by number and don't restate them.
+skills cite a rule by its heading and don't restate it.
 
 ---
 
@@ -137,6 +137,29 @@ need keeps a pattern from being adopted for its own sake.
 
 ---
 
+### State where the element grows
+
+A blueprint SHALL state where its element is designed to grow and the wrong
+way to extend it, or state that the element has no extension points and why.
+
+**Rationale:** Code shows a seam's mechanism. It doesn't show that the seam
+is the intended way in.
+
+---
+
+### Verify isolation tests always
+
+The Verification gates SHALL list isolation tests from `test_paths` under
+Verify always. They SHALL list wider suites under Verify conditionally, each
+with the condition that requires it.
+
+A System Blueprint lists its system-level suites under Verify always.
+
+**Rationale:** Isolation tests are fast and point at the broken element. The
+condition says when the slow suite is owed.
+
+---
+
 ## Rules for Component and Module Blueprints
 
 ### Own a disjoint branch of the source tree
@@ -150,38 +173,12 @@ never touches the same files.
 
 ---
 
-### Verify isolation tests always
-
-The Verification gates SHALL list isolation tests from `test_paths` under
-Verify always. They SHALL list wider suites under Verify conditionally, each
-with the condition that requires it.
-
-Container Blueprints follow this rule too. A System Blueprint follows it with
-its system-level suites under Verify always.
-
-**Rationale:** Isolation tests are fast and point at the broken element. The
-condition says when the slow suite is owed.
-
----
-
 ### Give each pattern instance one line
 
 In a pattern blueprint (`kind: pattern`), each instance SHALL get one line:
 where it lives and how it differs.
 
 **Rationale:** An instance's mechanics are in its code.
-
----
-
-### State where the element grows
-
-A blueprint SHALL state where its element is designed to grow and the wrong
-way to extend it, or state that the element has no extension points and why.
-
-Container and System Blueprints follow this rule too.
-
-**Rationale:** Code shows a seam's mechanism. It doesn't show that the seam
-is the intended way in.
 
 ---
 
@@ -201,8 +198,10 @@ Run this audit on an architecture blueprint before you set it to
 `ready-for-review`:
 
 1. Run `specs check <path>` and fix what it reports.
-2. Classify each statement as a rule, a fact, a behavior, or an edge.
-3. Apply the rules under [[#Rules for every architecture blueprint]].
+2. Classify each statement as a rule, a fact, a behavior, or an edge. Keep
+   the rules. Replace each fact with a link to the code, move each behavior
+   to the FRD, and leave each edge to the host's blueprint.
+3. Apply every rule in each section whose heading covers the blueprint.
 4. Confirm that the extension points and an "Enforced by:" note on each
    invariant exist. In a Component or Module Blueprint, confirm the Hides
    section too.
