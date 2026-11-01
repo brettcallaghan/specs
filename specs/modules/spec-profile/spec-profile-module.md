@@ -159,7 +159,7 @@ the generated pattern exactly, which is what
 transcribed from the prefix registry**, and for guides the two disagree:
 the registry has no row at all and this repository's guides do not
 consistently carry a `guide-` prefix (`work-order-field-guide` and
-`spec-cli-reference` do not), so the pattern is the type's least
+`specs-cli-reference` do not), so the pattern is the type's least
 restrictive form. The divergence is recorded at the table in
 `cli/profile/profile.go`. The Change guidance below is what obliges a
 template change to come back here.

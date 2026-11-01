@@ -128,7 +128,7 @@ re-run by a reviewer.
   Coding Agent interaction this decision serves
 - `plugin/hooks/install-cli` — the hook, with its lookup order and output
   contract
-- `plugin/skills/spec/references/shared/spec-cli-reference.md` — the
+- `plugin/skills/spec/references/shared/specs-cli-reference.md` — the
   command surface the skills call
 - [[document-readiness-checklist]] — where the mechanized/human split is
   recorded

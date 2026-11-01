@@ -239,7 +239,7 @@ specs.
    learn what a document depends on before editing it, `specs refs <slug>
    --outbound`. Each is one subprocess and each is checkable by a
    reviewer; a scan you did yourself is neither.
-   `references/shared/spec-cli-reference.md` covers the rest of the command surface,
+   `references/shared/specs-cli-reference.md` covers the rest of the command surface,
    including reading the whole index when you need many documents'
    metadata at once.
 5. **Treat specs as living documents.** Update them when requirements
@@ -298,7 +298,7 @@ Load the whole row. Where a row lists more than one file, they are a
 
 | Working on | Load together |
 |------------|---------------|
-| Checking a document, picking an identifier, querying the corpus | `references/shared/spec-cli-reference.md` |
+| Checking a document, picking an identifier, querying the corpus | `references/shared/specs-cli-reference.md` |
 | Choosing between two document types that both look plausible | `references/shared/document-type-boundaries-guide.md` |
 | Reviewing a draft, or self-reviewing before `ready-for-review` | `references/shared/anti-patterns-guide.md` + `references/shared/document-readiness-checklist.md`; for a blueprint, also `references/shared/blueprint-content-standards.md` |
 | Recording an architecture or technology decision | `references/adr-template.md` |

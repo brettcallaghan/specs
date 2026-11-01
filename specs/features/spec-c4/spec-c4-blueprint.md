@@ -249,12 +249,12 @@ and [[frd-spec-c4]] expects a `c4` row in the output standards'
 current-conformance table.
 
 **Behavior:**
-- [[spec-cli-reference]] SHALL document `specs c4`, its two flags, the
+- [[specs-cli-reference]] SHALL document `specs c4`, its two flags, the
   model's top-level collections, and the excluded-relationship reasons.
 - [[cli-output-standards]]' current-conformance table SHALL gain a `c4`
   row recording that the command conforms.
 
-**Anchors:** [[spec-cli-reference]]; [[cli-output-standards]].
+**Anchors:** [[specs-cli-reference]]; [[cli-output-standards]].
 `scripts/sync-shared-references.sh` SHALL be re-run so the vendored
 copies follow.
 
@@ -380,7 +380,7 @@ AC-SPECLIST-004.3.
         gains `c4`, with its flags and the Document Core call it makes
 - [x] `schemas/c4.strata` carries `bidirectional`, and the generated
       schema and Go model are regenerated from it
-- [x] [[spec-cli-reference]] documents `specs c4`, [[cli-output-standards]]
+- [x] [[specs-cli-reference]] documents `specs c4`, [[cli-output-standards]]
       lists it, and `scripts/sync-shared-references.sh --check` passes
 - [x] Every AC in the coverage table is verified at its declared level
       and cited from its tests per [[ac-traceability-standards]]

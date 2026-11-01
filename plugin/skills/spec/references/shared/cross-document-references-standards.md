@@ -31,7 +31,7 @@ These conventions are mechanically checked. `specs check` resolves every
 `[[slug]]` in a document's body and every slug-typed frontmatter
 property against the corpus, and reports the ones that resolve to
 nothing. `specs refs <slug>` answers who cites a document before you
-change it. [[spec-cli-reference]] states what each rule reports, and the
+change it. [[specs-cli-reference]] states what each rule reports, and the
 reference cases that are still yours. The rules below are what those
 checks enforce, which is also why the exceptions are worth knowing.
 Outside a `gherkin` block, a `[[slug]]` inside backticks or a fenced

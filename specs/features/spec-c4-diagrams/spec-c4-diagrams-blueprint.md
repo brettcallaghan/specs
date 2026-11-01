@@ -397,13 +397,13 @@ wrote down, so the documents change with the checks.
 - The four architecture blueprint templates SHALL show the optional
   `technology` property in their frontmatter and in their component
   record block examples.
-- [[spec-cli-reference]] SHALL list the `c4/*` rules, each with its
+- [[specs-cli-reference]] SHALL list the `c4/*` rules, each with its
   severity and what it reports.
 
 **Anchors:** `specs/standards/c4-standards.md`;
 `plugin/skills/spec/references/*-blueprint-template.md` for the system,
 container, module and component templates;
-`specs/guides/spec-cli-reference.md`. `scripts/sync-shared-references.sh`
+`specs/guides/specs-cli-reference.md`. `scripts/sync-shared-references.sh`
 SHALL be re-run so the vendored copies follow.
 
 ### Relied-upon elements (unchanged)
@@ -523,7 +523,7 @@ Corpus delta (relationship and tag checks); DOC = Documentation delta.
   - [x] [[container-spec-cli]] — the Command Surface's paragraph on `check`
         names the `c4/*` rules
 - [x] [[c4-standards]], the four architecture blueprint templates and
-      [[spec-cli-reference]] updated, and
+      [[specs-cli-reference]] updated, and
       `scripts/sync-shared-references.sh --check` passes
 - [x] [[adr-029]] and [[adr-030]] are referenced from
       [[module-document-core]]'s Key decisions

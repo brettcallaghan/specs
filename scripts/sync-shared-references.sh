@@ -90,7 +90,7 @@ spec	specs/guides/design-principles-components-guide.md
 spec	specs/guides/document-type-boundaries-guide.md
 spec	specs/guides/ears-guide.md
 spec	specs/standards/gherkin-guide.md
-spec	specs/guides/spec-cli-reference.md
+spec	specs/guides/specs-cli-reference.md
 spec	specs/guides/work-order-field-guide.md
 EOF
 )

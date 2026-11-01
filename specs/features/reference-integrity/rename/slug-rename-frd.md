@@ -317,7 +317,7 @@ Feature: Command Surface and Skill Adoption
 previews, and the same command with the write flag performs the rename.
 The subcommand vocabulary AC-SPEC-011.5 lists gains an entry, and the
 existing entries are neither renamed nor repurposed (AC-SPECREN-004.1).
-The command table in [[spec-cli-reference]] gains a
+The command table in [[specs-cli-reference]] gains a
 `specs rename <current-slug> <new-slug>` row reading "Rename a slug and
 every reference to it" (AC-SPECREN-004.2). The guidance sits with the
 existing instruction to prefer the CLI for anything it decides ("its

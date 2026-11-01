@@ -132,7 +132,7 @@ isn't a passing grade.
 Check 8 covers heading anchors too: `specs check` resolves
 `[[container-x#Some Heading]]` on `container-x`, and then matches the
 anchor against that document's headings.
-[[spec-cli-reference#What it does not check]] lists the reference cases
+[[specs-cli-reference#What it doesn't check]] lists the reference cases
 that a clean run says nothing about.
 
 Where the CLI isn't installed, every check below is still defined and
@@ -140,7 +140,7 @@ still runs, and you carry out checks 1–3 by hand against the property
 definitions and prefix registry that the checks cite. Say which
 happened. "`specs check` reports no findings" and "I read the
 frontmatter and it looks right" are different claims, and a reviewer
-can re-run only the first. [[spec-cli-reference]] covers installation.
+can re-run only the first. [[specs-cli-reference]] covers installation.
 
 ---
 
@@ -243,7 +243,7 @@ while any check fails.
 
 ## References
 
-- [[spec-cli-reference]] — the CLI that settles checks 1–3, 8, and most
+- [[specs-cli-reference]] — the CLI that settles checks 1–3, 8, and most
   of 9, and what it doesn't yet check
 - [[template-authoring-standards]] — frontmatter properties, slug
   conventions, line width, instruction blocks
