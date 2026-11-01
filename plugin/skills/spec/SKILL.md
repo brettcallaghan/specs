@@ -274,8 +274,7 @@ specs.
    can start).
 7. **Self-check the finished document.** Before setting any document to
    `ready-for-review`, run `specs check <path>`, then check it against
-   `references/shared/document-readiness-checklist.md` and
-   `references/shared/anti-patterns-guide.md`. The checklist marks which
+   `references/shared/document-readiness-checklist.md`. It marks which
    checks the CLI settles and which are yours: a clean `specs check` is
    not a passing document. Fix what each reports and re-run; do not set
    `ready-for-review` while any check fails. A Feature Blueprint also
@@ -336,6 +335,12 @@ Read the bundle up front, not from a pointer mid-authoring: a reference
 reached at the second hop tends to get previewed rather than read.
 
 ---
+
+## Anti-patterns
+
+`references/shared/anti-patterns-guide.md` names spec-first failure modes
+and their costs. Read it before you set a document to `ready-for-review`,
+and when you review someone else's.
 
 ## Retro this skill
 
