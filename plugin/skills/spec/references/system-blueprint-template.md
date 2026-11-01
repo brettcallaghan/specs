@@ -18,7 +18,10 @@ Template: System Blueprint
 Source: Architecture documentation framework.
 
 Load before authoring
-  - `shared/c4-standards.md`: C4 mapping rules and diagram conventions.
+  - `shared/c4-standards.md`: how the framework applies C4 — the module
+    level, element declarations, edge ownership, and diagram placement.
+  - `shared/c4-guide.md`: the C4 levels, naming and relationship
+    conventions, diagram types, and Mermaid authoring rules.
   - `shared/blueprint-content-standards.md`: what a blueprint states, and
     the blueprint audit. A quoted rule name below, such as "Name owners,
     not neighbors", is the heading of a rule there.

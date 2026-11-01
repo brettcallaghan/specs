@@ -394,8 +394,8 @@ None.
 
 ## References
 
-- [[c4-standards]] — the levels, containment, and arrow rules the model
-  follows
+- [[c4-standards]] — the levels and containment the model follows
+- [[guide-c4]] — the arrow rules the model follows
 - [[frd-spec-c4]] — the requirements this blueprint realizes
 - [[container-spec-cli]] — the container whose Change guidance binds
   every delta

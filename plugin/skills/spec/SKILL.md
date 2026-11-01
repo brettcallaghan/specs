@@ -77,7 +77,7 @@ chooses become tracker records, never files in the corpus.
 The architecture documents follow the C4 model with the framework's
 extensions: `references/shared/c4-standards.md` maps concrete elements
 (queues, shared libraries, IaC modules, sidecars, data products) to the
-correct C4 level and document.
+correct level and document.
 
 ### Choosing the type
 
@@ -209,9 +209,10 @@ specs.
      one fenced ` ```gherkin ` block per requirement, the requirement on
      `Feature:`, its user story in that Feature's description, each
      criterion a `Scenario` or `Scenario Outline` carrying an
-     `@AC-<CODE>-NNN.N` tag. The Gherkin guide, in the FRD template's
-     load list, holds the tag vocabulary, what belongs in each description slot, and the
-     constructs that parse cleanly while losing meaning. Prefer a
+     `@AC-<CODE>-NNN.N` tag. The FRD template holds the tag vocabulary,
+     and the Gherkin guide in its load list holds what belongs in each
+     description slot and the constructs that parse cleanly while losing
+     meaning. Prefer a
      `Scenario Outline` with an `Examples` table where a criterion
      carries concrete example data.
    - **Every other normative statement is EARS** with capitalized RFC

@@ -26,7 +26,10 @@ Template: Container Blueprint
 Source: Architecture documentation framework.
 
 Load before authoring
-  - `shared/c4-standards.md`: C4 mapping rules and diagram conventions.
+  - `shared/c4-standards.md`: how the framework applies C4 — the module
+    level, element declarations, edge ownership, and diagram placement.
+  - `shared/c4-guide.md`: the C4 levels, naming and relationship
+    conventions, diagram types, and Mermaid authoring rules.
   - `shared/blueprint-content-standards.md`: what a blueprint states, and
     the blueprint audit. A quoted rule name below, such as "Name owners,
     not neighbors", is the heading of a rule there.
@@ -180,7 +183,7 @@ SHALL agree with the primary entries here.
 ## Container context
 
 <!--
-A Container Context Diagram (defined in `shared/c4-standards.md`): THIS container in the
+A Container Context Diagram (defined in `shared/c4-guide.md`): THIS container in the
 center, plus only the containers, systems, and actors it directly
 communicates with — in either direction — regardless of system boundary.
 Not the whole system; the system-wide view lives in the system blueprint.

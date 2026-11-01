@@ -27,7 +27,8 @@ Load before authoring
     not neighbors", is the heading of a rule there.
   - `shared/ac-traceability-standards.md`: how tests cite the acceptance
     criteria in AC coverage.
-  - `shared/c4-standards.md`: C4 mapping rules and diagram conventions.
+  - `shared/c4-standards.md`: how the framework applies C4 — the module
+    level, element declarations, edge ownership, and diagram placement.
   - `shared/design-principles-guide.md`: the universal design principles.
   - The level guide for each element a delta changes:
     `shared/design-principles-systems-guide.md`,
