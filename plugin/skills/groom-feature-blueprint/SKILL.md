@@ -83,8 +83,8 @@ stop. Do NOT modify any document — a blueprint still being authored or
 reviewed is not defective, just not ready; demoting it or injecting
 questions would disrupt the specification loop mid-flight.
 
-**Content checks** (checklist #4–#10) — is the approved design
-plannable?
+**Content checks** (checklist #4–#11) — is the approved design
+plannable? Check 11 rejects a delta that carries FRD behavior.
 
 WHEN a content check fails, the skill SHALL NOT produce a plan.
 Instead:
@@ -99,6 +99,10 @@ Instead:
 Never resolve a gap by choosing an answer yourself, however obvious it
 seems: an obvious answer is cheap for the human loop to confirm and
 expensive to silently get wrong.
+
+**Extension points.** WHEN a delta changes an element outside the
+extension points its blueprint declares, flag it in your report to the
+user, with the reason the delta gives. A flag doesn't block grooming.
 
 ## Phase 2 — Decomposition
 
@@ -140,8 +144,9 @@ Deriving them here would fork routing logic that must live in one place.
   (e.g., single-PR delivery); that statement is a design decision the
   graph inherits, and its absence when coupled artifacts span deltas
   is a Phase 1 content failure (checklist #9), never the groomer's
-  interpretation. Change guidance verification gates inform each
-  item's test obligation.
+  interpretation. Each item's test obligation takes the owning
+  blueprint's Verify always gates, and a Verify conditionally gate only
+  when the item's change meets that gate's condition.
 - **Tracker reconciliation becomes graph structure.** For each issue
   the blueprint's Tracker reconciliation section classifies: a
   *subsumed* issue is blocked on the superseding work order and gets a

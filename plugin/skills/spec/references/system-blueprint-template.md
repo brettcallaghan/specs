@@ -4,8 +4,9 @@ entity_name: <System Name>           # the element, as diagrams draw it
 technology: <language, framework or package type>
                                      # optional; the technology line drawn on
                                      # diagrams — omit WHEN not meaningful
-description: <One-sentence summary of the system and the capabilities it
-  bundles — its brief description, shown on diagrams>
+description: <What it owns>. Change it to <kinds of change>.
+                                     # the brief description, shown on diagrams;
+                                     # see "Write the description for triage"
 slug: system-<system-name>
 type: system-blueprint
 status: draft
@@ -15,12 +16,19 @@ contracts_consumed: []               # contract slugs this system consumes
 <!--
 Template: System Blueprint
 Source: Architecture documentation framework. C4 mapping rules are
-  defined in `shared/c4-standards.md` — load it before authoring.
+  defined in `shared/c4-standards.md`. Load it,
+  `shared/blueprint-content-standards.md`,
+  `shared/design-principles-guide.md`,
+  and `shared/design-principles-systems-guide.md` before
+  authoring. A quoted rule name below, such as
+  "Name owners, not neighbors", is the heading of a rule in the content
+  standards.
 
 Sections (complete each, then delete its instruction block)
   - Overview
   - System context
   - Containers
+  - Design
   - Public Contracts
   - Consumed systems and Contracts
   - Deployment
@@ -103,8 +111,6 @@ not describe internal structure here — that is what the sections below
 are for.
 -->
 
-<What this system does, for whom, and who owns it>
-
 ## System context
 
 <!--
@@ -126,9 +132,6 @@ C4Context
     Rel(this, neighbor, "<calls / publishes>", "<protocol>")
 ```
 
-<One paragraph per relationship: who depends on whom, what crosses the
-boundary, which [[contract-slug]] governs it, and why the boundary is here.>
-
 ## Containers
 
 <!--
@@ -136,7 +139,9 @@ The containers are DECLARED in the list below; the C4 Container diagram
 is a view rendered from those declarations (see `shared/c4-standards.md`). Each
 declaration captures: the container's name (canonical — used verbatim on
 diagrams), its technology, and a brief description that doubles as the
-diagram's description text.
+diagram's description text. Each declaration states the container's
+responsibility only, and "State only what must stay true" applies to the
+brief descriptions.
 
 The detailed description of an active container lives in its
 [[container-<name>]] blueprint — do not restate internals here. Passive
@@ -158,10 +163,52 @@ C4Container
     Rel(api, db, "reads/writes", "<protocol>")
 ```
 
-- **<Container Name>** ([[container-<name>]]; <technology>) — <brief
-  description, as it appears on diagrams>.
-- **<Data Store Name>** (<technology>) — <brief description>. <Detailed
-  description: what it holds, which container owns its schema.>
+**<Container Name>** ([[container-<name>]]; <technology>) — <brief
+description, as it appears on diagrams>.
+
+**<Data Store Name>** (<technology>) — <brief description>. <Detailed
+description: what it holds, which container owns its schema.>
+
+## Design
+
+<!--
+How the system is built to stay sound as its containers change.
+-->
+
+### Integration style and patterns
+
+<!--
+How the containers interact and stay consistent, for example
+Event-Driven Architecture, with a Saga for each transaction that spans
+containers. Draw on the universal guide and the systems guide. Name each
+pattern with its progenitor, the roles its containers play, and the
+present need it serves. State what it rules out as an invariant
+("Name each pattern with its progenitor, constraint, and need").
+-->
+
+<Pattern> (<progenitor>) — <the roles its containers play>; <the
+present need it serves>.
+
+### Invariants
+
+<!--
+EARS statements that hold across the system, each ending "Enforced by:
+<test, check, lint, or review only>" ("Say what enforces each invariant").
+-->
+
+The system SHALL <invariant that holds across containers>.
+Enforced by: <test, check, lint, or review only>.
+
+### Extension points
+
+<!--
+Where a new container or integration joins, the intended way in, and the
+wrong way to extend the system. If it has none, write "None: <why it is
+closed>" ("State where the element grows").
+-->
+
+<Where a new container or integration joins> — <the intended way in>.
+Not by <the wrong way to extend it>.
 
 ## Public Contracts
 
@@ -174,7 +221,7 @@ Interfaces used only between this system's own containers are internal
 contracts — list them in the providing container's blueprint, not here.
 -->
 
-- [[contract-<name>]] — <what it vends, to whom, via what mechanism>.
+[[contract-<name>]] — <what it vends, to whom, via what mechanism>.
 
 ## Consumed systems and Contracts
 
@@ -190,9 +237,10 @@ interfaces the organization provides — SHALL NOT be authored for
 third-party interfaces.
 -->
 
-- [[contract-<name>]] (provided by <system>) — <what we use it for>.
-- <Vendor / SaaS product> — <what we use it for>; contract:
-  <URL to the vendor's published specification>.
+[[contract-<name>]] (provided by <system>) — <what we use it for>.
+
+<Vendor / SaaS product> — <what we use it for>; contract:
+<URL to the vendor's published specification>.
 
 ## Deployment
 
@@ -223,9 +271,7 @@ The standards and platform obligations this system complies with, by
 reference. Never restate a standard's requirements here.
 -->
 
-This system SHALL comply with:
-
-- [[<standard-slug>]] — <one-line scope of the standard>.
+This system SHALL comply with [[<standard-slug>]]: <one-line scope of the standard>.
 
 ## Change guidance
 
@@ -234,39 +280,50 @@ Rules for feature work touching this system as a whole: the constraints
 a feature blueprint — and the planning agent downstream of it — must
 respect when a change spans containers. Write normative rules in EARS.
 
-This section carries SYSTEM-LEVEL architectural constraints: invariants
-that hold across containers, cross-container lockstep-update rules, and
-boundary rules for what may talk to what. Constraints scoped to a single
-container belong in that [[container-<name>]] blueprint's Change guidance,
-not here; organization-wide rules belong in a cross-cutting requirements
-document referenced from Cross-cutting Standards.
-
-WHEN prose anywhere in this blueprint mentions a known defect or other
-open tracker issue, it SHOULD cite the tracker ID in greppable form
-(e.g. `proj-ab12`) — feature-blueprint authors harvest these IDs when
-reconciling their deltas against the tracker.
-
-End with a Verification gates entry naming the system-level suites
-(integration, end-to-end, contract tests) that gate cross-container
-changes. Feature blueprints map their AC coverage "Verified by" column
-onto these gates.
+This section carries system-level architectural constraints:
+cross-container lockstep-update rules and boundary rules for what may talk
+to what. Invariants that hold across containers belong in Design.
+Constraints scoped to a single container belong in that
+[[container-<name>]] blueprint's Change guidance, not here.
+Organization-wide rules belong in a cross-cutting requirements document
+referenced from Cross-cutting Standards.
 -->
 
-- WHEN <a change spans containers>, <the artifacts that must change
-  together> SHALL be updated in the same change.
-- <A cross-container boundary or invariant rule any change must respect,
-  in EARS.>
-- **Verification gates:** <the system-level integration / end-to-end /
-  contract-test suites that gate cross-container changes>.
+WHEN <a change spans containers>, <the artifacts that must change
+together> SHALL be updated in the same change.
+
+### Verification gates
+
+<!--
+The gates in two groups ("Verify isolation tests always"), each gate in
+its own paragraph. Feature Blueprints map their AC coverage "Verified by"
+column onto these gates.
+-->
+
+#### Verify always
+
+<!--
+The system-level suites every cross-container change runs, as runnable
+targets.
+-->
+
+#### Verify conditionally
+
+<!--
+Each wider suite (integration, end-to-end, contract tests), with the
+change that requires it.
+-->
+
+WHEN <condition>, run <the wider suite that condition requires>.
 
 ## Key decisions
 
 <!--
-One line per significant decision: restate the outcome and reference
+One paragraph per significant decision: restate the outcome and reference
 the ADR. The trade-off analysis lives in the ADR, not here.
 -->
 
-- [[adr-<nnn>]] — <one-line statement of the decision>.
+[[adr-<nnn>]] — <one-line statement of the decision>.
 
 ## Open questions
 
@@ -284,7 +341,7 @@ information. Remove the whole section when the document leaves draft.
 ## References
 
 <!--
-Optional. What a reader needs next, one line each: [[slug]] for
+Optional. What a reader needs next, one paragraph each: [[slug]] for
 documents in this corpus, a URL for anything outside it. Remove the
 section when there is nothing to cite.
 
@@ -292,5 +349,3 @@ C4 mapping rules and diagram conventions are in this skill's
 `shared/c4-standards.md`. Read it while authoring, but do not cite it
 here: it is not a document in your corpus.
 -->
-
-- <Additional references>

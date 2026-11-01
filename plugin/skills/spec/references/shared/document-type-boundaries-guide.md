@@ -32,6 +32,17 @@ where the obvious answer is wrong.
   composite with internal components, is a module. When you're unsure,
   default to a component. Promote it to a module when it's first shared or
   published, or when it grows internal structure.
+- Published package vs. component: a package published to a registry is a
+  public module, never a component. Its consumers span versions on their
+  own schedules.
+- Composite unit vs. component: a unit whose parts each need their own
+  interface or change guidance is a module. A component has no internal
+  components. Its blueprint can describe its code layout in prose where a
+  rule depends on it ([[c4-standards]]).
+- Rule vs. behavior: a rule that must stay true across every change
+  belongs in the element's blueprint. A behavior that users or consumers
+  observe belongs in the FRD, as an acceptance criterion. A blueprint
+  cites an AC id only as the reason for a rule ([[adr-033]]).
 - A question that looks "architectural" is often a requirements question in
   disguise. Get the product and requirements context first, because it often
   resolves or constrains the technical choice.

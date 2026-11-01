@@ -21,6 +21,13 @@ frd: frd-<feature-name>              # the FRD this blueprint realizes (1:1)
 Template: Feature Blueprint
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]].
+  Before authoring, load `shared/blueprint-content-standards.md` and
+  `shared/design-principles-guide.md`. Also load the level guide for the
+  level of each element a delta changes:
+  `shared/design-principles-systems-guide.md`,
+  `shared/design-principles-containers-guide.md`, or
+  `shared/design-principles-components-guide.md`. A quoted rule name
+  below is the heading of a rule in the content standards.
 
 Sections (complete each, then delete its instruction block)
   - Overview
@@ -164,9 +171,6 @@ reviewers and groomers orient by.
 
 **FRD:** [[frd-<feature-name>]]
 
-<How the system delivers this feature, at a glance: the approach chosen
-and the elements it touches.>
-
 ## Element deltas
 
 <!--
@@ -201,16 +205,30 @@ in at retirement is a mechanical copy:
     change rules (see the module's Change guidance)
   - a schema change → the container blueprint's Data section shape
     (store, what it holds, EARS invariants)
-  - a new behavior or guarantee → EARS statements
+  - a new or changed guarantee → the owning blueprint's Provides,
+    Requires, Invariants, or Extension points, in EARS
+  - an adopted pattern → the owning blueprint's Design section, named
+    under "Name each pattern with its progenitor, constraint, and need"
 
 Each block contains, as applicable:
   - Intent: what changes and WHY, in prose (design intent, not tasks)
-  - Behavior: new or changed guarantees, in EARS
+  - Guarantees: changes to the owning blueprint's Provides, Requires,
+    Invariants, or Extension points, in that blueprint's vocabulary, so
+    the fold-in stays a mechanical copy. When an FRD criterion already
+    states a behavior, cite its AC id in AC coverage; don't restate it.
   - Data: schema deltas for stores this element exclusively owns —
     fields, constraints, and the EARS invariants maintained over them.
     Shared surfaces do NOT go here; they get a contract document.
-  - Anchors: existing packages / symbols / migration dirs where the
-    change lands (anchors, not signatures — see document instructions)
+  - Anchors: existing paths or symbols where the change lands, in
+    backticks ("Link what the code reveals"). Anchors, not signatures —
+    see document instructions.
+
+A new component's block declares it with the Component Blueprint's
+Owns, Hides, and Does not own entries alongside its record block.
+
+WHEN a delta changes an element outside the extension points its
+blueprint declares, the block SHALL say so and give the reason.
+groom-feature-blueprint flags such a delta.
 
 Deltas SHALL be independently implementable and testable wherever
 possible; where two deltas cannot land independently, say so in
@@ -229,7 +247,7 @@ a content-check failure at groom time, not a call the groomer makes.
 Before setting `ready-for-review`, run the decision sweep from
 [[blueprint-readiness-checklist]] over every delta: pin each silent
 decision an implementer would otherwise have to make (paths and names,
-defaults, scope cuts, edge-case rules) as an EARS behavior line here,
+defaults, scope cuts, edge-case rules) as an EARS line in Guarantees,
 or raise it as an Open Question. "Anchors, not signatures" warns
 against pinning too much; the sweep guards against pinning too little.
 -->
@@ -238,17 +256,23 @@ against pinning too much; the sweep guards against pinning too little.
 
 **Intent:** <what changes in this container and why.>
 
-**Behavior:**
-- WHEN <event>, `<ComponentName>` SHALL <new or changed action>.
+**Guarantees** (Invariants of [[container-<name>]]):
+
+WHEN <event>, `<ComponentName>` SHALL <new or changed action>.
 
 **New components** (declared in container/module vocabulary, with a
 record block):
 - **<NewComponentName>** (<technology / kind>) — <brief description, as
-  it will appear on diagrams>. <Detailed description: responsibilities
-  and boundaries.>
+  it will appear on diagrams>.
+  - **Owns:** <the responsibilities and data it is the sole authority
+    for>.
+  - **Hides:** <the design decision likely to change that no other
+    element may depend on>.
+  - **Does not own:** <excluded responsibility> — [[<owner-slug>]] owns
+    it.
 
   ```component
-  title: <NewComponentName>
+  entity_name: <NewComponentName>
   slug: component-<new-component-name>
   description: <brief description>
   ```
@@ -258,29 +282,30 @@ record block):
   and constraints>. Migration source of truth: <link>.
   - The container SHALL <invariant maintained over the new data>.
 
-**Anchors:** <existing packages, symbols, or directories where this
-change lands.>
+**Anchors:** `<existing path or symbol where this change lands>`
 
 ### `<ComponentName>` in [[container-<name>]] (modified)
 
 **Intent:** <what changes in this component and why.>
 
-**Behavior:**
-- The component SHALL <new or changed guarantee>.
+**Guarantees** (Provides of [[component-<name>]]):
 
-**Anchors:** <existing code anchors.>
+The component SHALL <new or changed guarantee>.
+
+**Anchors:** `<existing path or symbol>`
 
 ### Relied-upon elements (unchanged)
 
-<!--
-Elements the feature depends on but does not change. One line each: what
-is relied upon and for what. This is the blast-radius map — it tells
-reviewers what could break and planners what to regression-test.
--->
+<!-- Elements the feature depends on but does not change. One paragraph
+each: what is relied upon and for what. This is the blast-radius map —
+it tells reviewers what could break and planners what to
+regression-test. -->
 
-- [[contract-<name>]] — <what this feature depends on it for>.
-- [[module-<name>]] — <what this feature relies on it for>.
-- [[container-<name>#ComponentName]] — <what is relied upon>.
+[[contract-<name>]] — <what this feature depends on it for>.
+
+[[module-<name>]] — <what this feature relies on it for>.
+
+[[container-<name>#ComponentName]] — <what is relied upon>.
 
 ## Contracts
 
@@ -290,15 +315,16 @@ itself is NEVER here: new contracts are authored as contract documents
 in draft status alongside this blueprint, and changes to existing
 contracts are drafted as revisions in the contract document itself. Name
 both below and in Documentation Changes; the `plan` tracks them to
-completion. One line each.
+completion. One paragraph each.
 
 Private schema changes (a container and its own store) belong in the
 owning container's delta block above, not here.
 -->
 
-- [[contract-<name>]] (new, draft) — <what it vends, to whom>.
-- [[contract-<name>]] (revised, drafted in place) — <what changes for
-  consumers>.
+[[contract-<name>]] (new, draft) — <what it vends, to whom>.
+
+[[contract-<name>]] (revised, drafted in place) — <what changes for
+consumers>.
 
 ## Tracker reconciliation
 
@@ -310,7 +336,7 @@ twice, divergently. WHERE the project has no tracker, or the survey
 finds no overlapping issues, state "None." — the absence is
 information.
 
-One line per overlapping issue, classified as exactly one of:
+One paragraph per overlapping issue, classified as exactly one of:
 
   subsumed      — this feature's deltas supersede the issue (including
                   tracked defects the feature rolls in and fixes); name
@@ -332,9 +358,11 @@ goes to Open questions — the same escalation path as any other design
 gap.
 -->
 
-- <tracker-id> — subsumed by the <KEY> delta: <what supersedes it>.
-- <tracker-id> — prerequisite: <why it must land before <KEY>>.
-- <tracker-id> — out-of-scope: <the boundary this feature respects>.
+<tracker-id> — subsumed by the <KEY> delta: <what supersedes it>.
+
+<tracker-id> — prerequisite: <why it must land before <KEY>>.
+
+<tracker-id> — out-of-scope: <the boundary this feature respects>.
 
 ## Sequencing constraints
 
@@ -342,7 +370,7 @@ gap.
 Hard ordering constraints that are DESIGN decisions — the planner cannot
 be allowed to derive them wrong. Migration ordering, backward
 compatibility windows, feature flags, contract-first requirements. In
-EARS, one per line.
+EARS, one per paragraph.
 
 Ordering between this feature's own deltas belongs here too, not in
 Intent prose. IF delta B extends state or interfaces introduced by
@@ -363,11 +391,13 @@ here as a constraint — the reviewer approves the delivery unit as part
 of the design; grooming reads it rather than assuming it.
 -->
 
-- The <schema migration> SHALL deploy before <the element that reads it>.
-- WHILE <rollout is incomplete>, the feature SHALL be gated behind
-  `<flag-name>`.
-- The system SHALL maintain backward compatibility with <surface> until
-  <condition>.
+The <schema migration> SHALL deploy before <the element that reads it>.
+
+WHILE <rollout is incomplete>, the feature SHALL be gated behind
+`<flag-name>`.
+
+The system SHALL maintain backward compatibility with <surface> until
+<condition>.
 
 ## AC coverage
 
@@ -409,7 +439,9 @@ notes for participating items that become ready before the proving
 item.
 
 Verified by:  the level at which the AC is proven —
-              unit | integration | e2e | manual.
+              unit | integration | e2e | manual. Map it onto the owning
+              blueprint's Verify always gates first. Name a Verify
+              conditionally suite only with its condition.
 
 This table is design-time intent; the durable record is the tests
 themselves, which cite their ACs in citation comments per
@@ -435,7 +467,7 @@ while authoring this blueprint, author the ADR and reference it here
 (and from the owning architecture blueprint at retirement).
 -->
 
-- [[adr-<nnn>]] — <one-line statement of the decision>.
+[[adr-<nnn>]] — <one-line statement of the decision>.
 
 ## Definition of done
 
@@ -452,12 +484,9 @@ truthful again. Keep one checkbox per affected document.
   - [ ] [[component-<name>]] — <sections affected>
 - [ ] [[contract-<name>]] status: draft → active
 - [ ] New ADRs are referenced from the owning blueprints' Key decisions
+- [ ] Run the blueprint audit on each blueprint a delta folds into
 - [ ] Every AC in the coverage table is verified at its declared level
   and cited from its tests per [[ac-traceability-standards]]
-- [ ] Every behaviour this blueprint decided that no FRD criterion asks
-  for (a refusal, an error path, a registration) is lifted into the FRD
-  as a criterion and cited from its test; it must not retire with this
-  document
 - [ ] Every issue listed as subsumed in Tracker reconciliation is
   closed or re-scoped (omit WHERE that section states "None.")
 - [ ] No live document references this blueprint (`specs refs
@@ -485,7 +514,7 @@ state "None." explicitly — the absence of questions is information.
 ## References
 
 <!--
-Optional. What a reader needs next, one line each: [[slug]] for
+Optional. What a reader needs next, one paragraph each: [[slug]] for
 documents in this corpus, a URL for anything outside it.
 
 The system, container, module and component definitions that delta
@@ -493,5 +522,3 @@ blocks are written against are in this skill's `shared/c4-standards.md`.
 Read it while authoring, but do not cite it here: it is not a document
 in your corpus.
 -->
-
-- <Additional references>

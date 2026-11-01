@@ -261,6 +261,17 @@ struct ContainerBlueprint: DocumentFrontmatter, C4ElementRecord, ContractEdges {
   is not touched. A module's hosts are derived from this property.
   """
   modules: [Citation]?
+
+  """
+  Repository-relative source roots.
+
+  Optional: a container may be assembled entirely from modules, whose
+  own blueprints declare their roots.
+  """
+  source_paths: [String]?
+
+  """Repository-relative test roots."""
+  test_paths: [String]?
 }
 
 """

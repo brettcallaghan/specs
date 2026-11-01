@@ -43,6 +43,10 @@ of active FRDs and test citations only. AC identifiers are never reused
 (see the ID conventions in the `spec` skill's FRD template), which is
 what makes this sound.
 
+Element traceability comes from the same citations: a citing test under
+an element's `test_paths` traces its criteria to that element.
+Architecture blueprints carry no AC lists ([[adr-033]]).
+
 ---
 
 AC identifiers SHALL be append-only: an FRD SHALL NOT renumber an

@@ -4,8 +4,9 @@ entity_name: <Container Name>        # the element, as diagrams draw it
 technology: <language, framework or package type>
                                      # optional; the technology line drawn on
                                      # diagrams — omit WHEN not meaningful
-description: <One-sentence summary of the container and its responsibility
-  — its brief description, shown on diagrams>
+description: <What it owns>. Change it to <kinds of change>.
+                                     # the brief description, shown on diagrams;
+                                     # see "Write the description for triage"
 slug: container-<container-name>
 type: container-blueprint
 status: draft
@@ -16,18 +17,28 @@ contracts_consumed: []               # contract slugs this container consumes
 modules: []                          # module slugs composed into this
                                      # container; each module's hosts are
                                      # derived from these lists
+source_paths: []                     # optional; repo-relative source roots
+test_paths: []                       # optional; repo-relative test roots
 ---
 
 <!--
 Template: Container Blueprint
 Source: Architecture documentation framework. C4 mapping rules are
-  defined in `shared/c4-standards.md` — load it before authoring.
+  defined in `shared/c4-standards.md`. Load it,
+  `shared/blueprint-content-standards.md`,
+  `shared/design-principles-guide.md`,
+  `shared/design-principles-containers-guide.md`,
+  and `shared/design-principles-components-guide.md` before
+  authoring. A quoted rule name below, such as
+  "Name owners, not neighbors", is the heading of a rule in the content
+  standards.
 
 Sections (complete each, then delete its instruction block)
   - Overview
   - Tech stack
   - Container context
   - Components
+  - Design
   - Provided Contracts
   - Consumed Contracts
   - Data
@@ -52,8 +63,9 @@ Reader profile (apply with the tech-writer skill)
 - Wants: its stack, components, contracts, owned data, and the change guidance
   feature work must respect.
 - Budget: one focused read.
-- Tone: matter-of-fact, describing the container as it is, with exact names.
-  Decisions and their alternatives belong in ADRs.
+- Tone: matter-of-fact, describing the container as it is, with exact names,
+  linked rather than described ("Link what the code reveals"). Decisions
+  and their alternatives belong in ADRs.
 
 When to use
   - Documenting an application your team builds and runs: API server, web
@@ -106,14 +118,31 @@ active.
 ## Overview
 
 <!--
-What this container is and does, in 1-2 paragraphs, plus the facts a
-newcomer needs: its responsibility and runtime/hosting model. The
-technologies it is built from go in Tech stack, below.
-Keep reasoning out — decisions go in Key decisions.
+What this container is and does, in one or two paragraphs. The
+technologies it is built from go in Tech stack, below. Keep reasoning
+out: decisions go in Key decisions.
 -->
 
-- **Responsibility:** <what this container does within the system>
-- **Runtime:** <how and where it runs — platform, scaling model>
+### Responsibility
+
+<!--
+What this container does within the system.
+-->
+
+### Does not own
+
+<!--
+Each excluded responsibility, with its owner's [[slug]]
+("Name owners, not neighbors").
+-->
+
+<Excluded responsibility> — [[<owner-slug>]] owns it.
+
+### Runtime
+
+<!--
+How and where it runs: its platform and scaling model.
+-->
 
 ## Tech stack
 
@@ -131,17 +160,17 @@ author an ADR only to fill the slot. An ADR cited here SHALL also be
 listed under Key decisions, which stays the complete index of decisions
 governing this container.
 
-Do not state dependency versions: they are volatile facts (see
-[[template-authoring-standards]] § Avoid Volatile Facts). WHEN a version
-is contractual (a minimum supported runtime, a pinned toolchain), state
-it as a requirement in EARS in Change guidance instead.
+Do not state dependency versions ("State only what must stay true"). WHEN
+a version is contractual (a minimum supported runtime, a pinned
+toolchain), state it as a requirement in EARS in Change guidance instead.
 
 The frontmatter `technology` value is the short label diagrams draw; it
 SHALL agree with the primary entries here.
 -->
 
-- **<Category>:** <technology> — <what it is used for>. [[adr-<nnn>]]
-- **<Category>:** <technology> — <what it is used for>.
+**<Category>:** <technology> — <what it is used for>. [[adr-<nnn>]]
+
+**<Category>:** <technology> — <what it is used for>.
 
 ## Container context
 
@@ -169,25 +198,24 @@ C4Container
     Rel(this, ext, "<publishes to>", "<protocol>")
 ```
 
-<One paragraph per relationship: direction, payload, governing contract,
-and intent. Do not restate what the neighbor does — link its blueprint.>
-
 ## Components
 
 <!--
 The container's full component roster — every component and module this
-container composes, enumerated here. They are DECLARED in the list
-below; the C4 Component diagram is a view rendered from those
+container composes, enumerated here. They are DECLARED under the
+headings below; the C4 Component diagram is a view rendered from those
 declarations and from the component/module blueprints this container
-composes (see `shared/c4-standards.md`). This container owns the relationships AMONG
-its components.
+composes (see `shared/c4-standards.md`). This container owns the
+relationships AMONG its components.
 
 Each declaration captures: the name (canonical — used verbatim on
 diagrams), its technology or kind, a brief description that doubles as
 the diagram's description text, and a detailed description. A composed
 unit is declared by a record block, by its own blueprint, or both:
   - un-promoted (a simple internal component): the follow-on sentence(s)
-    here ARE the detailed description, AND the declaration carries a
+    here ARE the detailed description. They state the component's
+    responsibility and the decision it hides, never its internals. The
+    declaration also carries a
     machine-readable record block holding entity_name, slug and
     description (and optionally technology), validated against the
     shared element-record schema:
@@ -207,7 +235,7 @@ unit is declared by a record block, by its own blueprint, or both:
     module, name its visibility tier (internal or public) — it governs
     the change rules for work touching it.
 
-WHEN a composed unit is promoted, its record block is lifted verbatim
+WHEN a composed unit is promoted, its record block is lifted
 into that document's frontmatter and replaced here by the link — and
 every container that composes it updates its roster in the same change
 (lockstep).
@@ -247,8 +275,7 @@ technology: <technology / kind>      # optional; the technology line drawn on
 ```
 
 (<technology / kind>) — <brief description, as it appears on diagrams>.
-<Detailed description: responsibilities and boundaries a maintainer needs
-beyond the diagram label.>
+<Detailed description: its responsibility and the decision it hides.>
 
 ### <Component B>
 
@@ -273,6 +300,49 @@ See [[module-<name>]] (internal | public).
 (<technology>) — <brief description>; when public, its blueprint carries
 versioning.
 
+## Design
+
+<!--
+How the container is built to stay sound as it changes.
+-->
+
+### Architectural style and patterns
+
+<!--
+The style its components follow and the patterns between them, for example
+Ports and Adapters: which components are the core, and which adapt it to
+I/O. Draw on the universal guide and the containers guide. Name each
+pattern with its progenitor, the roles its components play, and the
+present need it serves. State what it rules out as an invariant
+("Name each pattern with its progenitor, constraint, and need"). Also name
+entries from the components guide that all of the container's code
+follows.
+-->
+
+<Style or pattern> (<progenitor>) — <the roles its components play>;
+<the present need it serves>.
+
+### Invariants
+
+<!--
+EARS statements that hold across the container, each ending "Enforced by:
+<test, check, lint, or review only>" ("Say what enforces each invariant").
+-->
+
+The container SHALL <invariant that holds across the container>.
+Enforced by: <test, check, lint, or review only>.
+
+### Extension points
+
+<!--
+Where the container is designed to grow, the intended way in, and the
+wrong way to extend it. If it has none, write "None: <why it is closed>"
+("State where the element grows").
+-->
+
+<Where it grows> — <the intended way in>. Not by <the wrong way to
+extend it>.
+
 ## Provided Contracts
 
 <!--
@@ -283,11 +353,11 @@ Private interfaces do not appear here — they are in the Data section.
 
 **Public** (consumable outside the system):
 
-- [[contract-<name>]] — <what it vends, via what mechanism>.
+[[contract-<name>]] — <what it vends, via what mechanism>.
 
 **Internal** (this system only — SHALL NOT be consumed outside it):
 
-- [[contract-<name>]] — <what it vends, to which sibling containers>.
+[[contract-<name>]] — <what it vends, to which sibling containers>.
 
 ## Consumed Contracts
 
@@ -302,9 +372,10 @@ interfaces the organization provides — SHALL NOT be authored for
 third-party interfaces.
 -->
 
-- [[contract-<name>]] (provided by <container or system>) — <used for>.
-- <Vendor / SaaS product> — <used for>; contract: <URL to the vendor's
-  published specification>.
+[[contract-<name>]] (provided by <container or system>) — <used for>.
+
+<Vendor / SaaS product> — <used for>; contract: <URL to the vendor's
+published specification>.
 
 ## Data
 
@@ -332,23 +403,34 @@ extracted to a contract document and listed under Provided Contracts.
 Infrastructure exclusively supporting this container (its cache, its
 queue, its bucket) and how the container reaches the environments it
 runs in.
+-->
 
+### Exclusive infrastructure
+
+<!--
+The nodes that exist only for this container, such as its Redis or its
+dead-letter queue.
+-->
+
+### Deployment
+
+<!--
 The system blueprint's Deployment section is authoritative for shared
-topology. A container-scoped deployment view MAY be included here: a
-filtered view showing only this container and the infrastructure nodes
-that exist solely for it. Omit it when the system-level diagram already
-tells the story.
+topology: link it and add only what is specific to this container, such
+as its scaling policy, resource envelope, or rollout order.
 
 WHEN the container does not belong to a documented system (standalone),
 this section is authoritative for the container's deployment: describe
 it here instead of referencing a system blueprint.
+
+A container-scoped deployment view MAY be included here: a filtered view
+showing only this container and the infrastructure nodes that exist
+solely for it. Omit it when the system-level diagram already tells the
+story.
 -->
 
-- **Exclusive infrastructure:** <nodes that exist only for this
-  container, e.g. its Redis, its DLQ>.
-- **Deployment:** see [[system-<system-name>]] § Deployment — or, WHEN
-  standalone, the authoritative description here. <Anything
-  container-specific: scaling policy, resource envelope, rollout order.>
+See [[system-<system-name>]] § Deployment. <Anything container-specific:
+scaling policy, resource envelope, rollout order.>
 
 ```mermaid
 C4Deployment
@@ -367,9 +449,7 @@ are mentioned in prose or standards docs, never modeled as elements on
 this container's diagrams — see `shared/c4-standards.md`.
 -->
 
-This container SHALL comply with:
-
-- [[<standard-slug>]] — <one-line scope>.
+This container SHALL comply with [[<standard-slug>]]: <one-line scope>.
 
 ## Change guidance
 
@@ -378,46 +458,51 @@ Rules for feature work touching this container: the constraints a
 feature blueprint — and the planning agent downstream of it — must
 respect when changing this container. Write normative rules in EARS.
 
-This section carries ARCHITECTURAL constraints: invariants,
-lockstep-update rules, layering boundaries, regeneration obligations.
+This section carries ARCHITECTURAL constraints: lockstep-update rules,
+layering boundaries, regeneration obligations. Invariants go in Design.
 It is not a task list or a commands reference — reference the
 repository's build/contributor docs for procedure rather than
 duplicating them (duplication drifts). Constraints that span multiple
 containers belong in a cross-cutting requirements document referenced
 from Cross-cutting Standards, not here.
-
-WHEN prose anywhere in this blueprint mentions a known defect or other
-open tracker issue, it SHOULD cite the tracker ID in greppable form
-(e.g. `proj-ab12`) — feature-blueprint authors harvest these IDs when
-reconciling their deltas against the tracker.
-
-End with a **Verification gates** entry. Name the SPECIFIC tests that
-MUST run when this container changes — real runnable targets (test
-paths, ids, or task names), not "the suite." This is the minimal,
-targeted set an agent changing the container runs to prove the change
-before handoff: running the whole suite for every change does not scale
-(a parallel sprint run slows to a crawl), so the blueprint is the authority on
-what THIS container's change must run. CI and downstream agents still
-run the full suite. Feature blueprints map their AC coverage "Verified
-by" column onto these gates.
 -->
 
-- WHEN <a kind of change is made>, <the artifacts that must change
-  together> SHALL be updated in the same change.
-- <A layering or boundary rule any change must respect, in EARS.>
-- **Verification gates:** <the specific tests that MUST run when this
-  container changes — runnable targets (paths / ids / task names); the
-  minimal targeted set an agent runs before handoff, not the full suite
-  (which CI runs)>.
+WHEN <a kind of change is made>, <the artifacts that must change
+together> SHALL be updated in the same change.
+
+### Verification gates
+
+<!--
+The gates in two groups ("Verify isolation tests always"), each gate in
+its own paragraph. CI and downstream agents still run the full suite.
+Feature Blueprints map their AC coverage "Verified by" column onto these
+gates.
+-->
+
+#### Verify always
+
+<!--
+The isolation tests under test_paths, as runnable targets (test paths,
+ids, or task names).
+-->
+
+#### Verify conditionally
+
+<!--
+Each wider suite, with the change that requires it, such as "WHEN the
+public interface changes, run the integration suite."
+-->
+
+WHEN <condition>, run <the wider suite that condition requires>.
 
 ## Key decisions
 
 <!--
-One line per significant decision: restate the outcome and reference
+One paragraph per significant decision: restate the outcome and reference
 the ADR. The trade-off analysis lives in the ADR, not here.
 -->
 
-- [[adr-<nnn>]] — <one-line statement of the decision>.
+[[adr-<nnn>]] — <one-line statement of the decision>.
 
 ## Open questions
 
@@ -435,7 +520,7 @@ information. Remove the whole section when the document leaves draft.
 ## References
 
 <!--
-Optional. What a reader needs next, one line each: [[slug]] for
+Optional. What a reader needs next, one paragraph each: [[slug]] for
 documents in this corpus, a URL for anything outside it. Remove the
 section when there is nothing to cite.
 
@@ -443,5 +528,3 @@ C4 mapping rules and diagram conventions are in this skill's
 `shared/c4-standards.md`. Read it while authoring, but do not cite it
 here: it is not a document in your corpus.
 -->
-
-- <Additional references>

@@ -4,25 +4,36 @@ entity_name: <Component Name>        # the element, as diagrams draw it
 technology: <language, framework or package type>
                                      # optional; the technology line drawn on
                                      # diagrams — omit WHEN not meaningful
-description: <One-sentence summary of the component and why it warrants
-  standalone documentation — its brief description, shown on diagrams>
+description: <What it owns>. Change it to <kinds of change>.
+                                     # the brief description, shown on diagrams;
+                                     # see "Write the description for triage"
 slug: component-<component-name>
 type: component-blueprint
 status: draft
 kind: <standard | pattern>           # see instructions below
 contracts_consumed: []               # contract slugs this component depends on
-source_paths: []                     # repo-relative source roots
-test_paths: []                       # repo-relative test roots
+source_paths: []                     # repo-relative source roots; required
+                                     # WHEN status is active; never overlaps
+                                     # a sibling's
+test_paths: []                       # repo-relative test roots; required
+                                     # WHEN status is active
 ---
 
 <!--
 Template: Component Blueprint
 Source: Architecture documentation framework. C4 mapping rules are
-  defined in `shared/c4-standards.md` — load it before authoring.
+  defined in `shared/c4-standards.md`. Load it,
+  `shared/blueprint-content-standards.md`,
+  `shared/design-principles-guide.md`,
+  and `shared/design-principles-components-guide.md` before
+  authoring. A quoted rule name below, such as
+  "Name owners, not neighbors", is the heading of a rule in the content
+  standards.
 
 Sections (complete each, then delete its instruction block)
-  - Overview
+  - Responsibility
   - Interface
+  - Design
   - Pattern guidance
   - Cross-cutting Standards
   - Change guidance
@@ -35,7 +46,8 @@ Purpose
   container, with a defined interface and — as a leaf — no internal
   components of its own. A component changes in lockstep with its
   container: it is NOT vended or versioned independently. It is the unit
-  of change within a container.
+  of change within a container. A module's internal components use this
+  template too; for them, read "host" as that module.
 
   WHEN a unit is shared or vended across containers on their own
   schedules (so versioning and compatibility become concerns), OR it has
@@ -46,21 +58,28 @@ Purpose
 
 Reader profile (apply with the tech-writer skill)
 - Reader: an engineer or agent changing this component inside its container.
-- Knows: the host container, not this component's internals.
+- Knows: the host container or module, not this component's internals.
 - Wants: its responsibilities, its interface, and the change guidance feature
   work must respect.
 - Budget: one focused read.
-- Tone: matter-of-fact and exact: name functions, types, and files. Decisions
-  and their alternatives belong in ADRs.
+- Tone: matter-of-fact and exact. Name the file or type a rule depends on
+  and link it; don't describe what the code shows
+  ("Link what the code reveals" and
+  "Point the interface at its definition"). Decisions and their
+  alternatives belong in ADRs.
 
 When to use — the trigger is the promotion predicate
   A component earns its own blueprint WHEN it has an interface other
   components depend on AND enough internal behavior that a change to it
   is a self-contained unit of work — a seam an agent can reason about
   locally — AND it can be documented so as to stand alone. A component
-  that cannot be described context-independently should stay a bullet
+  that cannot be described context-independently should stay an entry
   (with a record block) in its container's Components section, not
   become a blueprint.
+
+  WHEN you promote an entry, lift its record block into this frontmatter,
+  rewrite its description in the triage form, and replace the entry in
+  the host with a link, as the host's template describes.
 
   kind:
   standard — the default: an internal component of one container (a
@@ -75,20 +94,21 @@ When NOT to use
     concern), OR one with internal components of its own → that is a
     module; use a module blueprint.
   - A component that cannot be described context-independently, or a
-    trivial one (glue, a single helper, no defined interface) — a bullet
+    trivial one (glue, a single helper, no defined interface) — an entry
     with a record block in the container's Components section is enough.
   - A capability with runtime elements of its own (a service, a worker,
     a queue) — that is a container or system (container blueprint /
     system blueprint).
+  - A package published to a registry. It is a public module; use a
+    module blueprint.
+  - A unit with parts that each need their own interface or change
+    guidance. It is a module; use a module blueprint.
 
-Edges — light on outward edges, and on code
-  A component does NOT document its outward relationships (to the sibling
-  components of its host container): those edges are owned by the host
-  [[container-<name>]] blueprint. Point to the host instead. It stays light
-  on its own internals too — the code is the source of truth; this
-  blueprint mentions structure only where a rule depends on it. A
-  component sits at its altitude: light on the level above (edges) and
-  the level below (code).
+Edges
+  The host's blueprint owns this component's edges to its siblings;
+  point to it ("Name owners, not neighbors").
+
+Keep the blueprint near 250 lines ("Keep a Component Blueprint near 250 lines").
 
 Lifecycle migration
   WHEN a component becomes shared across containers (an internal module)
@@ -118,46 +138,128 @@ active.
 
 # <Component Name>
 
-## Overview
+## Responsibility
 
 <!--
-What this component is, why it exists as a documented unit, and where it
-sits. Cover, in 1-2 paragraphs plus the facts below:
-  - its role — what it does within the container that hosts it;
-  - its scope — what is in scope and, explicitly, what is out of scope.
-
-Source and test roots go in the source_paths and test_paths frontmatter,
-not in the body.
-
-Relationships: point to the host [[container-<name>]]; do NOT restate the
-edges to sibling components here (see the instruction block above). Keep
-internals light too — the code is the source of truth.
+One paragraph on why this component exists. Source and test roots go in the
+source_paths and test_paths frontmatter, not in the body.
 -->
 
-- **Role:** <what this component does within its host container>
-- **Scope:** in — <what this component owns>; out — <what it deliberately
-  does not do>.
-- **Composed into:** [[container-<name>]] — <how it is composed into the
-  container>; see it for this component's relationships.
+### Owns
+
+<!--
+The responsibilities and data this component is the sole authority for.
+-->
+
+### Hides
+
+<!--
+The design decision likely to change that no other element may depend
+on. Required, and "none" is not an answer: an element that hides no
+decision is a candidate to merge into a neighbor.
+-->
+
+### Does not own
+
+<!--
+Each excluded responsibility, with its owner's [[slug]]
+("Name owners, not neighbors"), each in its own paragraph.
+-->
+
+<Excluded responsibility> — [[<owner-slug>]] owns it.
+
+### Composed into
+
+<!--
+The host container or module, and how this component is composed into it.
+-->
+
+[[<host-slug>]] — <how it is composed into the host>; see it for this
+component's relationships.
+
 
 ## Interface
 
 <!--
-The component's public surface — what its container's other components
-may depend on. Point at the source of truth for the shape (type
-definitions, exported API) rather than duplicating it. State the
-semantic guarantees consumers can rely on, in EARS.
-
-An interface consumed ACROSS containers is a contract on a shared unit —
-that unit is a module, not a component (module blueprint), and its
-interface may warrant a contract document.
+What the host's other components may depend on. An interface
+consumed ACROSS containers is a contract on a shared unit: that unit is a
+module, not a component (module blueprint), and its interface may warrant
+a contract document.
 -->
 
-- **Surface:** <link to exported API / types>
-- **Guarantees:**
-  - The component SHALL <semantic guarantee consumers can rely on>.
-  - The component SHALL NOT <thing consumers must not have to defend
-    against>.
+### Surface
+
+<!--
+The path or symbol that defines the interface
+("Point the interface at its definition").
+-->
+
+`<path or symbol>`
+
+### Provides
+
+<!--
+The postconditions the host's other components rely on, in EARS. A
+behavior the product's users observe belongs to the FRD, not here
+("Leave behavior to the FRD").
+-->
+
+The component SHALL <postcondition consumers rely on>.
+
+The component SHALL NOT <thing consumers must not have to defend
+against>.
+
+### Requires
+
+<!--
+The abstractions and contracts this component depends on, with their
+preconditions, in EARS. Name an abstraction or a contract, never a sibling
+component: edges belong to the host ("Name owners, not neighbors").
+-->
+
+WHEN <operation> is called, <abstraction or [[contract-<name>]]> SHALL
+<precondition this component depends on>.
+
+## Design
+
+<!--
+How the component is built to stay sound as it changes.
+-->
+
+### Patterns and principles
+
+<!--
+Each pattern the component follows, including entries all of its code
+follows, such as Make Illegal States Unrepresentable. Draw on the
+universal guide and the components guide. Name each pattern with its
+progenitor, its roles mapped to this component's types, and the present
+need it serves. Follow it with what it rules out, as an invariant
+("Name each pattern with its progenitor, constraint, and need").
+-->
+
+<Pattern> (<progenitor>) — <roles mapped to this component's types>;
+<the present need it serves>.
+
+### Invariants
+
+<!--
+EARS statements that hold across all operations, each ending "Enforced
+by: <test, check, lint, or review only>" ("Say what enforces each invariant").
+-->
+
+The component SHALL <invariant that holds across all operations>.
+Enforced by: <test, check, lint, or review only>.
+
+### Extension points
+
+<!--
+Where the component is designed to grow, the intended way in, and the
+wrong way to extend it. If it has none, write "None: <why it is closed>"
+("State where the element grows").
+-->
+
+<Where it grows> — <the intended way in>. Not by <the wrong way to
+extend it>.
 
 ## Pattern guidance
 
@@ -174,33 +276,47 @@ MAY wrap it rather than rewrite it: declare the pattern, its instances,
 and conformance gates here, and reference the existing document (by
 repo-relative path, per [[template-authoring-standards]]) as the detailed
 specification.
+
 -->
 
-**Building a new instance:**
+### Building a new instance
 
-1. <step>
-2. <step>
+<!--
+Building a new instance follows the extension point in Design. Refer to it
+rather than repeating it.
+-->
 
-**Conformance — every instance:**
+See the extension point in Design.
 
-- SHALL <structural or behavioral rule all instances meet>.
-- SHALL NOT <divergence that would break the pattern>.
+### Conformance
 
-**Instances:**
+<!--
+The rules every instance meets, in EARS.
+-->
 
-- **<InstanceName>** (<container or repo>) — <target/variant>.
+Every instance SHALL <structural or behavioral rule all instances meet>.
+
+Every instance SHALL NOT <divergence that would break the pattern>.
+
+### Instances
+
+<!--
+One paragraph per instance: where it lives and how it differs
+("Give each pattern instance one line").
+-->
+
+**<InstanceName>** — `<path>`; <how it differs>.
 
 ## Cross-cutting Standards
 
 <!--
 Standards this component complies with, by reference. Platform choices
 that apply everywhere are mentioned in prose or standards docs, never
-modeled as elements on this component's diagrams — see `shared/c4-standards.md`.
+modeled as elements on this component's diagrams — see
+`shared/c4-standards.md`.
 -->
 
-This component SHALL comply with:
-
-- [[<standard-slug>]] — <one-line scope>.
+This component SHALL comply with [[<standard-slug>]]: <one-line scope>.
 
 ## Change guidance
 
@@ -209,45 +325,60 @@ Rules for feature work touching this component: the constraints a
 feature blueprint — and the planning agent downstream of it — must
 respect when changing this component. Write normative rules in EARS.
 
-This section carries ARCHITECTURAL constraints: invariants, lockstep-
-update rules, layering boundaries, regeneration obligations. It is not a
-task list or a commands reference — reference the repository's build and
-contributor docs for procedure rather than duplicating them (duplication
+This section carries ARCHITECTURAL constraints: lockstep-update rules,
+layering boundaries, regeneration obligations. Invariants go in Design.
+It is not a task list or a commands reference — reference the
+repository's build and contributor docs for procedure rather than
+duplicating them (duplication
 drifts). Constraints that span multiple elements belong in a cross-
 cutting requirements document, not here.
-
-WHEN prose anywhere in this blueprint mentions a known defect or other
-open tracker issue, it SHOULD cite the tracker ID in greppable form
-(e.g. `proj-ab12`) — feature-blueprint authors harvest these IDs when
-reconciling their deltas against the tracker.
-
-End with a Verification gates entry. Name the SPECIFIC tests that MUST
-run when this component changes — real runnable targets (test paths,
-ids, or task names), not "the suite." This is the minimal, targeted set
-an agent changing the component runs to prove the change before handoff:
-running the whole suite for every change does not scale (a parallel sprint run
-slows to a crawl), so the blueprint is the authority on what THIS
-component's change must run. CI and downstream agents still run the full
-suite. Feature blueprints map their AC coverage "Verified by" column onto
-these gates.
 -->
 
-- WHEN <a kind of change is made>, <the artifacts that must change
-  together> SHALL be updated in the same change.
-- <A layering or boundary rule any change must respect, in EARS.>
-- **Verification gates:** <the specific tests that MUST run when this
-  component changes — runnable targets (paths / ids / task names); the
-  minimal targeted set an agent runs before handoff, not the full suite
-  (which CI runs)>.
+WHEN <a kind of change is made>, <the artifacts that must change
+together> SHALL be updated in the same change.
+
+### Anti-patterns
+
+<!--
+Each a wrong change that caused a real defect, and the defect it caused.
+Delete the subsection when there is none; don't invent one.
+-->
+
+<The wrong change> — <the defect it caused>.
+
+### Verification gates
+
+<!--
+The gates in two groups ("Verify isolation tests always"), each gate in
+its own paragraph. CI and downstream agents still run the full suite.
+Feature Blueprints map their AC coverage "Verified by" column onto these
+gates.
+-->
+
+#### Verify always
+
+<!--
+The isolation tests under test_paths, as runnable targets (test paths,
+ids, or task names).
+-->
+
+#### Verify conditionally
+
+<!--
+Each wider suite, with the change that requires it, such as "WHEN the
+public interface changes, run the integration suite."
+-->
+
+WHEN <condition>, run <the wider suite that condition requires>.
 
 ## Key decisions
 
 <!--
-One line per significant decision: restate the outcome and reference
+One paragraph per significant decision: restate the outcome and reference
 the ADR. The trade-off analysis lives in the ADR, not here.
 -->
 
-- [[adr-<nnn>]] — <one-line statement of the decision>.
+[[adr-<nnn>]] — <one-line statement of the decision>.
 
 ## Open questions
 
@@ -265,14 +396,15 @@ information. Remove the whole section when the document leaves draft.
 ## References
 
 <!--
-Optional. What a reader needs next, one line each: [[slug]] for
-documents in this corpus, a URL for anything outside it. Remove the
-section when there is nothing to cite.
+Optional. What a reader needs next, one paragraph each: [[slug]] for
+documents in this corpus, a URL for anything outside it. Limit it to the
+host, Contracts, ADRs, and guides ("Name owners, not neighbors"). Don't
+list sibling elements or FRDs. Remove the section when there is nothing to
+cite.
 
 C4 mapping rules and diagram conventions are in this skill's
 `shared/c4-standards.md`. Read it while authoring, but do not cite it
 here: it is not a document in your corpus.
 -->
 
-- [[container-<name>]] — the container this component is composed into
-- <Additional references>
+[[<host-slug>]] — the container or module this component is composed into

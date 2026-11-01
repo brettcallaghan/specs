@@ -14,11 +14,11 @@ status: active
 
 - Readiness checks #1–#3 — is grooming premature? (FRD status, blueprint
   status, Open questions)
-- Content checks #4–#10 — is the approved design plannable? (AC coverage
+- Content checks #4–#11 — is the approved design plannable? (AC coverage
   rows, `[[slug]]` resolution, component references, design intent, delta
-  keys, lockstep rules, Tracker reconciliation)
+  keys, lockstep rules, Tracker reconciliation, FRD behavior in deltas)
 - The decision sweep — the authoring preflight for check 7, and which
-  notation a delta's behavior lines use
+  notation a delta's Guarantees use
 
 This list has two consumers. The `spec` skill runs these checks as a
 **preflight** before a Feature Blueprint is set to `ready-for-review`.
@@ -78,15 +78,13 @@ time.
    are the stable identity that Work Orders carry through grooming and
    re-grooming.
 9. For every lockstep-update rule in the owning blueprints' Change
-   Guidance whose coupled artifacts span more than one delta block,
-   the blueprint states how the rule is satisfied (in the delta or in
-   Sequencing constraints). Reconciling such a rule is a design
-   decision. Its absence is a content gap, not a groom-time judgment
-   call.
+   guidance whose coupled artifacts span more than one delta block, the
+   blueprint states how the rule is satisfied.
 10. The Tracker reconciliation section exists and either classifies
     every listed issue as subsumed, prerequisite, or out-of-scope, or
     states "None." Where the project has no tracker, "None." also
     satisfies the check.
+11. No element delta restates FRD behavior ([[adr-033]]).
 
 ### The decision sweep — authoring preflight for check 7
 
@@ -104,14 +102,14 @@ silent decisions:
 - behavior at half-valid inputs (presence versus validity)
 - coexistence rules (multiple instances of X at once)
 
-Pin each one as an EARS behavior line in the delta, or raise it as an
-Open Question. Implementation *structure* (function signatures, file
+Pin each one as an EARS line in the delta's Guarantees, or raise it as
+an Open Question. Implementation *structure* (function signatures, file
 layout, algorithms) stays unpinned: the sweep is for observable
 behavior and on-disk surfaces only. The Feature Blueprint template's
 "anchors, not signatures" rule guards against pinning too much, and
 this sweep guards against pinning too little.
 
-**A delta's behavior lines are EARS, not Gherkin.** A Feature Blueprint
+**A delta's Guarantees are EARS, not Gherkin.** A Feature Blueprint
 holds no features and no acceptance criteria. Those live in its FRD, in
 tagged Gherkin blocks, and a blueprint that restates them duplicates
 the document it traces to. [[adr-002]] governs everything a blueprint

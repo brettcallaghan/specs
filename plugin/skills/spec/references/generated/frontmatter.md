@@ -203,6 +203,8 @@ and ADR-012.
 |----------|------|---------------|
 | system | [Citation](vocabulary.md#citation)? | The system this container belongs to.<br><br>Omitted when the container is standalone — that is, when no system blueprint documents it. Absence records a documented fact rather than an oversight. |
 | modules | Array<[Citation](vocabulary.md#citation)>? | The modules composed into this container.<br><br>Declared on the host rather than on the module, because adopting a module is a change to the container: the container is the document being edited, and the module — which may already serve other hosts — is not touched. A module's hosts are derived from this property. |
+| source_paths | Array<String>? | Repository-relative source roots.<br><br>Optional: a container may be assembled entirely from modules, whose own blueprints declare their roots. |
+| test_paths | Array<String>? | Repository-relative test roots. |
 
 
 ## ModuleBlueprint

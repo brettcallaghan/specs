@@ -5275,6 +5275,13 @@ type ContainerBlueprint struct {
 	// being edited, and the module — which may already serve other hosts —
 	// is not touched. A module's hosts are derived from this property.
 	Modules *[]Citation `json:"modules,omitempty"`
+	// Repository-relative source roots.
+	//
+	// Optional: a container may be assembled entirely from modules, whose
+	// own blueprints declare their roots.
+	SourcePaths *[]string `json:"source_paths,omitempty"`
+	// Repository-relative test roots.
+	TestPaths *[]string `json:"test_paths,omitempty"`
 }
 
 func (v *ContainerBlueprint) UnmarshalJSON(data []byte) error {
@@ -5337,10 +5344,20 @@ func (v *ContainerBlueprint) UnmarshalJSON(data []byte) error {
 			return prefixField("modules", err)
 		}
 	}
+	if m, ok := raw["source_paths"]; ok {
+		if err := json.Unmarshal(m, &v.SourcePaths); err != nil {
+			return prefixField("source_paths", err)
+		}
+	}
+	if m, ok := raw["test_paths"]; ok {
+		if err := json.Unmarshal(m, &v.TestPaths); err != nil {
+			return prefixField("test_paths", err)
+		}
+	}
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "status", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "system", "modules":
+		case "description", "slug", "title", "status", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "system", "modules", "source_paths", "test_paths":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key

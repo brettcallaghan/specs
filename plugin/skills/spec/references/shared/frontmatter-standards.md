@@ -101,7 +101,9 @@ introduction. Name what the document decides, governs, or specifies, and
 what sets it apart from its neighbors of the same type. "Notes on the
 caching layer" tells a triaging agent nothing the title didn't. "Why
 reads are served from the replica and writes are not, and the staleness
-budget that follows" tells it whether to open the document.
+budget that follows" tells it whether to open the document. An
+architecture blueprint's `description` takes the form that
+[[blueprint-content-standards#Write the description for triage]] sets.
 
 The one-to-two-sentence guidance above is a shape, not an enforced limit.
 Nothing truncates a description, and no check measures one. Whether a

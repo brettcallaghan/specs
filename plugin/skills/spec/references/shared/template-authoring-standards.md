@@ -66,8 +66,8 @@ substituted ("this container", "this module"). The shared outline:
 
 | Section | Present in | Position |
 |---------|-----------|----------|
-| `## Overview` | every type except ADR (which opens with `## Context`) and Standards (an introductory paragraph under the H1) | first |
-| *type-specific sections* | per template | after Overview |
+| `## Overview` | every type except ADR (which opens with `## Context`), Standards (an introductory paragraph under the H1), and Component and Module Blueprints (which open with `## Responsibility`) | first |
+| *type-specific sections* | per template | after the first section |
 | `## Cross-cutting Standards` | System, Container, Module, Component Blueprints | after the type-specific sections |
 | `## Change guidance` | the same four | after Cross-cutting Standards |
 | `## Key decisions` | the four blueprints, Contract, Feature Blueprint | after Change guidance, or after the type-specific sections where there is none |

@@ -197,6 +197,12 @@ mechanically from the repo is fine. Name existing code anchors;
 do NOT prescribe new function signatures or file layouts — that is the
 executing agent's choice. Omit for `kind: epic`. Maps to the bead `design`.
 
+WHEN the owning blueprint's Design section names patterns
+("Name each pattern with its progenitor, constraint, and need" in the
+content standards), carry each pattern line the change touches into
+Design, with its name, progenitor, and constraint. Leave out the need,
+which the blueprint records.
+
 If a line tells you WHAT TO TYPE, it belongs here. If it tells you WHAT MUST
 BE TRUE when finished, it belongs in Acceptance. See [[work-order-field-guide]].
 -->
@@ -214,6 +220,9 @@ it. Required (>=1 box) for `kind: feature` and `kind: bug`. Omit for
 
 WHEN this order changes a C4 component, include a box to update that
 component's C4 doc (the c4_docs listed in frontmatter).
+
+WHEN Design carries pattern lines from the owning blueprint, include a box
+that the change conforms to each pattern's constraint.
 
   Good: - [ ] Expired tokens return 401
   Bad:  - [ ] Edit middleware.go   (a step — belongs in Design)
