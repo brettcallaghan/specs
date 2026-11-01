@@ -235,7 +235,7 @@ unit is declared by a record block, by its own blueprint, or both:
     module, name its visibility tier (internal or public) — it governs
     the change rules for work touching it.
 
-WHEN a composed unit is promoted, its record block is lifted verbatim
+WHEN a composed unit is promoted, its record block is lifted
 into that document's frontmatter and replaced here by the link — and
 every container that composes it updates its roster in the same change
 (lockstep).

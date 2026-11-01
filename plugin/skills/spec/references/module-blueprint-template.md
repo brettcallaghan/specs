@@ -349,7 +349,7 @@ frontmatter satisfies:
     ```
 
 WHEN such a component is promoted to its own blueprint, its record block
-is lifted out verbatim into that document's frontmatter and replaced
+is lifted out into that document's frontmatter and replaced
 here by an [[component-<name>]] / [[module-<name>]] link — never both.
 
 Each component is declared under its own `### <Component Name>` heading
