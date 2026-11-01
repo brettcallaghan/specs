@@ -27,8 +27,8 @@ status: active
   block, blueprint, or both
 
 Document structure, slugs, and filenames belong to the companion
-document, [[spec-authoring-standards]]. Cross-document reference syntax is in
-[[cross-document-references]].
+document, the spec-authoring standards. Cross-document reference syntax is
+in the cross-document references standards.
 
 This document holds the normative prose. The **per-type property tables**
 derived from it list which properties each document type carries and which
@@ -92,8 +92,7 @@ required. A reader who has already opened the document reads it as an
 introduction. An agent deciding which documents to open reads it *instead
 of* the document. A corpus listing command reports every member's
 `description`, so other agents decide from it whether to open this
-document at all. [[specs-cli-reference]] documents the command that reports
-it.
+document at all. `specs list` is that command.
 
 Authors SHALL write `description` to be triaged from rather than as an
 introduction. Name what the document decides, governs, or specifies, and
@@ -101,8 +100,8 @@ what sets it apart from its neighbors of the same type. "Notes on the
 caching layer" tells a triaging agent nothing the title didn't. "Why
 reads are served from the replica and writes are not, and the staleness
 budget that follows" tells it whether to open the document. An
-architecture blueprint's `description` takes the form that
-[[blueprint-content-standards#Write the description for triage]] sets.
+architecture blueprint's `description` takes the form that the
+blueprint content standards' "Write the description for triage" sets.
 
 The one-to-two-sentence guidance above is a shape, not an enforced limit.
 Nothing truncates a description, and no check measures one. Whether a

@@ -62,8 +62,9 @@ yourself: its answer is faster, and a reviewer can re-run it.
 - **Render a document outside the corpus:**
   `specs links <path> [--map <file>]`.
 
-To read a `specs check` finding, load `references/generated/rules.md`. It
-lists every rule, the severity it reports at, and what it means.
+To read a `specs check` finding, look its rule id up in the rules
+reference generated from `schemas/rules.strata`. It lists every rule, the
+severity it reports at, and what it means.
 
 ## Prerequisites
 
@@ -184,7 +185,7 @@ One entry per member: `path`, `slug`, `type`, `status`, `title`, and
 Retired members are omitted unless you pass `--all`. A member whose
 frontmatter doesn't parse is listed with its path and the failure only.
 Planners triage elements from the `description`, which is why
-[[frontmatter-standards]] says to write it for triage.
+the frontmatter standards say to write it for triage.
 
 ### `specs c4 [--root <slug>]`
 

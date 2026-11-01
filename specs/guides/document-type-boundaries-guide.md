@@ -33,7 +33,7 @@ where the obvious answer is wrong.
 - Composite unit vs. component: a unit whose parts each need their own
   interface or change guidance is a module. A component has no internal
   components. Its blueprint can describe its code layout in prose where a
-  rule depends on it ([[c4-standards]]).
+  rule depends on it (the C4 standards).
 - Rule vs. behavior: a rule that must stay true across every change
   belongs in the element's blueprint. A behavior that users or consumers
   observe belongs in the FRD, as an acceptance criterion. A blueprint

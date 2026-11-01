@@ -76,8 +76,8 @@ acceptance criteria. It SHALL NOT cite an AC id except as the reason for
 a rule.
 
 **Rationale:** Two owners of one behavior diverge, and the FRD is the copy
-that tests cite. Element-to-AC traceability comes from test citations
-([[ac-traceability-standards]]).
+that tests cite. Element-to-AC traceability comes from test citations,
+as the AC traceability standards define them.
 
 ---
 
@@ -118,15 +118,15 @@ NOT describe interactions with sibling elements. Its References section SHALL
 list only the host, Contracts, ADRs, and guides.
 
 **Rationale:** Edges belong to the host's blueprint, and they drift when
-restated ([[c4-standards]]).
+restated.
 
 ---
 
 ### Name each pattern with its progenitor, constraint, and need
 
 A blueprint SHALL name each pattern it adopts, with its progenitor, as the
-universal guide ([[guide-design-principles]]) or the level guide for the
-blueprint's C4 level names it. A pattern the guides don't list SHALL be named
+universal design principles guide or the level guide for the blueprint's C4
+level names it. A pattern the guides don't list SHALL be named
 with its own progenitor. For each pattern, the blueprint SHALL state:
 
 - The constraint the pattern implies and what it rules out, as an EARS
@@ -223,8 +223,4 @@ Run this audit on an architecture blueprint before you set it to
 - [[adr-033]] — behavior belongs to the FRD
 - [[adr-009]] — parents own the edges among their children
 - [[adr-011]] — blueprints declare targeted verification gates
-- [[c4-standards]] — the C4 levels, and where edges and scope statements live
-- [[ac-traceability-standards]] — how tests cite acceptance criteria
 - [[adr-034]] — design principles come from curated guides by C4 level
-- [[guide-design-principles]] — the design questions behind these rules, and
-  the guide for each C4 level

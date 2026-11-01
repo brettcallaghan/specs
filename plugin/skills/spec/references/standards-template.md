@@ -9,6 +9,9 @@ status: draft
 <!--
 Template: Standards Document
 
+Load before authoring
+  - Nothing beyond the skill's always-load set.
+
 Sections (complete each, then delete its instruction block)
   - <Major category>
   - <Another major category>

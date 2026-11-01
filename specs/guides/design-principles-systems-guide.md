@@ -1,7 +1,7 @@
 ---
 title: "Design Principles: Systems"
 description: The principles and patterns for composing containers into a
-  system, each as the question to ask of a System Blueprint
+  system, each as the question to ask of its design
 slug: guide-design-principles-systems
 type: guide
 status: active
@@ -10,11 +10,9 @@ status: active
 # Design principles: systems
 
 Ask these questions when you design how a system's containers integrate, or
-audit its System Blueprint. Use them with the universal guide,
-[[guide-design-principles]], which also explains how to choose patterns and
-notes that these lists are incomplete. Record each pattern the design adopts
-under
-[[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]].
+review that design. Use them with the universal Design Principles Guide, which
+explains how to choose and name patterns and notes that these lists are
+incomplete.
 
 | Entry | Progenitors | Questions it answers |
 |-------|-------------|----------------------|
@@ -34,6 +32,5 @@ under
 
 ## References
 
-- [[guide-design-principles]] — the universal guide, and how to choose patterns
-- [[blueprint-content-standards]] — how a blueprint names patterns, and the
-  blueprint audit
+- Design Principles Guide — the universal principles, and how to choose and
+  name patterns

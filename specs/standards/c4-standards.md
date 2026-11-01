@@ -166,7 +166,7 @@ WHERE a child element has NOT been promoted to its own blueprint, its
 declaration in the parent's roster (a container's or module's Components
 section) carries a machine-readable **record block** — so every modeled
 node is declared in prose whether or not it has its own document.
-[[frontmatter-standards#Embedded element records]] defines the record
+The frontmatter standards' "Embedded element records" defines the record
 block's format, its schema, and how a promoted element's declarations
 relate. Declaring every node this way keeps the model machine-readable:
 the element vocabulary and node set are parseable without a modeling DSL,
@@ -372,8 +372,8 @@ Rules for authoring the Mermaid C4 diagrams embedded in blueprints:
   `Container(...)`, `Rel(...)`, and friends) SHALL be written on a
   single line. Quoted strings in these declarations cannot span lines.
   Wrapping them breaks the diagram. The 80-character line limit does
-  not apply inside diagram fences ([[spec-authoring-standards]]
-  exempts code-block content).
+  not apply inside diagram fences (the spec-authoring standards
+  exempt code-block content).
 - Keep each element's description text short: it's the element's
   declared brief description, verbatim, not a place for extra prose.
 - Parse-check diagrams before finishing (RECOMMENDED). A broken C4
@@ -546,6 +546,5 @@ documents describing the system as it is.
 
 ## References
 
-- [[spec-authoring-standards]] — line length, slugs, filenames
 - [C4 model — abstractions](https://c4model.com/abstractions)
 - [C4 model — queues and topics](https://c4model.com/abstractions/queues-and-topics)

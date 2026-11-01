@@ -209,16 +209,15 @@ specs.
      one fenced ` ```gherkin ` block per requirement, the requirement on
      `Feature:`, its user story in that Feature's description, each
      criterion a `Scenario` or `Scenario Outline` carrying an
-     `@AC-<CODE>-NNN.N` tag. Load
-     `references/shared/gherkin-guide.md` before writing one; it holds
-     the tag vocabulary, what belongs in each description slot, and the
+     `@AC-<CODE>-NNN.N` tag. The Gherkin guide, in the FRD template's
+     load list, holds the tag vocabulary, what belongs in each description slot, and the
      constructs that parse cleanly while losing meaning. Prefer a
      `Scenario Outline` with an `Examples` table where a criterion
      carries concrete example data.
    - **Every other normative statement is EARS** with capitalized RFC
      2119 modal verbs (SHALL / SHOULD / MAY) — standards documents,
      contracts, blueprints, and an FRD's own prose outside its blocks.
-     Load `references/shared/ears-guide.md` before writing them.
+     The EARS guide is in the always-load set.
 
    Either way the illustration is never normative: the criterion or the
    EARS sentence carries the requirement, and edge-case enumeration
@@ -293,43 +292,48 @@ specs.
 
 ## References
 
-Load the whole row. Where a row lists more than one file, they are a
-**bundle**: the template alone is not enough to author the document.
+**Always load** the `tech-writer` skill,
+`references/shared/specs-cli-reference.md`, and
+`references/shared/ears-guide.md`.
 
-| Working on | Load together |
-|------------|---------------|
-| Checking a document, picking an identifier, querying the corpus | `references/shared/specs-cli-reference.md` |
-| Choosing between two document types that both look plausible | `references/shared/document-type-boundaries-guide.md` |
-| Reviewing a draft, or self-reviewing before `ready-for-review` | The document's template + `references/shared/anti-patterns-guide.md`; for a blueprint, also `references/shared/blueprint-content-standards.md` |
-| Recording an architecture or technology decision | `references/adr-template.md` |
-| Specifying a feature (user stories + acceptance criteria) | `references/frd-template.md` + `references/shared/gherkin-guide.md` |
-| Defining cross-cutting standards, policies, or constraints | `references/standards-template.md` + `references/shared/ears-guide.md` |
-| Documenting a system (context, containers, deployment) | `references/system-blueprint-template.md` + the architecture bundle |
-| Documenting a deployable unit (app or owned data store) | `references/container-blueprint-template.md` + the architecture bundle |
-| Documenting an atomic component of one container | `references/component-blueprint-template.md` + the architecture bundle |
-| Documenting a shared/published or composite unit (a module) | `references/module-blueprint-template.md` + the architecture bundle |
-| Designing how a specified feature will be built (deltas, AC coverage) | `references/feature-blueprint-template.md` + `references/shared/ac-traceability-standards.md` + the architecture bundle |
-| Understanding, filling, or gating a work order | `references/work-order-template.md` + `references/shared/work-order-field-guide.md` + `references/shared/work-order-definition-of-ready.md` |
-| Reporting one actionable change, from a retro or from another project | `references/issue-template.md` |
-| Specifying an interface's semantics, SLOs, and change policy | `references/contract-template.md` + `references/shared/c4-standards.md` |
-| Mapping any element to a C4 level; diagram conventions | `references/shared/c4-standards.md` |
-| Writing a feature or an acceptance criterion (Gherkin) | `references/shared/gherkin-guide.md` |
-| Writing any other normative statement (EARS) | `references/shared/ears-guide.md` |
-| Slugs, filenames, line length, title and H1 | `references/shared/spec-authoring-standards.md` |
-| Frontmatter properties, status vocabulary, element records | `references/shared/frontmatter-standards.md` |
-| `[[slug]]` wikilinks, heading anchors, backticked paths | `references/shared/cross-document-references-standards.md` |
+**Then load the template** for the document type. Its header's "Load
+before authoring" list names every other file the type needs: load the
+whole list up front, because a reference reached at the second hop tends
+to get previewed rather than read. Creating, revising, reviewing and
+grooming a document all start here, since the template's section
+comments are the rules the document is reviewed against.
 
-The architecture bundle is `references/shared/c4-standards.md`,
-`references/shared/blueprint-content-standards.md`,
-`references/shared/design-principles-guide.md`, and the level guides the
-template's header names, from
-`references/shared/design-principles-systems-guide.md`,
-`references/shared/design-principles-containers-guide.md`, and
-`references/shared/design-principles-components-guide.md`. Skip the design
-principles guides for edits that don't change an element's design.
+| Document | Template |
+|----------|----------|
+| ADR | `references/adr-template.md` |
+| FRD | `references/frd-template.md` |
+| Standards | `references/standards-template.md` |
+| System Blueprint | `references/system-blueprint-template.md` |
+| Container Blueprint | `references/container-blueprint-template.md` |
+| Component Blueprint | `references/component-blueprint-template.md` |
+| Module Blueprint | `references/module-blueprint-template.md` |
+| Feature Blueprint | `references/feature-blueprint-template.md` |
+| Contract | `references/contract-template.md` |
+| Work Order | `references/work-order-template.md` |
+| Issue | `references/issue-template.md` |
 
-Read the bundle up front, not from a pointer mid-authoring: a reference
-reached at the second hop tends to get previewed rather than read.
+**Load the rest only when the question comes up:**
+
+- Choosing between two plausible document types:
+  `references/shared/document-type-boundaries-guide.md`.
+- Reviewing a draft, or self-reviewing before `ready-for-review`:
+  `references/shared/anti-patterns-guide.md`.
+- Reading a `specs check` finding: `references/generated/rules.md`.
+- Mapping an element to a C4 level: `references/shared/c4-standards.md`.
+- Slugs, filenames, line length, title and H1:
+  `references/shared/spec-authoring-standards.md`.
+- Frontmatter properties, status vocabulary, element records:
+  `references/shared/frontmatter-standards.md`.
+- `[[slug]]` wikilinks, heading anchors, backticked paths:
+  `references/shared/cross-document-references-standards.md`.
+
+Every file under `references/` other than a template is a leaf: it never
+tells you to load another reference.
 
 ---
 

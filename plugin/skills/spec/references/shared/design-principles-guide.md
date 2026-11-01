@@ -5,9 +5,9 @@
 
 ---
 title: Design Principles Guide
-description: The principles that apply at every C4 level, each as the question
-  to ask of an element, plus how to find the patterns for an element's level,
-  application type, and language
+description: The design principles that apply at every C4 level, each as the
+  question to ask of an element, plus how to find the patterns for an
+  element's level, application type, and language
 slug: guide-design-principles
 type: guide
 status: active
@@ -15,14 +15,14 @@ status: active
 
 # Design principles guide
 
-Ask these questions when you design an element or audit its blueprint. This
-universal guide holds the principles for every C4 level. Use it with the level
-guide for the element's level. The answers feed a blueprint's Design section
-and, in a Component or Module Blueprint, its Responsibility and Interface
-sections. [[blueprint-content-standards]] sets what those sections may say.
+Ask these questions when you design a software element or review its design.
+This universal guide holds the principles for every level of the C4 model. Use
+it with the guide for the element's level.
 
-Cite adopted design principles according to the standard
-[[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]].
+When you record a pattern a design adopts, name it with its progenitor, the
+source that fixes its meaning. "Decorator" is also Python syntax, and
+"Repository" is often confused with a data access object; "Decorator (Gamma et
+al.)" is not.
 
 The lists are a starting point, not a catalog. They hold the principles and
 patterns that apply most widely in current architectures, with priority given to
@@ -31,17 +31,14 @@ problem better, use it.
 
 ## Choose the level guide
 
-| Element | Guides |
-|---------|-------|
-| System | Universal + [[guide-design-principles-systems]] |
-| Container | Universal + [[guide-design-principles-containers]] |
-| Module | Universal, [[guide-design-principles-containers]] for how its components and submodules compose, and [[guide-design-principles-components]] for the code it holds directly |
-| Component | Universal + [[guide-design-principles-components]] |
-| Feature Blueprint delta | Universal + the guide for the level of the element the delta changes |
+Use this guide with one level guide:
 
-A Container, Module, or Component Blueprint may also name entries from
-[[guide-design-principles-components]] that all of the element's code
-follows, such as Make Illegal States Unrepresentable.
+- **A system**, deciding how its containers integrate: the systems guide.
+- **A container**, deciding how its components compose: the containers guide.
+- **A component**, deciding how its code is composed: the components guide.
+
+An element at any level may also adopt components-guide entries that all of
+its code follows, such as Make Illegal States Unrepresentable.
 
 Adopt a pattern only when its question has a real answer for the element today.
 A question with no answer means the pattern doesn't belong.
@@ -57,7 +54,7 @@ A question with no answer means the pattern doesn't belong.
 | High Cohesion, Low Coupling | Stevens, Myers, and Constantine (1974); Constantine and Yourdon, *Structured Design* (1979) | Do things that change together sit together, and do the rest know little about each other? |
 | Deep Modules | Ousterhout, *A Philosophy of Software Design* (2018) | Is the interface much simpler than what it hides? |
 | Acyclic and Stable Dependencies | Martin, *Agile Software Development* (2002) | Are there dependency cycles? Does each element depend on something more stable than itself? |
-| Design by Contract | Meyer (1986) | What are the preconditions, postconditions, and invariants, and which section of the blueprint states each? |
+| Design by Contract | Meyer (1986) | What are the preconditions, postconditions, and invariants, and where is each stated? |
 | Single Source of Truth | Codd, normalization (1970); Hunt and Thomas, DRY (1999) | Which element is the one authority for each piece of data or knowledge? |
 | Parse, Don't Validate | King (2019) | Where is untrusted input parsed into trusted types? Is each rule a type can't express checked once, at that boundary or by the domain object that owns it, rather than checked again downstream? |
 | Idempotence | HTTP/1.1, RFC 2068 (1997), now RFC 9110 | Can this operation be repeated or retried safely? |
@@ -121,10 +118,7 @@ Pool. An author can still adopt any of them.
 
 ## References
 
-- [[guide-design-principles-systems]] — patterns for composing containers
-- [[guide-design-principles-containers]] — patterns for composing components
-- [[guide-design-principles-components]] — patterns for composing code
-- [[blueprint-content-standards]] — what a blueprint states, how it names
-  patterns, and the audit
-- [[adr-034]] — design principles come from curated guides by C4 level
-- [[c4-standards]] — the C4 levels an element maps to
+- Design Principles: Systems — patterns for composing containers
+- Design Principles: Containers — patterns for composing components
+- Design Principles: Components — patterns for composing code
+- [The C4 model](https://c4model.com/) — the levels these guides follow

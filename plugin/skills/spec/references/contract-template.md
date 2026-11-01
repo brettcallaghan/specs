@@ -13,8 +13,11 @@ version: "1.0"
 
 <!--
 Template: Contract
-Source: Architecture documentation framework. C4 mapping rules and
-  contract visibility tiers are defined in `shared/c4-standards.md`.
+Source: Architecture documentation framework.
+
+Load before authoring
+  - `shared/c4-standards.md`: C4 mapping rules and contract visibility
+    tiers.
 
 Sections (complete each, then delete its instruction block)
   - Overview

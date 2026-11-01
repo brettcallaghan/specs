@@ -58,6 +58,11 @@ Templates SHALL include instructions that describe:
 - Who reads the document, as a **Reader profile** in the document-level
   instructions: a list of Reader, Knows, Wants, Budget, and Tone, from
   which the `tech-writer` skill sets the document's tone
+- Every reference the type needs beyond the skill's always-load set, as a
+  **Load before authoring** list in the document-level instructions. No
+  other reference names a load, so this list is complete or the agent goes
+  without; `scripts/check-skills.sh` reports any reference other than a
+  template that cites another
 - Guidance for completing each section
 
 Instructions SHALL be provided in two locations:
@@ -82,6 +87,9 @@ status: draft
 <!--
 Template: <Template Name>
 Source: <Origin or authority, if applicable>
+
+Load before authoring
+  - `shared/<reference>.md`: <what the type needs from it>
 
 Purpose
   <One paragraph explaining what this template is for>

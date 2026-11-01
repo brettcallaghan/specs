@@ -13,6 +13,12 @@ Source: Adapted from the 8090 Requirements Writing Guide
   (https://www.8090.ai/docs/opinions/requirements-writing-guide), modified to
   use tagged Gherkin for features and acceptance criteria per [[adr-021]].
 
+Load before authoring
+  - `shared/gherkin-guide.md`: how to write features and acceptance
+    criteria in Gherkin.
+  - `shared/ac-traceability-standards.md`: how tests cite acceptance
+    criteria.
+
 Sections (complete each, then delete its instruction block)
   - Overview
   - Terminology
@@ -76,7 +82,7 @@ ID conventions
 
 Verification and traceability
   Automated tests cite the acceptance criteria they verify per
-  [[ac-traceability-standards]] — AC identifiers are the durable
+  `shared/ac-traceability-standards.md` — AC identifiers are the durable
   traceability keys, which is why retired IDs are never reused.
   IF an acceptance criterion can only be verified manually, THEN tag it
   @manual; manual criteria are exempt from the test citation obligation.
@@ -134,8 +140,8 @@ Requirement quality bar:
   - Testable: every AC clear enough to write a test from
   - Atomic: one behavior per criterion
 
-Notation: one fenced gherkin block per requirement. Read
-[[gherkin-guide]] before writing the first one — it holds the tag
+Notation: one fenced gherkin block per requirement. The
+Gherkin guide holds the tag
 vocabulary, what belongs in each description slot, and the seven
 constructs that parse cleanly while destroying meaning.
 

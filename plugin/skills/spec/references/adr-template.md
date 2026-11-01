@@ -10,6 +10,9 @@ status: draft
 Template: Architecture Decision Record (ADR)
 Source: Adapted from Michael Nygard's ADR format
 
+Load before authoring
+  - Nothing beyond the skill's always-load set.
+
 Sections (complete each, then delete its instruction block)
   - Context
   - Decision

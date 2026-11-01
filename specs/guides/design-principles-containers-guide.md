@@ -1,7 +1,7 @@
 ---
 title: "Design Principles: Containers"
 description: The principles and patterns for composing components into a
-  container or module, each as the question to ask of its blueprint
+  container, each as the question to ask of its design
 slug: guide-design-principles-containers
 type: guide
 status: active
@@ -9,13 +9,11 @@ status: active
 
 # Design principles: containers
 
-Ask these questions when you design how the components of a container, or the
-components and submodules of a module, compose. Ask them again when you audit
-that element's blueprint. Use them with the universal guide,
-[[guide-design-principles]], which also explains how to choose patterns and
-notes that these lists are incomplete. Record each pattern the design adopts
-under
-[[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]].
+Ask these questions when you design how the components of a container
+compose, or of any unit built from components. Ask them again when you review
+that design. Use them with the universal Design Principles Guide, which
+explains how to choose and name patterns and notes that these lists are
+incomplete.
 
 | Entry | Progenitors | Questions it answers |
 |-------|-------------|----------------------|
@@ -35,8 +33,6 @@ under
 
 ## References
 
-- [[guide-design-principles]] — the universal guide, and how to choose patterns
-- [[guide-design-principles-components]] — patterns for the code inside a
-  component
-- [[blueprint-content-standards]] — how a blueprint names patterns, and the
-  blueprint audit
+- Design Principles Guide — the universal principles, and how to choose and
+  name patterns
+- Design Principles: Components — patterns for the code inside a component
