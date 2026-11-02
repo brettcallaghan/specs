@@ -10,6 +10,9 @@ status: draft
 Template: Architecture Decision Record (ADR)
 Source: Adapted from Michael Nygard's ADR format
 
+Load before authoring
+  - Nothing beyond the skill's always-load set.
+
 Sections (complete each, then delete its instruction block)
   - Context
   - Decision
@@ -66,7 +69,7 @@ Slug format
   - The slug is independent of the filename. Name the FILE
     descriptively — adr-003-local-tesseract-for-ocr.md — so humans can
     find it; the slug stays adr-003 so [[adr-003]] resolves.
-  - See template-authoring-standards.md, Prefix Registry.
+  - See `shared/spec-authoring-standards.md`, Prefix registry.
 -->
 
 # ADR-<NNN>: <Decision Title>

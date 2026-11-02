@@ -59,26 +59,26 @@ const (
 const (
 	// RuleSchemaViolation covers a frontmatter value that violates the
 	// schema for its document type.
-	RuleSchemaViolation specmodel.RuleId = "frontmatter/schema"
+	RuleSchemaViolation = specmodel.RuleIdFrontmatterSchema
 	// RuleMissingProperty covers a required frontmatter property the
 	// document does not declare.
-	RuleMissingProperty specmodel.RuleId = "frontmatter/missing-property"
+	RuleMissingProperty = specmodel.RuleIdFrontmatterMissingProperty
 	// RuleInlineComment covers a YAML comment trailing a frontmatter
 	// value on the same line, which silently cuts the value short at its
 	// "#". It reports at [SeverityWarning]: the block still parses and
 	// the shortened value may even be valid, so it is a probable mistake
 	// rather than a conformance failure (AC-SPEC-003.9).
-	RuleInlineComment specmodel.RuleId = "frontmatter/inline-comment"
+	RuleInlineComment = specmodel.RuleIdFrontmatterInlineComment
 	// RuleSlugPattern covers a slug that does not match the pattern the
 	// active profile supplies for the document's type.
-	RuleSlugPattern specmodel.RuleId = "slug/pattern-mismatch"
+	RuleSlugPattern = specmodel.RuleIdSlugPatternMismatch
 	// RuleDuplicateSlug covers a slug declared by more than one corpus
 	// member.
-	RuleDuplicateSlug specmodel.RuleId = "slug/duplicate"
+	RuleDuplicateSlug = specmodel.RuleIdSlugDuplicate
 	// RuleFrontmatterParse covers a frontmatter block that could not be
 	// read as a document envelope, so no other check could examine the
 	// document at all.
-	RuleFrontmatterParse specmodel.RuleId = "frontmatter/parse"
+	RuleFrontmatterParse = specmodel.RuleIdFrontmatterParse
 	// RuleUnresolvedReference covers a reference — written in a
 	// document's body or held by a frontmatter property the active
 	// profile registers as reference-bearing — whose slug matches no
@@ -86,93 +86,93 @@ const (
 	// happen (a body reference, a frontmatter reference, and a slug
 	// matching a file that exists but is not a member): they are the
 	// same defect reported from three places, not three defects.
-	RuleUnresolvedReference specmodel.RuleId = "reference/unresolved"
+	RuleUnresolvedReference = specmodel.RuleIdReferenceUnresolved
 	// RuleUnresolvedAnchor covers a reference's anchor matching no
 	// heading of its target document, once the target's slug has
 	// resolved and its headings are known. Distinct from
 	// [RuleUnresolvedReference] so `--only` can select the anchor checks
 	// without selecting slug resolution.
-	RuleUnresolvedAnchor specmodel.RuleId = "reference/unresolved-anchor"
+	RuleUnresolvedAnchor = specmodel.RuleIdReferenceUnresolvedAnchor
 	// RuleAmbiguousAnchor covers an anchor whose identifier is the
 	// identifier of more than one heading of its target document.
-	RuleAmbiguousAnchor specmodel.RuleId = "reference/ambiguous-anchor"
+	RuleAmbiguousAnchor = specmodel.RuleIdReferenceAmbiguousAnchor
 	// RuleRetiredTarget covers a reference from a document at a status
 	// the active profile's lifecycle registration treats as live to one
 	// at a registered retired status. It is the first rule this package
 	// declares at [SeverityWarning] rather than [SeverityError]: the
 	// target still resolves, so this is not a conformance failure, but
 	// it is the one finding that tells an author what to cite instead.
-	RuleRetiredTarget specmodel.RuleId = "reference/retired-target"
+	RuleRetiredTarget = specmodel.RuleIdReferenceRetiredTarget
 	// RuleIncompletePairing covers a pairing the active profile
 	// registers — a property declared from one end and a counterpart
 	// the resolved target must declare in return — where the target
 	// does not declare it.
-	RuleIncompletePairing specmodel.RuleId = "reference/pairing-incomplete"
+	RuleIncompletePairing = specmodel.RuleIdReferencePairingIncomplete
 	// RuleTypeMismatch covers a reference-bearing property the active
 	// profile requires a specific target document `type` for, whose
 	// resolved target declares a different one.
-	RuleTypeMismatch specmodel.RuleId = "reference/type-mismatch"
+	RuleTypeMismatch = specmodel.RuleIdReferenceTypeMismatch
 	// RuleCorpusEmpty covers a check run whose corpus recorded no
 	// members at all: the spec root exists but discovery found nothing
 	// beneath it to check. A report with zero findings otherwise looks
 	// identical whether the run examined a clean corpus or examined
 	// nothing, and only this rule tells the two apart.
-	RuleCorpusEmpty specmodel.RuleId = "corpus/empty"
+	RuleCorpusEmpty = specmodel.RuleIdCorpusEmpty
 	// RuleUnmappedCitation covers a citation whose slug names a corpus
 	// document the caller's link map does not cover. The slug resolves;
 	// the map is incomplete.
-	RuleUnmappedCitation specmodel.RuleId = "links/unmapped"
+	RuleUnmappedCitation = specmodel.RuleIdLinksUnmapped
 	// RuleUnresolvedCitation covers a citation whose slug names no
 	// corpus document at all, with or without a link map. Distinct from
 	// [RuleUnmappedCitation]: nothing resolves the slug, so this may be
 	// a mistyped reference or illustrative prose that was never meant to
 	// resolve.
-	RuleUnresolvedCitation specmodel.RuleId = "links/unresolved"
+	RuleUnresolvedCitation = specmodel.RuleIdLinksUnresolved
 
 	// RuleCriterionUntagged covers a Scenario carrying no identifier tag.
-	RuleCriterionUntagged specmodel.RuleId = "gherkin/criterion-untagged"
+	RuleCriterionUntagged = specmodel.RuleIdGherkinCriterionUntagged
 	// RuleFeatureUntagged covers a Feature carrying no identifier tag.
-	RuleFeatureUntagged specmodel.RuleId = "gherkin/feature-untagged"
+	RuleFeatureUntagged = specmodel.RuleIdGherkinFeatureUntagged
 	// RuleIdentifierMalformed covers an identifier tag that does not
 	// match the pattern registered for identifiers of its kind.
-	RuleIdentifierMalformed specmodel.RuleId = "gherkin/identifier-malformed"
+	RuleIdentifierMalformed = specmodel.RuleIdGherkinIdentifierMalformed
 	// RuleIdentifierMultiple covers a Feature or a Scenario carrying more
 	// than one tag matching its identifier pattern.
-	RuleIdentifierMultiple specmodel.RuleId = "gherkin/identifier-multiple"
+	RuleIdentifierMultiple = specmodel.RuleIdGherkinIdentifierMultiple
 	// RuleIdentifierDuplicate covers a feature or a criterion identifier
 	// declared by two records in the corpus — the Gherkin analogue of
 	// [RuleDuplicateSlug].
-	RuleIdentifierDuplicate specmodel.RuleId = "gherkin/identifier-duplicate"
+	RuleIdentifierDuplicate = specmodel.RuleIdGherkinIdentifierDuplicate
 	// RuleCriterionCodeMismatch covers a criterion whose identifier's
 	// code and number are not its feature's.
-	RuleCriterionCodeMismatch specmodel.RuleId = "gherkin/criterion-code-mismatch"
+	RuleCriterionCodeMismatch = specmodel.RuleIdGherkinCriterionCodeMismatch
 	// RuleOwnerMissing covers a feature in a standalone feature source
 	// carrying no owning-document tag.
-	RuleOwnerMissing specmodel.RuleId = "gherkin/owner-missing"
+	RuleOwnerMissing = specmodel.RuleIdGherkinOwnerMissing
 	// RuleOwnerMismatch covers a feature in a fenced block carrying an
 	// owning-document tag that names a document other than the one it is
 	// written in.
-	RuleOwnerMismatch specmodel.RuleId = "gherkin/owner-mismatch"
+	RuleOwnerMismatch = specmodel.RuleIdGherkinOwnerMismatch
 	// RuleOwnerUnresolved covers an owning-document tag whose slug names
 	// no corpus member.
-	RuleOwnerUnresolved specmodel.RuleId = "gherkin/owner-unresolved"
+	RuleOwnerUnresolved = specmodel.RuleIdGherkinOwnerUnresolved
 	// RuleTagUnregistered covers a Gherkin tag the active profile's tag
 	// vocabulary assigns no meaning. It is the one Gherkin rule that
 	// reports at [SeverityWarning]: a project's own tags coexist with the
 	// vocabulary, and only a misspelt one loses a meaning (AC-GHK-002.8).
-	RuleTagUnregistered specmodel.RuleId = "gherkin/tag-unregistered"
+	RuleTagUnregistered = specmodel.RuleIdGherkinTagUnregistered
 
 	// RuleGherkinParse covers a Gherkin source that could not be parsed.
-	RuleGherkinParse specmodel.RuleId = "gherkin/parse"
+	RuleGherkinParse = specmodel.RuleIdGherkinParse
 	// RuleCriterionEmpty covers a criterion with no steps.
-	RuleCriterionEmpty specmodel.RuleId = "gherkin/criterion-empty"
+	RuleCriterionEmpty = specmodel.RuleIdGherkinCriterionEmpty
 	// RuleScenarioProse covers a non-empty Scenario description, reported
 	// as a probable untagged criterion rather than the rationale a
 	// well-formed criterion carries alongside its steps.
-	RuleScenarioProse specmodel.RuleId = "gherkin/scenario-prose"
+	RuleScenarioProse = specmodel.RuleIdGherkinScenarioProse
 	// RuleExamplesPartiallyTagged covers a Scenario Outline whose
 	// Examples blocks carry an identifier on some and not others.
-	RuleExamplesPartiallyTagged specmodel.RuleId = "gherkin/examples-partially-tagged"
+	RuleExamplesPartiallyTagged = specmodel.RuleIdGherkinExamplesPartiallyTagged
 
 	// The c4 rules check the Mermaid C4 diagrams in architecture
 	// blueprints. They are declared here before any check raises them,
@@ -186,38 +186,38 @@ const (
 	// [SeverityUnverified] under the same identifier: a `mermaid` block
 	// whose diagram type the parser does not read was not looked inside,
 	// which is not the claim that it was looked inside and found sound.
-	RuleC4Parse specmodel.RuleId = "c4/parse"
+	RuleC4Parse = specmodel.RuleIdC4Parse
 	// RuleC4UndeclaredNode covers a non-external node that resolves to
 	// no element in the scope of its drawing document and is not a
 	// passive store.
-	RuleC4UndeclaredNode specmodel.RuleId = "c4/undeclared-node"
+	RuleC4UndeclaredNode = specmodel.RuleIdC4UndeclaredNode
 	// RuleC4AmbiguousNode covers a node whose label matches the entity
 	// names of more than one element in scope.
-	RuleC4AmbiguousNode specmodel.RuleId = "c4/ambiguous-node"
+	RuleC4AmbiguousNode = specmodel.RuleIdC4AmbiguousNode
 	// RuleC4Bidirectional covers a `BiRel` statement: an arrow states
 	// one dependency, in one direction.
-	RuleC4Bidirectional specmodel.RuleId = "c4/bidirectional"
+	RuleC4Bidirectional = specmodel.RuleIdC4Bidirectional
 	// RuleC4DuplicateEdge covers two relationship statements in one
 	// diagram with the same source and target after `Rel_Back`
 	// normalisation.
-	RuleC4DuplicateEdge specmodel.RuleId = "c4/duplicate-edge"
+	RuleC4DuplicateEdge = specmodel.RuleIdC4DuplicateEdge
 	// RuleC4DrawingConflict covers two drawings of one relationship,
 	// anywhere in the corpus, that differ in technology, description or
 	// tags.
-	RuleC4DrawingConflict specmodel.RuleId = "c4/drawing-conflict"
+	RuleC4DrawingConflict = specmodel.RuleIdC4DrawingConflict
 	// RuleC4InteractionConflict covers a relationship tagged both `sync`
 	// and `async`.
-	RuleC4InteractionConflict specmodel.RuleId = "c4/interaction-conflict"
+	RuleC4InteractionConflict = specmodel.RuleIdC4InteractionConflict
 	// RuleC4ContractUnresolved covers a `contract:` tag whose slug no
 	// corpus member of the registered contract type declares.
-	RuleC4ContractUnresolved specmodel.RuleId = "c4/contract-unresolved"
+	RuleC4ContractUnresolved = specmodel.RuleIdC4ContractUnresolved
 	// RuleC4ContractMismatch covers a `contract:` tag naming a contract
 	// the source element does not consume or the target element does not
 	// provide.
-	RuleC4ContractMismatch specmodel.RuleId = "c4/contract-mismatch"
+	RuleC4ContractMismatch = specmodel.RuleIdC4ContractMismatch
 	// RuleC4TagSeparator covers a relationship tags argument that joins
 	// its tags with a comma rather than `+`.
-	RuleC4TagSeparator specmodel.RuleId = "c4/tag-separator"
+	RuleC4TagSeparator = specmodel.RuleIdC4TagSeparator
 )
 
 // SchemaViolation reports a frontmatter value that fails the schema for

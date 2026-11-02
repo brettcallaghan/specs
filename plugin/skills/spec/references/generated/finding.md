@@ -2,7 +2,6 @@
 
 ## Table of Contents
 
-- [RuleId](#ruleid)
 - [Severity](#severity)
 - [FindingSchemaViolation](#findingschemaviolation)
 - [FindingInlineComment](#findinginlinecomment)
@@ -39,28 +38,6 @@
 - [CheckOutcome](#checkoutcome)
 - [CheckResult](#checkresult)
 - [FindingReport](#findingreport)
-
-## Type Alias: RuleId
-
-The identifier of one check, stable across releases.
-
-Every finding names the rule that raised it, and the run report accounts
-for every rule it knows about, so the identifier is the join between the
-two: a caller naming a subset of checks to run names them by these
-values, and reads the outcome of each back under the same value.
-
-Identifiers are namespaced kebab-case — `slug/pattern-mismatch`,
-`frontmatter/missing-property` — so the family a check belongs to is
-legible without a lookup table. The shape is stated rather than
-constrained because a Strata regex literal cannot contain a forward
-slash.
-
-**Definition:**
-
-```strata
-alias RuleId: String
-```
-
 
 ## Severity
 
@@ -640,7 +617,7 @@ on it rather than printing it.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| rule | [RuleId](#ruleid) | The check that raised this finding. |
+| rule | [RuleId](rules.md#ruleid) | The check that raised this finding. |
 | severity | [Severity](#severity) | How badly this finding bears on the run. |
 | path | String | The file the finding is against, relative to the repository root and written with forward slashes on every platform. |
 | span | [Span](index.md#span) | Where in the file the finding is, as a span rather than a bare line number, so a report can point at a value inside a line. |
@@ -673,7 +650,7 @@ The outcome of one check in a run.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| rule | [RuleId](#ruleid) | The check this result is for. |
+| rule | [RuleId](rules.md#ruleid) | The check this result is for. |
 | outcome | [CheckOutcome](#checkoutcome) | What became of it. |
 | reason | String? | Why the check could not run, present exactly when `outcome` is `unverified`. |
 

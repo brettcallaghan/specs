@@ -198,7 +198,7 @@ either is a checker that gets ignored.
   value as a reference (AC-SPECREF-001.4).
 - The component SHALL read the contents of an HTML comment block as
   body text. AC-SPECREF-001.2 excludes code alone, and
-  [[template-authoring-standards]] requires a finished document's comment blocks
+  [[spec-authoring-standards]] requires a finished document's comment blocks
   to be deleted. So masking them would hide a reference in a document that
   shouldn't carry the block at all.
 - The component SHALL record each occurrence separately and preserve

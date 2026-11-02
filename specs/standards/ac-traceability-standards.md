@@ -181,10 +181,9 @@ Blueprints.
 - The `spec` skill's FRD template — AC identifier format and the
   no-reuse rule (templates aren't documents and have no slugs, so they're
   cited by name)
-- [[gherkin-guide]] — the tag vocabulary these identifiers are written
-  in, including `@manual` and `@level-*`
+- [[gherkin-guide]] — how to write the Gherkin these identifiers tag
 - [[adr-021]] — the decision that makes an acceptance criterion a tagged
   Gherkin scenario
 - The `spec` skill's Feature Blueprint template — AC coverage table and
   Definition of done
-- [[template-authoring-standards]] — EARS and referencing conventions
+- [[spec-authoring-standards]] — slugs and document structure

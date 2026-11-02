@@ -77,7 +77,7 @@ chooses become tracker records, never files in the corpus.
 The architecture documents follow the C4 model with the framework's
 extensions: `references/shared/c4-standards.md` maps concrete elements
 (queues, shared libraries, IaC modules, sidecars, data products) to the
-correct C4 level and document.
+correct level and document.
 
 ### Choosing the type
 
@@ -209,23 +209,23 @@ specs.
      one fenced ` ```gherkin ` block per requirement, the requirement on
      `Feature:`, its user story in that Feature's description, each
      criterion a `Scenario` or `Scenario Outline` carrying an
-     `@AC-<CODE>-NNN.N` tag. Load
-     `references/shared/gherkin-guide.md` before writing one; it holds
-     the tag vocabulary, what belongs in each description slot, and the
-     constructs that parse cleanly while losing meaning. Prefer a
+     `@AC-<CODE>-NNN.N` tag. The FRD template holds the tag vocabulary,
+     and the Gherkin guide in its load list holds what belongs in each
+     description slot and the constructs that parse cleanly while losing
+     meaning. Prefer a
      `Scenario Outline` with an `Examples` table where a criterion
      carries concrete example data.
    - **Every other normative statement is EARS** with capitalized RFC
      2119 modal verbs (SHALL / SHOULD / MAY) — standards documents,
      contracts, blueprints, and an FRD's own prose outside its blocks.
-     Load `references/shared/ears-guide.md` before writing them.
+     The EARS guide is in the always-load set.
 
    Either way the illustration is never normative: the criterion or the
    EARS sentence carries the requirement, and edge-case enumeration
    belongs in tests, not the spec.
-4. **Follow the template-authoring standards** for frontmatter (title,
-   description, slug, type, status), kebab-case slugs with
-   type prefixes, 80-character lines, and `[[document-slug]]`
+4. **Follow the spec-authoring and frontmatter standards** for
+   frontmatter (title, description, slug, type, status), kebab-case slugs
+   with type prefixes, 80-character lines, and `[[document-slug]]`
    cross-references. `[[slug]]` is reserved for documents in the
    project's spec set: everything under `references/` — the templates,
    the guides, and the standards shipped with this skill — is cited by
@@ -239,7 +239,7 @@ specs.
    learn what a document depends on before editing it, `specs refs <slug>
    --outbound`. Each is one subprocess and each is checkable by a
    reviewer; a scan you did yourself is neither.
-   `references/shared/spec-cli-reference.md` covers the rest of the command surface,
+   `references/shared/specs-cli-reference.md` covers the rest of the command surface,
    including reading the whole index when you need many documents'
    metadata at once.
 5. **Treat specs as living documents.** Update them when requirements
@@ -259,28 +259,28 @@ specs.
    breakage in the documents citing it: run `specs refs <slug>` before
    the change and a whole-corpus `specs check` after it.
 6. **Preflight feature blueprints.** Before setting a feature blueprint
-   to `ready-for-review`, run the decision sweep and self-check against
-   `references/shared/blueprint-readiness-checklist.md`, then re-run the checklist
-   after fixing what it surfaced, because one fix can break another check.
-   Do not set `ready-for-review` while any check fails: they are the
-   checks `groom-feature-blueprint` enforces at its Phase 1 gate. Authoring a feature blueprint includes surveying the
-   project's issue tracker to populate its Tracker reconciliation
-   section — existing issues the feature subsumes, depends on, or must
-   not absorb are design inputs, not groom-time discoveries. Flag BOTH
-   status flips to the human reviewer: the blueprint's approval AND
-   its FRD's (the FRD must be `approved` or `active` before grooming
-   can start).
+   to `ready-for-review`, run the Readiness checks in the template's
+   header, including the decision sweep, and re-run them after fixing
+   what they surfaced. Don't set `ready-for-review` while any check
+   fails: `groom-feature-blueprint` enforces the same checks as its
+   gate. Survey the project's issue tracker to fill the Tracker
+   reconciliation section: issues the feature subsumes, depends on, or
+   must not absorb are design inputs, not groom-time discoveries.
 7. **Self-check the finished document.** Before setting any document to
-   `ready-for-review`, run `specs check <path>`, then check it against
-   `references/shared/document-readiness-checklist.md`. It marks which
-   checks the CLI settles and which are yours: a clean `specs check` is
-   not a passing document. Fix what each reports and re-run; do not set
-   `ready-for-review` while any check fails. A Feature Blueprint also
-   passes the preflight above, which tests groomability, not
-   conformance.
+   `ready-for-review`:
 
-   Architecture blueprints also run the blueprint audit in
-   `references/shared/blueprint-content-standards.md`.
+   - Run `specs check <path>` and fix every finding. A clean run covers
+     only what `references/shared/specs-cli-reference.md` says it checks.
+   - Search for `<!--`: no template instruction block survives.
+   - Keep prose lines within `line_width`.
+   - Check each EARS statement against the EARS guide's Quick checklist,
+     and an FRD's Gherkin against the Gherkin guide's review list.
+   - Run the blueprint audit in
+     `references/shared/blueprint-content-standards.md` on an
+     architecture blueprint.
+
+   Re-run after each fix, and don't set `ready-for-review` while any
+   check fails. Where `specs` isn't installed, check by hand and say so.
 8. **Offer a retro.** WHEN an authored document consumed upstream
    documents (a feature blueprint from its FRD and architecture
    blueprints; any spec from prior specs) and the review loop has
@@ -293,44 +293,49 @@ specs.
 
 ## References
 
-Load the whole row. Where a row lists more than one file, they are a
-**bundle**: the template alone is not enough to author the document.
+**Always load** the `tech-writer` skill,
+`references/shared/specs-cli-reference.md`, and
+`references/shared/ears-guide.md`.
 
-| Working on | Load together |
-|------------|---------------|
-| Checking a document, picking an identifier, querying the corpus | `references/shared/spec-cli-reference.md` |
-| Choosing between two document types that both look plausible | `references/shared/document-type-boundaries-guide.md` |
-| Reviewing a draft, or self-reviewing before `ready-for-review` | `references/shared/anti-patterns-guide.md` + `references/shared/document-readiness-checklist.md`; for a blueprint, also `references/shared/blueprint-content-standards.md` |
-| Recording an architecture or technology decision | `references/adr-template.md` |
-| Specifying a feature (user stories + acceptance criteria) | `references/frd-template.md` + `references/shared/gherkin-guide.md` |
-| Defining cross-cutting standards, policies, or constraints | `references/standards-template.md` + `references/shared/ears-guide.md` |
-| Documenting a system (context, containers, deployment) | `references/system-blueprint-template.md` + the architecture bundle |
-| Documenting a deployable unit (app or owned data store) | `references/container-blueprint-template.md` + the architecture bundle |
-| Documenting an atomic component of one container | `references/component-blueprint-template.md` + the architecture bundle |
-| Documenting a shared/published or composite unit (a module) | `references/module-blueprint-template.md` + the architecture bundle |
-| Designing how a specified feature will be built (deltas, AC coverage) | `references/feature-blueprint-template.md` + `references/shared/ac-traceability-standards.md` + the architecture bundle |
-| Understanding, filling, or gating a work order | `references/work-order-template.md` + `references/shared/work-order-field-guide.md` + `references/shared/work-order-definition-of-ready.md` |
-| Reporting one actionable change, from a retro or from another project | `references/issue-template.md` |
-| Preflighting a feature blueprint before review handoff | `references/shared/blueprint-readiness-checklist.md` |
-| Specifying an interface's semantics, SLOs, and change policy | `references/contract-template.md` + `references/shared/c4-standards.md` |
-| Mapping any element to a C4 level; diagram conventions | `references/shared/c4-standards.md` |
-| Writing a feature or an acceptance criterion (Gherkin) | `references/shared/gherkin-guide.md` |
-| Writing any other normative statement (EARS) | `references/shared/ears-guide.md` |
-| Slugs, instruction blocks, versioning, placeholders, validation | `references/shared/template-authoring-standards.md` |
-| Frontmatter properties, status vocabulary, element records | `references/shared/frontmatter-standards.md` |
-| `[[slug]]` wikilinks, heading anchors, backticked paths | `references/shared/cross-document-references-standards.md` |
+**Then load the template** for the document type. Its header's "Load
+before authoring" list names every other file the type needs: load the
+whole list up front, because a reference reached at the second hop tends
+to get previewed rather than read. Creating, revising, reviewing and
+grooming a document all start here, since the template's section
+comments are the rules the document is reviewed against.
 
-The architecture bundle is `references/shared/c4-standards.md`,
-`references/shared/blueprint-content-standards.md`,
-`references/shared/design-principles-guide.md`, and the level guides the
-template's header names, from
-`references/shared/design-principles-systems-guide.md`,
-`references/shared/design-principles-containers-guide.md`, and
-`references/shared/design-principles-components-guide.md`. Skip the design
-principles guides for edits that don't change an element's design.
+| Document | Template |
+|----------|----------|
+| ADR | `references/adr-template.md` |
+| FRD | `references/frd-template.md` |
+| Standards | `references/standards-template.md` |
+| System Blueprint | `references/system-blueprint-template.md` |
+| Container Blueprint | `references/container-blueprint-template.md` |
+| Component Blueprint | `references/component-blueprint-template.md` |
+| Module Blueprint | `references/module-blueprint-template.md` |
+| Feature Blueprint | `references/feature-blueprint-template.md` |
+| Contract | `references/contract-template.md` |
+| Work Order | `references/work-order-template.md` |
+| Issue | `references/issue-template.md` |
 
-Read the bundle up front, not from a pointer mid-authoring: a reference
-reached at the second hop tends to get previewed rather than read.
+**Load the rest only when the question comes up:**
+
+- Choosing between two plausible document types:
+  `references/shared/document-type-boundaries-guide.md`.
+- Reviewing a draft, or self-reviewing before `ready-for-review`:
+  `references/shared/anti-patterns-guide.md`.
+- Reading a `specs check` finding: `references/generated/rules.md`.
+- Mapping an element to a C4 level: `references/shared/c4-standards.md`.
+- Slugs, filenames, line length, title and H1:
+  `references/shared/spec-authoring-standards.md`.
+- Frontmatter properties, status vocabulary, element records:
+  `references/shared/frontmatter-standards.md`.
+- `[[slug]]` wikilinks, heading anchors, backticked paths:
+  `references/shared/cross-document-references-standards.md`.
+
+Every file under `references/` other than a template is a leaf: it never
+gives you a path to load another reference. A `[[slug]]` in one is a
+citation for the reader, not a load instruction.
 
 ---
 

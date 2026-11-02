@@ -14,15 +14,21 @@ frd: frd-<feature-name>              # the FRD this blueprint realizes (1:1)
 
 <!--
 Template: Feature Blueprint
-Source: This specification framework. Reference conventions follow
-  [[template-authoring-standards]].
-  Before authoring, load `shared/blueprint-content-standards.md` and
-  `shared/design-principles-guide.md`. Also load the level guide for the
-  level of each element a delta changes:
-  `shared/design-principles-systems-guide.md`,
-  `shared/design-principles-containers-guide.md`, or
-  `shared/design-principles-components-guide.md`. A quoted rule name
-  below is the heading of a rule in the content standards.
+Source: This specification framework.
+
+Load before authoring
+  - `shared/blueprint-content-standards.md`: what a blueprint states, and
+    the blueprint audit. A quoted rule name below, such as "Name owners,
+    not neighbors", is the heading of a rule there.
+  - `shared/ac-traceability-standards.md`: how tests cite the acceptance
+    criteria in AC coverage.
+  - `shared/c4-standards.md`: how the framework applies C4 — the module
+    level, element declarations, edge ownership, and diagram placement.
+  - `shared/design-principles-guide.md`: the universal design principles.
+  - The level guide for each element a delta changes:
+    `shared/design-principles-systems-guide.md`,
+    `shared/design-principles-containers-guide.md`, or
+    `shared/design-principles-components-guide.md`.
 
 Sections (complete each, then delete its instruction block)
   - Overview
@@ -126,7 +132,7 @@ Reference syntax
   [[container-<name>#Component Name]]
                    — a cross-reference to an un-promoted component, by a
                      wikilink heading anchor into its parent's Components
-                     roster (see [[c4-standards]])
+                     roster (see `shared/c4-standards.md`)
   `ElementName`    — a code-level element that is not a modeled
                      component: a schema, domain type, event, flag, table
 
@@ -145,6 +151,58 @@ Code anchors — anchors, not signatures
 Slug format
   feature-<feature-name>, lowercase kebab-case, matching the FRD:
   frd-checkout → feature-checkout
+
+Readiness checks
+  These checks define "ready to groom." Run them before you set
+  `ready-for-review`, fix what fails, and run them again, because one fix
+  can break another check. The `groom-feature-blueprint` skill enforces
+  the same checks as its gate, and it cites each one by its name below.
+
+  Readiness checks: is grooming premature?
+  - FRD approved: the FRD's status is `approved` or `active`.
+  - Blueprint approved: the blueprint's status is `approved`.
+  - No open questions: the Open questions section is absent, empty, or
+    states only "None."
+  WHEN you submit the blueprint for review, flag BOTH status changes to
+  the human reviewer: the blueprint's approval AND its FRD's.
+
+  Content checks: is the approved design plannable?
+  - Every AC covered: every AC the FRD defines appears in the AC
+    coverage table, and every row names a delta block that exists, by
+    the row validity rules in that section. List the FRD's ACs with
+    `specs feature <id> --full` instead of by reading it: each tagged
+    `Examples` block is its own criterion, and only the first looks like
+    one in a diff.
+  - References resolve: `specs check <path>` reports no unresolved
+    reference or anchor.
+  - Component references resolve: every component a delta names
+    resolves to exactly one declaration across the Components sections
+    of the containers and modules it cites, qualified in prose where the
+    name is ambiguous.
+  - Design intent complete: every delta can be implemented without a
+    design decision the blueprint doesn't record. Run the decision sweep
+    below.
+  - Delta keys unique: the AC coverage legend gives every delta block a
+    unique key, every key expands to an existing block, and no earlier
+    key is reused for a different delta.
+  - Lockstep rules satisfied: WHEN a lockstep-update rule in an owning
+    blueprint's Change guidance couples artifacts in more than one delta
+    block, the blueprint states how the rule is satisfied.
+  - Tracker reconciled: the Tracker reconciliation section classifies
+    every listed issue, or states "None."
+  - No FRD behavior in deltas: no delta restates behavior the FRD owns
+    ([[adr-033]]).
+
+  The decision sweep
+  Walk each delta and ask what an implementer would have to choose there:
+  paths and names, defaults and default resolution bases, runtime or
+  build-time access to generated artifacts, scope cuts, behavior on
+  half-valid input, and rules for several instances at once. Pin each
+  choice as an EARS line in the delta's Guarantees, or raise it as an
+  Open question. Leave implementation structure unpinned: "anchors, not
+  signatures" guards against pinning too much, and the sweep guards
+  against pinning too little. Guarantees are EARS, never Gherkin: the
+  FRD holds the acceptance criteria.
 
 This is a living document while in flight — update it when the design
 changes, and update `status` when you do. Remove all
@@ -237,14 +295,11 @@ an owning blueprint's lockstep-update rule are assigned to different
 delta blocks, the blueprint SHALL state how the rule is satisfied —
 in the delta or in Sequencing constraints (e.g., "single-PR delivery;
 the DOC delta lands in the same change as the CLI delta"). Absence is
-a content-check failure at groom time, not a call the groomer makes.
+a Lockstep rules satisfied failure at groom time, not a call the
+groomer makes.
 
-Before setting `ready-for-review`, run the decision sweep from
-[[blueprint-readiness-checklist]] over every delta: pin each silent
-decision an implementer would otherwise have to make (paths and names,
-defaults, scope cuts, edge-case rules) as an EARS line in Guarantees,
-or raise it as an Open Question. "Anchors, not signatures" warns
-against pinning too much; the sweep guards against pinning too little.
+Before setting `ready-for-review`, run the decision sweep under
+Readiness checks over every delta.
 -->
 
 ### [[container-<name>]] (modified)
@@ -440,7 +495,7 @@ Verified by:  the level at which the AC is proven —
 
 This table is design-time intent; the durable record is the tests
 themselves, which cite their ACs in citation comments per
-[[ac-traceability-standards]]. The two are reconciled in the Definition
+`shared/ac-traceability-standards.md`. The two are reconciled in the Definition
 of Done below.
 -->
 
@@ -481,7 +536,7 @@ truthful again. Keep one checkbox per affected document.
 - [ ] New ADRs are referenced from the owning blueprints' Key decisions
 - [ ] Run the blueprint audit on each blueprint a delta folds into
 - [ ] Every AC in the coverage table is verified at its declared level
-  and cited from its tests per [[ac-traceability-standards]]
+  and cited from its tests per `shared/ac-traceability-standards.md`
 - [ ] Every issue listed as subsumed in Tracker reconciliation is
   closed or re-scoped (omit WHERE that section states "None.")
 - [ ] No live document references this blueprint (`specs refs

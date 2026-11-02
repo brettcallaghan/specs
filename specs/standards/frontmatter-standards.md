@@ -21,9 +21,8 @@ status: active
 - Embedded element records — declaring child components by record
   block, blueprint, or both
 
-Document structure, slugs, instruction blocks, versioning, and content
-guidelines belong to the companion document,
-[[template-authoring-standards]]. Cross-document reference syntax is in
+Document structure, slugs, and filenames belong to the companion
+document, [[spec-authoring-standards]]. Cross-document reference syntax is in
 [[cross-document-references]].
 
 This document holds the normative prose. The **per-type property tables**
@@ -88,7 +87,7 @@ required. A reader who has already opened the document reads it as an
 introduction. An agent deciding which documents to open reads it *instead
 of* the document. A corpus listing command reports every member's
 `description`, so other agents decide from it whether to open this
-document at all. [[spec-cli-reference]] documents the command that reports
+document at all. [[specs-cli-reference]] documents the command that reports
 it.
 
 Authors SHALL write `description` to be triaged from rather than as an

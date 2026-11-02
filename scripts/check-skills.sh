@@ -141,7 +141,7 @@ IGNORE = {'AGENTS.md','CLAUDE.md','CONTRIBUTING.md','SKILL.md','index.md',
           # is nothing here to resolve.
           'strata.config.json','strata-config.json','strata.config.schema.json',
           'options.strata'}
-TEACHING = {'template-authoring-standards.md','cross-document-references.md'}
+TEACHING = {'spec-authoring-standards.md','cross-document-references.md'}
 for p in glob.glob('plugin/skills/**/*.md', recursive=True) + glob.glob('.claude/skills/**/*.md', recursive=True):
     if '/references/shared/' in p or is_generated(p): continue
     d = os.path.dirname(p)
@@ -153,7 +153,7 @@ for p in glob.glob('plugin/skills/**/*.md', recursive=True) + glob.glob('.claude
         # ${CLAUDE_PLUGIN_ROOT}-relative. Nothing resolves from a skill
         # directory and nothing should — same reason `scripts/` is here.
         if t in IGNORE or t.startswith(('http','docs/','plans/','word/','ooxml/','scripts/','.claude/','hooks/','monitors/')): continue
-        if os.path.basename(p) in TEACHING and t == 'references/c4-guide.md': continue
+        if os.path.basename(p) in TEACHING and t == 'references/style-guide.md': continue
         if not os.path.exists(os.path.join(d, t)):
             err(p, f"backticked path does not resolve from this file: {t}")
 
@@ -205,6 +205,44 @@ for p in SKILLS + glob.glob('plugin/skills/*/references/*.md'):
 for p in SKILLS:
     if re.search(r'^version:', open(p).read().split('\n---', 1)[0], re.M):
         err(p, "frontmatter has `version`; skills are identified by the plugin's release version")
+
+# ---- 7. references other than templates are leaves -------------------------
+# A template's header names every file its type needs, so an agent loads one
+# list up front. A backticked path to a sibling reference is a load
+# instruction, and from any other reference it adds a second hop: a reference
+# reached at the second hop tends to get previewed rather than read. A
+# `[[slug]]` is a corpus citation, not a load instruction, so a leaf may use
+# one. The load edges from templates must also form no cycle.
+for skill in sorted(glob.glob('plugin/skills/*/')):
+    refs = [f for f in glob.glob(os.path.join(skill, 'references', '**', '*.md'), recursive=True)
+            if os.path.basename(f) != 'README.md']
+    if not refs: continue
+    by_name = {}
+    for f in refs:
+        by_name.setdefault(os.path.basename(f), f)
+    edges = {}
+    for f in refs:
+        text = open(f).read()
+        out = set()
+        for m in re.finditer(r'`[^`\s]*?([\w.-]+\.md)(?:#[^`]*)?`', text):
+            t = by_name.get(m.group(1))
+            if t and t != f: out.add(t)
+        edges[f] = out
+        if out and not f.endswith('-template.md'):
+            err(f, "a reference other than a template gives a load path to another reference ("
+                   + ", ".join(sorted(os.path.basename(t) for t in out))
+                   + "); cite it with [[slug]] or by name, and list it in the templates that need it")
+    state = {}
+    def visit(n, path):
+        state[n] = 1
+        for t in sorted(edges.get(n, ())):
+            if state.get(t) == 1:
+                err(n, "reference cycle: " + " -> ".join(os.path.basename(x) for x in path[path.index(t):] + [t]))
+            elif t not in state:
+                visit(t, path + [t])
+        state[n] = 2
+    for n in sorted(edges):
+        if n not in state: visit(n, [n])
 
 print("=== check-skills ===")
 for e in errors:   print(f"  ERROR {e}")

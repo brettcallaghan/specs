@@ -1,7 +1,7 @@
 # Recording a bead's capability tier
 
 Read this at step 4, when you are writing tier metadata. The **rubric** for
-which tier a bead needs is owned by `shared/work-order-field-guide.md`; this
+which tier a bead needs is owned by the work-order field guide; this
 file is how the answer gets recorded so an orchestrator that never read this
 skill can act on it.
 
@@ -82,7 +82,7 @@ Beads carry a **tier** (`light | standard | advanced | frontier`, least to
 most capable), not a model name. The orchestrator resolves tier → model at
 dispatch from the orchestrator's model lineup, so a bead groomed today
 still routes correctly after the lineup changes. The routing rubric is owned by
-`shared/work-order-field-guide.md`. Apply it, and:
+the work-order field guide. Apply it, and:
 
 - **Assign the LOWEST tier that can do the work.** Over-routing is invisible
   and paid for on every run; under-routing announces itself as an escalation

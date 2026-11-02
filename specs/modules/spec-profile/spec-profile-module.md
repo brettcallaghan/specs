@@ -159,7 +159,7 @@ the generated pattern exactly, which is what
 transcribed from the prefix registry**, and for guides the two disagree:
 the registry has no row at all and this repository's guides do not
 consistently carry a `guide-` prefix (`work-order-field-guide` and
-`spec-cli-reference` do not), so the pattern is the type's least
+`specs-cli-reference` do not), so the pattern is the type's least
 restrictive form. The divergence is recorded at the table in
 `cli/profile/profile.go`. The Change guidance below is what obliges a
 template change to come back here.
@@ -315,7 +315,7 @@ This module SHALL comply with:
   tests covering its exported surface.
 
 Its registered rules derive from this framework's own Standards documents,
-[[frontmatter-standards]], [[template-authoring-standards]], and
+[[frontmatter-standards]], [[spec-authoring-standards]], and
 [[cross-document-references]], which the `spec` skill also ships as
 vendored copies. The derivation isn't literal transcription. The union
 schema reaches this module through `schemas/*.strata`, and each slug

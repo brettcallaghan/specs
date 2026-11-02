@@ -52,8 +52,8 @@ helps agents efficiently navigate, validate, and maintain those documents.
    ```
 
    The skill chooses the document type, writes it under `specs/` from a
-   template, and runs its readiness checklist before it hands the document to
-   you for review.
+   template, and checks it with `specs check` and its own review before it
+   hands the document to you.
 
 For a guided first run, follow
 [Specify your first feature](docs/tutorials/specify-your-first-feature.md).

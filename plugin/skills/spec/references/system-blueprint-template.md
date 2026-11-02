@@ -15,14 +15,21 @@ contracts_consumed: []               # contract slugs this system consumes
 
 <!--
 Template: System Blueprint
-Source: Architecture documentation framework. C4 mapping rules are
-  defined in `shared/c4-standards.md`. Load it,
-  `shared/blueprint-content-standards.md`,
-  `shared/design-principles-guide.md`,
-  and `shared/design-principles-systems-guide.md` before
-  authoring. A quoted rule name below, such as
-  "Name owners, not neighbors", is the heading of a rule in the content
-  standards.
+Source: Architecture documentation framework.
+
+Load before authoring
+  - `shared/c4-standards.md`: how the framework applies C4 — the module
+    level, element declarations, edge ownership, and diagram placement.
+  - `shared/c4-guide.md`: the C4 levels, naming and relationship
+    conventions, diagram types, and Mermaid authoring rules.
+  - `shared/blueprint-content-standards.md`: what a blueprint states, and
+    the blueprint audit. A quoted rule name below, such as "Name owners,
+    not neighbors", is the heading of a rule there.
+  - `shared/design-principles-guide.md`: the universal design principles.
+  - `shared/design-principles-systems-guide.md`: patterns for composing
+    containers.
+  Skip the design principles guides for an edit that doesn't change the
+  element's design.
 
 Sections (complete each, then delete its instruction block)
   - Overview

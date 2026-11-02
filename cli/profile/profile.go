@@ -40,7 +40,7 @@ const Name = "specs"
 
 // defaultLineWidth is the line_width convention this profile supplies
 // when specs.toml omits [conventions].line_width. 80 is the limit
-// specs/standards/template-authoring-standards.md fixes ("The width of
+// specs/standards/spec-authoring-standards.md fixes ("The width of
 // any line SHALL NOT exceed 80 characters"), measured in Unicode
 // codepoints per that same standard.
 const defaultLineWidth = 80
@@ -102,13 +102,9 @@ var featureTags = corpus.FeatureTagRules{
 // are joined by [registeredTypes] — which is what [New] returns.
 //
 // Patterns are grounded in this repository's own corpus rather than
-// restated from the prefix registry in template-authoring-standards.md,
-// because the registry and this repository's actual documents disagree
-// on guides: the registry has no row for this type at all, and this
-// repository's guides do not consistently carry a guide- prefix
-// (work-order-field-guide and spec-cli-reference do not). The pattern
-// here is accordingly the type's least restrictive form: any kebab-case
-// slug.
+// restated from the prefix registry in spec-authoring-standards.md.
+// The registry gives guides no prefix, so the pattern here is the type's
+// least restrictive form: any kebab-case slug.
 var documentTypes = map[string]corpus.DocumentTypeRules{
 	string(specmodel.DocumentTypeAdr): {
 		SlugPattern: `^adr-[0-9]{3,}(-[a-z0-9]+(-[a-z0-9]+)*)?$`,

@@ -42,9 +42,11 @@ c4_docs: []                          # C4 doc files that may need updating
 
 <!--
 Template: Work Order
-Source: This specification framework. Reference conventions follow
-  [[template-authoring-standards]]. Readiness criteria are defined in
-  [[work-order-definition-of-ready]] and [[work-order-field-guide]].
+Source: This specification framework.
+
+Load before authoring
+  - `shared/work-order-field-guide.md`: what each field holds.
+  - `shared/work-order-definition-of-ready.md`: the readiness gate.
 
 Sections (complete each, then delete its instruction block)
   - Problem
@@ -134,8 +136,7 @@ Reference syntax
                      and other work orders by their work-order-<id> slug)
   [[container-<name>#Component Name]]
                    — a C4 component, by a wikilink heading anchor into
-                     its parent's Components roster (see
-                     [[c4-standards]]); c4_changes / c4_impacts
+                     its parent's Components roster); c4_changes / c4_impacts
                      list the same component names
   `ElementName`    — code-level anchors: paths, symbols, endpoints, tables
 
@@ -145,14 +146,14 @@ Slug format
   slug is the stable human handle.
 
 UNRESOLVED — no lifecycle status field (deliberate deviation)
-  [[template-authoring-standards]] makes `status` a REQUIRED frontmatter
+  `shared/frontmatter-standards.md` makes `status` a REQUIRED frontmatter
   property. This template omits it on purpose: a work order has two
   orthogonal lifecycles — grooming readiness and execution state — and both
   are owned by the tracker (bead `status` + `grooming_status`), not
   duplicated here, to avoid a two-copy drift problem. This is a known open
   question, not an oversight: WHEN the file-backed (no-tracker) path is
   designed, the status model SHALL be revisited. Until then, "is this order
-  ready?" is answered by running [[work-order-definition-of-ready]], and the
+  ready?" is answered by running the Definition of Ready, and the
   outcome is recorded on the tracker issue, not in this frontmatter.
 
 Remove all HTML comment blocks after generating a work order.
@@ -204,7 +205,7 @@ Design, with its name, progenitor, and constraint. Leave out the need,
 which the blueprint records.
 
 If a line tells you WHAT TO TYPE, it belongs here. If it tells you WHAT MUST
-BE TRUE when finished, it belongs in Acceptance. See [[work-order-field-guide]].
+BE TRUE when finished, it belongs in Acceptance. See the field guide.
 -->
 
 <The chosen approach and key decisions.>

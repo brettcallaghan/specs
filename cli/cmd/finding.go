@@ -91,18 +91,18 @@ const (
 	// undeclared property, which are modelled separately below because a
 	// consumer acting on either needs the property name as a value rather
 	// than as a substring of a message.
-	RuleConfigSchema specmodel.RuleId = "config/schema"
+	RuleConfigSchema = specmodel.RuleIdConfigSchema
 	// RuleConfigMissingProperty covers a specs.toml table missing a
 	// property the configuration schema requires.
-	RuleConfigMissingProperty specmodel.RuleId = "config/missing-property"
+	RuleConfigMissingProperty = specmodel.RuleIdConfigMissingProperty
 	// RuleConfigUndeclaredKey covers a key specs.toml declares that the
 	// configuration schema does not define (AC-SPEC-008.4) — most often a
 	// typo, which is exactly why an undeclared key is checked rather than
 	// silently ignored.
-	RuleConfigUndeclaredKey specmodel.RuleId = "config/undeclared-key"
+	RuleConfigUndeclaredKey = specmodel.RuleIdConfigUndeclaredKey
 	// RuleConfigUnknownProfile covers a [profile].name naming no profile
 	// in the registry.
-	RuleConfigUnknownProfile specmodel.RuleId = "config/unknown-profile"
+	RuleConfigUnknownProfile = specmodel.RuleIdConfigUnknownProfile
 	// RuleConfigInvalidRegistration covers a defect in the active
 	// profile's own registration — a pairing or typed reference naming a
 	// property never registered as reference-bearing, a typed reference
@@ -112,22 +112,22 @@ const (
 	// has no position of its own; every finding this rule covers is
 	// positioned at [profile].name, the configuration value that selected
 	// it (AC-SPECREF-004.3).
-	RuleConfigInvalidRegistration specmodel.RuleId = "config/invalid-registration"
+	RuleConfigInvalidRegistration = specmodel.RuleIdConfigInvalidRegistration
 	// RuleLinkMapInvalid covers a link map that cannot be read at all, or
 	// that go-yaml cannot parse — including a slug repeated as a
 	// top-level key, which go-yaml itself rejects as a duplicate mapping
 	// key. A record missing its path property is modelled separately as
 	// [RuleLinkMapMissingPath], the same missing-property split
 	// [RuleConfigMissingProperty] makes from [RuleConfigSchema].
-	RuleLinkMapInvalid specmodel.RuleId = "linkmap/invalid"
+	RuleLinkMapInvalid = specmodel.RuleIdLinkmapInvalid
 	// RuleLinkMapMissingPath covers a link-map record that declares no
 	// path property.
-	RuleLinkMapMissingPath specmodel.RuleId = "linkmap/missing-path"
+	RuleLinkMapMissingPath = specmodel.RuleIdLinkmapMissingPath
 	// RuleDocumentUnreadable covers the `links` operand itself failing to
 	// open — a mistyped path, a permissions error — distinct from
 	// [finding.RuleFrontmatterParse], which covers a document that opened
 	// but whose frontmatter block did not parse.
-	RuleDocumentUnreadable specmodel.RuleId = "document/unreadable"
+	RuleDocumentUnreadable = specmodel.RuleIdDocumentUnreadable
 )
 
 // pointerPrefix is the prefix a message about the value at pointer
