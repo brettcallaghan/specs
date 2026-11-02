@@ -180,7 +180,7 @@ One entry per member: `path`, `slug`, `type`, `status`, `title`, and
 Retired members are omitted unless you pass `--all`. A member whose
 frontmatter doesn't parse is listed with its path and the failure only.
 Planners triage elements from the `description`, which is why
-the frontmatter standards say to write it for triage.
+[[frontmatter-standards]] says to write it for triage.
 
 ### `specs c4 [--root <slug>]`
 

@@ -334,7 +334,8 @@ comments are the rules the document is reviewed against.
   `references/shared/cross-document-references-standards.md`.
 
 Every file under `references/` other than a template is a leaf: it never
-tells you to load another reference.
+gives you a path to load another reference. A `[[slug]]` in one is a
+citation for the reader, not a load instruction.
 
 ---
 

@@ -35,7 +35,7 @@ Order from reaching an isolated agent.
 This standard is the single definition of "ready to dispatch." The `spec` skill
 owns it, and the grooming skills enforce it: `groom-beads` on any unit of work,
 and `groom-feature-blueprint` on work decomposed from a blueprint.
-The work-order field guide holds the field-by-field guidance: the distinction
+[[work-order-field-guide]] holds the field-by-field guidance: the distinction
 between the three text fields, the tier-routing rubric, and the C4 conventions.
 Each check maps onto the format in the `spec` skill's Work Order template.
 
@@ -137,8 +137,8 @@ is a race at dispatch time. A fabricated edge over-serializes.
 Set `tier` from the closed, ordered set (`light | standard | advanced |
 frontier`, least to most capable). It's never null, and it always has a short
 `tier_reason`. Assign the lowest tier that can complete the order correctly. A
-named `model` is an optional override, not the routing field. See the
-work-order field guide for the rubric and the project lineup mapping.
+named `model` is an optional override, not the routing field. See
+[[work-order-field-guide]] for the rubric and the project lineup mapping.
 
 ### 8. C4 blast radius declared (if the repo uses C4)
 Declare `c4_changes`, `c4_impacts`, and `c4_docs`, using only component names

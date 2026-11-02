@@ -26,8 +26,8 @@ status: active
   invisible
 - Estimates vs. tiers — what `est_size` answers that `tier` doesn't
 
-This guide accompanies the `spec` skill's Work Order template and the
-work-order Definition of Ready. The template defines the shape, and
+This guide accompanies the `spec` skill's Work Order template and
+[[work-order-definition-of-ready]]. The template defines the shape, and
 the Definition of Ready defines the gate. This guide covers how to fill in the
 fields well.
 

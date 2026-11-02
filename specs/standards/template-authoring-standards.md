@@ -60,9 +60,9 @@ Templates SHALL include instructions that describe:
   which the `tech-writer` skill sets the document's tone
 - Every reference the type needs beyond the skill's always-load set, as a
   **Load before authoring** list in the document-level instructions. No
-  other reference names a load, so this list is complete or the agent goes
-  without; `scripts/check-skills.sh` reports any reference other than a
-  template that cites another
+  other reference gives a load path, so this list is complete or the agent
+  goes without; `scripts/check-skills.sh` reports any reference other than
+  a template that gives a backticked path to another
 - Guidance for completing each section
 
 Instructions SHALL be provided in two locations:

@@ -26,7 +26,7 @@ they verify. They apply to every project that adopts this framework's
 FRDs and Feature Blueprints.
 
 An acceptance criterion is a tagged Gherkin `Scenario` or `Scenario
-Outline` inside an FRD ([[adr-021]]), written as the Gherkin guide describes. Its identifier
+Outline` inside an FRD ([[adr-021]], [[gherkin-guide]]). Its identifier
 is the `@AC-<CODE>-NNN.N` tag it carries, and that tag is what every
 citation below names. Nothing else in this document depends on the
 notation: the identifier format, the append-only rule, and the citation
@@ -186,9 +186,9 @@ Blueprints.
 - The `spec` skill's FRD template — AC identifier format and the
   no-reuse rule (templates aren't documents and have no slugs, so they're
   cited by name)
-- The `spec` skill's Gherkin guide — the tag vocabulary these
-  identifiers are written in, including `@manual` and `@level-*`
+- [[gherkin-guide]] — how to write the Gherkin these identifiers tag
 - [[adr-021]] — the decision that makes an acceptance criterion a tagged
   Gherkin scenario
 - The `spec` skill's Feature Blueprint template — AC coverage table and
   Definition of done
+- [[spec-authoring-standards]] — slugs and document structure

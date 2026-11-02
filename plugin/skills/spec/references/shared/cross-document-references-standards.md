@@ -25,13 +25,13 @@ status: active
   that a path is written relative to the file containing it
 
 [[adr-012]] records the decision behind these conventions. This standard
-is a companion to the spec-authoring standards.
+is a companion to [[spec-authoring-standards]].
 
 These conventions are mechanically checked. `specs check` resolves every
 `[[slug]]` in a document's body and every slug-typed frontmatter
 property against the corpus, and reports the ones that resolve to
 nothing. `specs refs <slug>` answers who cites a document before you
-change it. The Specs CLI reference states what each rule reports, and the
+change it. [[specs-cli-reference]] states what each rule reports, and the
 reference cases that are still yours. The rules below are what those
 checks enforce, which is also why the exceptions are worth knowing.
 Outside a `gherkin` block, a `[[slug]]` inside backticks or a fenced
@@ -51,7 +51,7 @@ double-bracket wikilink notation SHALL be used.
 **Examples:**
 - `[[security-standards]]`
 - `[[contract-payments-api]]`
-- `[[data-retention-policy]]`
+- `[[spec-authoring-standards]]`
 
 A reference resolves against the target document's frontmatter `slug`,
 never a file path. The namespace is flat and location-independent, so a

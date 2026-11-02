@@ -28,9 +28,12 @@ problem better, use it.
 
 Use this guide with one level guide:
 
-- **A system**, deciding how its containers integrate: the systems guide.
-- **A container**, deciding how its components compose: the containers guide.
-- **A component**, deciding how its code is composed: the components guide.
+- **A system**, deciding how its containers integrate:
+  [[guide-design-principles-systems]].
+- **A container**, deciding how its components compose:
+  [[guide-design-principles-containers]].
+- **A component**, deciding how its code is composed:
+  [[guide-design-principles-components]].
 
 An element at any level may also adopt components-guide entries that all of
 its code follows, such as Make Illegal States Unrepresentable.
@@ -113,7 +116,8 @@ Pool. An author can still adopt any of them.
 
 ## References
 
-- Design Principles: Systems — patterns for composing containers
-- Design Principles: Containers — patterns for composing components
-- Design Principles: Components — patterns for composing code
+- [[guide-design-principles-systems]] — patterns for composing containers
+- [[guide-design-principles-containers]] — patterns for composing components
+- [[guide-design-principles-components]] — patterns for composing code
+- [[guide-c4]] — the C4 levels
 - [The C4 model](https://c4model.com/) — the levels these guides follow

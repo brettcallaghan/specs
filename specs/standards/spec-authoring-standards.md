@@ -138,7 +138,7 @@ abbreviations.
 | Contract | `contract-` | `[[contract-payments-api]]` |
 | Feature Blueprint | `feature-` | `[[feature-guest-checkout]]` |
 | Work Order | `wo-` | `[[wo-1234]]` |
-| Guide | *(none — descriptive slug)* | `[[onboarding-guide]]` |
+| Guide | *(none — descriptive slug)* | `[[specs-cli-reference]]` |
 
 The **Standards** type is the deliberate exception: it carries no fixed
 prefix. Its documents are cross-cutting and are cited by a descriptive

@@ -26,7 +26,7 @@ status: draft
 
 This framework uses the [C4 model](https://c4model.com) in its architecture
 document types: System Blueprint, Container Blueprint, Module Blueprint,
-Component Blueprint, and Contract. The C4 guide holds the model itself: the
+Component Blueprint, and Contract. [[guide-c4]] holds the model itself: the
 levels, naming and relationship conventions, diagram types, Mermaid
 authoring, and whether to model an element or mention it in prose. This
 standard holds what the framework adds: the module level, how documents
@@ -46,7 +46,7 @@ declaration of its edge ([[adr-029]]).
 
 ## The abstraction levels
 
-The C4 guide defines each level. This section holds the rules the framework
+[[guide-c4]] defines each level. This section holds the rules the framework
 adds to each.
 
 **Software system** — a System Blueprint documents one system as it is,
@@ -144,7 +144,7 @@ WHERE a child element has NOT been promoted to its own blueprint, its
 declaration in the parent's roster (a container's or module's Components
 section) carries a machine-readable **record block** — so every modeled
 node is declared in prose whether or not it has its own document.
-The frontmatter standards' "Embedded element records" defines the record
+[[frontmatter-standards#Embedded element records]] defines the record
 block's format, its schema, and how a promoted element's declarations
 relate. Declaring every node this way keeps the model machine-readable:
 the element vocabulary and node set are parseable without a modeling DSL,
@@ -182,7 +182,8 @@ Rules for relationship statements:
 - **Direction.** `Rel(a, b, ...)` declares `a` depending on `b`.
   `Rel_Back(a, b, ...)` declares `b` depending on `a`: it's the same edge,
   drawn with the arrowhead reversed. `BiRel` is reported: an arrow states
-  one dependency in one direction (the C4 guide's Relationship direction).
+  one dependency in one direction
+  ([[guide-c4#Relationship direction]]).
 - **Reserved tags.** A relationship's tags argument, written
   positionally or as `$tags`, MAY carry these tags and no others with
   meaning to the framework: `sync`, `async`, and `contract:<slug>`, the
@@ -246,7 +247,7 @@ points down to code for internal detail.
 
 ## Diagram placement
 
-The C4 guide defines each diagram type. Each lives in one blueprint:
+[[guide-c4]] defines each diagram type. Each lives in one blueprint:
 
 | Diagram | Lives in |
 |---------|----------|
@@ -264,18 +265,18 @@ Every relationship a Container Context diagram shows SHALL also exist in the
 documents, typically governed by a contract. A Component Blueprint has no
 diagram.
 
-The Mermaid authoring rules in the C4 guide apply to every diagram embedded
-in a blueprint. The line-width limit doesn't apply inside a diagram fence,
-because the spec-authoring standards exempt code-block content.
+The Mermaid authoring rules in [[guide-c4#Mermaid authoring rules]] apply to
+every diagram embedded in a blueprint. The line-width limit doesn't apply inside a diagram fence,
+because [[spec-authoring-standards]] exempts code-block content.
 
 ---
 
 ## Where concrete elements are documented
 
 The following table maps recurring real-world elements to the framework's
-levels and their home document. It differs from the C4 guide's mapping where
-the module level applies. "Contract" in the last column means the interface gets a
-contract document (see Contract visibility tiers, below).
+levels and their home document. It differs from the mapping in [[guide-c4]]
+where the module level applies. "Contract" in the last column means the
+interface gets a contract document (see Contract visibility tiers, below).
 
 | Concrete element | C4 mapping | Documented in |
 |------------------|-----------|---------------|
@@ -288,7 +289,7 @@ contract document (see Contract visibility tiers, below).
 | Serverless function (or cohesive set) | Container | Its Container Blueprint |
 | Database / cache / bucket you **use** | Container (passive) | Element on owner's diagrams + Data section of owning Container Blueprint; **no blueprint of its own** |
 | Database engine you **implement** | System of containers | Its own System Blueprint |
-| Queue / topic | Annotated consumer → producer relationship by default; Container (a data store) only when the bus is the diagram's subject (the C4 guide's Message buses and async) | Message schema + semantics → contract |
+| Queue / topic | Annotated consumer → producer relationship by default; Container (a data store) only when the bus is the diagram's subject ([[guide-c4#Message buses and async]]) | Message schema + semantics → contract |
 | REST / GraphQL / gRPC API | Interface of a container | contract (shape in spec artifact) |
 | Data product / published view / shared dataset | Interface of a container or system | contract |
 | Shared library / SDK | **Module** | Its Module Blueprint; appears as a component in each consuming container's diagram |
@@ -306,8 +307,8 @@ contract document (see Contract visibility tiers, below).
 | Repeated unit built to one design (plugins, transpilers) | **Module** or Component (pattern) | One blueprint governs all instances; module when shared/composite |
 | External SaaS (Stripe, Auth0) | External system | Element on context diagrams; reference the vendor's published contract by URL — don't author contract documents for third-party interfaces |
 
-When an element doesn't fit, argue from the definitions, as the C4 guide
-describes. An element the C4 guide says to mention in prose rather than
+When an element doesn't fit, argue from the definitions, as [[guide-c4]]
+describes. An element [[guide-c4]] says to mention in prose rather than
 model is mentioned in the blueprint's prose, and a technology choice inside
 a container or module is a line of its Tech stack section.
 
@@ -392,5 +393,8 @@ documents describing the system as it is.
 
 ## References
 
+- [[guide-c4]] — the C4 model: levels, conventions, diagram types, and Mermaid
+  authoring
+- [[spec-authoring-standards]] — line length, slugs, filenames
 - [[adr-029]] — a relationship statement on a diagram declares its edge
 - [C4 model](https://c4model.com)

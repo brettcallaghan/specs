@@ -208,20 +208,18 @@ for p in SKILLS:
 
 # ---- 7. references other than templates are leaves -------------------------
 # A template's header names every file its type needs, so an agent loads one
-# list up front. Any other reference that cites a sibling reference adds a
-# second hop, and a reference reached at the second hop tends to get
-# previewed rather than read. A leaf names a sibling by role in prose.
-# Citations are backticked paths and `[[slug]]`s that resolve to a sibling's
-# frontmatter slug; the edges from templates must also form no cycle.
+# list up front. A backticked path to a sibling reference is a load
+# instruction, and from any other reference it adds a second hop: a reference
+# reached at the second hop tends to get previewed rather than read. A
+# `[[slug]]` is a corpus citation, not a load instruction, so a leaf may use
+# one. The load edges from templates must also form no cycle.
 for skill in sorted(glob.glob('plugin/skills/*/')):
     refs = [f for f in glob.glob(os.path.join(skill, 'references', '**', '*.md'), recursive=True)
             if os.path.basename(f) != 'README.md']
     if not refs: continue
-    by_name, by_slug = {}, {}
+    by_name = {}
     for f in refs:
         by_name.setdefault(os.path.basename(f), f)
-        m = re.search(r'^slug:\s*(\S+)', open(f).read(), re.M)
-        if m: by_slug[m.group(1)] = f
     edges = {}
     for f in refs:
         text = open(f).read()
@@ -229,14 +227,11 @@ for skill in sorted(glob.glob('plugin/skills/*/')):
         for m in re.finditer(r'`[^`\s]*?([\w.-]+\.md)(?:#[^`]*)?`', text):
             t = by_name.get(m.group(1))
             if t and t != f: out.add(t)
-        for m in re.finditer(r'\[\[([a-z0-9-]+)', text):
-            t = by_slug.get(m.group(1))
-            if t and t != f: out.add(t)
         edges[f] = out
         if out and not f.endswith('-template.md'):
-            err(f, "a reference other than a template cites another reference ("
+            err(f, "a reference other than a template gives a load path to another reference ("
                    + ", ".join(sorted(os.path.basename(t) for t in out))
-                   + "); name it by role in prose, and list it in the templates that need it")
+                   + "); cite it with [[slug]] or by name, and list it in the templates that need it")
     state = {}
     def visit(n, path):
         state[n] = 1

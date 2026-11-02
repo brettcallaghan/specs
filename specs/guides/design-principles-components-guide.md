@@ -13,7 +13,8 @@ Ask these questions when you design how the code of a component is composed,
 or review that design. The patterns of C4's code level live here. An element
 at any level may adopt entries from this list that all of its code follows.
 
-Use these entries with the universal Design Principles Guide, which explains
+Use these entries with the universal guide, [[guide-design-principles]],
+which explains
 how to choose and name patterns and notes that these lists are incomplete.
 
 | Entry | Progenitors | Questions it answers |
@@ -35,5 +36,5 @@ how to choose and name patterns and notes that these lists are incomplete.
 
 ## References
 
-- Design Principles Guide — the universal principles, and how to choose and
-  name patterns
+- [[guide-design-principles]] — the universal principles, and how to choose
+  and name patterns

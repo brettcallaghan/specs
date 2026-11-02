@@ -11,9 +11,9 @@ status: active
 
 Ask these questions when you design how the components of a container
 compose, or of any unit built from components. Ask them again when you review
-that design. Use them with the universal Design Principles Guide, which
-explains how to choose and name patterns and notes that these lists are
-incomplete.
+that design. Use them with the universal guide, [[guide-design-principles]],
+which explains how to choose and name patterns and notes that these lists
+are incomplete.
 
 | Entry | Progenitors | Questions it answers |
 |-------|-------------|----------------------|
@@ -33,6 +33,7 @@ incomplete.
 
 ## References
 
-- Design Principles Guide — the universal principles, and how to choose and
-  name patterns
-- Design Principles: Components — patterns for the code inside a component
+- [[guide-design-principles]] — the universal principles, and how to choose
+  and name patterns
+- [[guide-design-principles-components]] — patterns for the code inside a
+  component

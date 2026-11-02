@@ -10,9 +10,9 @@ status: active
 # Design principles: systems
 
 Ask these questions when you design how a system's containers integrate, or
-review that design. Use them with the universal Design Principles Guide, which
-explains how to choose and name patterns and notes that these lists are
-incomplete.
+review that design. Use them with the universal guide,
+[[guide-design-principles]], which explains how to choose and name patterns
+and notes that these lists are incomplete.
 
 | Entry | Progenitors | Questions it answers |
 |-------|-------------|----------------------|
@@ -32,5 +32,5 @@ incomplete.
 
 ## References
 
-- Design Principles Guide — the universal principles, and how to choose and
-  name patterns
+- [[guide-design-principles]] — the universal principles, and how to choose
+  and name patterns
