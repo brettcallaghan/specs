@@ -597,7 +597,7 @@ Every Gherkin rule is an error but one: a tag outside the vocabulary is a
 warning (AC-GHK-002.8), because a project may use tags of its own. A
 Feature with no description and a criterion with no `@level-*` tag aren't
 findings at all. The description is the author's to write or omit, and
-[[gherkin-guide]] makes the level tag optional, so a warning on either
+the FRD template makes the level tag optional, so a warning on either
 would fire on most of the corpus. It would teach readers to ignore the
 severity.
 

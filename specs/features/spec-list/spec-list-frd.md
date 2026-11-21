@@ -344,4 +344,4 @@ Feature: Descriptions as a Consumed Interface
 - [[container-spec-cli]] — the container this subcommand joins
 - [[frd-spec-index]] — the index this command reads, and the artifact
   whose size motivates a separate listing surface
-- [[spec-cli-reference]] — the guide FEAT-SPECLIST-005 amends
+- [[specs-cli-reference]] — the guide FEAT-SPECLIST-005 amends

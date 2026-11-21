@@ -154,12 +154,12 @@ write in it, and the one that tells a reader what the CLI offers.
 - [[frontmatter-standards]]' guidance on `description` SHALL state that
   the listing command reports it and that it is written to be triaged
   from rather than read as an introduction.
-- [[spec-cli-reference]] SHALL document the `list` subcommand, its
+- [[specs-cli-reference]] SHALL document the `list` subcommand, its
   filters, and the fields a summary carries.
 
 **Anchors:** `specs/standards/frontmatter-standards.md` (the required
 properties table and the prose beneath it);
-`specs/guides/spec-cli-reference.md`. Both are vendored into the `spec`
+`specs/guides/specs-cli-reference.md`. Both are vendored into the `spec`
 skill by `scripts/sync-shared-references.sh`, which SHALL be re-run so
 the generated copies under `plugin/skills/*/references/shared/` do not
 drift.
@@ -272,7 +272,7 @@ its own.
 - [x] [[frontmatter-standards]] states `description`'s second audience,
       and `scripts/sync-shared-references.sh` has been re-run so the
       vendored copies match
-- [x] [[spec-cli-reference]] documents `list`
+- [x] [[specs-cli-reference]] documents `list`
 - [x] Every AC in the coverage table is verified at its declared level
       and cited from its tests per [[ac-traceability-standards]]; the two
       `manual` rows are exempt from the citation obligation

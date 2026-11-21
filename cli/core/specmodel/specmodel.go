@@ -2020,20 +2020,6 @@ func (v *Feature) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// The identifier of one check, stable across releases.
-//
-// Every finding names the rule that raised it, and the run report accounts
-// for every rule it knows about, so the identifier is the join between the
-// two: a caller naming a subset of checks to run names them by these
-// values, and reads the outcome of each back under the same value.
-//
-// Identifiers are namespaced kebab-case — `slug/pattern-mismatch`,
-// `frontmatter/missing-property` — so the family a check belongs to is
-// legible without a lookup table. The shape is stated rather than
-// constrained because a Strata regex literal cannot contain a forward
-// slash.
-type RuleId string
-
 // How badly a finding bears on a run.
 //
 // The three values are the whole vocabulary, and the distinction that
@@ -8143,6 +8129,136 @@ func (v *BlockTagRegistration) UnmarshalJSON(data []byte) error {
 		return &unknownFieldError{Struct: "BlockTagRegistration", Field: unknown}
 	}
 	return nil
+}
+
+// The identifier of one check, stable across releases.
+//
+// Every finding names the rule that raised it, and `specs check --only` selects
+// checks by these values. Each identifier is namespaced kebab-case, so its
+// family is legible from the name. Each value's description starts with the
+// severity it reports at.
+type RuleId string
+
+const (
+	// Error. The frontmatter can't be read as a document envelope, so no other check examined the document. Fix it first. The usual cause is an enumerated value, such as `status`, outside its vocabulary.
+	RuleIdFrontmatterParse RuleId = "frontmatter/parse"
+	// Error. A frontmatter value violates its document type's schema. The finding names the property, the value, and the constraint.
+	RuleIdFrontmatterSchema RuleId = "frontmatter/schema"
+	// Error. The document doesn't declare a property its type requires.
+	RuleIdFrontmatterMissingProperty RuleId = "frontmatter/missing-property"
+	// Warning. A YAML comment follows a frontmatter value on the same line, so the value ends at the `#`. Quote the value or move the comment.
+	RuleIdFrontmatterInlineComment RuleId = "frontmatter/inline-comment"
+	// Error. The slug doesn't match the pattern the profile registers for the document's type.
+	RuleIdSlugPatternMismatch RuleId = "slug/pattern-mismatch"
+	// Error. More than one document declares the slug. The finding names the other document.
+	RuleIdSlugDuplicate RuleId = "slug/duplicate"
+	// Error. The spec root holds no corpus member, so a clean report would mean nothing was examined.
+	RuleIdCorpusEmpty RuleId = "corpus/empty"
+	// Error. A `[[slug]]` in the body, or a slug in a reference-bearing frontmatter property, matches no corpus member.
+	RuleIdReferenceUnresolved RuleId = "reference/unresolved"
+	// Error when an anchor matches no heading of the cited document. Unverified when the cited document's headings aren't recorded, so the check couldn't look.
+	RuleIdReferenceUnresolvedAnchor RuleId = "reference/unresolved-anchor"
+	// Error. An anchor matches more than one heading of the cited document. Qualify it with the parent heading, as in `[[slug#Parent#Heading]]`.
+	RuleIdReferenceAmbiguousAnchor RuleId = "reference/ambiguous-anchor"
+	// Warning. A live document cites a retired one. The finding quotes the target's `superseded_by`, which is what to cite instead.
+	RuleIdReferenceRetiredTarget RuleId = "reference/retired-target"
+	// Error. A paired relationship is declared from one end, and the target doesn't declare the counterpart.
+	RuleIdReferencePairingIncomplete RuleId = "reference/pairing-incomplete"
+	// Error. A typed reference resolves to a document of a different `type`, such as a Feature Blueprint's `frd` naming something that isn't an FRD.
+	RuleIdReferenceTypeMismatch RuleId = "reference/type-mismatch"
+	// Error. `specs links` was given a link map that doesn't cover a slug the corpus resolves.
+	RuleIdLinksUnmapped RuleId = "links/unmapped"
+	// Warning. `specs links` found a citation whose slug names no corpus document, with or without a link map.
+	RuleIdLinksUnresolved RuleId = "links/unresolved"
+	// Error. A Gherkin source can't be parsed.
+	RuleIdGherkinParse RuleId = "gherkin/parse"
+	// Error. A `Feature` carries no identifier tag.
+	RuleIdGherkinFeatureUntagged RuleId = "gherkin/feature-untagged"
+	// Error. A `Scenario` carries no identifier tag.
+	RuleIdGherkinCriterionUntagged RuleId = "gherkin/criterion-untagged"
+	// Error. An identifier tag doesn't match the pattern registered for its kind.
+	RuleIdGherkinIdentifierMalformed RuleId = "gherkin/identifier-malformed"
+	// Error. A `Feature` or `Scenario` carries more than one identifier tag.
+	RuleIdGherkinIdentifierMultiple RuleId = "gherkin/identifier-multiple"
+	// Error. Two records in the corpus declare the same feature or criterion identifier.
+	RuleIdGherkinIdentifierDuplicate RuleId = "gherkin/identifier-duplicate"
+	// Error. A criterion's identifier doesn't carry its feature's code and number.
+	RuleIdGherkinCriterionCodeMismatch RuleId = "gherkin/criterion-code-mismatch"
+	// Error. A feature in a standalone `.feature` file carries no owning-document tag.
+	RuleIdGherkinOwnerMissing RuleId = "gherkin/owner-missing"
+	// Error. A feature in a fenced block carries an owning-document tag that names a different document.
+	RuleIdGherkinOwnerMismatch RuleId = "gherkin/owner-mismatch"
+	// Error. An owning-document tag names no corpus member.
+	RuleIdGherkinOwnerUnresolved RuleId = "gherkin/owner-unresolved"
+	// Warning. A tag has no meaning in the profile's tag vocabulary, such as a misspelled `@negatve`. The finding names the registered qualifiers.
+	RuleIdGherkinTagUnregistered RuleId = "gherkin/tag-unregistered"
+	// Error. A criterion has no steps.
+	RuleIdGherkinCriterionEmpty RuleId = "gherkin/criterion-empty"
+	// Warning. A `Scenario` has a description, which usually means an untagged criterion was written as prose.
+	RuleIdGherkinScenarioProse RuleId = "gherkin/scenario-prose"
+	// Error. Some `Examples` blocks of a `Scenario Outline` carry an identifier and others don't.
+	RuleIdGherkinExamplesPartiallyTagged RuleId = "gherkin/examples-partially-tagged"
+	// Error when a C4 diagram statement is outside the subset the parser reads. Unverified when a `mermaid` block's diagram type isn't read at all, such as `C4Dynamic`.
+	RuleIdC4Parse RuleId = "c4/parse"
+	// Error. A non-external node resolves to no element in its document's scope and isn't a passive store.
+	RuleIdC4UndeclaredNode RuleId = "c4/undeclared-node"
+	// Error. A node's label matches the entity names of more than one element in scope. The finding names each.
+	RuleIdC4AmbiguousNode RuleId = "c4/ambiguous-node"
+	// Error. A diagram uses `BiRel`. An arrow states one dependency, in one direction.
+	RuleIdC4Bidirectional RuleId = "c4/bidirectional"
+	// Error. One diagram draws two relationships with the same source and target, after `Rel_Back` is normalized.
+	RuleIdC4DuplicateEdge RuleId = "c4/duplicate-edge"
+	// Warning. One relationship is drawn in two places with a different technology, description, or tags. The finding names the other drawing.
+	RuleIdC4DrawingConflict RuleId = "c4/drawing-conflict"
+	// Error. A relationship is tagged both `sync` and `async`.
+	RuleIdC4InteractionConflict RuleId = "c4/interaction-conflict"
+	// Error. A `contract:` tag names a slug that no Contract declares.
+	RuleIdC4ContractUnresolved RuleId = "c4/contract-unresolved"
+	// Warning. A `contract:` tag names a Contract that the source element doesn't consume or the target element doesn't provide.
+	RuleIdC4ContractMismatch RuleId = "c4/contract-mismatch"
+	// Warning. A relationship's tags are joined with a comma instead of `+`.
+	RuleIdC4TagSeparator RuleId = "c4/tag-separator"
+	// Error. A `specs.toml` value violates the configuration schema.
+	RuleIdConfigSchema RuleId = "config/schema"
+	// Error. A `specs.toml` table is missing a property the configuration schema requires.
+	RuleIdConfigMissingProperty RuleId = "config/missing-property"
+	// Error. `specs.toml` declares a key the configuration schema doesn't define, which is usually a typo.
+	RuleIdConfigUndeclaredKey RuleId = "config/undeclared-key"
+	// Error. `[profile].name` names no registered profile.
+	RuleIdConfigUnknownProfile RuleId = "config/unknown-profile"
+	// Error. The active profile's own registration is defective. The finding sits at `[profile].name` and names the offending key.
+	RuleIdConfigInvalidRegistration RuleId = "config/invalid-registration"
+	// Error. The link map can't be read or parsed, including a slug repeated as a top-level key.
+	RuleIdLinkmapInvalid RuleId = "linkmap/invalid"
+	// Error. A link-map record declares no `path`.
+	RuleIdLinkmapMissingPath RuleId = "linkmap/missing-path"
+	// Error. The document named on the command line can't be opened.
+	RuleIdDocumentUnreadable RuleId = "document/unreadable"
+)
+
+func (e RuleId) MarshalJSON() ([]byte, error) {
+	switch e {
+	case RuleIdFrontmatterParse, RuleIdFrontmatterSchema, RuleIdFrontmatterMissingProperty, RuleIdFrontmatterInlineComment, RuleIdSlugPatternMismatch, RuleIdSlugDuplicate, RuleIdCorpusEmpty, RuleIdReferenceUnresolved, RuleIdReferenceUnresolvedAnchor, RuleIdReferenceAmbiguousAnchor, RuleIdReferenceRetiredTarget, RuleIdReferencePairingIncomplete, RuleIdReferenceTypeMismatch, RuleIdLinksUnmapped, RuleIdLinksUnresolved, RuleIdGherkinParse, RuleIdGherkinFeatureUntagged, RuleIdGherkinCriterionUntagged, RuleIdGherkinIdentifierMalformed, RuleIdGherkinIdentifierMultiple, RuleIdGherkinIdentifierDuplicate, RuleIdGherkinCriterionCodeMismatch, RuleIdGherkinOwnerMissing, RuleIdGherkinOwnerMismatch, RuleIdGherkinOwnerUnresolved, RuleIdGherkinTagUnregistered, RuleIdGherkinCriterionEmpty, RuleIdGherkinScenarioProse, RuleIdGherkinExamplesPartiallyTagged, RuleIdC4Parse, RuleIdC4UndeclaredNode, RuleIdC4AmbiguousNode, RuleIdC4Bidirectional, RuleIdC4DuplicateEdge, RuleIdC4DrawingConflict, RuleIdC4InteractionConflict, RuleIdC4ContractUnresolved, RuleIdC4ContractMismatch, RuleIdC4TagSeparator, RuleIdConfigSchema, RuleIdConfigMissingProperty, RuleIdConfigUndeclaredKey, RuleIdConfigUnknownProfile, RuleIdConfigInvalidRegistration, RuleIdLinkmapInvalid, RuleIdLinkmapMissingPath, RuleIdDocumentUnreadable:
+		return json.Marshal(string(e))
+	}
+	return nil, fmt.Errorf("RuleId: unknown value %q", string(e))
+}
+
+func (e *RuleId) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	switch RuleId(s) {
+	case RuleIdFrontmatterParse, RuleIdFrontmatterSchema, RuleIdFrontmatterMissingProperty, RuleIdFrontmatterInlineComment, RuleIdSlugPatternMismatch, RuleIdSlugDuplicate, RuleIdCorpusEmpty, RuleIdReferenceUnresolved, RuleIdReferenceUnresolvedAnchor, RuleIdReferenceAmbiguousAnchor, RuleIdReferenceRetiredTarget, RuleIdReferencePairingIncomplete, RuleIdReferenceTypeMismatch, RuleIdLinksUnmapped, RuleIdLinksUnresolved, RuleIdGherkinParse, RuleIdGherkinFeatureUntagged, RuleIdGherkinCriterionUntagged, RuleIdGherkinIdentifierMalformed, RuleIdGherkinIdentifierMultiple, RuleIdGherkinIdentifierDuplicate, RuleIdGherkinCriterionCodeMismatch, RuleIdGherkinOwnerMissing, RuleIdGherkinOwnerMismatch, RuleIdGherkinOwnerUnresolved, RuleIdGherkinTagUnregistered, RuleIdGherkinCriterionEmpty, RuleIdGherkinScenarioProse, RuleIdGherkinExamplesPartiallyTagged, RuleIdC4Parse, RuleIdC4UndeclaredNode, RuleIdC4AmbiguousNode, RuleIdC4Bidirectional, RuleIdC4DuplicateEdge, RuleIdC4DrawingConflict, RuleIdC4InteractionConflict, RuleIdC4ContractUnresolved, RuleIdC4ContractMismatch, RuleIdC4TagSeparator, RuleIdConfigSchema, RuleIdConfigMissingProperty, RuleIdConfigUndeclaredKey, RuleIdConfigUnknownProfile, RuleIdConfigInvalidRegistration, RuleIdLinkmapInvalid, RuleIdLinkmapMissingPath, RuleIdDocumentUnreadable:
+		*e = RuleId(s)
+		return nil
+	}
+	return fmt.Errorf("RuleId: unknown value %q", s)
+}
+
+func (e RuleId) String() string {
+	return string(e)
 }
 
 // A cross-reference identifier for a specification document.

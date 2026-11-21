@@ -20,13 +20,13 @@ status: active
   that a path is written relative to the file containing it
 
 [[adr-012]] records the decision behind these conventions. This standard
-is a companion to [[template-authoring-standards]].
+is a companion to [[spec-authoring-standards]].
 
 These conventions are mechanically checked. `specs check` resolves every
 `[[slug]]` in a document's body and every slug-typed frontmatter
 property against the corpus, and reports the ones that resolve to
 nothing. `specs refs <slug>` answers who cites a document before you
-change it. [[spec-cli-reference]] states what each rule reports, and the
+change it. [[specs-cli-reference]] states what each rule reports, and the
 reference cases that are still yours. The rules below are what those
 checks enforce, which is also why the exceptions are worth knowing.
 Outside a `gherkin` block, a `[[slug]]` inside backticks or a fenced
@@ -46,7 +46,7 @@ double-bracket wikilink notation SHALL be used.
 **Examples:**
 - `[[security-standards]]`
 - `[[contract-payments-api]]`
-- `[[template-authoring-standards]]`
+- `[[spec-authoring-standards]]`
 
 A reference resolves against the target document's frontmatter `slug`,
 never a file path. The namespace is flat and location-independent, so a
@@ -117,7 +117,7 @@ instruction block.
 Documents that are not part of the specification set — contributor and
 build docs (`AGENTS.md`, `CONTRIBUTING.md`), pre-existing design or
 pattern documents, and the framework's own reference guides shipped with
-a skill (`c4-guide.md`, `ears-guide.md`) — MAY be referenced by path in
+a skill (`style-guide.md`) — MAY be referenced by path in
 backticks.
 
 #### Paths are relative to the file that contains them
@@ -126,10 +126,10 @@ A backticked path SHALL be written relative to the **file it appears
 in**, not to the skill root. So the same guide has two correct
 spellings, depending on where it's cited from:
 
-| Cited from | Path to the C4 guide |
+| Cited from | Path to the style guide |
 |------------|----------------------|
-| a skill's `SKILL.md` | `` `references/c4-guide.md` `` |
-| another file inside `references/` | `` `c4-guide.md` `` |
+| a skill's `SKILL.md` | `` `references/style-guide.md` `` |
+| another file inside `references/` | `` `style-guide.md` `` |
 
 **Rationale:** An agent resolves a path from the file it's currently
 reading. A `references/`-prefixed path written *inside* `references/`
@@ -138,8 +138,8 @@ reference silently fails to load or costs a search to recover. Writing
 the path from the reader's position is the only spelling that works from
 every location the file is read.
 
-**Examples:** `` `AGENTS.md` ``, `` `references/c4-guide.md` `` (from a
-SKILL.md), `` `c4-guide.md` `` (from a sibling reference file)
+**Examples:** `` `AGENTS.md` ``, `` `references/style-guide.md` `` (from a
+SKILL.md), `` `style-guide.md` `` (from a sibling reference file)
 
 The `[[document-slug]]` notation SHALL be reserved for documents in the 
 specification set; it SHALL NOT be used for documents outside it.

@@ -2,7 +2,7 @@
 
 The `specs` CLI indexes a spec corpus, checks it for conformance, and answers
 questions about it. For every flag, rule, output shape, and exit status, see
-the full [Spec CLI reference](../../specs/guides/spec-cli-reference.md).
+the full [Specs CLI reference](../../specs/guides/specs-cli-reference.md).
 
 ## Commands
 

@@ -13,6 +13,12 @@ Source: Adapted from the 8090 Requirements Writing Guide
   (https://www.8090.ai/docs/opinions/requirements-writing-guide), modified to
   use tagged Gherkin for features and acceptance criteria per [[adr-021]].
 
+Load before authoring
+  - `shared/gherkin-guide.md`: how to write features and acceptance
+    criteria in Gherkin.
+  - `shared/ac-traceability-standards.md`: how tests cite acceptance
+    criteria.
+
 Sections (complete each, then delete its instruction block)
   - Overview
   - Terminology
@@ -71,12 +77,39 @@ ID conventions
     written as a tag on the Feature
   - Acceptance criteria: AC-<CODE>-NNN.N (e.g. AC-CHK-001.2), written as a
     tag on the Scenario, deriving its code and number from its Feature's
-  - Features share a CODE; a code and a number together identify one
+  - Features share a CODE; a code and a number together identify one. The
+    code is the grouping axis, not the slug: a hyphenated slug can't be
+    split back into segments, and a code can
+  - A CODE may be hyphen-joined segments (SWARM-DISP, SWARM-RUN), so one
+    capability split across documents keeps a common first segment. Every
+    segment begins with a letter, so the trailing number never reads as a
+    segment. Use a segmented code only where the shared segment groups
+    something
   - Never reuse a retired ID
+
+Tags
+  Every record is addressed by a tag, and `specs check` reports a missing
+  required tag as an error.
+
+  | Tag                         | Where                         | Required |
+  |-----------------------------|-------------------------------|----------|
+  | @FEAT-<CODE>-<nnn>          | on the Feature                | yes |
+  | @frd-<slug>                 | on the Feature, in a .feature file only | yes there |
+  | @AC-<CODE>-<nnn>.<n>        | on each Scenario, or each Examples block that is its own criterion | yes |
+  | @negative                   | on a criterion that forbids   | yes, where it applies |
+  | @manual                     | on a hand-verified criterion  | yes, where it applies |
+  | @level-unit, -integration, -e2e | on a Scenario             | optional |
+
+  A Feature in a fenced block carries ONE tag, its identifier: the block
+  sits inside the FRD that owns it, and the CLI reads the slug from the
+  frontmatter. An owner tag would restate the slug and could come to
+  disagree with it; one naming a different document is an error. Only a
+  standalone .feature file, which carries no frontmatter, names its owner
+  with @frd-<slug>.
 
 Verification and traceability
   Automated tests cite the acceptance criteria they verify per
-  [[ac-traceability-standards]] — AC identifiers are the durable
+  `shared/ac-traceability-standards.md` — AC identifiers are the durable
   traceability keys, which is why retired IDs are never reused.
   IF an acceptance criterion can only be verified manually, THEN tag it
   @manual; manual criteria are exempt from the test citation obligation.
@@ -134,10 +167,17 @@ Requirement quality bar:
   - Testable: every AC clear enough to write a test from
   - Atomic: one behavior per criterion
 
-Notation: one fenced gherkin block per requirement. Read
-[[gherkin-guide]] before writing the first one — it holds the tag
-vocabulary, what belongs in each description slot, and the seven
-constructs that parse cleanly while destroying meaning.
+Notation: one fenced gherkin block per requirement, tagged as the header's
+Tags block says. The Gherkin guide holds what belongs in each description
+slot and the constructs that parse cleanly while destroying meaning.
+
+A [[slug]] anywhere in a gherkin block (a description, a step, a rule name,
+an examples cell) is a reference, resolved and checked like one in prose.
+To describe a wikilink, write it in a step ("a wikilink naming the slug X")
+and keep the literal syntax in backticked markdown beside the block.
+
+Fenced blocks are exempt from line_width: write a long step on one line
+rather than shortening it.
 
   | FRD concept                             | Gherkin        |
   |-----------------------------------------|----------------|

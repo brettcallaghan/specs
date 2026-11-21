@@ -20,7 +20,7 @@ things up, and explanation to understand the design.
 - [Document types](reference/document-types.md)
 - [Skills](reference/skills.md)
 - [The `specs` CLI](reference/cli.md), with the full
-  [Spec CLI reference](../specs/guides/spec-cli-reference.md)
+  [Specs CLI reference](../specs/guides/specs-cli-reference.md)
 - [Configuration](reference/configuration.md)
 - [Repository layout](reference/repository-layout.md)
 - [Code coverage](code-coverage.md)

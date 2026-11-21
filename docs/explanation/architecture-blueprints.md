@@ -47,7 +47,7 @@ states the rule, and the other links to it.
 
 ## What each level decides
 
-The [C4 model](../../specs/standards/c4-standards.md) describes software at
+The [C4 model](../../specs/guides/c4-guide.md) describes software at
 nested levels, and each level makes a
 different kind of decision. Each architecture blueprint records the decisions
 that belong to its level.

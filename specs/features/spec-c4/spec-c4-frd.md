@@ -421,7 +421,8 @@ Feature: Output
   feature builds on
 - [[adr-009]] — an edge's two homes, the parent and the Context view
 - [[adr-008]] — record blocks declare un-promoted elements
-- [[c4-standards]] — levels, naming, diagram types, and arrow direction
+- [[c4-standards]] — the framework's levels and diagram placement
+- [[guide-c4]] — levels, naming, diagram types, and arrow direction
 - [[frd-spec-index]] — the index this feature projects, and the unverified
   severity of AC-SPEC-006.3
 - [[frd-spec-structure]] and [[frd-spec-structure-conformance]] — record

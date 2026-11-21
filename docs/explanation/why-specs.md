@@ -33,7 +33,7 @@ implementation.
 ## Why a CLI
 
 Specs take effort for agents to write and maintain. When an agent runs a
-readiness checklist by reading documents, the check is expensive, and nobody
+conformance check by reading documents, the check is expensive, and nobody
 can verify it: an agent that claims a checklist passed produces the same
 output as an agent that ran it.
 

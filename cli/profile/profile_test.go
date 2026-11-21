@@ -207,7 +207,7 @@ func TestConventionsSuppliesTheLineWidthDefault(t *testing.T) {
 		t.Fatal("LineWidth default is absent")
 	}
 	if *conventions.LineWidth != 80 {
-		t.Errorf("LineWidth = %d, want %d, per template-authoring-standards.md", *conventions.LineWidth, 80)
+		t.Errorf("LineWidth = %d, want %d, per spec-authoring-standards.md", *conventions.LineWidth, 80)
 	}
 }
 

@@ -32,9 +32,11 @@ model: <model that produced the findings>   # load-bearing; never omit
 
 <!--
 Template: Issue
-Source: This specification framework. Reference conventions follow
-  [[template-authoring-standards]]. The findings this issue cites are
+Source: This specification framework. The findings this issue cites are
   captured per [[findings-capture-protocol]].
+
+Load before authoring
+  - Nothing beyond this template.
 
 Sections (complete each, then delete its instruction block)
   - What is wrong, and what it costs

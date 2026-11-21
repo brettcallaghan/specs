@@ -162,7 +162,8 @@ Edit those and re-run the script; a change made here is lost on the next
 regeneration.
 
 These pages describe the shape of the frontmatter and configuration a
-document author writes. The normative artifacts derived from the same
+document author writes. `rules.md` lists every check `specs check` runs,
+with the severity it reports at. The normative artifacts derived from the same
 sources are the JSON Schemas under `cli/core/schema/`.
 BANNER
 

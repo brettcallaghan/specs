@@ -35,7 +35,7 @@ Three measured facts constrain the answer.
 - **The subset is small.** Across the `mermaid` blocks in `specs/` and the
   spec skill's templates, every relationship line is a plain `Rel`, with no
   `BiRel`, `Rel_Back`, `RelIndex`, `$tags`, or `UpdateRelStyle`.
-  [[c4-standards]] already requires every declaration to sit on one line.
+  [[guide-c4]] already requires every declaration to sit on one line.
 - **The one Go library found with a C4 parser doesn't handle it.**
   `github.com/sammcj/mermaid-check` v0.5.1, run over every `mermaid` block
   in the same files, returns `unrecognised C4 syntax in boundary` for two
@@ -113,8 +113,8 @@ matched is reported, never invented.
   decision serves
 - [[adr-009]] — an edge's two homes: the parent, and the Context view
 - [[adr-008]] — record blocks, which declare the nodes these edges join
-- [[c4-standards]] — the one-line declaration rule this parser relies on,
-  and the authority rule this decision amends for edges
+- [[c4-standards]] — the authority rule this decision amends for edges
+- [[guide-c4]] — the one-line declaration rule this parser relies on
 - [[adr-015]] — Go as the CLI's language
 - Mermaid C4 syntax: `packages/mermaid/src/docs/syntax/c4.md` in
   `mermaid-js/mermaid`

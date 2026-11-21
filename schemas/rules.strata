@@ -1,0 +1,150 @@
+"""
+The identifier of one check, stable across releases.
+
+Every finding names the rule that raised it, and `specs check --only` selects
+checks by these values. Each identifier is namespaced kebab-case, so its
+family is legible from the name. Each value's description starts with the
+severity it reports at.
+"""
+enum RuleId {
+  """Error. The frontmatter can't be read as a document envelope, so no other check examined the document. Fix it first. The usual cause is an enumerated value, such as `status`, outside its vocabulary."""
+  FrontmatterParse: "frontmatter/parse"
+
+  """Error. A frontmatter value violates its document type's schema. The finding names the property, the value, and the constraint."""
+  FrontmatterSchema: "frontmatter/schema"
+
+  """Error. The document doesn't declare a property its type requires."""
+  FrontmatterMissingProperty: "frontmatter/missing-property"
+
+  """Warning. A YAML comment follows a frontmatter value on the same line, so the value ends at the `#`. Quote the value or move the comment."""
+  FrontmatterInlineComment: "frontmatter/inline-comment"
+
+  """Error. The slug doesn't match the pattern the profile registers for the document's type."""
+  SlugPatternMismatch: "slug/pattern-mismatch"
+
+  """Error. More than one document declares the slug. The finding names the other document."""
+  SlugDuplicate: "slug/duplicate"
+
+  """Error. The spec root holds no corpus member, so a clean report would mean nothing was examined."""
+  CorpusEmpty: "corpus/empty"
+
+  """Error. A `[[slug]]` in the body, or a slug in a reference-bearing frontmatter property, matches no corpus member."""
+  ReferenceUnresolved: "reference/unresolved"
+
+  """Error when an anchor matches no heading of the cited document. Unverified when the cited document's headings aren't recorded, so the check couldn't look."""
+  ReferenceUnresolvedAnchor: "reference/unresolved-anchor"
+
+  """Error. An anchor matches more than one heading of the cited document. Qualify it with the parent heading, as in `[[slug#Parent#Heading]]`."""
+  ReferenceAmbiguousAnchor: "reference/ambiguous-anchor"
+
+  """Warning. A live document cites a retired one. The finding quotes the target's `superseded_by`, which is what to cite instead."""
+  ReferenceRetiredTarget: "reference/retired-target"
+
+  """Error. A paired relationship is declared from one end, and the target doesn't declare the counterpart."""
+  ReferencePairingIncomplete: "reference/pairing-incomplete"
+
+  """Error. A typed reference resolves to a document of a different `type`, such as a Feature Blueprint's `frd` naming something that isn't an FRD."""
+  ReferenceTypeMismatch: "reference/type-mismatch"
+
+  """Error. `specs links` was given a link map that doesn't cover a slug the corpus resolves."""
+  LinksUnmapped: "links/unmapped"
+
+  """Warning. `specs links` found a citation whose slug names no corpus document, with or without a link map."""
+  LinksUnresolved: "links/unresolved"
+
+  """Error. A Gherkin source can't be parsed."""
+  GherkinParse: "gherkin/parse"
+
+  """Error. A `Feature` carries no identifier tag."""
+  GherkinFeatureUntagged: "gherkin/feature-untagged"
+
+  """Error. A `Scenario` carries no identifier tag."""
+  GherkinCriterionUntagged: "gherkin/criterion-untagged"
+
+  """Error. An identifier tag doesn't match the pattern registered for its kind."""
+  GherkinIdentifierMalformed: "gherkin/identifier-malformed"
+
+  """Error. A `Feature` or `Scenario` carries more than one identifier tag."""
+  GherkinIdentifierMultiple: "gherkin/identifier-multiple"
+
+  """Error. Two records in the corpus declare the same feature or criterion identifier."""
+  GherkinIdentifierDuplicate: "gherkin/identifier-duplicate"
+
+  """Error. A criterion's identifier doesn't carry its feature's code and number."""
+  GherkinCriterionCodeMismatch: "gherkin/criterion-code-mismatch"
+
+  """Error. A feature in a standalone `.feature` file carries no owning-document tag."""
+  GherkinOwnerMissing: "gherkin/owner-missing"
+
+  """Error. A feature in a fenced block carries an owning-document tag that names a different document."""
+  GherkinOwnerMismatch: "gherkin/owner-mismatch"
+
+  """Error. An owning-document tag names no corpus member."""
+  GherkinOwnerUnresolved: "gherkin/owner-unresolved"
+
+  """Warning. A tag has no meaning in the profile's tag vocabulary, such as a misspelled `@negatve`. The finding names the registered qualifiers."""
+  GherkinTagUnregistered: "gherkin/tag-unregistered"
+
+  """Error. A criterion has no steps."""
+  GherkinCriterionEmpty: "gherkin/criterion-empty"
+
+  """Warning. A `Scenario` has a description, which usually means an untagged criterion was written as prose."""
+  GherkinScenarioProse: "gherkin/scenario-prose"
+
+  """Error. Some `Examples` blocks of a `Scenario Outline` carry an identifier and others don't."""
+  GherkinExamplesPartiallyTagged: "gherkin/examples-partially-tagged"
+
+  """Error when a C4 diagram statement is outside the subset the parser reads. Unverified when a `mermaid` block's diagram type isn't read at all, such as `C4Dynamic`."""
+  C4Parse: "c4/parse"
+
+  """Error. A non-external node resolves to no element in its document's scope and isn't a passive store."""
+  C4UndeclaredNode: "c4/undeclared-node"
+
+  """Error. A node's label matches the entity names of more than one element in scope. The finding names each."""
+  C4AmbiguousNode: "c4/ambiguous-node"
+
+  """Error. A diagram uses `BiRel`. An arrow states one dependency, in one direction."""
+  C4Bidirectional: "c4/bidirectional"
+
+  """Error. One diagram draws two relationships with the same source and target, after `Rel_Back` is normalized."""
+  C4DuplicateEdge: "c4/duplicate-edge"
+
+  """Warning. One relationship is drawn in two places with a different technology, description, or tags. The finding names the other drawing."""
+  C4DrawingConflict: "c4/drawing-conflict"
+
+  """Error. A relationship is tagged both `sync` and `async`."""
+  C4InteractionConflict: "c4/interaction-conflict"
+
+  """Error. A `contract:` tag names a slug that no Contract declares."""
+  C4ContractUnresolved: "c4/contract-unresolved"
+
+  """Warning. A `contract:` tag names a Contract that the source element doesn't consume or the target element doesn't provide."""
+  C4ContractMismatch: "c4/contract-mismatch"
+
+  """Warning. A relationship's tags are joined with a comma instead of `+`."""
+  C4TagSeparator: "c4/tag-separator"
+
+  """Error. A `specs.toml` value violates the configuration schema."""
+  ConfigSchema: "config/schema"
+
+  """Error. A `specs.toml` table is missing a property the configuration schema requires."""
+  ConfigMissingProperty: "config/missing-property"
+
+  """Error. `specs.toml` declares a key the configuration schema doesn't define, which is usually a typo."""
+  ConfigUndeclaredKey: "config/undeclared-key"
+
+  """Error. `[profile].name` names no registered profile."""
+  ConfigUnknownProfile: "config/unknown-profile"
+
+  """Error. The active profile's own registration is defective. The finding sits at `[profile].name` and names the offending key."""
+  ConfigInvalidRegistration: "config/invalid-registration"
+
+  """Error. The link map can't be read or parsed, including a slug repeated as a top-level key."""
+  LinkmapInvalid: "linkmap/invalid"
+
+  """Error. A link-map record declares no `path`."""
+  LinkmapMissingPath: "linkmap/missing-path"
+
+  """Error. The document named on the command line can't be opened."""
+  DocumentUnreadable: "document/unreadable"
+}

@@ -21,14 +21,19 @@ test_paths: []                       # repo-relative test roots; required
 
 <!--
 Template: Component Blueprint
-Source: Architecture documentation framework. C4 mapping rules are
-  defined in `shared/c4-standards.md`. Load it,
-  `shared/blueprint-content-standards.md`,
-  `shared/design-principles-guide.md`,
-  and `shared/design-principles-components-guide.md` before
-  authoring. A quoted rule name below, such as
-  "Name owners, not neighbors", is the heading of a rule in the content
-  standards.
+Source: Architecture documentation framework.
+
+Load before authoring
+  - `shared/c4-standards.md`: how the framework applies C4 — the module
+    level, element declarations, edge ownership, and diagram placement.
+  - `shared/blueprint-content-standards.md`: what a blueprint states, and
+    the blueprint audit. A quoted rule name below, such as "Name owners,
+    not neighbors", is the heading of a rule there.
+  - `shared/design-principles-guide.md`: the universal design principles.
+  - `shared/design-principles-components-guide.md`: patterns for composing
+    code.
+  Skip the design principles guides for an edit that doesn't change the
+  element's design.
 
 Sections (complete each, then delete its instruction block)
   - Responsibility
@@ -274,7 +279,7 @@ WHEN an authoritative pattern document already exists outside the
 framework (a pre-existing architecture or tenets doc), this blueprint
 MAY wrap it rather than rewrite it: declare the pattern, its instances,
 and conformance gates here, and reference the existing document (by
-repo-relative path, per [[template-authoring-standards]]) as the detailed
+repo-relative path, per `shared/cross-document-references-standards.md`) as the detailed
 specification.
 
 -->

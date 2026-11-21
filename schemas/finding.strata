@@ -1,20 +1,4 @@
 """
-The identifier of one check, stable across releases.
-
-Every finding names the rule that raised it, and the run report accounts
-for every rule it knows about, so the identifier is the join between the
-two: a caller naming a subset of checks to run names them by these
-values, and reads the outcome of each back under the same value.
-
-Identifiers are namespaced kebab-case — `slug/pattern-mismatch`,
-`frontmatter/missing-property` — so the family a check belongs to is
-legible without a lookup table. The shape is stated rather than
-constrained because a Strata regex literal cannot contain a forward
-slash.
-"""
-alias RuleId: String
-
-"""
 How badly a finding bears on a run.
 
 The three values are the whole vocabulary, and the distinction that

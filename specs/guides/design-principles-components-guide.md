@@ -1,7 +1,7 @@
 ---
 title: "Design Principles: Components"
-description: The principles and patterns for composing code inside a component
-  or module, each as the question to ask of its blueprint
+description: The principles and patterns for composing code inside a
+  component, each as the question to ask of its design
 slug: guide-design-principles-components
 type: guide
 status: active
@@ -9,16 +9,13 @@ status: active
 
 # Design principles: components
 
-Ask these questions when you design how the code of a component, or the code a
-module holds directly, is composed. Ask them again when you audit that element's
-blueprint. C4's code level has no blueprint of its own, so its patterns live
-here. A Container, Module, or Component Blueprint may name entries from this
-list that all of the element's code follows.
+Ask these questions when you design how the code of a component is composed,
+or review that design. The patterns of C4's code level live here. An element
+at any level may adopt entries from this list that all of its code follows.
 
-Use these entries with the universal guide, [[guide-design-principles]], which
-also explains how to choose patterns and notes that these lists are incomplete.
-Record each pattern the design adopts under
-[[blueprint-content-standards#Name each pattern with its progenitor, constraint, and need]].
+Use these entries with the universal guide, [[guide-design-principles]],
+which explains
+how to choose and name patterns and notes that these lists are incomplete.
 
 | Entry | Progenitors | Questions it answers |
 |-------|-------------|----------------------|
@@ -39,6 +36,5 @@ Record each pattern the design adopts under
 
 ## References
 
-- [[guide-design-principles]] — the universal guide, and how to choose patterns
-- [[blueprint-content-standards]] — how a blueprint names patterns, and the
-  blueprint audit
+- [[guide-design-principles]] — the universal principles, and how to choose
+  and name patterns
