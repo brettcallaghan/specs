@@ -1,6 +1,7 @@
 ---
 title: "ADR-003: Use YAML Frontmatter for Document Metadata"
-description: Store structured metadata in YAML frontmatter blocks at the start of specification documents
+description: Store structured metadata in YAML frontmatter blocks at the start
+  of specification documents
 slug: adr-003
 type: adr
 status: active

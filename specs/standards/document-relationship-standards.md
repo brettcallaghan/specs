@@ -34,9 +34,11 @@ the tool needs. It's drift surface that an author maintains by hand.
 
 ### Declare once, derive the reverse
 
-A cross-document relationship SHALL be declared in exactly one place — one
-document's prose or one document's frontmatter property — and SHALL NOT be
-mirrored in the counterpart document.
+An author SHALL declare a cross-document relationship in exactly one
+place: one document's prose or one document's frontmatter property.
+
+An author SHALL NOT mirror a declared relationship in the counterpart
+document.
 
 **Rationale:** The index derives the reverse edge of anything declared
 (AC-SPECREF-001.3), so a mirrored declaration adds no information that the
@@ -84,7 +86,10 @@ these is doing work that the index already does.
 ---
 
 A frontmatter property that only mirrors a document's `## References`
-prose links SHALL NOT be introduced, and an existing one SHOULD be removed.
+prose links SHALL NOT be introduced.
+
+An existing frontmatter property that only mirrors a document's
+`## References` prose links SHOULD be removed.
 
 **Rationale:** If every value of the property already appears in the body
 as a `[[slug]]`, which the index records outbound and inbound, the property
@@ -101,8 +106,10 @@ WHEN a relationship is declared once and either end could hold it, the
 author SHALL declare it on the end whose change creates the relationship
 — the document being written or edited at the moment the relationship
 comes into being — so that recording it never requires editing the other
-end. The other end, which changes less often, SHALL NOT be required to
-restate it; the index derives it.
+end.
+
+The other end, which changes less often, SHALL NOT be required to
+restate the relationship. The index derives it.
 
 **Rationale:** The end that changes when the relationship is created is
 the end that will be open in the editor. Putting the edge anywhere else
@@ -129,7 +136,7 @@ it does:
 ### Nothing durable points at a Feature Blueprint
 
 A document the profile registers at a live status SHALL NOT declare a
-relationship to a feature blueprint, in prose or in frontmatter.
+relationship to a Feature Blueprint, in prose or in frontmatter.
 The Feature Blueprint declares its own edges (to its FRD, to the
 blueprints it folds into, and to the decisions it applies), and
 `specs refs <slug>` answers the reverse direction.
@@ -167,9 +174,10 @@ outward list on the module is correct.
 
 ## Paired declarations
 
-A paired relationship — one the tool requires from both ends and reports as
-broken when only one is present — SHALL be reserved for a relationship a
-reader of one document must see **without consulting the index**.
+A profile SHALL register a paired relationship (one the tool requires
+from both ends and reports as broken when only one is present) only for a
+relationship a reader of one document must see **without consulting the
+index**.
 
 **Rationale:** A pairing enforces a mirror, which the previous sections
 say to avoid. Its only remaining justification is a document that must be
@@ -178,8 +186,8 @@ narrow case, and it must be argued explicitly, not assumed.
 
 ---
 
-WHILE the index is built on every run, a paired declaration SHOULD NOT be
-used to enforce a mirror the index already derives.
+WHILE the index is built on every run, a profile SHOULD NOT use a paired
+declaration to enforce a mirror the index already derives.
 
 **Rationale:** Requiring both ends when the tool computes either from the
 other asks an author to maintain the redundant half by hand, and then flags

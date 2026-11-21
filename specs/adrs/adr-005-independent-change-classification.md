@@ -1,6 +1,7 @@
 ---
 title: "ADR-005: Classify Composed Units by the Boundary of Independent Change"
-description: Use the independent-change boundary — unified with contract visibility — to separate components from modules
+description: Use the independent-change boundary — unified with contract
+  visibility — to separate components from modules
 slug: adr-005
 type: adr
 status: active

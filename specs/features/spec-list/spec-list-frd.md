@@ -314,10 +314,9 @@ Feature: Descriptions as a Consumed Interface
   triage it by
   So that I write it to be selected from rather than as an introduction
 
-  A description was previously written once and read by nobody. This
-  command makes it the basis on which every other agent decides whether
-  to open the document, which is a change in what the property is for and
-  therefore a change the authoring guidance has to state.
+  This command makes a description the basis on which every other agent
+  decides whether to open the document, so the authoring guidance has to
+  state that the property is written for that purpose.
 
   This requirement governs guidance, not enforcement. Whether a
   description is written well enough to choose from is a judgement no

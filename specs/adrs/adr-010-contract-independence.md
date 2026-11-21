@@ -1,6 +1,7 @@
 ---
 title: "ADR-010: Contracts Are Independent, Long-Lived Documents"
-description: Keep contracts separate from blueprints because they outlive and may precede implementations; source live schemas from the running service
+description: Keep contracts separate from blueprints because they outlive and
+  may precede implementations; source live schemas from the running service
 slug: adr-010
 type: adr
 status: active

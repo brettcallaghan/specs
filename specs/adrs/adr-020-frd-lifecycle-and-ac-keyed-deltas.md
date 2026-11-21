@@ -1,6 +1,8 @@
 ---
 title: "ADR-020: FRDs Evolve in Place; Deltas Are Keyed on AC Identifiers"
-description: An FRD is a living document edited in place under a same-feature test keyed on its slug, never amended by a successor FRD; changes between versions are diffed by AC identifier, not by line
+description: An FRD is a living document edited in place under a same-feature
+  test keyed on its slug, never amended by a successor FRD; changes between
+  versions are diffed by AC identifier, not by line
 slug: adr-020
 type: adr
 status: ready-for-review
@@ -31,9 +33,9 @@ under Non-goals.
 
 ## Decision
 
-An FRD is a **living document**: the current answer to "what must this feature
-do?" If a reader must replay a chain of amendments to learn that answer, the
-FRD no longer does its job. Consequently:
+We will treat an FRD as a **living document**: the current answer to "what
+must this feature do?" If a reader must replay a chain of amendments to learn
+that answer, the FRD no longer does its job. Consequently:
 
 1. **Amendment FRDs are rejected.** The test for how a change lands is "is
    this the same feature?", not "new document or edit?" The FRD's slug already

@@ -29,7 +29,7 @@ of being left to the test framework.
 
 ### Unit tests
 
-Each component declared in a module blueprint SHALL carry unit tests
+Each component declared in a Module Blueprint SHALL carry unit tests
 covering its exported surface.
 
 **Rationale:** The component roster in a Module Blueprint is the unit of
@@ -54,8 +54,8 @@ citation format defined in [[ac-traceability-standards]].
 
 ### Snapshot cases
 
-The observable behavior of the CLI SHALL be verified by snapshot cases
-rather than by unit tests of the command surface.
+Snapshot cases, rather than unit tests of the command surface, SHALL
+verify the observable behavior of the CLI.
 
 **Rationale:** The command surface is deliberately thin
 ([[container-spec-cli]]), so unit-testing it tests argument plumbing
@@ -64,8 +64,9 @@ produces, which is exactly what a snapshot case captures.
 
 ---
 
-A snapshot case SHALL consist of input files and expected artifacts, and
-SHALL NOT contain executable test code.
+A snapshot case SHALL consist of input files and expected artifacts.
+
+A snapshot case SHALL NOT contain executable test code.
 
 **Rationale:** This is the requirement that buys harness independence.
 A case containing Go test code can only be replayed by a Go test runner.
@@ -90,6 +91,8 @@ cli/testdata/cases/<case-name>/
   input/                  a complete corpus, including its own specs.toml
   expected/
     checks.log            the check results the run must report
+    checks.json           the same standard output, for a --json run
+    checks.err            the standard error the run must write
     manifest.json         the corpus manifest the run must produce,
                           whole or partial
 ```
@@ -159,8 +162,8 @@ fixture.
 
 ### Snapshots
 
-A script that regenerates every expected artifact from the current
-implementation SHALL be provided.
+The repository SHALL provide a script that regenerates every expected
+artifact from the current implementation.
 
 **Rationale:** Without one, a legitimate output change is edited by hand
 across every affected case, which is slow and silently lossy.
@@ -199,7 +202,8 @@ host names, durations, or any other value that varies between runs.
 
 **Rationale:** A non-deterministic artifact produces a diff on every
 run, which trains reviewers to regenerate without reading. That defeats
-the requirement three above.
+the requirement that the author confirm a snapshot difference was
+intended.
 
 ---
 
@@ -215,8 +219,10 @@ because a consumer parsing the JSON depends on it too.
 
 ### Statement coverage
 
-Statement coverage SHALL be measured across every test layer and
-reported as a single merged profile.
+The coverage measurement SHALL span every test layer.
+
+The coverage measurement SHALL report the layers as a single merged
+profile.
 
 **Rationale:** The layers reach different code. Reporting one of them
 alone understates what is tested, and reporting them side by side leaves
@@ -225,8 +231,8 @@ statement tested at all?"
 
 ---
 
-The end-to-end layer SHALL be measured through the binary it runs,
-rather than exempted from measurement because it crosses a process
+The coverage measurement SHALL measure the end-to-end layer through the
+binary it runs, rather than exempt it because it crosses a process
 boundary.
 
 **Rationale:** `go test -coverprofile` observes only the test process,
@@ -237,8 +243,11 @@ that gap.
 
 ---
 
-Machine-generated source SHALL be excluded from the reported figures,
-and the exclusion SHALL be stated wherever the figures are published.
+The coverage measurement SHALL exclude machine-generated source from the
+reported figures.
+
+WHERE the coverage figures are published, the publication SHALL state
+that machine-generated source is excluded.
 
 **Rationale:** Generated code is a function of its generator and its
 schema, not of the tests, and it's large enough here to dominate the
@@ -248,8 +257,10 @@ number.
 
 ---
 
-The reported figures SHALL be committed, and CI SHALL fail when they do
-not match a fresh measurement.
+The author of a change SHALL commit the reported coverage figures.
+
+IF the committed coverage figures do not match a fresh measurement, THEN
+CI SHALL fail.
 
 **Rationale:** A coverage figure regenerated only on demand records
 whenever it was last convenient to look, so a drop arrives without an
@@ -260,8 +271,8 @@ caused it.
 
 ### Rule coverage
 
-Every check the CLI implements SHALL be exercised by at least one
-snapshot case.
+At least one snapshot case SHALL exercise each check the CLI
+implements.
 
 **Rationale:** A check with no case can be broken by a refactor without
 any test failing. This is the completeness property that runs from the
@@ -271,8 +282,8 @@ implementation outward.
 
 ### Acceptance-criteria traceability
 
-Every acceptance criterion in an `approved` or `active` FRD SHALL be
-cited by at least one snapshot case manifest or at least one unit test.
+At least one snapshot case manifest or unit test SHALL cite each
+acceptance criterion in an `approved` or `active` FRD.
 
 **Rationale:** This is the complement of rule coverage: the property
 runs from the specification inward, and catches a criterion nobody
@@ -280,8 +291,8 @@ implemented as well as one nobody tested.
 
 ---
 
-A map from rule identifier to acceptance-criteria identifiers SHALL be
-maintained.
+The repository SHALL maintain a map from rule identifier to
+acceptance-criteria identifiers.
 
 **Rationale:** AC-SPEC-006.1 of [[frd-spec-index]] already requires
 every finding to carry a stable rule identifier, so this is one table
@@ -306,9 +317,9 @@ test comment stands on its own.
 
 ---
 
-IF an acceptance criterion carries the `(manual)` marker defined by
-`plugin/skills/spec/references/frd-template.md`, THEN it is exempt from
-the citation obligation above.
+IF an acceptance criterion carries the `@manual` tag defined by
+`plugin/skills/spec/references/frd-template.md`, THEN the
+acceptance-criteria citation requirement SHALL NOT apply to it.
 
 ---
 
@@ -322,5 +333,5 @@ the citation obligation above.
   whose components carry unit tests
 - [[ac-traceability-standards]] — the citation format unit tests use,
   which the case manifest mirrors
-- `plugin/skills/spec/references/frd-template.md` — the `(manual)`
-  marker and the acceptance-criteria identifier format
+- `plugin/skills/spec/references/frd-template.md` — the `@manual`
+  tag and the acceptance-criteria identifier format

@@ -28,13 +28,11 @@ This feature delivers a command-line tool that reads a specification
 corpus and produces two things: a **machine-readable index** of every
 document's metadata and location, and a **report of conformance
 findings** against the metadata and membership rules the framework
-already defines. It's the first increment of a larger tool. Later
-features add document **structure** (headings, section spans, record
-blocks, and hygiene) and cross-document **references** to the same index
-and the same finding engine. This feature's design is chosen to
-accommodate that growth: the index schema is versioned and additive, the
-finding record is uniform across every check, and those later checks
-reuse the corpus walk established here.
+already defines. Other features add document **structure** (headings,
+section spans, record blocks, and hygiene) and cross-document
+**references** to the same index and the same finding engine, so the
+index schema is versioned and additive, and the finding record is uniform
+across every check.
 
 The tool serves three audiences from one engine. A team adopting the
 framework points it at their spec root and gets a failing build when
@@ -56,24 +54,24 @@ deferred, not overlooked:
 
 - **Reference integrity.** Parsing `[[slug]]` references, resolving them
   against the corpus, emitting inbound and outbound references in the
-  index, and reporting broken links belong to a follow-on feature. This
+  index, and reporting broken links belong to a separate feature. This
   FRD indexes a document's frontmatter and location but doesn't read its
   body for references.
 - **Document structure and hygiene.** Extracting headings and their
   section spans, parsing record blocks, and checking required sections,
   line width, leftover scaffolding, and placeholders belong to a
-  follow-on feature. This FRD doesn't walk a document's headings or body
+  separate feature. This FRD doesn't walk a document's headings or body
   structure.
 - **Modifying documents.** This feature only reads and reports.
-- **Acceptance-criteria and feature-definition validation.** Out of
-  scope for this feature. [[adr-021]] settles the notation and assigns
-  the extraction to a follow-on feature. The technology decision this
-  feature defers to an ADR had to preserve the ability to parse and
-  validate structured feature definitions later, and it does.
+- **Acceptance-criteria and feature-definition validation.**
+  [[adr-021]] settles the notation and assigns the extraction to a
+  separate feature. The technology decision this feature defers to an
+  ADR preserves the ability to parse and validate structured feature
+  definitions.
 - **Requirement quality judgment.** Whether a requirement is testable,
   whether a qualifier is vague, and whether a design carries enough
-  intent stay with a reviewing agent. This feature extracts the spans an
-  agent must read, but it doesn't judge them.
+  intent stay with a reviewing agent. This feature doesn't judge
+  them.
 - **Rendering or diagram generation**, and export to any third-party
   architecture format.
 - **Choosing an implementation language, runtime, or distribution
@@ -93,7 +91,7 @@ deferred, not overlooked:
   repositories can be combined without slug collisions.
 - **Index** — the machine-readable JSON artifact describing every
   discovered document: its frontmatter properties, its file path, and the
-  reason any candidate file was excluded. Later features add headings and
+  reason any candidate file was excluded. Other features add headings and
   their spans, extracted record blocks, and inbound and outbound
   references to the same artifact under the same schema.
 - **Profile** — the configuration bundle that supplies document-type
@@ -205,8 +203,8 @@ Feature: Document Index
   I want one machine-readable artifact describing every specification document and how they relate
   So that CI, agents and a central catalogue all read the same source of truth instead of each re-deriving it
 
-  The index is deliberately additive: this sprint fills frontmatter and
-  path, and later features populate the remaining properties without
+  The index is deliberately additive: this requirement fills frontmatter
+  and path, and other features populate the remaining properties without
   changing the schema's shape or its version.
 
   Rule: A build failure is the checker's job, not the indexer's
@@ -239,7 +237,7 @@ Feature: Document Index
 
 *Examples:* the entry for `adr-011` carries its six frontmatter
 properties and its path
-`docs/adrs/ADR-011-targeted-verification-gates.md`, and later features
+`docs/adrs/ADR-011-targeted-verification-gates.md`, and other features
 add its headings and outbound references to the same entry
 (AC-SPEC-002.1). The emitted JSON opens with `"schema_version": "1.0"`
 (AC-SPEC-002.2). Every entry carries `"workspace": "agent-plugins"`, so
@@ -510,8 +508,8 @@ Feature: Corpus Queries
   So that I can pick a conforming identifier and understand impact without reading every document
 
   Both queries answer from frontmatter and path alone, which is why they
-  belong here. Queries that need more of the index are deferred to the
-  later features that populate those parts of it.
+  belong here. Queries that need more of the index belong to the
+  features that populate those parts of it.
 
   @AC-SPEC-007.1
   Scenario: The next identifier for a numbered type is one past the highest in use
@@ -913,6 +911,3 @@ it.
   makes mechanical
 - [[frontmatter-standards]] — the status vocabulary and element record
   schemas
-- `docs/plans/spec-validation-cli-brief.md` — the research and prototype
-  results behind this feature, including the corpus measurements cited
-  in the Overview
