@@ -114,8 +114,8 @@ func TestEveryFindingIsSelfContained(t *testing.T) {
 		},
 		{
 			name:     "unverified",
-			finding:  finding.Unverified("structure/mermaid", "specs/adrs/adr-011.md", position, "no diagram validator is available"),
-			rule:     "structure/mermaid",
+			finding:  finding.Unverified(finding.RuleUnresolvedAnchor, "specs/adrs/adr-011.md", position, "no diagram validator is available"),
+			rule:     finding.RuleUnresolvedAnchor,
 			contains: []string{"no diagram validator is available"},
 			detail: func(t *testing.T, d specmodel.FindingDetail) {
 				v, ok := d.AsUnverified()
@@ -766,15 +766,21 @@ func TestAFindingSerialisesEveryPropertyItCarries(t *testing.T) {
 // AC: AC-SPEC-006.3
 // AC: AC-SPEC-006.4
 func TestAnUnrunnableCheckIsUnverifiedRatherThanPassed(t *testing.T) {
-	report := finding.NewReport(finding.RuleSlugPattern, "structure/mermaid")
+	report := finding.NewReport(finding.RuleSlugPattern, finding.RuleUnresolvedAnchor)
 	report.Request(finding.RuleSlugPattern)
 	report.Ran(finding.RuleSlugPattern)
-	report.Request("structure/mermaid")
-	report.Unverified("structure/mermaid", "specs/adrs/adr-011.md", at(t), "no diagram validator is available")
+	report.Request(finding.RuleUnresolvedAnchor)
+	report.Unverified(finding.RuleUnresolvedAnchor, "specs/adrs/adr-011.md", at(t), "no diagram validator is available")
+
+	// The report must also render: a rule outside the RuleId enum would
+	// fail here, at serialization, rather than when the check is written.
+	if _, err := report.JSON(); err != nil {
+		t.Fatalf("JSON() = %v, want the report to render", err)
+	}
 
 	model := report.Model()
 
-	result := checkResult(t, model, "structure/mermaid")
+	result := checkResult(t, model, finding.RuleUnresolvedAnchor)
 	if result.Outcome != specmodel.CheckOutcomeUnverified {
 		t.Errorf("outcome = %q, want %q", result.Outcome, specmodel.CheckOutcomeUnverified)
 	}

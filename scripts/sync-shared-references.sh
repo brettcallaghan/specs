@@ -64,10 +64,20 @@ MAP=$(cat <<'EOF'
 groom-beads	specs/standards/work-order-definition-of-ready.md
 groom-beads	specs/guides/work-order-field-guide.md
 groom-beads	spec/references/work-order-template.md
+groom-beads	specs/standards/frontmatter-standards.md
 groom-feature-blueprint	specs/standards/ac-traceability-standards.md
 groom-feature-blueprint	spec/references/feature-blueprint-template.md
 groom-feature-blueprint	spec/references/work-order-template.md
 groom-feature-blueprint	specs/standards/findings-capture-protocol.md
+groom-feature-blueprint	specs/standards/blueprint-content-standards.md
+groom-feature-blueprint	specs/standards/c4-standards.md
+groom-feature-blueprint	specs/standards/frontmatter-standards.md
+groom-feature-blueprint	specs/guides/design-principles-guide.md
+groom-feature-blueprint	specs/guides/design-principles-systems-guide.md
+groom-feature-blueprint	specs/guides/design-principles-containers-guide.md
+groom-feature-blueprint	specs/guides/design-principles-components-guide.md
+groom-feature-blueprint	specs/guides/work-order-field-guide.md
+groom-feature-blueprint	specs/standards/work-order-definition-of-ready.md
 retro-skill	specs/standards/findings-capture-protocol.md
 retro-skill	spec/references/issue-template.md
 retro-spec	specs/standards/findings-capture-protocol.md
@@ -146,7 +156,14 @@ render() {  # $1 = source path, $2 = source rel path
   printf '     Source of truth: %s\n' "$(src_label "$2")"
   printf '     Regenerate with: %s\n' "$SELF_REL"
   printf '     Edit the source, then re-run that script. -->\n\n'
-  cat "$1"
+  # A template cites the files it loads as `shared/<file>`, relative to the
+  # spec skill's references/. Its copy lands beside those files in
+  # references/shared/, so the prefix is dropped there; without it, every
+  # load path in a vendored template points into references/shared/shared/.
+  case "$2" in
+    spec/references/*-template.md) sed 's#`shared/#`#g' "$1" ;;
+    *)                             cat "$1" ;;
+  esac
 }
 
 stale=0 wrote=0 checked=0

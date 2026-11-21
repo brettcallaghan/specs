@@ -259,11 +259,13 @@ specs.
    breakage in the documents citing it: run `specs refs <slug>` before
    the change and a whole-corpus `specs check` after it.
 6. **Preflight feature blueprints.** Before setting a feature blueprint
-   to `ready-for-review`, run the Readiness checks in the template's
-   header, including the decision sweep, and re-run them after fixing
-   what they surfaced. Don't set `ready-for-review` while any check
-   fails: `groom-feature-blueprint` enforces the same checks as its
-   gate. Survey the project's issue tracker to fill the Tracker
+   to `ready-for-review`, run the content checks under Readiness checks
+   in the template's header, including the decision sweep, and re-run
+   them after fixing what they surfaced. Don't set `ready-for-review`
+   while any content check fails. The status checks (FRD and blueprint
+   approved, no open questions) are met at review, not before it, so
+   flag them to the reviewer: `groom-feature-blueprint` enforces every
+   check as its gate. Survey the project's issue tracker to fill the Tracker
    reconciliation section: issues the feature subsumes, depends on, or
    must not absorb are design inputs, not groom-time discoveries.
 7. **Self-check the finished document.** Before setting any document to
@@ -294,8 +296,11 @@ specs.
 ## References
 
 **Always load** the `tech-writer` skill,
-`references/shared/specs-cli-reference.md`, and
-`references/shared/ears-guide.md`.
+`references/shared/specs-cli-reference.md`,
+`references/shared/ears-guide.md`,
+`references/shared/spec-authoring-standards.md`, and
+`references/shared/frontmatter-standards.md`. Every document must satisfy
+the last two, and `specs check` doesn't verify all of their rules.
 
 **Then load the template** for the document type. Its header's "Load
 before authoring" list names every other file the type needs: load the
@@ -326,10 +331,6 @@ comments are the rules the document is reviewed against.
   `references/shared/anti-patterns-guide.md`.
 - Reading a `specs check` finding: `references/generated/rules.md`.
 - Mapping an element to a C4 level: `references/shared/c4-standards.md`.
-- Slugs, filenames, line length, title and H1:
-  `references/shared/spec-authoring-standards.md`.
-- Frontmatter properties, status vocabulary, element records:
-  `references/shared/frontmatter-standards.md`.
 - `[[slug]]` wikilinks, heading anchors, backticked paths:
   `references/shared/cross-document-references-standards.md`.
 

@@ -22,18 +22,18 @@ Template: Feature Blueprint
 Source: This specification framework.
 
 Load before authoring
-  - `shared/blueprint-content-standards.md`: what a blueprint states, and
+  - `blueprint-content-standards.md`: what a blueprint states, and
     the blueprint audit. A quoted rule name below, such as "Name owners,
     not neighbors", is the heading of a rule there.
-  - `shared/ac-traceability-standards.md`: how tests cite the acceptance
+  - `ac-traceability-standards.md`: how tests cite the acceptance
     criteria in AC coverage.
-  - `shared/c4-standards.md`: how the framework applies C4 — the module
+  - `c4-standards.md`: how the framework applies C4 — the module
     level, element declarations, edge ownership, and diagram placement.
-  - `shared/design-principles-guide.md`: the universal design principles.
+  - `design-principles-guide.md`: the universal design principles.
   - The level guide for each element a delta changes:
-    `shared/design-principles-systems-guide.md`,
-    `shared/design-principles-containers-guide.md`, or
-    `shared/design-principles-components-guide.md`.
+    `design-principles-systems-guide.md`,
+    `design-principles-containers-guide.md`, or
+    `design-principles-components-guide.md`.
 
 Sections (complete each, then delete its instruction block)
   - Overview
@@ -137,7 +137,7 @@ Reference syntax
   [[container-<name>#Component Name]]
                    — a cross-reference to an un-promoted component, by a
                      wikilink heading anchor into its parent's Components
-                     roster (see `shared/c4-standards.md`)
+                     roster (see `c4-standards.md`)
   `ElementName`    — a code-level element that is not a modeled
                      component: a schema, domain type, event, flag, table
 
@@ -158,12 +158,14 @@ Slug format
   frd-checkout → feature-checkout
 
 Readiness checks
-  These checks define "ready to groom." Run them before you set
-  `ready-for-review`, fix what fails, and run them again, because one fix
-  can break another check. The `groom-feature-blueprint` skill enforces
-  the same checks as its gate, and it cites each one by its name below.
+  These checks define "ready to groom." The `groom-feature-blueprint`
+  skill enforces all of them as its gate, and it cites each one by its
+  name below. Run the content checks and the decision sweep before you
+  set `ready-for-review`, fix what fails, and run them again, because one
+  fix can break another check. The status checks can't pass before
+  review: approval is what review produces.
 
-  Readiness checks: is grooming premature?
+  Status checks: is grooming premature?
   - FRD approved: the FRD's status is `approved` or `active`.
   - Blueprint approved: the blueprint's status is `approved`.
   - No open questions: the Open questions section is absent, empty, or
@@ -500,7 +502,7 @@ Verified by:  the level at which the AC is proven —
 
 This table is design-time intent; the durable record is the tests
 themselves, which cite their ACs in citation comments per
-`shared/ac-traceability-standards.md`. The two are reconciled in the Definition
+`ac-traceability-standards.md`. The two are reconciled in the Definition
 of Done below.
 -->
 
@@ -541,7 +543,7 @@ truthful again. Keep one checkbox per affected document.
 - [ ] New ADRs are referenced from the owning blueprints' Key decisions
 - [ ] Run the blueprint audit on each blueprint a delta folds into
 - [ ] Every AC in the coverage table is verified at its declared level
-  and cited from its tests per `shared/ac-traceability-standards.md`
+  and cited from its tests per the AC traceability standards
 - [ ] Every issue listed as subsumed in Tracker reconciliation is
   closed or re-scoped (omit WHERE that section states "None.")
 - [ ] No live document references this blueprint (`specs refs
@@ -573,7 +575,7 @@ Optional. What a reader needs next, one paragraph each: [[slug]] for
 documents in this corpus, a URL for anything outside it.
 
 The system, container, module and component definitions that delta
-blocks are written against are in this skill's `shared/c4-standards.md`.
+blocks are written against are in this skill's `c4-standards.md`.
 Read it while authoring, but do not cite it here: it is not a document
 in your corpus.
 -->

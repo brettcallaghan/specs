@@ -1,0 +1,267 @@
+<!-- GENERATED COPY — DO NOT EDIT.
+     Source of truth: specs/standards/frontmatter-standards.md
+     Regenerate with: scripts/sync-shared-references.sh
+     Edit the source, then re-run that script. -->
+
+---
+title: Frontmatter Standards
+description: Required, relationship, and optional frontmatter properties for
+  every spec document type, plus the embedded element-record blocks a parent
+  document uses to declare un-promoted children
+slug: frontmatter-standards
+type: standards
+status: active
+---
+
+# Frontmatter standards
+
+## Contents
+
+- Format — YAML delimiters and placement
+- Required properties — title, description, slug, type, status,
+  including the full `status` vocabulary and the state-vs-transient rule
+- Relationship properties — provenance, composition, and the typed edges a
+  consumer keys on
+- Optional properties — version, tags, superseded_by
+- Embedded element records — declaring child components by record
+  block, blueprint, or both
+
+Document structure, slugs, and filenames belong to the companion
+document, [[spec-authoring-standards]]. Cross-document reference syntax is in
+[[cross-document-references]].
+
+This document holds the normative prose. The **per-type property tables**
+derived from it list which properties each document type carries and which
+are required. They're generated from the schemas in `schemas/` into the `spec` skill's
+generated frontmatter reference, alongside the JSON Schema that validates
+them. When this document and a generated table
+disagree, tooling enforces the schema. The disagreement is a defect in one
+of them to resolve, not a precedence rule to apply.
+
+## Metadata (frontmatter)
+
+### Format
+
+YAML frontmatter SHALL be used to provide structured metadata for documents 
+created from templates.
+
+The frontmatter block SHALL begin at the first line of the document.
+
+The frontmatter block SHALL be delimited by triple-dash lines (`---`).
+
+**Example:**
+```yaml
+---
+title: Example Document
+description: A brief summary of what this document contains
+slug: example-document
+type: example
+status: draft
+---
+```
+
+**Rationale:** YAML frontmatter is a widely adopted convention (Jekyll,
+Hugo, Obsidian) that keeps machine-parseable metadata separate from content.
+
+### Required properties
+
+Templates SHALL include the following metadata properties in their frontmatter:
+
+```yaml
+---
+title: <title of the document>
+description: <a brief summary of the document>
+slug: <used to reference the document from other documents>
+type: <document-type>
+status: <status-value>
+---
+```
+
+#### Property definitions
+
+| Property | Type | Purpose | Format |
+|----------|------|---------|--------|
+| `title` | string | Human-readable document title | Free text |
+| `description` | string | Brief summary of the document, written to be triaged from | 1-2 sentences |
+| `slug` | string | Unique identifier for cross-references | Kebab-case (lowercase with hyphens) |
+| `type` | string | Document classification | Controlled vocabulary defined by the document system |
+| `status` | string | Lifecycle state | One of: `draft`, `ready-for-review`, `approved`, `in-progress`, `active`, `retired` |
+
+The `description` property has two audiences, and the second is why it's
+required. A reader who has already opened the document reads it as an
+introduction. An agent deciding which documents to open reads it *instead
+of* the document. A corpus listing command reports every member's
+`description`, so other agents decide from it whether to open this
+document at all. [[specs-cli-reference]] documents the command that reports
+it.
+
+Authors SHALL write `description` to be triaged from rather than as an
+introduction. Name what the document decides, governs, or specifies, and
+what sets it apart from its neighbors of the same type. "Notes on the
+caching layer" tells a triaging agent nothing the title didn't. "Why
+reads are served from the replica and writes are not, and the staleness
+budget that follows" tells it whether to open the document. An
+architecture blueprint's `description` takes the form that
+[[blueprint-content-standards#Write the description for triage]] sets.
+
+The one-to-two-sentence guidance above is a shape, not an enforced limit.
+Nothing truncates a description, and no check measures one. Whether a
+description is good enough to choose from is a judgment no check can make,
+and a length rule would pass a useless description of the right size.
+
+The `type` property SHALL use a controlled vocabulary defined by the document 
+system using the templates.
+
+The `status` property SHALL use the following controlled vocabulary, common 
+to all document types:
+
+| Status | Meaning |
+|--------|---------|
+| `draft` | Under authorship; content may be incomplete |
+| `ready-for-review` | Complete and awaiting review |
+| `approved` | Reviewed and accepted; not yet in effect |
+| `in-progress` | Approved, and the change it specifies is being implemented |
+| `active` | In effect; the current source of truth |
+| `retired` | No longer in effect |
+
+Status values SHALL be lowercase with hyphen separators (kebab-case).
+
+State documents (blueprints, Standards, and Contracts) describe what is.
+They use `active` and never `in-progress`. Transient change documents,
+such as Feature Blueprints, describe a change. They use `in-progress` in
+place of `active`, because a change specification is implemented, not "in
+effect."
+
+### Relationship properties
+
+A relationship property names other documents by `slug`.
+`[[document-relationship-standards]]` and the schemas in `schemas/` own
+which properties exist. This section states how a template declares one.
+
+WHEN a document has a relationship a body citation cannot carry, the template
+SHALL include a relationship property for it in the frontmatter:
+
+```yaml
+---
+# Provenance (what this is derived from)
+sources: []                                 # Source document slugs
+
+# Composition
+system: "<system slug>"                     # container -> its one system
+modules: []                                 # container or module -> the
+                                            # modules composed into it
+
+# Typed edges a machine consumer keys on
+contracts_consumed: []                      # contract slugs this consumes
+provider: "<element slug>"                  # contract -> its one provider
+---
+```
+
+WHEN a document does not have relationships, these properties SHALL be omitted 
+from the template.
+
+All relationship properties SHALL reference documents by their `slug` value.
+
+A template SHALL NOT introduce a relationship property that only mirrors the
+document's own prose citations. Under `[[document-relationship-standards]]`,
+a relationship is declared at exactly one end, and the index derives the
+reverse. So a property earns its place only if it carries a typed
+relationship a consumer keys on, names a target not reliably present in the
+prose, or is the only home for the edge.
+
+WHEN a document describes a change to the document set itself (e.g., a
+feature blueprint that will modify architecture blueprints and author new
+contracts), the documents it creates and updates SHALL be named in its prose
+and tracked in its `plan`, not mirrored into frontmatter.
+
+**Rationale:** Relationship properties enable traceability, dependency
+management, and impact analysis across documents, but only where the graph
+derived from prose citations can't already answer the question. A parent's
+membership roster is derivable. Where a child may have several parents, it
+comes from the child's own declaration. Otherwise it comes from the
+parent's roster section, which links each promoted child by `[[slug]]`
+anyway. The plan tracks a change set to completion. So frontmatter carries
+neither.
+
+### Optional properties
+
+Templates MAY include additional properties based on the needs of the document 
+system:
+
+```yaml
+---
+version: "0.1"                     # Semantic version
+tags: []                           # Free-form tags for filtering/search
+superseded_by: "<slug>"            # For superseded documents
+---
+```
+
+Git holds a document's history, so no document type carries a creation or
+last-modified date. `version` is reserved for a version that is a promise
+to consumers: a contract's interface version or a public module's package
+version. A document's own revision isn't one.
+
+WHEN a document lifecycle includes supersession, templates SHALL include a 
+`superseded_by` property for use when a document is retired in favor of a 
+replacement.
+
+| Property | Type | Purpose | Format |
+|----------|------|----------|--------|
+| `version` | string | Version promised to consumers (contracts, public modules) | Semantic versioning: `MAJOR.MINOR.PATCH` |
+| `tags` | array | Free-form tags | Array of strings |
+| `superseded_by` | string | Superseding document | Slug of replacement document |
+
+Architecture blueprint templates (system, container, module, component)
+SHALL include `superseded_by`: their lifecycle includes retirement and
+migration between levels, and a retired blueprint points to its
+successor.
+
+---
+
+## Embedded element records
+
+WHEN a document declares child elements it composes — the components of a
+container or a module — each child is declared by a record block, by its
+own blueprint, or both, and a document system MAY make that declaration
+machine-readable:
+
+- **Un-promoted** (no blueprint of its own): the child's declaration
+  SHALL carry a fenced record block holding the element record fields
+  (`entity_name`, `slug`, `description`, and optionally `technology`):
+
+  ```component
+  entity_name: <Child Name>
+  slug: component-<child-name>
+  description: <one-line brief description>
+  technology: <language, framework or package type>
+  ```
+
+- **Promoted** (its own blueprint): the declaration links the blueprint
+  (`[[component-<name>]]` / `[[module-<name>]]`), and MAY keep its record
+  block.
+
+An element is identified by its `slug` and MAY be declared more than
+once — by its blueprint and by the record block in its parent's roster,
+or by blocks in several documents. Promotion copies the block's fields
+into the new blueprint's frontmatter, adds the document's `title`, and
+links the blueprint from every parent roster in the same change; the
+block MAY stay. Where an element has a blueprint, its values are
+authoritative, and a declaration that disagrees with them SHALL be
+reported.
+
+Every architecture blueprint (system, container, module, component)
+SHALL declare `entity_name`: the element's name as diagrams draw it. It
+is distinct from `title`, which names the document. The two often read
+the same — the container named "Spec CLI" is documented by a blueprint
+titled "Spec CLI" — but only `entity_name` is matched against diagram
+labels, so a title MAY be reworded without touching a diagram.
+
+The element record fields and the document-envelope fields (`title`,
+status, and the type-specific frontmatter) SHOULD be defined
+as two schemas and merged with JSON Schema `allOf` for a standalone
+document's frontmatter: the embedded record block satisfies the
+element-record schema alone, and a promoted document's frontmatter
+satisfies both. One schema therefore validates a child whether it is
+embedded or promoted.
+
+---

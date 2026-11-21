@@ -213,10 +213,14 @@ for p in SKILLS:
 # reached at the second hop tends to get previewed rather than read. A
 # `[[slug]]` is a corpus citation, not a load instruction, so a leaf may use
 # one. The load edges from templates must also form no cycle.
+# Every reference basename any skill ships: a path naming one of them is a
+# load path, even where the citing skill doesn't ship that file.
+REF_NAMES = {os.path.basename(f) for f in glob.glob('plugin/skills/*/references/**/*.md', recursive=True)}
 for skill in sorted(glob.glob('plugin/skills/*/')):
     refs = [f for f in glob.glob(os.path.join(skill, 'references', '**', '*.md'), recursive=True)
             if os.path.basename(f) != 'README.md']
     if not refs: continue
+    refs = [os.path.normpath(f) for f in refs]
     by_name = {}
     for f in refs:
         by_name.setdefault(os.path.basename(f), f)
@@ -224,13 +228,20 @@ for skill in sorted(glob.glob('plugin/skills/*/')):
     for f in refs:
         text = open(f).read()
         out = set()
-        for m in re.finditer(r'`[^`\s]*?([\w.-]+\.md)(?:#[^`]*)?`', text):
-            t = by_name.get(m.group(1))
-            if t and t != f: out.add(t)
+        for m in re.finditer(r'`([^`\s]*?([\w.-]+\.md))(?:#[^`]*)?`', text):
+            if m.group(2) not in REF_NAMES: continue
+            # Resolve the whole path from the citing file: a path that names a
+            # sibling's basename but points elsewhere (a vendored template's
+            # `shared/x.md` from inside references/shared/) loads nothing.
+            t = os.path.normpath(os.path.join(os.path.dirname(f), m.group(1)))
+            if not os.path.isfile(t):
+                err(f, f"load path does not resolve from this file: {m.group(1)}")
+                continue
+            out.add(t)  # a self-edge is kept, so a template that loads itself is a cycle
         edges[f] = out
-        if out and not f.endswith('-template.md'):
+        if [t for t in out if t != f] and not f.endswith('-template.md'):
             err(f, "a reference other than a template gives a load path to another reference ("
-                   + ", ".join(sorted(os.path.basename(t) for t in out))
+                   + ", ".join(sorted(os.path.basename(t) for t in out if t != f))
                    + "); cite it with [[slug]] or by name, and list it in the templates that need it")
     state = {}
     def visit(n, path):

@@ -45,8 +45,8 @@ Template: Work Order
 Source: This specification framework.
 
 Load before authoring
-  - `shared/work-order-field-guide.md`: what each field holds.
-  - `shared/work-order-definition-of-ready.md`: the readiness gate.
+  - `work-order-field-guide.md`: what each field holds.
+  - `work-order-definition-of-ready.md`: the readiness gate.
 
 Sections (complete each, then delete its instruction block)
   - Problem
@@ -146,7 +146,7 @@ Slug format
   slug is the stable human handle.
 
 UNRESOLVED — no lifecycle status field (deliberate deviation)
-  `shared/frontmatter-standards.md` makes `status` a REQUIRED frontmatter
+  `frontmatter-standards.md` makes `status` a REQUIRED frontmatter
   property. This template omits it on purpose: a work order has two
   orthogonal lifecycles — grooming readiness and execution state — and both
   are owned by the tracker (bead `status` + `grooming_status`), not

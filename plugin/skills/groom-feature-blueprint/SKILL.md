@@ -74,7 +74,7 @@ reference by reading the referenced document.
 
 Two kinds of checks with different failure responses:
 
-**Readiness checks** (FRD approved, Blueprint approved, No open
+**Status checks** (FRD approved, Blueprint approved, No open
 questions): is grooming premature?
 
 WHEN a readiness check fails, report why grooming cannot start and

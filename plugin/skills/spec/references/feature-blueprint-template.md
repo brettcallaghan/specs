@@ -153,12 +153,14 @@ Slug format
   frd-checkout → feature-checkout
 
 Readiness checks
-  These checks define "ready to groom." Run them before you set
-  `ready-for-review`, fix what fails, and run them again, because one fix
-  can break another check. The `groom-feature-blueprint` skill enforces
-  the same checks as its gate, and it cites each one by its name below.
+  These checks define "ready to groom." The `groom-feature-blueprint`
+  skill enforces all of them as its gate, and it cites each one by its
+  name below. Run the content checks and the decision sweep before you
+  set `ready-for-review`, fix what fails, and run them again, because one
+  fix can break another check. The status checks can't pass before
+  review: approval is what review produces.
 
-  Readiness checks: is grooming premature?
+  Status checks: is grooming premature?
   - FRD approved: the FRD's status is `approved` or `active`.
   - Blueprint approved: the blueprint's status is `approved`.
   - No open questions: the Open questions section is absent, empty, or
@@ -536,7 +538,7 @@ truthful again. Keep one checkbox per affected document.
 - [ ] New ADRs are referenced from the owning blueprints' Key decisions
 - [ ] Run the blueprint audit on each blueprint a delta folds into
 - [ ] Every AC in the coverage table is verified at its declared level
-  and cited from its tests per `shared/ac-traceability-standards.md`
+  and cited from its tests per the AC traceability standards
 - [ ] Every issue listed as subsumed in Tracker reconciliation is
   closed or re-scoped (omit WHERE that section states "None.")
 - [ ] No live document references this blueprint (`specs refs
