@@ -73,8 +73,8 @@ Purpose
 
   The dividing line from a component is the same one the framework draws
   for contract visibility: does it cross a boundary of independent
-  change? A component does not — it is internal to one container and
-  changes in lockstep with it; a module does. This framework's "module"
+  change? A component does not — it is internal to one container or
+  module and changes in lockstep with it; a module does. This framework's "module"
   is part of the deliberate C4 superset defined in `shared/c4-standards.md`.
 
 Reader profile (apply with the tech-writer skill)
@@ -115,8 +115,8 @@ When to use — either trigger is sufficient
              blueprint for "plugin", many plugins).
 
 When NOT to use
-  - An internal building block of a single container that is neither
-    shared nor composite → component blueprint (the leaner leaf).
+  - An internal building block of a single container or module that is
+    neither shared nor composite → component blueprint (the leaner leaf).
   - A unit with runtime elements of its own (a service, a worker, a
     queue) — that is a container or system (container blueprint /
     system blueprint).

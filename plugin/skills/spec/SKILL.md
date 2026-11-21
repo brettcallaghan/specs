@@ -68,7 +68,7 @@ chooses become tracker records, never files in the corpus.
 | **Standards** | Cross-cutting standards, policies, invariants, or constraints that span features or systems (the type name is shorthand for this whole family) | Domain or scope |
 | **System Blueprint** | A system's context, containers, public contracts, and deployment (C4 levels 1-2) | System |
 | **Container Blueprint** | One deployable unit: its tech stack, context, components, provided/consumed contracts, owned data, and change guidance for feature work | Container |
-| **Component Blueprint** | An atomic component warranting standalone docs — an internal building block of one container, plus its interface and change guidance | Component |
+| **Component Blueprint** | An atomic component warranting standalone docs — an internal building block of one container or module, plus its interface and change guidance | Component |
 | **Module Blueprint** | A unit that crosses a boundary of independent change: shared/published across containers (library, SDK, UI package, IaC module) and/or composite with internal components — plus its tech stack, versioning and change rules | Module |
 | **Feature Blueprint** | The HOW pairing 1:1 with an FRD's WHAT: a transient, diff-shaped design — element deltas, contracts, sequencing constraints, AC coverage, and a definition of done | Feature |
 | **Contract** | The prose semantics companion to a machine-readable interface spec (API, event, data product) | Interface |
@@ -98,9 +98,9 @@ Ask these questions in order:
    neighbors, its containers, its deployment? → **System Blueprint**
 6. **Does this describe one deployable unit** — an application or data
    store your team builds and runs? → **Container Blueprint**
-7. **Does this describe an atomic component of a single container** — an
-   internal building block with a defined interface, changing in lockstep
-   with its container? → **Component Blueprint**
+7. **Does this describe an atomic component of one container or module** —
+   an internal building block with a defined interface, changing in
+   lockstep with its host? → **Component Blueprint**
 8. **Does this describe a unit that crosses a boundary of independent
    change** — shared or published across containers, and/or composite
    with internal components of its own? → **Module Blueprint**. A

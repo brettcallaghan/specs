@@ -68,11 +68,13 @@ and name the system it should belong to.
   container's deployment.
 
 **Component** — in this framework, a component is the
-**atomic leaf**: an internal building block of a single container, with a
-defined interface and no internal components of its own. It changes in
-lockstep with its container and isn't vended or versioned independently.
-Its home is a Component Blueprint (or, un-promoted, a record block in its
-container's Components section).
+**atomic leaf**: an internal building block of a single host, with a
+defined interface and no internal components of its own. The host is the
+element whose Components roster declares it: a container, or a module with
+internal components. A component changes in lockstep with its host and
+isn't vended or versioned independently. It reaches a container only as
+part of its host. Its home is a Component Blueprint (or, un-promoted, a
+record block in its host's Components section).
 
 - A unit whose parts each need their own interface or change guidance is
   a module, not a component ([[adr-004]], [[adr-005]]).
@@ -223,9 +225,10 @@ files each fact at exactly one altitude:
 - **An element owns its own outward edges only through a Context view.**
   System Context and Container Context show the subject among its direct
   neighbors. Components and modules deliberately don't get a context
-  view: a component's neighbors are owned by its container, and a shared
-  module has different neighbors in every host. Both therefore point to
-  their host containers for relationships instead of restating them.
+  view: a component's neighbors are owned by its host, and a shared
+  module has different neighbors in every container that composes it.
+  Both therefore point to their hosts for relationships instead of
+  restating them.
 - **A scope statement MAY name the owner of what an element excludes.**
   `Does not own X; [[component-y]] owns it` names an owner. It doesn't
   declare an edge. Interactions with sibling elements are edges, and edges
@@ -342,7 +345,7 @@ both:
 
 | Tier | Contract | Composed unit |
 |------|----------|---------------|
-| **private** | inline in the container's Data section | a **component** — internal to one container, lockstep |
+| **private** | inline in the container's Data section | a **component** — internal to one container or module, lockstep |
 | **internal** | contract, marked internal | a **module**, `visibility: internal` — shared in-repo, unpublished |
 | **public** | contract, public | a **module**, `visibility: public` — published, consumers independent |
 
