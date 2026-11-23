@@ -16,19 +16,19 @@ status: active
 
 ## Contents
 
-The nine checks a Work Order must pass before dispatch:
+The checks a Work Order must pass before dispatch:
 
-1. Self-contained Problem statement (the fresh-agent test)
-2. Right size (single session)
-3. `## Design` present (non-trivial, non-epic orders)
-4. `## Acceptance` criteria (bugs & features)
-5. Kind-appropriate completeness (bug / feature / task / chore / epic)
-6. Dependencies wired
-7. Tier assigned (+ reason)
-8. C4 blast radius declared (if the repo uses C4)
-9. No open decisions
+- Self-contained Problem statement (the fresh-agent test)
+- Right size (single session)
+- `## Design` present (non-trivial, non-epic orders)
+- `## Acceptance` criteria (bugs & features)
+- Kind-appropriate completeness (bug / feature / task / chore / epic)
+- Dependencies wired
+- Tier assigned (+ reason)
+- C4 blast radius declared (if the repo uses C4)
+- No open decisions
 
-Then: what to do when a Work Order can't reach ready, and three worked
+Then: what to do when a Work Order can't reach ready, and worked
 under-groomed → ready examples.
 
 A Work Order is **ready** when a fresh agent with zero session context can
@@ -46,7 +46,7 @@ Each check maps onto the format in the `spec` skill's Work Order template.
 
 ## The checks
 
-### 1. Self-contained Problem statement (the fresh-agent test)
+### Self-contained Problem statement (the fresh-agent test)
 Read the `## Problem` section as if you just woke up in the repo with no chat
 history. Can you act on it? It SHALL name concrete anchors — file paths,
 function/class names, endpoints, tables, user-facing behavior — not point at a
@@ -68,7 +68,7 @@ The fix is to **inline the missing context**, not to delete the sentence. If
 the author wrote "finish the refactor from earlier," find out what that
 refactor is and write it down.
 
-### 2. Right size (single session)
+### Right size (single session)
 The Work Order should be completable in one focused session, with a rough
 ceiling of about 1 hour of agent work. The real test is whether you can write
 crisp, checkable acceptance criteria. If you can't, the scope is too fuzzy or
@@ -79,7 +79,7 @@ Orders**, each declaring `parent_slug`. Each child SHALL independently pass
 this whole checklist. Don't leave a boulder tagged as a single order just
 because splitting it takes work.
 
-### 3. `## Design` present (non-trivial, non-epic orders)
+### `## Design` present (non-trivial, non-epic orders)
 Anything past a one-liner needs a Design: the chosen approach, and the
 decisions that a time-pressured agent would otherwise re-litigate. The Design
 is mutable. It records the alternatives that were weighed and the one that was
@@ -91,10 +91,10 @@ is absent on the pinned version, loop the single-item call") is a chosen
 approach with a stated fallback, and it passes. A conditional whose resolution
 needs a judgment the order doesn't supply ("leaning toward X because Y; fall
 back to Z if that doesn't work out") is an open decision, and it fails both
-this check and check 9. An absent Design on a real feature or task is a sign
-that the order isn't groomed yet. Only an order of `kind: epic` omits it.
+this check and "No open decisions". An absent Design on a real feature or
+task is a sign that the order isn't groomed yet. Only an order of `kind: epic` omits it.
 
-### 4. `## Acceptance` criteria (`kind: bug` & `kind: feature`)
+### `## Acceptance` criteria (`kind: bug` & `kind: feature`)
 Acceptance criteria are outcome-focused, checkable, and
 implementation-agnostic. Describe the observable end state, not the steps.
 
@@ -120,7 +120,7 @@ the string, never as the handle.
 Where they disagree, one of them is wrong, and an implementing agent has no way
 to tell which. Resolve it here.
 
-### 5. Kind-appropriate completeness
+### Kind-appropriate completeness
 - **bug** — steps to reproduce, expected versus actual behavior, and where it
   manifests. A bug without a repro is a research task in disguise. Either add
   a repro or reclassify its `kind`.
@@ -131,27 +131,27 @@ to tell which. Resolve it here.
 - **epic** — a coherent goal plus the child Work Orders that cover it. The
   epic itself isn't directly executable.
 
-### 6. Dependencies wired
+### Dependencies wired
 Wire real edges only, each in the correct field (`depends_on` / `blocks`,
 `parent_slug`, `related`, `discovered_from`) and each referencing another Work
 Order by slug.
 Ordering SHALL live in the graph, not in prose or priority. A missing real edge
 is a race at dispatch time. A fabricated edge over-serializes.
 
-### 7. Tier assigned (+ reason)
+### Tier assigned (+ reason)
 Set `tier` from the closed, ordered set (`light | standard | advanced |
 frontier`, least to most capable). It's never null, and it always has a short
 `tier_reason`. Assign the lowest tier that can complete the order correctly. A
 named `model` is an optional override, not the routing field. See
 [[work-order-field-guide]] for the rubric and the project lineup mapping.
 
-### 8. C4 blast radius declared (if the repo uses C4)
+### C4 blast radius declared (if the repo uses C4)
 Declare `c4_changes`, `c4_impacts`, and `c4_docs`, using only component names
 that exist in the repo's C4 docs.
 Changed components SHALL get an acceptance box to update
 their C4 doc. Skip this check cleanly if the repo has no C4 docs.
 
-### 9. No open decisions
+### No open decisions
 The work order SHALL carry no unresolved choice. It fails this check when it
 carries a "DECISION REQUIRED," "TBD," or "open question" marker, or an options
 list with no option marked as selected.
@@ -162,8 +162,8 @@ all read. That's one label with tooling behind it, rather than a second label
 that carries the same signal with none.
 
 Where an open choice would change the order's observable behavior, it's an
-acceptance-criteria gap and fails check 4 as well. Pin the behavior in the AC,
-not in prose.
+acceptance-criteria gap and fails "`## Acceptance` criteria" as well. Pin the
+behavior in the AC, not in prose.
 
 A choice that a diff reader wouldn't recognize *as* a choice, such as an
 internal helper's name or the order of two independent guard clauses, isn't an

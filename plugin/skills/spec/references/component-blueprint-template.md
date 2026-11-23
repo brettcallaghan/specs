@@ -47,12 +47,12 @@ Sections (complete each, then delete its instruction block)
   - References
 
 Purpose
-  Document one COMPONENT: an internal building block of a SINGLE
-  container, with a defined interface and — as a leaf — no internal
-  components of its own. A component changes in lockstep with its
-  container: it is NOT vended or versioned independently. It is the unit
-  of change within a container. A module's internal components use this
-  template too; for them, read "host" as that module.
+  Document one COMPONENT: an internal building block of a SINGLE host,
+  with a defined interface and — as a leaf — no internal components of
+  its own. The host is the element whose Components roster declares it:
+  a container, or a module with internal components. A component changes
+  in lockstep with its host: it is NOT vended or versioned independently.
+  It is the unit of change within its host.
 
   WHEN a unit is shared or vended across containers on their own
   schedules (so versioning and compatibility become concerns), OR it has
@@ -62,7 +62,7 @@ Purpose
   `shared/c4-standards.md`.
 
 Reader profile (apply with the tech-writer skill)
-- Reader: an engineer or agent changing this component inside its container.
+- Reader: an engineer or agent changing this component inside its host.
 - Knows: the host container or module, not this component's internals.
 - Wants: its responsibilities, its interface, and the change guidance feature
   work must respect.
@@ -79,7 +79,7 @@ When to use — the trigger is the promotion predicate
   is a self-contained unit of work — a seam an agent can reason about
   locally — AND it can be documented so as to stand alone. A component
   that cannot be described context-independently should stay an entry
-  (with a record block) in its container's Components section, not
+  (with a record block) in its host's Components section, not
   become a blueprint.
 
   WHEN you promote an entry, lift its record block into this frontmatter,
@@ -87,7 +87,7 @@ When to use — the trigger is the promotion predicate
   the host with a link, as the host's template describes.
 
   kind:
-  standard — the default: an internal component of one container (a
+  standard — the default: an internal component of one host (a
              pricing calculator, a token verifier, a form validator).
   pattern  — a component type built repeatedly to the same design, where
              the blueprint governs how each new instance is built and is
@@ -100,7 +100,7 @@ When NOT to use
     module; use a module blueprint.
   - A component that cannot be described context-independently, or a
     trivial one (glue, a single helper, no defined interface) — an entry
-    with a record block in the container's Components section is enough.
+    with a record block in the host's Components section is enough.
   - A capability with runtime elements of its own (a service, a worker,
     a queue) — that is a container or system (container blueprint /
     system blueprint).

@@ -111,7 +111,7 @@ Grooming progress:
 - [ ] 0. Probed the `bd` CLI; loaded `bd prime` / remembered insights
 - [ ] 1. Scoped the grooming set; showed the user what will change
 - [ ] 2. Every bead driven to the spec-owned Definition of Ready
-  - [ ] 2a. No open decisions on any bead (DoR check 9)
+  - [ ] 2a. No open decisions on any bead (DoR "No open decisions")
   - [ ] 2b. Every bead reported ready / NOT-READY, including ones you changed nothing on
 - [ ] 3. Dependency graph wired (every edge justified, none fabricated)
 - [ ] 4. Tier + tier_reason on every bead (never null)
