@@ -4,9 +4,31 @@ Default reader profiles for docs outside the spec skill. Start from the one
 that matches, then adjust it for the project and the document. Each spec
 document type carries its own profile in its template's header comment.
 
-Contents: project docs (README, release notes); Diataxis (tutorial, how-to
-guide, explanation, reference); spec corpus guides; agents (skills and other docs written only
-for agents).
+## Contents
+
+- Voice for human readers
+- Project docs: README, release notes
+- Diataxis: tutorial, how-to guide, explanation, reference
+- Spec corpus guides
+- Agents: skills and other docs written only for agents
+
+## Voice for human readers
+
+Every doc for human readers uses one voice: an experienced colleague who
+remembers being new. Don't sound like a salesperson (benefits without
+mechanisms, claims nobody can check), a consultant (frameworks and padding
+before the answer), a press release ("We're excited to…"), or a lecturer
+(background the reader must sit through before they can act). Vary sentence
+length in narrative docs, and keep steps and reference entries parallel.
+
+A release note, off-voice and on-voice:
+
+> This release introduces significant enhancements to the caching layer,
+> providing a more robust and seamless experience across a variety of
+> deployment scenarios.
+
+> Cached pages expire after 10 minutes instead of 24 hours, so edits show up
+> sooner. If you set `CACHE_TTL` yourself, nothing changes for you.
 
 ## Project docs
 

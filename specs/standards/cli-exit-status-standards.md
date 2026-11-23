@@ -30,8 +30,9 @@ the caller somewhere different.
 
 ### The five statuses
 
-The CLI SHALL exit with one of the following statuses, and SHALL NOT
-exit with any other status of its own choosing.
+The CLI SHALL exit with one of the following statuses.
+
+The CLI SHALL NOT exit with any other status of its own choosing.
 
 | Status | Class | Who acts | Meaning |
 |---|---|---|---|
@@ -52,8 +53,10 @@ CI step written for any of them reads this one correctly. Statuses above
 
 ### A panic is an internal error, never a usage error
 
-The CLI SHALL recover a panic in any command and exit `4`, writing the
-panic's message to standard error.
+IF any command panics, THEN the CLI SHALL exit `4`.
+
+IF any command panics, THEN the CLI SHALL write the panic's message to
+standard error.
 
 **Rationale:** An unrecovered Go panic exits `2`, which this standard
 assigns to invocation errors. Without recovery, a crash reads as "you
@@ -64,8 +67,8 @@ reporting a bug. This is the trap the obvious numbering walks into.
 
 ### One status per run, by precedence
 
-IF a run meets the conditions of more than one non-zero class, the CLI
-SHALL exit with the class highest in the order `4`, `3`, `2`, `1`.
+IF a run meets the conditions of more than one non-zero class, THEN the
+CLI SHALL exit with the class highest in the order `4`, `3`, `2`, `1`.
 
 **Rationale:** The higher class makes the lower one unreliable. Findings
 from a run that also hit an environment error were produced against a
@@ -91,7 +94,7 @@ Every command is a **query** (it answers a question about the corpus) or
 a **gate** (it decides whether the corpus meets a bar). The two read the
 same facts and must report them through the status differently.
 
-| Kind | Commands today |
+| Kind | Commands |
 |---|---|
 | gate | `check` |
 | query | `list`, `refs`, `headings`, `feature`, `criterion`, `next-id`, `slug-exists`, `c4` |
@@ -118,7 +121,10 @@ status.
 WHEN a query names a subject that the corpus could hold but does not — a
 slug, a feature or criterion identifier, a feature code, a heading — the
 CLI SHALL render the empty answer with a property stating that the
-subject is not declared, and SHALL exit `0`.
+subject is not declared.
+
+WHEN a query names a subject that the corpus could hold but does not, the
+CLI SHALL exit `0`.
 
 **Rationale:** Whether `AC-SPEC-099.1` exists is a fact about this
 corpus today. It will exist once someone writes it. That's the same kind
@@ -131,10 +137,13 @@ of fact as an empty search, and it gets the same status.
 WHEN an argument names a value from a set the active profile or the CLI
 registers — a document type, a rule identifier, a tag qualifier — and
 the value is not in that set, the CLI SHALL report the value and every
-registered name on standard error and SHALL exit `2`.
+registered name on standard error.
 
-WHERE the same value is named by the configuration file rather than by
-an argument, the CLI SHALL exit `3`.
+WHEN an argument names a value outside a set the active profile or the
+CLI registers, the CLI SHALL exit `2`.
+
+IF the configuration file, rather than an argument, names a value outside
+a registered set, THEN the CLI SHALL exit `3`.
 
 **Rationale:** The line between this rule and the previous one is
 whether the corpus could ever make the value valid. No document an
@@ -152,8 +161,10 @@ profile is listed under `3`.
 ### A gate never passes on a question it could not ask
 
 WHEN a gate is given an operand it cannot act on — a path that is not a
-corpus member, a rule it cannot run — the CLI SHALL exit `2`, and SHALL
-NOT exit `0`.
+corpus member, a rule it cannot run — the CLI SHALL exit `2`.
+
+WHEN a gate is given an operand it cannot act on, the CLI SHALL NOT exit
+`0`.
 
 **Rationale:** The asymmetry with queries is deliberate. A query that
 can't find its subject has still answered. A gate that can't inspect its
@@ -165,8 +176,11 @@ edit.
 
 ### A gate fails only on what reaches its bar
 
-A gate SHALL exit `1` WHEN it raises at least one finding at a severity
-its bar fails, and SHALL exit `0` otherwise.
+WHEN a gate raises at least one finding at a severity its bar fails,
+the CLI SHALL exit `1`.
+
+WHEN a gate raises no finding at a severity its bar fails, the CLI SHALL
+exit `0`.
 
 Without `--strict`, the bar is `error`. Under `--strict`, the bar is
 every severity, `warning` and `unverified` included.
@@ -180,12 +194,14 @@ default bar would make every unverifiable diagram fail every hook.
 
 ### A producer succeeds when its artifact is written
 
-A producer SHALL exit `0` WHEN it wrote its artifact, including an
-artifact that records defects in the corpus it was built from.
+WHEN a producer writes its artifact, the CLI SHALL exit `0`, including
+for an artifact that records defects in the corpus it was built from.
 
-A producer SHALL exit `3` WHEN it cannot write its artifact to the
-destination named, and SHALL exit `4` WHEN it cannot encode the artifact
-from the corpus it read.
+IF a producer cannot write its artifact to the destination named, THEN
+the CLI SHALL exit `3`.
+
+IF a producer cannot encode its artifact from the corpus it read, THEN
+the CLI SHALL exit `4`.
 
 **Rationale:** An index of a corpus with broken links is a correct
 index, and AC-SPEC-002.5 already requires it to exit zero. Judging the
@@ -199,8 +215,10 @@ corpus's fault: a corpus missing a required property is a finding for
 
 WHERE a query offers a caller the option to fail on a non-empty answer,
 the CLI SHALL expose it as a flag named `--exit-code`, under which a
-non-empty answer exits `1`, and SHALL NOT change the query's default
-status.
+non-empty answer exits `1`.
+
+WHERE a query offers `--exit-code`, the CLI SHALL NOT change the query's
+default status.
 
 **Rationale:** "Fail the build if any criterion changed" is a reasonable
 CI step, and `git diff --exit-code` is the convention callers already
@@ -213,8 +231,11 @@ intact instead of growing a per-command exception.
 
 ### A failed invocation answers nothing
 
-IF a run exits `2`, `3` or `4`, the CLI SHALL write nothing to standard
-output, and SHALL write the reason to standard error.
+IF a run exits `2`, `3` or `4`, THEN the CLI SHALL write nothing to
+standard output.
+
+IF a run exits `2`, `3` or `4`, THEN the CLI SHALL write the reason to
+standard error.
 
 **Rationale:** A caller that captures standard output and parses it must
 never parse half an answer. The exception is status `1`, whose findings
@@ -225,9 +246,11 @@ never parse half an answer. The exception is status `1`, whose findings
 
 ### The reason names the class
 
-WHEN the CLI exits non-zero, the message on standard error SHALL begin
-with the offending value or condition, and SHOULD say what the caller
-can change.
+WHEN the CLI exits non-zero, the CLI SHALL begin the message on standard
+error with the offending value or condition.
+
+WHEN the CLI exits non-zero, the message on standard error SHOULD say
+what the caller can change.
 
 **Rationale:** The status says who acts, and the message says what to
 do. "no specs.toml found at specs.toml" tells the maintainer the file is

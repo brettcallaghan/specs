@@ -117,8 +117,8 @@ Status vocabulary
 This is a living document — update it when the container changes. Remove
 all HTML comment blocks after completing each section. WHILE status is
 draft, the Open questions section MAY contain open questions or the
-literal text "None."; remove the section when the document becomes
-active.
+literal text "None."; remove the section when the document leaves
+draft.
 -->
 
 # <Container Name>
@@ -320,24 +320,28 @@ How the container is built to stay sound as it changes.
 The style its components follow and the patterns between them, for example
 Ports and Adapters: which components are the core, and which adapt it to
 I/O. Draw on the universal guide and the containers guide. Name each
-pattern with its progenitor, the roles its components play, and the
-present need it serves. State what it rules out as an invariant
+pattern with one progenitor and its topic, the roles its components play,
+and the present need it serves. State what it rules out as an invariant
 ("Name each pattern with its progenitor, constraint, and need"). Also name
 entries from the components guide that all of the container's code
 follows.
 -->
 
-<Style or pattern> (<progenitor>) — <the roles its components play>;
-<the present need it serves>.
+<Style or pattern> (<progenitor>, <topic>) — <the roles its components
+play>; <the present need it serves>.
 
 ### Invariants
 
 <!--
 EARS statements that hold across the container, each ending "Enforced by:
 <test, check, lint, or review only>" ("Say what enforces each invariant").
+Where a statement needs a reason, put "Rationale:" between the statement
+and "Enforced by:" ("Keep a statement and its reasons together").
 -->
 
 The container SHALL <invariant that holds across the container>.
+Rationale: <why the rule exists, only where a reader would otherwise
+misapply or remove it>.
 Enforced by: <test, check, lint, or review only>.
 
 ### Extension points

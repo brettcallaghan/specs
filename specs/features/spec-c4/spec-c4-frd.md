@@ -10,7 +10,7 @@ status: approved
 sources: []
 ---
 
-# C4 Model
+# C4 model
 
 ## Overview
 
@@ -31,9 +31,8 @@ that carries the document and line where each was drawn.
 
 The command is a projection of the index. The index says which documents are
 architecture blueprints and where each record block sits. The command reads
-back only what the index points at: it reads each record block through its
-span and decodes it into the element record's Go type, and it parses the
-Mermaid C4 diagrams per [[adr-029]].
+back only what the index points at: the record blocks it locates, and the
+Mermaid C4 diagrams, which it reads per [[adr-029]].
 
 The diagram parser and node resolution belong to [[frd-spec-c4-diagrams]],
 which also checks diagrams for conformance. This feature depends on that one
@@ -267,7 +266,7 @@ Feature: Relationships From Blueprint Diagrams
 
     Examples:
       | condition                                           | reason            |
-      | an endpoint is an external node                     | external_endpoint |
+      | an endpoint is an external C4 element               | external_endpoint |
       | an endpoint is a passive store                      | passive_store     |
       | an endpoint's label matches no element in scope     | undeclared_node   |
       | an endpoint's label matches two elements in scope   | ambiguous_node    |
@@ -351,8 +350,8 @@ Feature: Output
   I want a versioned, deterministic artifact in the format my consumer reads
   So that a diff of two runs shows a change in the architecture and nothing else
 
-  The artifact's shape is declared once in Strata and emitted as JSON Schema,
-  so a consumer validates against the same definition the CLI emits from.
+  The artifact's shape is declared once and emitted as JSON Schema, so a
+  consumer validates against the same definition the CLI emits from.
   Emitting the model never fails on corpus content: what cannot be placed is
   reported in the artifact, and judging it is the diagram checks' job.
 
@@ -361,8 +360,8 @@ Feature: Output
 
   Under --root the model keeps its shape. The root's ancestors appear only
   as the path down to it, holding no other children, and an excluded
-  relationship
-  is kept when its statement sits in a document inside the subtree. A root
+  relationship is kept when its statement sits in a document inside the
+  subtree. A root
   naming no element is a fact about the corpus, not a failed invocation, so
   it is answered with an empty model that says the root is not declared.
 

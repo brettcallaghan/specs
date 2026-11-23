@@ -2519,7 +2519,7 @@ func (v *FindingRetiredTarget) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// One half of a paired relationship the counterpart does not declare.
+// One half of a paired reference the counterpart does not declare.
 //
 // Reported against both documents, each carrying this same detail, so that
 // checking either one surfaces the half-built edge and the two copies
@@ -8162,7 +8162,7 @@ const (
 	RuleIdReferenceAmbiguousAnchor RuleId = "reference/ambiguous-anchor"
 	// Warning. A live document cites a retired one. The finding quotes the target's `superseded_by`, which is what to cite instead.
 	RuleIdReferenceRetiredTarget RuleId = "reference/retired-target"
-	// Error. A paired relationship is declared from one end, and the target doesn't declare the counterpart.
+	// Error. A paired reference is declared from one end, and the target doesn't declare the counterpart.
 	RuleIdReferencePairingIncomplete RuleId = "reference/pairing-incomplete"
 	// Error. A typed reference resolves to a document of a different `type`, such as a Feature Blueprint's `frd` naming something that isn't an FRD.
 	RuleIdReferenceTypeMismatch RuleId = "reference/type-mismatch"
@@ -8200,7 +8200,7 @@ const (
 	RuleIdGherkinExamplesPartiallyTagged RuleId = "gherkin/examples-partially-tagged"
 	// Error when a C4 diagram statement is outside the subset the parser reads. Unverified when a `mermaid` block's diagram type isn't read at all, such as `C4Dynamic`.
 	RuleIdC4Parse RuleId = "c4/parse"
-	// Error. A non-external node resolves to no element in its document's scope and isn't a passive store.
+	// Error. A node that isn't an external C4 element resolves to no C4 element in its document's scope and isn't a passive store.
 	RuleIdC4UndeclaredNode RuleId = "c4/undeclared-node"
 	// Error. A node's label matches the entity names of more than one element in scope. The finding names each.
 	RuleIdC4AmbiguousNode RuleId = "c4/ambiguous-node"

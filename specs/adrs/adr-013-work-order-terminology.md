@@ -1,6 +1,7 @@
 ---
 title: "ADR-013: Work Order as the Name for the Atomic Unit of Executable Work"
-description: The portable unit is a work order and its beads materialization is a bead; "work item" and "task" are retired as synonyms
+description: The portable unit is a work order and its beads materialization is
+  a bead; "work item" and "task" are retired as synonyms
 slug: adr-013
 type: adr
 status: ready-for-review
@@ -8,7 +9,7 @@ status: ready-for-review
 
 # ADR-013: Work Order as the name for the atomic unit of executable work
 
-**Status:** ready-for-review
+**Status:** ready-for-review  
 **Date:** 2026-07-30
 
 ## Context
@@ -44,10 +45,10 @@ the more familiar SDLC word **task**.
 
 ## Decision
 
-The portable unit is a **work order**. Its Beads materialization is a
-**bead**. "Work item" is retired. "Task" is reserved for its existing
-meaning as a value of the `kind` / `type` enum and is never used for the
-container.
+We will call the portable unit a **work order** and its Beads
+materialization a **bead**. We will retire "work item", and reserve "task"
+for its existing meaning as a value of the `kind` / `type` enum, never for
+the container.
 
 ## Alternatives considered
 
@@ -82,7 +83,6 @@ subagents.
 - Two words take longer to type and read than "task" would.
 - Newcomers meet an unfamiliar term of art. The on-ramp documentation
   mitigates this by defining it once, up front.
-- A rename cost was paid across `groom-feature-blueprint` and `retro-spec`.
 
 ## References
 

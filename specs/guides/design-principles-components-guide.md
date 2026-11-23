@@ -17,22 +17,23 @@ Use these entries with the universal guide, [[guide-design-principles]],
 which explains
 how to choose and name patterns and notes that these lists are incomplete.
 
-| Entry | Progenitors | Questions it answers |
+| Entry | Progenitor | Questions it answers |
 |-------|-------------|----------------------|
-| Liskov Substitution | Liskov (1987); Liskov and Wing (1994) | Can every implementation stand in for the abstraction with no surprises? |
-| Program to an Interface | Gamma et al., *Design Patterns* (1994) | Does code depend on what a collaborator does, not on its concrete type? |
-| Composition over Inheritance | Gamma et al. (1994) | Is behavior built from small parts rather than a class hierarchy? |
-| Command-Query Separation | Meyer (1988) | Does every operation that only reads leave state unchanged? |
+| Liskov Substitution | Liskov and Wing, "A Behavioral Notion of Subtyping" (1994) | Can every implementation stand in for the abstraction with no surprises? |
+| Program to an Interface | Gamma et al., *Design Patterns* (1994), "Program to an interface, not an implementation" | Does code depend on what a collaborator does, not on its concrete type? |
+| Composition over Inheritance | Gamma et al., *Design Patterns* (1994), "Favor object composition over class inheritance" | Is behavior built from small parts rather than a class hierarchy? |
+| Command-Query Separation | Meyer, *Object-Oriented Software Construction* (1988), Command-Query Separation | Does every operation that only reads leave state unchanged? |
 | Make Illegal States Unrepresentable | Minsky, "Effective ML" (2010) | Can the types construct an invalid combination? |
-| Immutability by Default | Bloch, *Effective Java* (2001); Hickey, "Are We There Yet?" (2009) | Which values can change after creation, and why? |
-| Strategy | Gamma et al. (1994) | How is an algorithm or policy swapped without editing its caller? |
-| Decorator | Gamma et al. (1994) | How is behavior added around an implementation without changing it? |
-| Adapter | Gamma et al. (1994) | How does code use an interface that doesn't match the one it expects? |
-| Factory | Gamma et al. (1994) | Which code decides the concrete type to create, so callers don't? |
-| Observer | Gamma et al. (1994) | How are dependents told of a change without the subject knowing them? |
-| Command | Gamma et al. (1994) | Should a request be data that can be queued, logged, retried, or undone? |
-| State and Typestate | Gamma et al. (1994); Strom and Yemini (1986) | How does behavior change with state, and can illegal transitions be ruled out by type? |
-| Entity, Value Object, Aggregate | Evans, *Domain-Driven Design* (2003) | Which types have identity, which are values, and which object guards each invariant? |
+| Immutability by Default | Bloch, *Effective Java* (2001), "Favor immutability" | Which values can change after creation, and why? |
+| Strategy | Gamma et al., *Design Patterns* (1994), Strategy | How is an algorithm or policy swapped without editing its caller? |
+| Decorator | Gamma et al., *Design Patterns* (1994), Decorator | How is behavior added around an implementation without changing it? |
+| Adapter | Gamma et al., *Design Patterns* (1994), Adapter | How does code use an interface that doesn't match the one it expects? |
+| Factory | Gamma et al., *Design Patterns* (1994), Factory Method and Abstract Factory | Which code decides the concrete type to create, so callers don't? |
+| Observer | Gamma et al., *Design Patterns* (1994), Observer | How are dependents told of a change without the subject knowing them? |
+| Command | Gamma et al., *Design Patterns* (1994), Command | Should a request be data that can be queued, logged, retried, or undone? |
+| State | Gamma et al., *Design Patterns* (1994), State | How does behavior change with state? |
+| Typestate | Strom and Yemini, "Typestate" (1986) | Can illegal state transitions be ruled out by type? |
+| Entity, Value Object, Aggregate | Evans, *Domain-Driven Design* (2003), Entities, Value Objects, and Aggregates | Which types have identity, which are values, and which object guards each invariant? |
 
 ## References
 

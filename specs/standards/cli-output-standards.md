@@ -17,8 +17,8 @@ surface, not to any one subcommand.
 
 **The reader is an agent that knows which command it ran and nothing
 else.** It isn't the command's author or someone holding this document.
-The skills over this CLI are being shrunk toward "run the command and
-read the output." That's safe only where the output needs no key.
+The skills over this CLI tell an agent to run the command and read the
+output, which is safe only where the output needs no key.
 
 **The method is to stop inventing a format.** Structured output is YAML,
 so a reader who has met YAML once can read it, and a consumer already has
@@ -38,8 +38,11 @@ A command specified after this document SHALL conform from the start.
 Every command SHALL answer with structured output, except where its
 answer is a document payload as defined below.
 
-WHERE a command's answer is structured, the CLI SHALL render it as YAML,
-and SHALL render it as JSON when `--json` is passed.
+WHERE a command's answer is structured, the CLI SHALL render it as YAML
+by default.
+
+WHEN `--json` is passed, the CLI SHALL render a structured answer as
+JSON.
 
 **Rationale:** Two renderings, one flag, and no third form. YAML is the
 default because a human and an agent both read it without a schema. It's
@@ -94,8 +97,10 @@ by name is an answer.
 ### An artifact is not an answer
 
 WHERE a command writes an artifact whose format another document
-specifies, that format SHALL govern the artifact, and these standards
-SHALL govern only what the command prints about it.
+specifies, that format SHALL govern the artifact.
+
+WHERE a command writes such an artifact, these standards SHALL govern
+only what the command prints about it.
 
 **Rationale:** The index is JSON because [[frd-spec-index]] says so, and
 consumers parse it as JSON. That includes when `--out -` sends it to
@@ -110,8 +115,10 @@ answer and follows the rules above.
 ### The answer is the properties the command established
 
 A command's answer SHALL be a YAML mapping whose keys are the properties
-the command established and whose values are those properties' values,
-and SHALL contain nothing else.
+the command established and whose values are those properties' values.
+
+A command's answer SHALL NOT contain anything other than those
+properties.
 
 **Rationale:** "Nothing else" is doing the work. There's no header naming
 the command, because the caller typed it. There's no count of what
@@ -119,6 +126,8 @@ follows, because the reader can see the collection. There's no summary,
 because a summary of a mapping in view is a second copy of it. There's no
 outcome line, because the exit status carries the outcome, and a process
 that prints its own exit status tells the caller what they already hold.
+
+---
 
 WHERE a count is a property the run established rather than a
 restatement of a collection the answer renders, the answer MAY carry it.
@@ -166,21 +175,28 @@ which.
 
 ### An empty answer is an answer
 
-WHERE a query matches nothing, the CLI SHALL render the empty collection
-and SHALL exit `0`, as [[cli-exit-status-standards]] requires of every
-query that answered.
+WHEN a query matches nothing, the CLI SHALL render the empty collection.
+
+WHEN a query matches nothing, the CLI SHALL exit `0`, as
+[[cli-exit-status-standards]] requires of every query that answered.
 
 **Rationale:** Nothing found is a fact about the corpus, not a failure of
 the invocation. Exiting non-zero would make a caller branch on the shape
 of the world instead of on whether the command worked.
 
+---
+
 ### A malformed question is not an empty answer
 
-WHERE an argument names a value from a registered set (a rule
+WHEN an argument names a value from a registered set (a rule
 identifier, a document type, a tag qualifier) and the value is not in
-that set, the CLI SHALL report the value and every registered name,
-SHALL NOT render an answer, and SHALL exit `2`, the invocation-error
-status of [[cli-exit-status-standards]].
+that set, the CLI SHALL report the value and every registered name.
+
+WHEN an argument names a value outside a registered set, the CLI SHALL
+NOT render an answer.
+
+WHEN an argument names a value outside a registered set, the CLI SHALL
+exit `2`, the invocation-error status of [[cli-exit-status-standards]].
 
 **Rationale:** An unregistered value is a fact about the invocation, not
 about the corpus. Answered as an empty collection or a clean report, a
@@ -191,8 +207,10 @@ passes a misspelled rule name to `check --only` passes forever.
 
 ### Order is the command's, and it is stable
 
-Properties SHALL appear in the order the command established them, and a
-collection SHALL appear in the order the command reports it.
+The CLI SHALL render properties in the order the command established
+them.
+
+The CLI SHALL render a collection in the order the command reports it.
 
 **Rationale:** There's one ordering, chosen by the command, so two runs
 over unchanged state produce byte-identical output, and a diff of two
@@ -205,9 +223,12 @@ from the index to everything the surface prints.
 
 A command SHALL render every value it reports in full.
 
-A command SHALL NOT truncate a value, SHALL NOT elide one behind a
-description of it, and SHALL NOT answer with an instruction to run the
-same command again differently.
+A command SHALL NOT truncate a value.
+
+A command SHALL NOT elide a value behind a description of it.
+
+A command SHALL NOT answer with an instruction to run the same command
+again differently.
 
 **Rationale:** Agents read long documents. A line budget protects a
 terminal width that nobody is looking at. Worse, every form of
@@ -223,8 +244,10 @@ WHERE a command offers a named view — a documented subset of the fields
 its answer carries, selected by a flag or, where the command's
 specification makes it the default, deselected by `--full` — the view
 SHALL render every field it selects in full, for every record the full
-answer holds, and the command's specification or these standards SHALL
-list the fields it keeps.
+answer holds.
+
+WHERE a command offers a named view, the command's specification or
+these standards SHALL list the fields the view keeps.
 
 A named view SHALL NOT be selected by `--json`, which changes only the
 syntax of whichever view is rendered.
@@ -330,8 +353,10 @@ rendered as in the full answer.
 ---
 
 WHERE a command's design says its output belongs in a file, the command
-SHALL write the file and report a property whose name ends `_path` and
-whose value is that file's path.
+SHALL write the file.
+
+WHERE a command writes its output to a file, the command SHALL report a
+property whose name ends `_path` and whose value is that file's path.
 
 **Rationale:** Writing to a file is a per-command design decision,
 taken when the command is specified, and never a threshold that engages
@@ -352,7 +377,9 @@ level, with a sequence indented one level under the key introducing it.
 
 ---
 
-An empty sequence SHALL be rendered `[]` and an empty mapping `{}`.
+The CLI SHALL render an empty sequence as `[]`.
+
+The CLI SHALL render an empty mapping as `{}`.
 
 **Rationale:** This is the one exception to block style, and it's
 forced. A block rendering of an empty collection is a key with nothing
@@ -362,9 +389,12 @@ couldn't tell "nothing is missing" from "nobody looked."
 
 ---
 
-A multi-line string SHALL be trimmed of leading and trailing whitespace
-and rendered as a block scalar. Whitespace inside the value SHALL NOT be
-touched.
+The CLI SHALL trim a multi-line string of leading and trailing
+whitespace.
+
+The CLI SHALL render a multi-line string as a block scalar.
+
+The CLI SHALL NOT alter whitespace inside a multi-line string.
 
 **Rationale:** The block scalar is the whole reason for choosing YAML:
 the value appears as itself, on its own lines. Trimming is what keeps the
@@ -375,7 +405,7 @@ Whitespace inside the value is content and is left alone.
 
 ---
 
-WHERE a block scalar cannot carry a multi-line string faithfully, the
+IF a block scalar cannot carry a multi-line string faithfully, THEN the
 CLI SHALL double-quote it instead. It cannot when the value carries a
 control character other than a line break or a tab.
 
@@ -386,8 +416,10 @@ shorter than it went in.
 
 ---
 
-A string SHALL be rendered plain where it round-trips plain, and
-double-quoted otherwise. It does not round-trip plain when it is empty,
+IF a string round-trips plain, THEN the CLI SHALL render it plain.
+
+IF a string does not round-trip plain, THEN the CLI SHALL render it
+double-quoted. It does not round-trip plain when it is empty,
 has leading or trailing whitespace, begins with a YAML indicator
 character, contains a control character, contains `: ` or ` #`, ends
 with `:`, or reads as a number, a boolean or a null.
@@ -400,8 +432,8 @@ had to be.
 
 ---
 
-Values SHALL be rendered as their own types: a number unquoted, a boolean
-as `true` or `false`, an absent value as `null`.
+The CLI SHALL render each value as its own type: a number unquoted, a
+boolean as `true` or `false`, an absent value as `null`.
 
 ---
 

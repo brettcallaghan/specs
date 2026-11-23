@@ -1,6 +1,7 @@
 ---
 title: "ADR-004: Introduce a Module Blueprint; Component as the Atomic Leaf"
-description: Split the component blueprint into an atomic component type and a new module type
+description: Split the component blueprint into an atomic component type and a
+  new module type
 slug: adr-004
 type: adr
 status: active

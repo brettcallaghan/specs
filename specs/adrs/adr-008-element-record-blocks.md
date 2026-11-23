@@ -1,6 +1,7 @@
 ---
 title: "ADR-008: Machine-Readable Element Record Blocks with a Two-Schema Model"
-description: Un-promoted elements carry a fenced record block validated by the same base schema a promoted document's frontmatter satisfies
+description: Un-promoted elements carry a fenced record block validated by the
+  same base schema a promoted document's frontmatter satisfies
 slug: adr-008
 type: adr
 status: active

@@ -75,7 +75,7 @@ an element's contract edges. The index carries both:
   |---|---|
   | Element node | `System`, `Container`, `Component`, and their `Db` and `Queue` forms |
   | Passive store | a `Db` or `Queue` node that names no element in scope — a data store the drawing element uses, which [[c4-standards]] gives no blueprint |
-  | External node | `Person`, and every `_Ext` form |
+  | External C4 element | `Person`, and every `_Ext` form |
   | Boundary | `Boundary`, `Enterprise_Boundary`, `System_Boundary`, `Container_Boundary` — groups nodes and is not itself a node |
   | Relationship | `Rel`; `Rel_U`, `Rel_Up`, `Rel_D`, `Rel_Down`, `Rel_L`, `Rel_Left`, `Rel_R`, `Rel_Right`; `Rel_Back`; `BiRel` |
   | Ignored | `title`, `UpdateElementStyle`, `UpdateRelStyle`, `UpdateLayoutConfig` |
@@ -147,8 +147,8 @@ Feature: Node Resolution
 
   A node resolves by entity name, only among the elements in the scope of
   its drawing document. Scoping is what lets two containers each hold a
-  component named Parser. External nodes and passive stores are not
-  elements and are never reported as undeclared.
+  component named Parser. External C4 elements and passive stores are
+  not declared elements and are never reported as undeclared.
 
   @AC-C4-DIAG-002.1
   Scenario: A node resolves to the element whose entity name it carries
@@ -177,7 +177,7 @@ Feature: Node Resolution
     Then the report holds a c4/ambiguous-node finding of severity error at that node's span, naming both elements
 
   @AC-C4-DIAG-002.5 @negative
-  Scenario Outline: External nodes and passive stores are not undeclared
+  Scenario Outline: External C4 elements and passive stores are not undeclared
     Given a C4 diagram whose "<node>" names no element in scope
     When the user runs specs check on that document
     Then the report holds no c4/undeclared-node finding for that node

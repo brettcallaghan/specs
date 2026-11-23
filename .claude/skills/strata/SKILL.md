@@ -213,15 +213,17 @@ overlay can override one nested field without restating its siblings.
 ```json
 {
   "packageName": "Demo",
-  "jsonSchema": { "schemaVersion": "OpenAi", "root": "Answer" }
+  "root": "Answer",
+  "jsonSchema": { "version": "OpenAi" }
 }
 ```
 
 Defaults are opinionated and worth checking per field rather than
 assuming — `skipNullSerialization` is `true`,
-`typescript.generateValidation` is `true`, `go.optionalStyle` is
-`Pointer`, and `go.generateValidation` does **not** match its TypeScript
-namesake. A manifest that fails schema validation fails the build with
+`typescript.generateValidation` is `true`, `generateInterfaces` is `true`
+(Go output gains a `GetX()` interface per struct), and `layout` is
+`mirror` (one output file per source file), or `single-file` when `root`
+is set. Pass `--layout single-file` for one bundled file. A manifest that fails schema validation fails the build with
 the manifest path and the offending property named — including manifests
 reached through the dependency closure.
 
@@ -259,7 +261,7 @@ just work. If it does not, install it by hand — it needs
 `STRATA_ACCESS_TOKEN` while `strata-lang/strata` is private:
 
 ```bash
-scripts/install-strata-cli.sh          # latest release; or pass a tag, e.g. v0.8.0
+scripts/install-strata-cli.sh          # latest release; or pass a tag, e.g. v0.9.0
 ```
 
 Without the binary this skill is guesswork — the loop above is the whole

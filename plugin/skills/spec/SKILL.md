@@ -187,10 +187,8 @@ specs.
    | Two or more | `systems/<system-name>/containers/<container-name>/` |
 
    ADRs, standards, guides and contracts get one flat top-level home
-   each, never a copy under the level they govern — two directories
-   that could each correctly receive a new standard destroy its claim
-   to be the single place a rule is recorded. A contract is never
-   filed under a provider: it outlives, and may precede, the
+   each, never a copy under the level they govern, so each has one place
+   to look. A contract is never filed under a provider: it outlives the
    implementations that realize it.
 
    WHEN the project has an established location for a type, follow it;
@@ -243,8 +241,15 @@ specs.
    including reading the whole index when you need many documents'
    metadata at once.
 5. **Treat specs as living documents.** Update them when requirements
-   change, new information arrives, or errors are found — and update
-   `status` when you do.
+   change, new information arrives, or errors are found.
+
+   **To revise an existing document**, load its template and apply the
+   `tech-writer` skill's Revising rules. An evidence or scope clause
+   states what is true now, so it is not history: keep it. A revision
+   that changes what an `approved` or `active` document requires returns
+   it to `ready-for-review`; a wording-only revision keeps its status. To
+   revise many documents at once, follow
+   `references/copy-edit-workflow.md`.
 
    **Before retiring or renaming a document, run `specs refs <slug>`.**
    It lists every document that cites this one, at the line of each

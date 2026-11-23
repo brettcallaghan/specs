@@ -1,6 +1,7 @@
 ---
 title: "ADR-006: Model Visibility and Kind as Orthogonal Frontmatter Signals"
-description: Record a module's publication tier and its pattern-ness as separate frontmatter fields, not one overloaded kind
+description: Record a module's publication tier and its pattern-ness as separate
+  frontmatter fields, not one overloaded kind
 slug: adr-006
 type: adr
 status: active

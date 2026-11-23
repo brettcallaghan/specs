@@ -38,15 +38,14 @@ over prose.
 - **Executing scenarios.** Nothing here runs a scenario against a system
   under test. These are specification records. No runner is adopted, and
   the `@level-*` tag records intent rather than driving execution.
-- **Migrating existing criteria.** Rewriting the prose criteria in
-  existing FRDs is separate work, tracked on its own. It's a translation,
-  not a compatibility problem: extraction reads Gherkin only ([[adr-021]]
-  constraint 9), so until a document is translated, it contributes no
-  feature records rather than being read a second way.
+- **Migrating prose criteria.** Translating a document's prose criteria
+  into Gherkin is authoring work, not a compatibility problem: extraction
+  reads Gherkin only ([[adr-021]] constraint 9), so a document with prose
+  criteria contributes no feature records rather than being read a
+  second way.
 - **Reading prose criteria.** No extractor recognizes a prose criterion.
-  A second reader is transitional machinery for a transition of three
-  documents, and it would outlive the transition in the model and in
-  every consumer.
+  A second reader would be transitional machinery that outlives any
+  transition, in the model and in every consumer.
 - **Judging criterion quality.** Whether a criterion is atomic,
   testable, or well-phrased stays with a reviewing agent. This feature
   reports structural defects only.
@@ -361,10 +360,10 @@ Feature: Feature Identity and Grouping
 *Rationale:* a feature's code isn't unique, and a feature has no
 separate slug. The corpus shows why a unique code would be wrong:
 `AC-SPEC-001.1` through `AC-SPEC-011.7` share the code `SPEC` across
-every requirement of the spec-index feature. A code groups, and a code and a number together
-identify. A feature has no separate slug because the identifier already is
-the durable address, and a second one would be a second thing to keep in
-step.
+every requirement of the spec-index feature. A code groups, and a code and
+a number together identify. A feature has no separate slug because the
+identifier already is the durable address, and a second one would be a
+second thing to keep in step.
 
 ### FEAT-GHK-004: References Inside Gherkin
 
@@ -378,9 +377,9 @@ Feature: References Inside Gherkin
   I want a wikilink inside Gherkin to count as a reference
   So that a feature cannot cite a document the index does not know about
 
-  Gherkin never sees a wikilink. Measured: `[[adr-012]]` parses as
-  ordinary text in a feature description, a scenario name, a step, a rule
-  name and an examples cell, and raises nothing anywhere. That makes the
+  Gherkin never sees a wikilink. Measured: a wikilink parses as ordinary
+  text in a feature description, a scenario name, a step, a rule name and
+  an examples cell, and raises nothing anywhere. That makes the
   question purely this framework's, and the answer is that a reference is
   a reference wherever it is written.
 
@@ -506,9 +505,9 @@ Feature: Feature and Criterion Records
 *Rationale:* a criterion isn't decomposed into typed steps and keyed
 example rows, although a parsed notation does yield fields where prose
 yields one string. No requirement in this document consumes those fields,
-and they can be filled from Gherkin alone. Carrying them would put a Gherkin-shaped
-model at the center of a framework that treats the notation as
-replaceable. The index schema is additive, so decomposition can be
+and they can be filled from Gherkin alone. Carrying them would put a
+Gherkin-shaped model at the center of a framework that treats the notation
+as replaceable. The index schema is additive, so decomposition can be
 introduced when a consumer needs it, but it couldn't be withdrawn later.
 
 ### FEAT-GHK-006: Validation and Diagnostics
@@ -761,9 +760,6 @@ Feature: Local Change Detection
   it exits 0 whatever it lists, unless the caller opts into failing on a
   non-empty answer with --exit-code.
 
-  This requirement is the lowest priority in this document and may be
-  delivered after the others.
-
   @AC-GHK-008.1
   Scenario: Criteria whose content changed are listed
     Given a base revision of the repository
@@ -960,9 +956,9 @@ Feature: Publication
   Emission is what makes the fenced form the default rather than a
   compromise: a feature authored inside an FRD is still publishable.
 
-  Extraction reads Gherkin only. The documents still carrying prose
-  criteria are translated rather than read by a second extractor, so
-  nothing here is a compatibility mode ([[adr-021]] constraint 9).
+  Extraction reads Gherkin only. A document carrying prose criteria is
+  translated rather than read by a second extractor, so nothing here is
+  a compatibility mode ([[adr-021]] constraint 9).
 
   @AC-GHK-009.1
   Scenario: A conforming feature file is emitted for a feature

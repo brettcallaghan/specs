@@ -8,260 +8,238 @@ description: Drafts, revises, and audits technical documentation in the project'
 Use the Google developer documentation style guide
 (developers.google.com/style), unless the project names another style guide,
 for example in a line of `AGENTS.md` or `CLAUDE.md`. Then use that one. This
-file holds only what the style guide lacks.
+file holds only what the style guide lacks. Don't apply it to marketing,
+legal, academic, fictional, or personal writing unless the user asks.
 
-**Precedence:** the user's explicit request and the destination's requirements
-win. Then source facts, quotations, and technical tokens, which no rule may
-change. Then this file, then the style guide.
+**Precedence:** the user's explicit request and the destination's
+requirements win. Then source facts, quotations, and technical tokens, which
+no rule may change. Then this file, then the style guide.
 
-**This skill's style is the style.** Apply the style guide and this file in
-full. The only project input you keep is terminology: the names the project
-uses for its concepts. Don't copy the existing document's habits, such as
-heading case, dashes, contractions, comma use, emphasis, spelling, or voice.
+Apply the style guide and this file in full. From the existing document, keep
+only its terminology. Don't copy its habits, such as heading case, dashes,
+contractions, comma use, emphasis, spelling, or voice. A line is finished when
+it follows every rule here, not when it matches the rest of the document.
+Stop when every line is finished.
 
-A line is finished only when it follows every rule here. Matching the rest of
-the document doesn't count.
+## Accuracy
 
-## Accuracy and cross-links
+Every code example and command must run as written. Every API, flag, path,
+and default must match the source. When unsure, read the source again or run
+the command. Don't guess.
 
-- **Accuracy is non-negotiable.** Every code example and command must run as
-  written. Every API, flag, path, and default you describe must match the
-  source. If you're unsure of a detail, read the source again or run the
-  command. Don't guess. If you still can't confirm it, leave the text as it
-  is and report a finding (see Scope and defaults).
-- **Cross-links.** When you draft a document that names another document,
-  link it. Use a `[[slug]]` wikilink for a document in the spec corpus. For
-  anything else, use a relative Markdown link or backticked path, following
-  the project's citation conventions. When you revise, report an unlinked
-  mention as a finding instead of adding a link.
+When you find a content problem, such as a contradiction, a stale claim, or a
+path that doesn't exist, verify it against the source and fix it with the
+smallest accurate change. Report it as a finding, with its `file:line` and a
+quote, only when you can't confirm what is true or the fix would change a
+decision. Never leave a marker in the document.
 
-## Scope and defaults
+## Terminology
 
-- Applies to READMEs, release notes and changelogs, docs-site pages, help-center content, UI copy, specs written for human review, and skills and other docs written only for agents.
-- Don't apply it to marketing, legal, academic, fictional, or personal writing unless the user asks for this style.
-- When you revise a file in place, change prose only. Leave code blocks, inline code, commands, paths, config keys, link targets, and front matter untouched.
-- Also leave these untouched:
-  - API, function, flag, and setting names
-  - Error messages and log output quoted verbatim
-  - Version numbers, dates, and numeric limits
-  - Requirement statements in specs (EARS, Gherkin, "the system shall"), including whole Gherkin blocks. Their punctuation is part of their wording, dashes included.
-  - RFC 2119 keywords (MUST, SHOULD, MAY, SHALL, SHALL NOT) and their exact meaning
-  - Wikilinks (`[[slug]]`, `[[slug#heading]]`) and identifiers such as AC and FEAT ids
-  - Element record blocks
-  - In an existing document, the words and punctuation of a heading, because other documents link to it. Change a heading's case freely when links match headings without regard to case, as they do in the spec corpus. Reword a heading only when you update every link to it in the same pass. A heading that names an element (it has a record block or an `entity_name`) or repeats a Gherkin `Feature:` name keeps its case too. Headings in a new document follow every rule here.
-  - Examples marked or quoted as wrong, such as an anti-pattern or a ❌ line. They must stay wrong.
-  - Labels and separators the document's template requires, such as **Status:**, **Rationale:**, or a `---` rule between requirements. They are structure, not decoration. Apply the rules to the text that follows them.
-- Citation lists are exempt from T5's sentence length: runs of AC ids, wikilinks, ADR numbers, or references.
-- HTML comments are not exempt. In templates they are instructions to the agent, so apply this skill to their prose. Keep any name, path, or token they cite.
-- Content is fixed and wording is not, except to correct an inaccuracy (see below). Never add or remove a fact, requirement, decision, example, or caveat, but apply every style rule to how each one is worded.
-- Exception: when you revise, cut history (see Additional rules) and list each cut. Restate in the present tense any fact it holds that is still true.
-- Exception: when you revise a doc written only for agents, cut the content its reader profile says the agent doesn't need. Never cut an instruction, constraint, or fact the agent needs to act correctly, and list every cut in your summary. No document in the spec corpus counts as written only for agents, even when a skill vendors it.
-- When you find a content problem, such as a contradiction, a stale claim, a wrong count, or a path that doesn't exist, verify it against the source and fix it with the smallest accurate change. Report it as a finding, with its `file:line` and a quote, only when you can't confirm what is true or the fix would change a decision. Never leave a marker in the document.
-- Don't add opinions, reactions, or asides of your own. Keep the ones the author wrote, reworded to these rules.
-
-## Additional rules
-
-- Write about how things are, not how they were or will be. Leave out how a rule, design, or document came about, including changes that never reached a branch or release. Only changelogs, release notes, and the decision statement an ADR's template requires may use past or future tense for this.
-- RFC 2119 keywords keep their capitals. Don't use capitals for emphasis anywhere else.
-- Capitalized EARS keywords (WHEN, WHILE, IF, THEN, WHERE) belong only in requirement statements and in prose that names the keyword itself. In other prose, write them as ordinary words.
-- When prose names a heading, write it in the heading's case.
+- Use one term for each concept, and one meaning for each term. Before you
+  merge two names, check that they name one concept: an Xcode workspace
+  contains projects.
+- Choose unambiguous words. When a word has a common meaning other than the
+  one you intend ("render," "member," "path," "extent"), qualify it ("heading
+  path") or use another word.
+- Use a project term only as the project's glossary defines it, if the
+  project names one in `AGENTS.md` or `CLAUDE.md`. A term the reader can't
+  decode and the glossary doesn't define goes into the glossary, or is
+  replaced with plain words. With no glossary, define it on first use.
+- Name the kind of each code identifier on first mention in a section: "the
+  `Build` function," "the `Span` type," "the `cli/core/corpus` package."
+- Keep noun clusters to three words or fewer. Keep articles; don't drop them
+  for brevity.
 - Never trade an exact term for a casual one to make the tone conversational.
+
+The spec skill's document types are proper names. Write them in title case
+wherever they name the document type, including in sentence-case headings
+and plurals: ADR, FRD, Standards, System Blueprint, Container Blueprint,
+Component Blueprint, Module Blueprint, Feature Blueprint, Contract, and Work
+Order. "A blueprint for the rollout" uses the ordinary word.
+
+## Revising
+
+When you revise a file in place, content is fixed and wording is not. Never
+add or remove a fact, requirement, decision, example, or caveat, except as
+this section allows.
+
+Leave these untouched:
+
+- Code blocks, inline code, commands, paths, config keys, and link targets
+- API, function, flag, and setting names
+- Error messages and log output quoted verbatim
+- Version numbers, dates, and numeric limits
+- Front matter, except a `description` (see below)
+- Gherkin blocks
+- RFC 2119 keywords (MUST, SHOULD, MAY, SHALL, SHALL NOT) and their strength
+- Wikilinks (`[[slug]]`, `[[slug#heading]]`) and identifiers such as AC and
+  FEAT ids
+- Element record blocks
+- Examples marked as wrong, such as an anti-pattern or a ❌ line
+- Labels and separators a template requires, such as **Status:**,
+  **Rationale:**, a `---` rule, or a ` — ` between a name and its text.
+  They don't count against the dash guidance. Revise the text that follows
+  them.
+- In an existing document, a heading's words and punctuation, because other
+  documents link to it. Change its case when links match headings without
+  regard to case, as they do in the spec corpus, unless it names an element
+  or repeats a Gherkin `Feature:` name. Reword it only when you update every
+  link to it in the same pass.
+
+**Requirement statements** (EARS, "the system shall") may take clarity edits:
+define a term, name an identifier's kind, fix grammar, or split a statement
+when each part repeats the condition verbatim. Never change the modal, the
+actor, the trigger, the condition, the scope, or the EARS pattern. In a
+blueprint, also correct a statement the source contradicts, and cite the
+evidence (a file and symbol, or a test) in your report. In an FRD, Standards,
+or ADR, report a contradiction as a finding.
+
+**A front matter `description`** may take the same clarity edits. Keep its
+form, such as "<what it owns>. Change it to <kinds of change>."
+
+**An unlinked mention** of another document: add the link when `specs check`
+or the project's link checker resolves it. Otherwise report it.
+
+**Cuts.** Cut history (see Stable prose) and restate in the present tense any
+fact it holds that is still true. In a doc written only for agents, cut what
+its reader profile says the agent doesn't need, never an instruction,
+constraint, or fact it needs to act correctly. No spec corpus document counts
+as written only for agents. List every cut.
+
+HTML comments are not exempt: in templates they instruct the agent. Revise
+their prose and keep every name, path, or token they cite.
 
 ## Stable prose
 
-Write prose that stays true when what it describes changes. Each rule removes
-a fact that goes stale while nobody touches the sentence.
+Write prose that stays true when what it describes changes.
 
+- Write about how things are, not how they were or will be. Leave out how a
+  rule, design, or document came about. Only changelogs, release notes, and
+  the decision statement an ADR's template requires may use past or future
+  tense for this.
 - Don't count what a list, table, directory, or codebase holds ("the eleven
-  checks," "all four templates"). Write "each check" or "the checks below."
-  Keep a count only when the design fixes it and the number is the point, such
-  as a protocol's two phases. Changelogs and release notes may count.
-- Cite a rule, step, or section by its heading, or a link to it, never by its
-  number or position ("rule 14," "step 6," "the table above"). Numbers shift
-  when an item is added or removed, and a heading can be searched for.
+  checks"). Write "each check" or "the checks below." Keep a count the design
+  fixes, such as a protocol's two phases. Changelogs and release notes may
+  count.
+- Cite a rule, step, or section by its heading or a link, never by its number
+  or position ("rule 14," "the table above").
 - Don't restate what has a canonical source, such as a list kept elsewhere, a
   default set in code, or a version in a manifest. Link the source.
-- Don't describe a mechanism that doesn't exist, such as a planned check.
-  Describe it when it ships.
+- Don't describe a mechanism that doesn't exist yet, such as a planned check.
 - Leave out volatile measurements, such as line numbers, file sizes, and
   warning counts. Where one matters, give the command that measures it.
 
-When you revise, apply these rules to how each fact is worded. A count or
-position you can't replace without changing a fact becomes a finding.
+When you revise, a count or position you can't replace without changing a
+fact becomes a finding.
 
-## Project terms
+## Capitals
 
-The spec skill's document types are proper names. Write them in title case
-wherever they appear, including in sentence-case headings and in plurals:
-ADR, FRD, Standards, System Blueprint, Container Blueprint, Component
-Blueprint, Module Blueprint, Feature Blueprint, Contract, and Work Order.
-Write "a Component Blueprint," not "a component blueprint."
+- RFC 2119 keywords keep their capitals. Don't use capitals for emphasis.
+- Capitalized EARS keywords (WHEN, WHILE, IF, THEN, WHERE) belong only in
+  requirement statements and in prose that names the keyword. Elsewhere,
+  write them as ordinary words.
+- When prose names a heading, write it in the heading's case.
 
-This applies only when the word names the document type. "The API contract
-between two services" and "a blueprint for the rollout" use ordinary words.
-
-## Voice and tone
-
-Use one consistent voice in every document, and shift tone to fit the reader.
-In tutorials, how-to guides, and explanations, write like an experienced
-colleague who remembers being new. In every document, be:
-
-- **Outcome-minded.** Tie each technical fact to what the reader sees, waits for, can now do, or must change.
-- **Candid.** State known bugs, unsupported cases, and sharp edges where the reader will meet them. Don't bury them, and don't oversell.
-- **A translator.** Expertise shows in how simple you make a hard thing look, not in how technical you sound.
-- **Respectful of the reader's judgment.** Readers know their own setup. Give them what they need to decide, and don't decide for them.
-- **Without humor** in errors, troubleshooting, security, or breaking changes. Elsewhere, default to none.
-
-Don't sound like any of these:
-
-- A salesperson: benefits without mechanisms, claims nobody can check.
-- A consultant: frameworks and padding before the answer.
-- A press release: "We're excited to…"
-- A lecturer: background the reader must sit through before they can act.
-
-A release note, off-voice and on-voice:
-
-> This release introduces significant enhancements to the caching layer,
-> providing a more robust and seamless experience across a variety of
-> deployment scenarios.
-
-> Cached pages expire after 10 minutes instead of 24 hours, so edits show up
-> sooner. If you set `CACHE_TTL` yourself, nothing changes for you.
-
-### Profile the reader
+## Reader and tone
 
 Before you write, profile the reader in your working notes, not in the
-document:
-
-- Reader: who, and how they arrive
-- Knows: what they already know, and what they don't
-- Wants: the one thing they came to do or decide
-- Budget: how long they'll give this page
-- Tone: how the voice adjusts for them
-
-For a spec document type, start from the reader profile in the header
-comment of the spec skill's template for that type. For a spec corpus guide,
-which has no template, and for any other document type, including a skill or
-another doc written only for agents, start from
-`references/reader-profiles.md`. Adjust it for the project. When a document
-has several readers, profile the one whose needs should set the tone. If you
-can't tell, write down your assumption and proceed.
+document. For a spec document type, start from the profile in the header
+comment of the spec skill's template for that type. For anything else,
+including a skill or another doc written only for agents, start from
+`references/reader-profiles.md`. Adjust it for the project. With several
+readers, profile the one whose needs should set the tone. If you can't tell,
+write down your assumption and proceed.
 
 The profile sets the tone in every task. When you draft, it also sets the
-content:
+content: add what the reader needs and lacks, cut what they already know, and
+put the answer to "Wants" first, unless a template fixes the order. When you
+revise, a profile line that would add, cut, or move content becomes a
+finding.
 
-- Add what the reader needs and lacks, such as a prerequisite, a term's
-  meaning, or a default.
-- Cut what they already know.
-- Put the answer to "Wants" first. Order the rest by the reader's next step,
-  unless a template fixes the order.
-
-When you revise, content is fixed except where Scope and defaults allows a
-cut, so the profile changes only how things are worded. A profile line that
-would add, cut, or move content becomes a finding instead.
-
-Vary sentence length in narrative docs. Keep steps and reference entries
-parallel. When unsure, choose clear over friendly, and friendly over clever.
+In every document, be outcome-minded (tie each fact to what the reader sees,
+waits for, or must change), candid (state bugs, unsupported cases, and sharp
+edges where the reader meets them), and plain (make the hard thing look
+simple). Use no humor in errors, troubleshooting, security, or breaking
+changes. When unsure, choose clear over friendly, and friendly over clever.
 
 ## Punctuation
 
-Choose the mark by what the words after it do. Ask these questions in order
-and stop at the first yes.
+Choose the mark by what the words after it do. Stop at the first yes:
 
-1. **Could the second part stand as its own sentence, and is the link between
-   the two only "and also"?** Use a period. Two short sentences beat one joined
-   by a semicolon or a dash.
-2. **Does the second part deliver what the first part promised: a list, an
-   example, a definition, a cause, or the answer?** Use a colon. A test: you
-   could write "namely" or "that is" in its place ("The check fails for one
-   reason: the anchor doesn't exist."). Template separators such as
-   `[[slug]]: text` and `**Term**: definition` are colons too.
-3. **Is it an aside: does the sentence still work with the phrase removed?**
-   Pick the mark by how much the aside matters.
-   - **Commas** for an aside that reads as part of the sentence's flow ("The
-     index, which is rebuilt on every run, holds no state.").
-   - **Parentheses** for something the reader can skip: a unit, an
-     abbreviation, a cross-reference, a minor clarification ("Lines wrap at 80
-     columns (set in `specs.toml`)."). This is the default for asides in
-     technical docs, and parentheses wrap code and links cleanly.
-   - **A pair of em dashes** for an aside that carries weight and should stand
-     out, or one that already contains commas, where commas around it would be
-     ambiguous ("Every tool—the CLI, the plugin, and CI—reads the same
-     config.").
-4. **Does the sentence turn sharply, or sum up a list just before it?** A
-   single em dash ("Exit codes, messages, and anchors—all three changed.").
-   Use this rarely.
+1. The second part could stand alone, linked only by "and also": a period.
+2. It delivers what the first part promised (a list, an example, a definition,
+   a cause, the answer), so "namely" would fit: a colon.
+3. It's an aside the sentence works without: commas if it reads as part of
+   the flow, parentheses if the reader can skip it (the default in technical
+   docs), and a pair of em dashes only if it carries weight or contains
+   commas.
+4. The sentence turns sharply or sums up a list just before it: a single em
+   dash, rarely.
 
-Whatever the answer:
-
-- At most one pair of em dashes per sentence, and rarely more than one dash
-  sentence per section. If you reach for a second, use parentheses or split
-  the sentence.
-- Requirement statements, headings in an existing document, code, and link
-  targets keep their punctuation (see Scope and defaults).
+Use at most one pair of em dashes per sentence, and rarely more than one dash
+sentence per section.
 
 ## Patterns to check
 
-**Not X but Y.** A sentence that says what something isn't before saying what
-it is. Keep the negative half when a reader might actually believe it, or when
-it states a real limit: "This cache is not shared across workers," "The
-`--force` flag doesn't skip validation." Cut it when no reader would have
-believed it, because then it only builds up the second half: "It's not just a
-linter, it's a full validator" becomes "It validates the whole corpus."
-
-**Forced triads.** Lists of three that exist for rhythm. Exempt real
-enumerations: three supported platforms, three config options, three steps.
-The test is whether the list is complete and accurate, not whether it has
-three items.
-
-**Repeated sentence openings.** Exempt numbered steps and reference entries.
-Steps should start with an imperative verb ("Run," "Add," "Open"), and
-reference entries should share a structure.
-
-**Stacked qualifiers.** In docs, replace hedges with conditions. "This may
-fail in some cases" becomes "This fails when the disk is full." Change a
-modal word (*can*, *might*, *should*, *will*) only when the source shows what
-is actually true. If you don't know the condition, keep the hedge.
-
-**Writing about the document.** Openers that describe the text instead of
-saying something: "This README describes…" or "This section covers…"
-Cut them and start with the content. A heading already says what a section
-covers. A sentence that introduces a table or list is different: keep it.
-
-## New patterns for technical docs
-
-**T1. Terminology drift.** The same concept appears under different names ("config file," "settings file," "configuration"). Pick one term per concept and use it everywhere. Check that the names really are one concept first: some pairs that look like synonyms aren't (an Xcode workspace contains projects).
-
-**T2. Vague capability claims.** "Supports," "handles," and "allows for" with no specifics. State what happens, the defaults, and the limits. "Supports large files" becomes "Uploads files up to 5 GB."
-
-**T3. Missing specifics.** No units, no default, no version, or "run the appropriate command." Give the exact value or command. If you don't have it, leave the text as it is rather than guessing.
-
-**T4. Nominalizations.** Verbs turned into nouns: "perform the installation of," "make a determination," "provide configuration of." Use the verb: "install," "decide," "configure."
-
-**T5. Long sentences and walls of text.** Sentences over about 25 words, or paragraphs over about five sentences. Split them. One idea per sentence.
-
-**T6. Release notes in the wrong order.** Features listed in commit order, with breaking changes buried. Put breaking changes and required actions first, then user-visible changes, then fixes. Each item starts with what the user sees or must do.
-
-**T7. Invented examples.** A rewrite must never invent a flag, an output, a default, or an example value. If an example would help and you don't have a real one, leave it out.
+- **Not X but Y.** Keep the negative half only when a reader might believe
+  it or it states a real limit ("This cache is not shared across workers").
+- **Forced triads.** Lists of three that exist for rhythm. Real enumerations
+  are exempt.
+- **Repeated sentence openings.** Numbered steps and reference entries are
+  exempt; steps start with an imperative verb.
+- **Stacked qualifiers.** Replace a hedge with its condition ("fails when the
+  disk is full"). Change a modal word only when the source shows what's true.
+- **Writing about the document.** Cut "This section covers…" and start with
+  the content. Keep a sentence that introduces a table or list.
+- **T1. Terminology drift.** One concept under several names (see
+  Terminology).
+- **T2. Vague capability claims.** "Supports" or "handles" with no specifics.
+  State what happens, the defaults, and the limits.
+- **T3. Missing specifics.** No unit, default, version, or exact command. If
+  you don't have it, leave the text rather than guess.
+- **T4. Nominalizations.** "Perform the installation of" becomes "install."
+- **T5. Long sentences and walls of text.** Over about 25 words, or
+  paragraphs over about five sentences. Split them. Citation lists (runs of
+  AC ids, wikilinks, or ADR numbers) are exempt.
+- **T6. Release notes in the wrong order.** Breaking changes and required
+  actions first, then user-visible changes, then fixes.
+- **T7. Invented examples.** Never invent a flag, output, default, or value.
+- **Asides of your own.** Don't add opinions or reactions. Keep the author's,
+  reworded.
 
 ## Line wrapping
 
 Follow the destination's line width (in the spec corpus, `line_width` in
 `specs.toml`), or 80 characters when it sets none. Links, wikilinks that
-contain spaces, tables, headings, and code blocks may run past it. Rewrap each
-paragraph you change to that width, and don't reflow paragraphs you didn't
-change. Never reword a sentence to make it fit the margin.
+contain spaces, tables, headings, and code blocks may run past it. Rewrap
+each paragraph you change, don't reflow the rest, and never reword a sentence
+to fit the margin.
+
+## Cross-links
+
+When you draft a document that names another document, link it: a `[[slug]]`
+wikilink for the spec corpus, otherwise a relative Markdown link or a
+backticked path, following the project's citation conventions.
 
 ## How to run it
 
-1. Identify the document type and the task (draft, revise, or audit), and profile the reader (see Voice and tone). Mark what must not change, using Scope and defaults above.
-2. **Draft or revise** to the style guide and this file. When a question turns on a specific rule (word choice, a punctuation mark, numbers, dates, units, product names, capitalization), look it up in the style guide when browsing is available.
-3. **Check the patterns.** Run "Patterns to check" and the T-patterns over the result. When you can start a subagent, run this pass in one that sees only the draft, the reader profile, and these rules. When you revise, also give it the original or the diff, and have it check every item in Scope and defaults against the original. A reviewer that wrote the draft tends to approve it.
-4. **Validate.** Check the final text against the style guide, "Additional rules," "Project terms," and the reader profile's tone, and check that nothing in Scope and defaults changed.
-5. **Return the result.**
-   - For an audit, change nothing. Report findings in priority order with short examples.
+1. Identify the document type and the task (draft, revise, or audit), profile
+   the reader, and mark what must not change (see Revising).
+2. Draft or revise to the style guide and this file. When a question turns
+   on a specific rule (word choice, numbers, dates, units, capitalization),
+   look it up in the style guide when browsing is available.
+3. Review. Run Patterns to check over the result, then check Terminology,
+   Capitals, the profile's tone, and every item in Revising against the
+   original or the diff. An agent that reviews its own draft tends to approve
+   it, so a separate agent runs this step and sees only the draft, the
+   original or the diff, the reader profile, and this file. If you can't
+   start one, for example because you are a subagent, return the draft and
+   say that the review is still owed; the agent that dispatched you runs it.
+4. Return the result.
+   - For an audit, change nothing. Report findings in priority order with
+     short examples.
    - For pasted text, return the revised text.
-   - For a file, write the revised file and report the sentences you changed, any exempt text you touched, your findings, any cuts, and your judgment calls.
-6. If the project uses Vale, run it last and fix what it flags.
-
-Stop when every line follows the rules above. Don't keep polishing lines that already do.
+   - For a file, write it and report the sentences you changed, any exempt
+     text you touched with the rule that allowed it, your findings, your
+     cuts, and your judgment calls.
+5. If the project uses Vale, run it last and fix what it flags.

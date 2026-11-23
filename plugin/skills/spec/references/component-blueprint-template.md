@@ -137,8 +137,8 @@ Status vocabulary
 This is a living document — update it when the component changes. Remove
 all HTML comment blocks after completing each section. WHILE status is
 draft, the Open questions section MAY contain open questions or the
-literal text "None."; remove the section when the document becomes
-active.
+literal text "None."; remove the section when the document leaves
+draft.
 -->
 
 # <Component Name>
@@ -236,23 +236,27 @@ How the component is built to stay sound as it changes.
 <!--
 Each pattern the component follows, including entries all of its code
 follows, such as Make Illegal States Unrepresentable. Draw on the
-universal guide and the components guide. Name each pattern with its
-progenitor, its roles mapped to this component's types, and the present
-need it serves. Follow it with what it rules out, as an invariant
+universal guide and the components guide. Name each pattern with one
+progenitor and its topic, its roles mapped to this component's types, and
+the present need it serves. Follow it with what it rules out, as an invariant
 ("Name each pattern with its progenitor, constraint, and need").
 -->
 
-<Pattern> (<progenitor>) — <roles mapped to this component's types>;
-<the present need it serves>.
+<Pattern> (<progenitor>, <topic>) — <roles mapped to this component's
+types>; <the present need it serves>.
 
 ### Invariants
 
 <!--
 EARS statements that hold across all operations, each ending "Enforced
 by: <test, check, lint, or review only>" ("Say what enforces each invariant").
+Where a statement needs a reason, put "Rationale:" between the statement
+and "Enforced by:" ("Keep a statement and its reasons together").
 -->
 
 The component SHALL <invariant that holds across all operations>.
+Rationale: <why the rule exists, only where a reader would otherwise
+misapply or remove it>.
 Enforced by: <test, check, lint, or review only>.
 
 ### Extension points

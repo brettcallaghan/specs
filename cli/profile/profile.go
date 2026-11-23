@@ -1,5 +1,5 @@
 // Package profile implements this framework's document vocabulary as
-// one pluggable profile — [[module-spec-profile]]'s v1 shape — for
+// one pluggable profile, as [[module-spec-profile]] describes, for
 // Document Core's Profile extension point (cli/core/corpus).
 //
 // It holds no engine of its own: every capability it needs — frontmatter
@@ -20,7 +20,7 @@
 // property added to schemas/frontmatter.strata is reference-bearing the
 // moment it is declared.
 //
-// Element records and required sections are later capabilities;
+// Validating record blocks and required sections are later capabilities;
 // registering them belongs to a future change to this package, not to a
 // workaround here.
 package profile

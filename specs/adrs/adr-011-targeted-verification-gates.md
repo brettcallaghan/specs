@@ -1,6 +1,7 @@
 ---
 title: "ADR-011: Blueprints Declare Targeted Verification Gates"
-description: Each blueprint names the minimal set of tests that must run when its element changes; agents run that set, CI runs the full suite
+description: Each blueprint names the minimal set of tests that must run when
+  its element changes; agents run that set, CI runs the full suite
 slug: adr-011
 type: adr
 status: active
