@@ -11,7 +11,9 @@ status: active
 
 Each term below has one meaning in this project's specs and docs. Use it only
 in that meaning. When a document needs an internal term that isn't here, add
-it here rather than defining it in the document, or use plain words.
+it here rather than defining it in the document, or use plain words. The
+Avoid column lists words not to use for that term's meaning; it doesn't ban
+them when they carry their ordinary meaning.
 
 | Term | Meaning | Avoid |
 |------|---------|-------|
