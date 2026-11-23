@@ -4,9 +4,9 @@ entity_name: Schema Registry
 technology: Go package
 description: Validation of frontmatter against the branch of the profile's
   union schema a document's type selects, and decoding and encoding of the
-  typed envelope the index carries. Change it to change how a branch is
-  selected, how a violation is reported, or how frontmatter crosses into
-  and out of the generated union.
+  typed frontmatter variant the index carries. Change it to change how a
+  branch is selected, how a violation is reported, or how frontmatter
+  crosses into and out of the generated union.
 slug: component-schema-registry
 type: component-blueprint
 status: ready-for-review
@@ -47,8 +47,8 @@ Decoding parsed frontmatter into its union variant, encoding a variant for
 the index, and reading a variant's envelope: its type and the properties
 every document type shares, such as `slug` and `status`.
 
-The rule for which corpus member (a document in the corpus) answers
-lookups for a slug that two members declare.
+The rule for which corpus document answers lookups for a slug that two
+corpus documents declare.
 
 ### Hides
 
@@ -100,10 +100,11 @@ IF a variant leaves a required enum undeclared, THEN `Encode` SHALL omit it
 rather than refuse to encode.
 
 WHERE frontmatter declares every enum, `Encode` SHALL produce the bytes the
-generated encoder produces.
+generated encoder (`json.Marshal` over the generated union type)
+produces.
 
-`HoldsSlugOver` SHALL prefer a member whose frontmatter parsed over one
-whose slug was recovered, and then the first in path order.
+`HoldsSlugOver` SHALL prefer a corpus document whose frontmatter parsed over
+one with a recovered slug, and then the first in path order.
 
 ### Requires
 
@@ -121,8 +122,8 @@ and returns `specmodel.Finding` values. It keeps the validator that
 
 ### Invariants
 
-No type from the JSON Schema library SHALL appear in the package's exported
-surface. Enforced by: review only.
+No type from the JSON Schema library SHALL appear in the exported surface of
+`schemaregistry` or `envelope`. Enforced by: review only.
 
 The component SHALL discover the union's variants from the generated union
 itself, with no table naming a type. Enforced by:
@@ -131,15 +132,15 @@ itself, with no table naming a type. Enforced by:
 scans only `cli/core/schemaregistry`. A type named in `cli/core/envelope` is
 caught by review only.
 
-Every site that chooses between two members declaring one slug SHALL decide
-through `HoldsSlugOver`. Enforced by:
+Every call site that chooses between two corpus documents declaring one slug
+SHALL decide through `HoldsSlugOver`. Enforced by:
 `TestHoldsSlugOverPrefersAParsedMemberThenPathOrder`; review only for the
 call sites.
 
 ### Extension points
 
-A new document type — a branch in the profile's union schema, not a
-per-type schema pointer or a type name in this component.
+A new document type — a branch in the profile's union schema, not a type
+name in this component nor a per-type JSON Pointer into that schema.
 
 ## Cross-cutting Standards
 

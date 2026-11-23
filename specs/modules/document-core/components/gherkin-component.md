@@ -2,11 +2,11 @@
 title: "Gherkin"
 entity_name: Gherkin
 technology: Go package
-description: Parsing a Gherkin source into one feature record with its
-  criteria nested beneath it, the criterion content hash, and rendering a
-  feature back out as a standalone source. Change it to change what a
-  feature or criterion record carries from the parse, how a criterion is
-  hashed, or how a feature is rendered.
+description: Parsing a Gherkin source into one feature with its criteria
+  nested beneath it, the criterion content hash, and rendering a feature
+  back out as a standalone source. Change it to change what a feature or
+  criterion record carries from the parse, how a criterion is hashed, or
+  how a feature is rendered.
 slug: component-gherkin
 type: component-blueprint
 status: ready-for-review
@@ -23,20 +23,23 @@ test_paths:
 ## Responsibility
 
 Gherkin parses one Gherkin source into one feature with its criteria nested
-beneath it. A source is either a fenced code block inside a Markdown
-document or a standalone `.feature` file. A criterion is one acceptance
-criterion: a `Scenario`, or one `Examples` block of a scenario whose blocks
-are identified separately. Each criterion carries its text, its tags as
-written, and its position.
+beneath it. A source is either a fenced code block inside a Markdown document
+or a standalone `.feature` file. A criterion is one acceptance criterion: a
+`Scenario`, or one `Examples` block of a scenario in which at least one
+`Examples` block carries its own criterion identifier. Each criterion carries
+its text, its tags as written, and its position.
 
 The parse is general, and the meaning of a tag isn't. Which tag identifies
 a feature and which identifies a criterion are facts about one tag
 vocabulary (the tag patterns a profile registers). They reach this
-component as functions its caller supplies. Which qualifier tags count is
-the caller's to decide, from the tags this component carries. The component
-never inspects a tag's spelling. That is the module's split between
-general machinery and the vocabulary a profile supplies, applied to a
-notation.
+component as functions its caller supplies.
+
+A qualifier tag is a tag that a profile gives a meaning on a criterion,
+such as marking it a prohibition or one that only a person can verify.
+Which qualifier tags count is the caller's to decide, from the tags this
+component carries. The component never inspects a tag's spelling. That is
+the module's split between general machinery and the vocabulary a profile
+supplies, applied to a notation.
 
 ### Owns
 
@@ -72,7 +75,7 @@ Running the identity and content checks over the parsed records —
 
 ### Composed into
 
-[[module-document-core]] — a Go package that the corpus component calls for
+[[module-document-core]] — a Go package that the Corpus component calls for
 each source it finds in the spec root; see that blueprint for this
 component's relationships.
 
@@ -115,7 +118,7 @@ to a criterion identifier, or leave either nil to resolve nothing.
 
 Strategy (Gamma et al., 1994) — the two resolution functions in the
 `Options` struct are the strategies, and the caller chooses them. The
-pattern serves the variations that exist: the corpus component resolves
+pattern serves the variations that exist: the Corpus component resolves
 tags with the patterns the active profile registers, and a caller with no
 vocabulary passes none.
 
@@ -148,8 +151,8 @@ its exported surface, each citing the acceptance criteria it verifies.
 ## Change guidance
 
 WHEN a change needs to know what a tag means, the meaning SHALL arrive
-through the caller's resolution functions from the profile's registration,
-not through a tag spelling in this package.
+through the caller's resolution functions, from what the profile registers,
+and not through a tag spelling written in this package.
 
 ### Verification gates
 

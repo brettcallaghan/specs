@@ -24,8 +24,9 @@ test_paths:
 Markdown Structure reads the structure of a Markdown body: its headings,
 each with the span of its section, and its fenced blocks, located by info
 string. A section is the content beneath a heading, up to the next heading
-at the same or a higher level. A span is a position in the source: a byte
-offset and length, with line and column.
+at the same or a higher level. A span is a contiguous region of the
+source: a byte offset and a byte length, with the line and column derived
+from the offset.
 
 The component also owns the only derivation of a heading identifier: the
 lowercase, hyphenated form of a heading's text that anchors match on. It
@@ -51,16 +52,16 @@ deciding which headings a path selects.
 
 The Markdown parser, and how a prefixed heading (`## Title`) is told apart
 from an underlined one (text above a `---` or `===` line) inside a container
-block, such as a blockquote or a list item. Callers see positions, as
-`span.Span` values from the Spans component (package `cli/core/span`), and
-pure functions over text.
+block, such as a blockquote or a list item. Callers see pure functions
+over text, and positions as `span.Span` values from the Spans component
+(the `cli/core/span` package; see [[module-document-core#Spans]]).
 
 ### Does not own
 
-Recording headings and record blocks (tagged fenced blocks that hold an
-element's metadata) on the corpus index, and decoding a record block's
-content — [[component-corpus]] owns both. The index model is the set of Go
-types in `cli/core/specmodel`, generated from a schema.
+Recording headings and record blocks (tagged fenced YAML blocks that
+declare an entity inside another document) on the index, and decoding a
+record block's content — [[component-corpus]] owns both. The index model
+is the set of Go types in `cli/core/specmodel`, generated from a schema.
 
 Resolving an anchor against a target document — [[component-references]]
 owns it.
@@ -99,12 +100,12 @@ delimiter reads as an underlined heading.
 
 ### Patterns and principles
 
-Single Source of Truth (Codd, 1970; Hunt and Thomas, 1999) — the function
-`Identifier` is the only identifier derivation, and the function
-`SelectPaths` is the only path selection rule. They serve the
-`specs headings` command, anchor resolution, emitted Markdown link
-fragments, and the C4 Elements component, which matches headings by
-identifier.
+Single Source of Truth, for knowledge in code (Hunt and Thomas, 1999,
+"The Evils of Duplication") — the function `Identifier` is the only
+identifier derivation, and the function `SelectPaths` is the only path
+selection rule. They serve the `specs headings` command, anchor resolution,
+emitted Markdown link fragments, and [[component-c4-elements]], which
+matches headings by identifier.
 
 ### Invariants
 
@@ -125,7 +126,8 @@ Enforced by: `TestNoTwoHeadingPositionsOverlapForAnyForm`.
 `Identifier` SHALL derive no positional suffix. Enforced by:
 `TestTheHeadingIdentifierIsPureAndDerivesNoPositionalSuffix`.
 
-The component SHALL NOT depend on the generated index model; its path
+The component SHALL NOT depend on the generated index model beyond the
+`Span` type, which it reaches through the Spans component; its path
 functions take an `Outline`. Enforced by: review only.
 
 ### Extension points

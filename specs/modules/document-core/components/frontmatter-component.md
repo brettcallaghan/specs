@@ -36,7 +36,7 @@ Where a frontmatter block begins and ends.
 
 The parsed block: for each top-level property, its name, the positions of
 its key and value, its raw text, and its parsed value. A sequence-valued
-property also carries the position of each element.
+property also carries the position of each sequence element.
 
 Inline comments: a `#` comment after an unquoted scalar value on the same
 line, which YAML reads as the end of the value.
@@ -106,17 +106,17 @@ its first byte, because a block is recognized only there.
 
 ### Patterns and principles
 
-Single Source of Truth (Codd, 1970; Hunt and Thomas, 1999) — the function
-`Locate` is the one place that decides a block's extent, and `Parse` and
-`TopLevelScalarAt` call it. It also serves callers that need a block's
-extent without its values: the Corpus component, to find where a
-document's body starts, and the C4 Elements component, to find a
-blueprint's frontmatter and body.
+Single Source of Truth, for knowledge in code (Hunt and Thomas, 1999, "The
+Evils of Duplication") — the function `Locate` is the one place that decides
+where a block begins and ends, and `Parse` and `TopLevelScalarAt` call it. It
+also serves callers that need where a block begins and ends, without its
+values: [[component-corpus]], to find where a document's body starts, and
+[[component-c4-elements]], to find a blueprint's frontmatter and body.
 
 ### Invariants
 
-The component SHALL decide a block's extent only in `Locate`. Enforced by:
-`TestParseAndLocateAgreeOnTheRegion` and
+The component SHALL decide where a block begins and ends only in `Locate`.
+Enforced by: `TestParseAndLocateAgreeOnTheRegion` and
 `TestTheImplementationCallsTheSharedScanner` for `frontmatter.go`, and by
 review only for `scalar.go`, which that test doesn't read.
 
@@ -125,8 +125,9 @@ not from the YAML library's token offsets. Enforced by:
 `TestAMultiByteCharacterEarlierInTheBlockDoesNotShiftALaterProperty` and
 `TestSpansSurviveCommentsAndMultiByteText`.
 
-The component SHALL read inline comments from the YAML lexer's tokens, so
-no value or span `Parse` reports depends on them. Enforced by: review only.
+The component SHALL read inline comments from the YAML lexer's tokens that
+`Parse` parsed, so that the value tree and the comments agree on which
+token is which. Enforced by: review only.
 
 `Parse` SHALL return malformed YAML as a located error. Enforced by:
 `TestMalformedYAMLIsALocatedErrorRatherThanAPanic`.
@@ -144,8 +145,9 @@ its exported surface, cited to the acceptance criteria they verify.
 
 ## Change guidance
 
-WHEN code anywhere in the module needs a frontmatter block's extent, it
-SHALL call `Locate` rather than search for the delimiters itself.
+WHEN code anywhere in the module needs to know where a frontmatter block
+begins and ends, it SHALL call `Locate` rather than search for the
+delimiters itself.
 
 WHEN a test of a position is added, it SHOULD place a multi-byte character
 before the property it checks, because an ASCII fixture can't expose an

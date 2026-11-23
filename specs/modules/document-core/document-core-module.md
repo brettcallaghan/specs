@@ -5,8 +5,8 @@ technology: Go packages
 description: The framework-agnostic engine that discovers, parses, indexes
   and checks a corpus of Markdown documents carrying YAML frontmatter and
   slug references, driven by the vocabulary a profile registers. Change it
-  to add a parsing capability, a corpus query, a check rule, or a member of
-  the Profile extension point.
+  to add a parsing capability, a corpus query, a check rule, or a part of a
+  profile's registration.
 slug: module-document-core
 type: module-blueprint
 status: ready-for-review
@@ -29,22 +29,22 @@ true of any corpus. A corpus is the Markdown documents under one directory (the
 spec root) that carry YAML frontmatter and cite each other by slug, the
 identifier a document declares in its frontmatter. It knows nothing of this
 framework. It doesn't know that `adr` is a document type, that ADR slugs are
-numbered, or that a component record block (a fenced YAML block declaring an
-architecture element) exists. That vocabulary arrives through the Profile
-extension point: the `Profile` Go interface, which the caller implements to
-register its document types, its JSON Schema and the rest of its vocabulary. A
-capability belongs here only if an Obsidian vault with nothing to do with C4
-architecture diagrams could use it. Holding that line lets an enterprise with a
-different document taxonomy reuse the engine. It also lets the engine sit behind
-an HTTP API or an MCP server without first being extracted from a CLI.
+numbered, or that a component record block (a fenced YAML block declaring a C4
+element) exists. That vocabulary arrives through the Profile extension point:
+the `Profile` Go interface, which the caller implements to register its document
+types, its JSON Schema and the rest of its vocabulary. A capability belongs here
+only if an Obsidian vault with nothing to do with C4 architecture diagrams could
+use it. Holding that line lets an enterprise with a different document taxonomy
+reuse the engine. It also lets the engine sit behind an HTTP API or an MCP
+server without first being extracted from a CLI.
 
 ### Owns
 
-Corpus discovery and membership (which files count as documents, called
-members), and the corpus index: its model, its emission, and the warm cache
-that serves it. The index is the JSON description of the corpus that the
-module emits. The warm cache reuses an emitted index while the hash of the
-corpus's input files still matches the hash that index records.
+Corpus discovery and membership (which files are corpus documents), and the
+corpus index: its model, its emission, and the warm cache that serves it. The
+index is the JSON description of the corpus that the module emits. The warm
+cache reuses an emitted index while the hash of the corpus's input files still
+matches the hash that index records.
 
 Parsing of frontmatter, Markdown structure, Gherkin sources and Mermaid C4
 diagrams. Also the `Span` type, which expresses every parsed position as a
@@ -165,14 +165,15 @@ successor.
 The module SHALL take the tag vocabulary the active profile registers as the
 authority for reading a Gherkin tag.
 
-WHEN a caller validates a profile's registration, the module SHALL return
-every defect `corpus.ValidateRegistration` finds, each naming the offending
-key.
+WHEN a caller validates a profile's registration, the module SHALL return every
+registration defect that the `corpus.ValidateRegistration` function finds, each
+naming the offending key.
 
 WHEN a profile's registration carries a defect, the module SHALL NOT
 substitute a default for the defective key.
 
-The module SHALL return registration defects to the caller unrendered.
+The module SHALL return registration defects to the caller unrendered, as
+`corpus.RegistrationDefect` values.
 
 The module SHALL express every position it reports as a `Span`.
 
@@ -226,9 +227,9 @@ generated schema declares. Enforced by:
 Non-test source in `cli/core/schemaregistry` SHALL NOT name a document type.
 Enforced by: `TestNoDocumentTypeInPackageSource`.
 
-Every component SHALL compute each position it reads from source text
-through the Spans component. A component MAY join Spans already computed
-into a wider extent, as C4 Elements does for a roster section. Enforced by:
+Every component SHALL compute each position it reads from source text through
+the Spans component. A component MAY join spans already computed into a wider
+span, as C4 Elements does for a Components section. Enforced by:
 `TestEverySpanIsComputedThroughSpans` and
 `TestTheImplementationCallsTheSharedScanner` for Markdown Structure and
 Frontmatter; review only for the others.
@@ -245,8 +246,8 @@ The Spans component SHALL count a column in codepoints while byte offset and
 byte length stay authoritative. Enforced by:
 `TestColumnsCountCodepointsRatherThanBytes`.
 
-The C4 Diagrams component SHALL NOT read the corpus or resolve a node to an
-element. Enforced by: review only.
+The C4 Diagrams component SHALL NOT read the corpus or resolve a node to a
+C4 element. Enforced by: review only.
 
 IF a diagram statement falls outside the parser's macro table, THEN the C4
 Diagrams component SHALL return it as a located parse error and continue
@@ -315,9 +316,9 @@ C4Component
     Rel(gherkin, span, "Reports every position through")
     Rel(c4, span, "Reports every position through")
     Rel(c4e, c4, "Reads diagram statements through")
-    Rel(c4e, md, "Matches roster headings and finds diagram blocks via")
+    Rel(c4e, md, "Matches Components headings and finds diagram blocks via")
     Rel(c4e, fm, "Reads each blueprint's frontmatter via")
-    Rel(c4e, schema, "Reads each member's envelope via")
+    Rel(c4e, schema, "Reads each corpus document's envelope via")
     Rel(c4m, c4e, "Nests the elements and relationships resolved by")
     Rel(c4m, c4, "Reads reserved relationship tags via")
     Rel(c4m, fm, "Reads each element's properties via")
@@ -325,7 +326,7 @@ C4Component
     Rel(refs, md, "Selects anchor headings via")
     Rel(refs, gherkin, "Reads the Gherkin fence tags of")
     Rel(refs, fm, "Reads reference-bearing properties from")
-    Rel(refs, schema, "Reads each member's declared slug via")
+    Rel(refs, schema, "Reads each corpus document's declared slug via")
     Rel(schema, fm, "Validates records produced by")
     Rel(schema, find, "Reports through")
     Rel(corpus, fm, "Extracts frontmatter via")
@@ -339,14 +340,14 @@ C4Component
     Rel(corpus, find, "Folds check findings through")
     Rel(corpus, span, "Positions read failures with")
     Rel(num, corpus, "Queries the index of")
-    Rel(num, schema, "Reads each member's envelope via")
+    Rel(num, schema, "Reads each corpus document's envelope via")
     Rel(mdlinks, refs, "Settles targets from the resolved references of")
     Rel(mdlinks, md, "Derives anchor fragments through the heading identifier of")
-    Rel(mdlinks, span, "Locates the extents it replaces with")
+    Rel(mdlinks, span, "Locates the spans it replaces with")
     Rel(mdlinks, find, "Reports through")
 ```
 
-Frontmatter → Spans: the frontmatter block's extent comes from the shared
+Frontmatter → Spans: the frontmatter block's span comes from the shared
 scanner, so a block's position agrees with every other region's.
 
 Markdown Structure → Spans: heading and fence positions are computed by
@@ -355,18 +356,18 @@ Spans even though `goldmark` recognizes the constructs.
 Gherkin → Spans, C4 Diagrams → Spans: a position inside a fenced block is a
 `Span` in the containing document's coordinates, not the block's.
 
-C4 Elements → C4 Diagrams: elements are resolved from the statements the
+C4 Elements → C4 Diagrams: C4 elements are resolved from the statements the
 parser returns. C4 Elements never reads Mermaid text itself.
 
-C4 Elements → Markdown Structure: roster headings (the headings under which
-a blueprint declares its child elements) are matched on the heading
-identifier Markdown Structure derives. Diagram blocks are found by its fence
-search.
+C4 Elements → Markdown Structure: the headings under which a blueprint declares
+its child C4 elements are matched on the heading identifier Markdown Structure
+derives. Diagram blocks are found by its fence search.
 
 C4 Elements, References, Numbering → Schema Registry: Schema Registry owns
-decoding a member's typed envelope (the frontmatter properties every
+decoding a corpus document's typed envelope (the frontmatter properties every
 document type shares), in the `cli/core/envelope` package. That includes the
-rule that decides which member holds a slug that two members declare.
+rule that decides which corpus document holds a slug that two corpus documents
+declare.
 
 C4 Model → C4 Elements: the model nests and groups what C4 Elements resolved,
 and decides nothing C4 Elements owns.
@@ -381,7 +382,7 @@ Gherkin component, so extraction and discovery read one list.
 Schema Registry → Frontmatter: the registry validates the generic value tree
 and raw text Frontmatter produces, and reads no file.
 
-Corpus → References: the walk extracts each member's references, and
+Corpus → References: the walk extracts each corpus document's references, and
 resolution runs once over the finished index.
 
 Numbering → Corpus: the next number is a query over the built index, not a
@@ -391,8 +392,8 @@ Markdown Links → Markdown Structure: an anchor's link fragment comes from the
 heading identifier anchors resolve by, so an emitted link lands where the
 check resolved it.
 
-Markdown Links → Spans: a substituted extent is derived from the reference's
-`Span`, never rescanned.
+Markdown Links → Spans: the span a substitution replaces is derived from the
+reference's `Span`, never rescanned.
 
 ### Spans
 
@@ -520,11 +521,11 @@ WHEN a capability can't be expressed without naming a specific document
 type, status, property or tag, the capability SHALL be registered through
 `Profile` by a profile rather than built into this module.
 
-WHEN `Profile` gains a member, `corpus.ValidateRegistration` SHALL report
-that member's defects in the same change.
+WHEN a profile's registration gains a part, `corpus.ValidateRegistration`
+SHALL report that part's defects in the same change.
 
 WHEN a package under `cli/core` is added, removed or renamed, this
-blueprint's Components roster and diagram SHALL be updated in the same
+blueprint's Components section and diagram SHALL be updated in the same
 change.
 
 WHEN a model in `schemas/*.strata` changes, `cli/core/specmodel` and

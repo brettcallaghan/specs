@@ -21,15 +21,14 @@ test_paths:
 
 ## Responsibility
 
-References finds every `[[slug]]` and `[[slug#Anchor]]` wikilink a
-document makes and records where each one occurs. It reads the document's
-body and its reference-bearing frontmatter properties: the ones the active
-profile registers for the document's type. The active profile is the set of
-document-type rules the CLI runs with.
+References finds every reference a document makes, such as a `[[slug]]` or
+`[[slug#Anchor]]` wikilink, and records where each one occurs. It reads the
+document's body and its reference-bearing frontmatter properties: the ones
+the active profile registers for the document's type.
 
-References then resolves each reference against the index, the record of
-every file the corpus walk read. A reference resolves to a member (a file
-indexed as a spec document), to a file that isn't a member, or to nothing.
+References then resolves each reference against the index, which records
+every file the corpus walk read. A reference resolves to a corpus document,
+to a file that isn't a corpus document, or to nothing.
 An anchor also resolves to the heading it names. The two halves are
 separate because they know different things: extraction knows one document,
 and resolution knows the whole corpus.
@@ -37,8 +36,8 @@ and resolution knows the whole corpus.
 ### Owns
 
 Extraction: which text counts as a reference, which regions extraction
-skips (the code-region mask), and the span (the byte range, lines, and
-columns in the source) that each reference is recorded at.
+skips (the code-region mask), and the span that each reference is recorded
+at.
 
 Resolution: the resolution state each reference receives, and the heading
 an anchor resolves to.
@@ -49,8 +48,8 @@ rewrites, made by the `OutsideGherkinFences` function.
 ### Hides
 
 How code regions are located, and how a slug is matched against a file that
-isn't a member. Callers see only the `specmodel.Reference` struct, which
-carries the reference's span and resolution.
+isn't a corpus document. Callers see the outcome on the `specmodel.Reference`
+struct: the reference's span and resolution.
 
 ### Does not own
 
@@ -66,8 +65,8 @@ reference checks.
 ### Composed into
 
 [[module-document-core]] — a Go package that the Corpus component's walk
-calls: `Extract` for each member and `.feature` file it reads, and `Resolve`
-once after the last file. See that blueprint for this component's
+calls: `Extract` for each corpus document and `.feature` file it reads, and
+`Resolve` once after the last file. See that blueprint for this component's
 relationships.
 
 ## Interface
@@ -80,8 +79,8 @@ through the `Extract` and `Resolve` functions.
 ### Provides
 
 `Extract` SHALL return a document's references ordered by position: the
-registered frontmatter properties in declaration order, then the body in
-the order it's written.
+registered frontmatter properties in the order the document declares them,
+then the body in the order it's written.
 
 The component SHALL record a body reference's span over the text between
 its brackets.
@@ -93,30 +92,32 @@ WHEN `Resolve` returns, every reference it was given SHALL carry a
 resolution, including a reference that reached nothing.
 
 `OutsideGherkinFences` SHALL return its input without the body references
-inside a Gherkin-tagged fence, in the same order.
+inside a Gherkin-tagged fence (a fenced block whose info string is a tag that
+the `gherkin.FenceTags` function returns), in the same order.
 
 ### Requires
 
 WHEN `Extract` is called, the caller SHALL pass the reference-bearing
 property names the active profile registers for the document's type.
 
-WHEN `Resolve` is called, the index SHALL already record every member's
-headings.
+WHEN `Resolve` is called, the index SHALL already record every corpus
+document's headings.
 
 ## Design
 
 ### Patterns and principles
 
-Separation of Concerns (Dijkstra, 1974) — extraction (`Extract`) works on
-one document, and resolution (`Resolve`) works on one index. The split fits
-how the corpus walk runs. The walk extracts each file's references as it
-reads the file. It resolves them all after it reads the last file, because
-the first file may cite the last.
+Separation of Concerns (Dijkstra, "On the role of scientific thought",
+1974) — extraction (`Extract`) works on one document, and resolution
+(`Resolve`) works on one index. The split fits how the corpus walk runs. The
+walk extracts each file's references as it reads the file. It resolves them
+all after it reads the last file, because the first file may cite the last.
 
 ### Invariants
 
 `Extract` SHALL leave every reference's resolution unset. Enforced by:
-`TestExtractionResolvesNothing`.
+`TestExtractionResolvesNothing` for the slug resolution; review only for the
+anchor resolution.
 
 `Extract` SHALL read frontmatter references from the parsed frontmatter
 block, never from an index entry. Enforced by: review only.
@@ -135,11 +136,12 @@ of its own. Enforced by:
 `TestAnAnchorMatchesAHeadingByIdentifierNotByExactText` for the result;
 review only for using no derivation of its own.
 
-The component SHALL read the Gherkin fence tags from `gherkin.FenceTags`,
-never from a literal. Enforced by: review only.
+The component SHALL read the Gherkin fence tags from the `gherkin.FenceTags`
+function, never from a literal. Enforced by: review only.
 
-The code-region mask and `OutsideGherkinFences` SHALL share one `goldmark`
-walk, so they agree on where a fence ends. Enforced by: review only.
+The code-region mask and `OutsideGherkinFences` SHALL share one walk function
+over the `goldmark` syntax tree, `scanRegions`, so they agree on where a fence
+ends. Enforced by: review only.
 
 ### Extension points
 
@@ -158,7 +160,7 @@ its exported surface, cited to the acceptance criteria they verify.
 ## Change guidance
 
 WHEN the span a reference is recorded at changes, every consumer that
-derives an extent from that span SHALL be updated in the same change.
+derives another span from that span SHALL be updated in the same change.
 
 ### Verification gates
 
