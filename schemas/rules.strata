@@ -28,7 +28,7 @@ enum RuleId {
   """Error. The spec root holds no corpus member, so a clean report would mean nothing was examined."""
   CorpusEmpty: "corpus/empty"
 
-  """Error. A `[[slug]]` in the body, or a slug in a reference-bearing frontmatter property, matches no corpus member."""
+  """Error. A `[[slug]]` in the body, or a slug in a frontmatter reference property, matches no corpus member."""
   ReferenceUnresolved: "reference/unresolved"
 
   """Error when an anchor matches no heading of the cited document. Unverified when the cited document's headings aren't recorded, so the check couldn't look."""

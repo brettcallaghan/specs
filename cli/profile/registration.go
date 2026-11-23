@@ -17,13 +17,13 @@ import (
 // than authored: which frontmatter properties hold a reference to
 // another document, and which statuses this framework's documents move
 // through. Both are facts the vocabulary already states —
-// `schemas/frontmatter.strata` types a reference-bearing property as
+// `schemas/frontmatter.strata` types a reference property as
 // `Citation` or `[Citation]`, and `schemas/vocabulary.strata` enumerates
 // `Status` — and both reach this package through the same generated
 // schema the profile already embeds.
 //
 // Deriving them rather than transcribing them is the point. A property
-// added to the vocabulary is reference-bearing the moment it is declared,
+// added to the vocabulary is a reference property the moment it is declared,
 // with no second list to remember; a transcribed one would be correct on
 // the day it was written and silently incomplete afterwards, which is the
 // failure a registration cannot report about itself.
@@ -31,7 +31,7 @@ import (
 // identityProperty is the one property that names the document declaring
 // it rather than another document. It is typed `Slug` — never `Citation`,
 // since a document's own identity must never carry an anchor — and
-// registering it as reference-bearing would make every document
+// registering it as a reference property would make every document
 // reference itself, so it is the single exclusion from the derivation
 // below.
 const identityProperty = "slug"

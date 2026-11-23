@@ -21,7 +21,7 @@ for every corpus member:
 
 - The `[[slug]]` references parsed from its body, with the span of each
   occurrence (AC-SPECREF-001.1).
-- The references held by its reference-bearing frontmatter properties
+- The references held by its frontmatter reference properties
   (AC-SPECREF-001.7).
 - Its inbound references, derived from every other member's outbound ones
   (AC-SPECREF-001.3).

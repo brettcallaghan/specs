@@ -74,7 +74,7 @@ not overlooked:
 - **Declaring document** — the corpus member whose frontmatter `slug`
   holds the slug being renamed.
 - **Referring document** — any corpus member holding a reference to the
-  slug being renamed, in its body or in a reference-bearing frontmatter
+  slug being renamed, in its body or in a frontmatter reference
   property.
 - **Preview** — the report of every edit a rename would make, produced
   without modifying any file.
@@ -125,9 +125,9 @@ Feature: Rename a Slug and Its References
     Then the CLI preserves both unchanged
 
   @AC-SPECREN-001.4
-  Scenario: Reference-bearing frontmatter is rewritten too
+  Scenario: Frontmatter reference properties are rewritten too
     When the CLI performs a rename
-    Then the CLI rewrites the value in every frontmatter property the active profile registers as reference-bearing
+    Then the CLI rewrites the value in every frontmatter property the active profile registers as a reference property
 
   @AC-SPECREN-001.5
   Scenario: The new slug is written in the spelling it was given
@@ -353,7 +353,7 @@ describes exactly the subcommands that are built.
   surface this feature extends
 - [[frd-spec-anchor-references]] — the anchor half of a reference, whose
   preservation AC-SPECREN-001.3 requires
-- [[contract-specs-configuration]] — declares the reference-bearing
+- [[contract-specs-configuration]] — declares the reference
   properties AC-SPECREN-001.4 rewrites
 - [[adr-012]] — the `[[slug]]` convention, and the decision that slugs
   are location-independent

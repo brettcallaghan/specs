@@ -21,7 +21,7 @@ and a reader follows it into nothing. A corpus that is clean exactly once, at
 the moment someone looked, is the state this feature exists to end.
 
 This feature adds reference awareness to the tool that [[frd-spec-index]]
-establishes. It reads each document's body and reference-bearing frontmatter,
+establishes. It reads each document's body and frontmatter reference properties,
 records the outbound and inbound references in the shared index, and reports
 every reference that resolves to no corpus member. It adds no new artifact and
 no new engine. It populates the reference properties of the index that
@@ -81,11 +81,11 @@ overlooked:
 
 - **Body** — the content of a document after its frontmatter block. Reference
   extraction reads the body. Frontmatter contributes references only through the
-  properties the profile registers as reference-bearing, never through prose in
-  a frontmatter value.
+  properties the profile registers as reference properties, never through
+  prose in a frontmatter value.
 - **Outbound reference** — a `[[slug]]` link parsed from a document's body, or a
   slug value in a frontmatter property that the active profile registers as
-  reference-bearing.
+  a reference property.
 - **Anchor** — the portion of a reference after a `#`, naming a heading within
   the target document. This feature reads a reference's slug half, and
   [[frd-spec-anchor-references]] specifies the anchor half.
@@ -100,12 +100,12 @@ overlooked:
   the reader's next step differs. A reference whose slug matches a file that the
   index recorded as a parse failure isn't reported at all: the citing document
   isn't what's wrong, and the parse failure is the one finding (AC-SPEC-003.8).
-- **Reference-bearing property** — a frontmatter property that the active
+- **Reference property** — a frontmatter property that the active
   profile declares as holding one or more document slugs (for example,
   `superseded_by` or `modules`). A profile MAY additionally declare the document
   `type` such a property's target must carry, making the property a *typed*
   reference.
-- **Paired reference** — two reference-bearing properties that the profile
+- **Paired reference** — two reference properties that the profile
   declares as counterparts, so that a reference in one document implies a
   matching reference back. An adopting profile that pairs `owner` with
   `owned_by` gets both halves checked. The specs profile registers no pairing:
@@ -161,7 +161,7 @@ Feature: Reference Extraction in the Index
     Given a wikilink occurring in a frontmatter value
     When the CLI builds the index
     Then the CLI does not record it as a reference
-    And frontmatter contributes references only through the properties the active profile registers as reference-bearing
+    And frontmatter contributes references only through the properties the active profile registers as reference properties
 
   @AC-SPECREF-001.5
   Scenario: Repeated references are recorded separately and in document order
@@ -178,9 +178,9 @@ Feature: Reference Extraction in the Index
     And the CLI exits zero
 
   @AC-SPECREF-001.7
-  Scenario: A reference-bearing frontmatter property contributes outbound references
+  Scenario: A frontmatter reference property contributes outbound references
     When the CLI builds the index
-    Then the CLI records every value held by a frontmatter property the active profile registers as reference-bearing as an outbound reference of that document, each with the span at which it occurs, distinguishable from a reference parsed from the body
+    Then the CLI records every value held by a frontmatter property the active profile registers as a reference property as an outbound reference of that document, each with the span at which it occurs, distinguishable from a reference parsed from the body
 
   @AC-SPECREF-001.8
   Scenario: A reference reaching a heading of its own document is an inbound reference of it
@@ -276,8 +276,8 @@ Feature: Reference Integrity Checks
     Then the CLI resolves the reference on its slug portion alone
 
   @AC-SPECREF-002.3
-  Scenario: A reference-bearing frontmatter value matching no corpus member is an error
-    Given a frontmatter property the active profile registers as reference-bearing
+  Scenario: A frontmatter reference property value matching no corpus member is an error
+    Given a frontmatter property the active profile registers as a reference property
     And its value matches no corpus member's slug
     When the CLI checks the document
     Then the CLI reports a finding of severity error naming the property and the value
@@ -319,7 +319,7 @@ Feature: Reference Integrity Checks
 
   @AC-SPECREF-002.10
   Scenario: A typed reference resolving to the wrong type is an error
-    Given the active profile declares a required target type for a reference-bearing property
+    Given the active profile declares a required target type for a reference property
     And the resolved document declares a different type
     When the CLI checks the document
     Then the CLI reports a finding of severity error naming the property, the type expected and the type the target declares
@@ -564,16 +564,16 @@ Feature: Reference Configuration
 
   @AC-SPECREF-004.1
   Scenario: One configuration file carries the reference vocabulary
-    Then the configuration determines which frontmatter properties are reference-bearing and which pairs of properties form a paired reference
+    Then the configuration determines which frontmatter properties are reference properties and which pairs of properties form a paired reference
     And it does so by extending the configuration file of FEAT-SPEC-008 rather than by a separate file
 
   @AC-SPECREF-004.2
   Scenario: A configuration for this framework's own properties ships with the CLI
-    Then the CLI ships a configuration registering this framework's own reference-bearing properties and pairings, which an adopting repository can use without authoring one
+    Then the CLI ships a configuration registering this framework's own reference properties and pairings, which an adopting repository can use without authoring one
 
   @AC-SPECREF-004.3
   Scenario: A pairing naming an unregistered property is reported rather than silently ignored
-    Given a pairing that names a property not registered as reference-bearing
+    Given a pairing that names a property not registered as a reference property
     When the CLI reads the configuration
     Then the CLI reports the offending key and its position
     And the CLI falls back to no default for it
@@ -586,10 +586,10 @@ Feature: Reference Configuration
 *Examples:* [[contract-specs-configuration]] and `schemas/profile.strata`
 declare `reference_properties` and `pairings` per document type. This feature
 consumes those properties and adds one, `typed_reference_properties`, which maps
-a reference-bearing property to the document `type` its target must declare
+a reference property to the document `type` its target must declare
 (AC-SPECREF-004.1, and AC-SPECREF-002.10). The shipped configuration marks
 `superseded_by`, `sources`, `frd`, `system`, `modules`, `provider` and
-`contracts_consumed` as reference-bearing. It registers no pairing, because
+`contracts_consumed` as reference properties. It registers no pairing, because
 every relationship this framework declares has its reverse derived from inbound
 edges, and [[document-relationship-standards]] reserves a pairing for the case
 that doesn't. The configuration registers one typed reference: a Feature

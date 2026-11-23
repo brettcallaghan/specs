@@ -40,7 +40,7 @@ func anchorFindingsOf(findings []specmodel.Finding) []specmodel.Finding {
 	return out
 }
 
-// checkedAnchors builds a corpus under repo with the reference-bearing
+// checkedAnchors builds a corpus under repo with the reference
 // fixture profile and returns its findings.
 func checkedAnchors(t *testing.T, repo string) []specmodel.Finding {
 	t.Helper()

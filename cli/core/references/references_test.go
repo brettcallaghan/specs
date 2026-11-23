@@ -515,7 +515,7 @@ func TestAVerticalBarInsideAnAnchorIsOrdinaryText(t *testing.T) {
 	}
 }
 
-// An anchor written in a reference-bearing frontmatter property is
+// An anchor written in a frontmatter reference property is
 // recorded exactly as one written in the body: same split on the first
 // `#`, same lack of normalization, same span covering the value as
 // written.
@@ -697,7 +697,7 @@ func TestExtractionReadsNoIndexEntry(t *testing.T) {
 				t.Fatalf("%s: unquoting %s: %v", name, imported.Path.Value, err)
 			}
 			if path == forbidden {
-				t.Errorf("%s imports %s; a reference-bearing value must not be reached "+
+				t.Errorf("%s imports %s; a reference property value must not be reached "+
 					"through an index entry's frontmatter", name, path)
 			}
 		}

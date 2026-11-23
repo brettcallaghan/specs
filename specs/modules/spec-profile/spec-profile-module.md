@@ -4,7 +4,7 @@ entity_name: Specs Profile
 technology: Go package
 description: This framework's document vocabulary, registered into Document
   Core as one profile — the union schema, each type's slug pattern and
-  numbering, reference-bearing properties, lifecycle, Gherkin tag
+  numbering, reference properties, lifecycle, Gherkin tag
   vocabulary and architecture vocabulary. Change it to add a document type,
   alter a slug pattern, or register a framework rule the generated schema
   can't state.
@@ -38,13 +38,13 @@ the whole engine by registering a different profile.
 
 The registration of this framework's vocabulary through `corpus.Profile`:
 the embedded union schema, each document type's slug pattern and
-numbering, the reference-bearing properties and typed references, the
+numbering, the reference properties and typed references, the
 status lifecycle, the convention defaults, the Gherkin tag vocabulary, the
 record-block tags, and the architecture vocabulary.
 
 The union schema is one JSON Schema that validates the frontmatter of
 every document type. A slug is a document's identifier. An ADR's slug
-carries a number. A reference-bearing property is a frontmatter property
+carries a number. A reference property is a frontmatter property
 whose value cites another document, and a typed reference is one that
 must resolve to a document of a given type. A record-block tag is the
 info string of a fenced block that declares an element inside another
@@ -120,7 +120,7 @@ The module SHALL register a slug pattern for every document type this
 framework defines, so that a conforming document is never excluded as
 `unknown-type`.
 
-The module SHALL register as reference-bearing exactly the frontmatter
+The module SHALL register as reference properties exactly the frontmatter
 properties that the generated schema types as `Citation` or `[Citation]`,
 other than `slug`.
 
@@ -229,7 +229,7 @@ generated constant that no longer exists. The test lists the generated
 constants by hand, so a value added to the vocabulary without a row is
 caught by review only.
 
-The registered reference-bearing properties of each type SHALL equal the
+The registered reference properties of each type SHALL equal the
 properties the generated schema types as `Citation` or `[Citation]` on that
 type, other than `slug`.
 Enforced by: `TestEveryCitationTypedPropertyInTheVocabularyIsRegistered`.
@@ -315,7 +315,7 @@ technology: Go
 
 (Go) — The reference and lifecycle registration, derived from the generated
 schema (`cli/profile/registration.go`). It reads each type's
-reference-bearing properties and the status vocabulary from the embedded
+reference properties and the status vocabulary from the embedded
 schema, so a property or status added to `schemas/*.strata` is registered
 as soon as the schema is regenerated and the binary rebuilt. It authors
 only what the schema can't state: the typed reference, the empty pairing

@@ -93,7 +93,7 @@ func TestDocumentTypeRulesCarryTheReferenceRegistration(t *testing.T) {
 	}
 
 	// A type that registers none of the three is not a defect and not a
-	// default: it holds no reference-bearing property at all.
+	// default: it holds no reference property at all.
 	if bare := profile.DocumentTypes()["goal"]; len(bare.ReferenceProperties) != 0 ||
 		len(bare.TypedReferenceProperties) != 0 || len(bare.Pairings) != 0 {
 		t.Errorf("a type registering no reference properties reports %+v", bare)
@@ -249,7 +249,7 @@ func TestValidateRegistrationReportsEveryDefectClass(t *testing.T) {
 	profile := registeringProfile()
 	profile.types["plan"] = corpus.DocumentTypeRules{
 		SlugPattern: `^plan-[a-z0-9-]+$`,
-		// "realizes" is no longer reference-bearing, and "supports"
+		// "realizes" is no longer a reference property, and "supports"
 		// names a type this profile does not define.
 		ReferenceProperties: []string{"owner"},
 		TypedReferenceProperties: map[string]string{
@@ -269,8 +269,8 @@ func TestValidateRegistrationReportsEveryDefectClass(t *testing.T) {
 
 	defects := corpus.ValidateRegistration(profile)
 
-	// "supports" produces two defects of its own: it is neither
-	// reference-bearing nor does it name a defined type.
+	// "supports" produces two defects of its own: it is neither a
+	// reference property nor does it name a defined type.
 	wantKeys := []string{
 		"realizes", "sponsor", "supports", "supports",
 		"provisional", "archived",

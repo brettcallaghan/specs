@@ -17,7 +17,7 @@
 // reference registration derived from the embedded schema, and the
 // lifecycle derived from the same place. Both derivations live in
 // registration.go, and they are derivations rather than lists because a
-// property added to schemas/frontmatter.strata is reference-bearing the
+// property added to schemas/frontmatter.strata is a reference property the
 // moment it is declared.
 //
 // Validating record blocks and required sections are later capabilities;

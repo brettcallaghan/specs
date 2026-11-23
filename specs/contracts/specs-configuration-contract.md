@@ -108,24 +108,24 @@ express fixed documents, and the templates this profile mirrors aren't all
 fixed.
 
 A profile also supplies, per document type, which of its frontmatter
-properties are reference-bearing, which of those are typed, and which are
+properties are reference properties, which of those are typed, and which are
 paired. A JSON Schema can't express these three facts, because what a
 slug-shaped value resolves to, and what its target must be, are questions
 about the corpus rather than about the value itself:
 
-- **Reference-bearing properties** are the frontmatter properties of the
+- **Reference properties** are the frontmatter properties of the
   type whose value is a document slug. A value in a property absent from
   this list contributes no reference, however slug-shaped it looks: what
   counts as a reference is registered, never inferred from a value's
   shape.
-- **Typed reference properties** narrow a reference-bearing property
+- **Typed reference properties** narrow a reference property
   further, to the one document type its target must declare. For
   example, a Feature Blueprint's `frd` property must resolve to a
   document of type `frd`. They're registered as a mapping from the
   property's name to the required type. Every key also names a
-  reference-bearing property, because a typed property that isn't
-  reference-bearing has no target to check the type of.
-- **Pairings** are the reference-bearing properties that must be
+  reference property, because a typed property that isn't a
+  reference property has no target to check the type of.
+- **Pairings** are the reference properties that must be
   declared from both ends. A document that names a counterpart in one of
   them, where the target declares nothing in return, is a half-built
   edge. Each pairing names the property on this type and the counterpart
@@ -209,7 +209,7 @@ override: `[profile].name` selects one of these registrations, and
 name no adopter can select, or a convention no registration consumes, is
 a defect in this contract rather than in either module.
 
-The internal surface described above, including the reference-bearing,
+The internal surface described above, including the reference-property,
 typed-reference, pairing, lifecycle, tag-vocabulary, and record-block tag
 registrations, doesn't change `version`, because the Versioning and
 change policy section below exempts the internal registration surface

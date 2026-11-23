@@ -383,7 +383,7 @@ func TestTheBuildRecordsTheHashFingerprintComputesOverBothKindsOfSource(t *testi
 }
 
 // A changed feature-tag registration invalidates a persisted index, for
-// the same reason a changed reference-bearing property does: the index's
+// the same reason a changed reference property does: the index's
 // content moves while every file on disk stands still.
 //
 // AC: AC-SPEC-010.6

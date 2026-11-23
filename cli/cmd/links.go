@@ -178,7 +178,7 @@ func openCorpusReadOnly(opts corpus.Options) (*corpus.Corpus, error) {
 	return c, nil
 }
 
-// referenceProperties looks up the reference-bearing frontmatter
+// referenceProperties looks up the frontmatter reference properties
 // properties for doc's declared type, per the active profile — the same
 // per-type registration corpus.Build reads, applied here to a document
 // that need not be a corpus member. A document with no frontmatter, or

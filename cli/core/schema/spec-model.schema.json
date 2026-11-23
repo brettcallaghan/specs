@@ -1588,7 +1588,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Reference-bearing properties whose target must declare a particular\ndocument `type`, keyed by property name with the required type as the\nvalue.\n\nA schema can require that `frd` holds exactly one slug; only the index\nknows what that slug resolves to, so the type half of the constraint is\nregistered here. Every key must also appear in `reference_properties`\n— a typed property that is not reference-bearing would be checked\nagainst a target nothing resolved.",
+          "description": "Reference properties whose target must declare a particular\ndocument `type`, keyed by property name with the required type as the\nvalue.\n\nA schema can require that `frd` holds exactly one slug; only the index\nknows what that slug resolves to, so the type half of the constraint is\nregistered here. Every key must also appear in `reference_properties`\n— a typed property that is not a reference property would be checked\nagainst a target nothing resolved.",
           "propertyNames": {
             "type": "string"
           },
@@ -2839,7 +2839,7 @@
           "type": "string"
         },
         "property": {
-          "description": "The reference-bearing property the referring document declares.",
+          "description": "The reference property the referring document declares.",
           "type": "string"
         },
         "source_path": {
@@ -2943,7 +2943,7 @@
           "type": "string"
         },
         "property": {
-          "description": "The reference-bearing property whose target's type is constrained.",
+          "description": "The reference property whose target's type is constrained.",
           "type": "string"
         },
         "slug": {
@@ -3149,7 +3149,7 @@
         },
         "origin": {
           "$ref": "#/definitions/ReferenceOrigin",
-          "description": "Where the reference was written: the document's body, or a named\nreference-bearing frontmatter property."
+          "description": "Where the reference was written: the document's body, or a named\nfrontmatter reference property."
         },
         "slug": {
           "description": "The slug half of the reference, as written — everything before the\nfirst `#`, whose anchor half is not part of this defect.",
@@ -3805,7 +3805,7 @@
           "description": "Where in the containing document the reference occurs, as a span rather\nthan a bare line number, so a report and a rewrite both address the\nreference itself."
         },
         "text": {
-          "description": "The reference exactly as written, without the delimiters that enclose\nit — `adr-012`, or `adr-012#Decision`, or the raw value of a\nreference-bearing frontmatter property.\n\nRecorded alongside the halves it splits into, because the text is what\na reader sees and what a rewrite replaces, and neither is recoverable\nfrom the halves once letter case or spacing has been normalized.",
+          "description": "The reference exactly as written, without the delimiters that enclose\nit — `adr-012`, or `adr-012#Decision`, or the raw value of a\nfrontmatter reference property.\n\nRecorded alongside the halves it splits into, because the text is what\na reader sees and what a rewrite replaces, and neither is recoverable\nfrom the halves once letter case or spacing has been normalized.",
           "type": "string"
         }
       },
@@ -3827,7 +3827,7 @@
     },
     "ReferenceFrontmatterOrigin": {
       "additionalProperties": false,
-      "description": "A reference held by a frontmatter property the active profile registers\nas reference-bearing.",
+      "description": "A reference held by a frontmatter property the active profile registers\nas a reference property.",
       "properties": {
         "property": {
           "description": "The name of the frontmatter property the reference was written in, so\nthat a finding names the property without the document being reopened.",

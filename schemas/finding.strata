@@ -187,7 +187,7 @@ struct FindingUnresolvedReference {
 
   """
   Where the reference was written: the document's body, or a named
-  reference-bearing frontmatter property.
+  frontmatter reference property.
   """
   origin: ReferenceOrigin
 
@@ -235,7 +235,7 @@ describe the relationship in the same direction rather than each from its
 own point of view.
 """
 struct FindingIncompletePairing {
-  """The reference-bearing property the referring document declares."""
+  """The reference property the referring document declares."""
   property: String
 
   """
@@ -266,7 +266,7 @@ only the index knows what that slug resolves to, so the type half of the
 constraint is checked here and reported with both types quoted.
 """
 struct FindingReferenceType {
-  """The reference-bearing property whose target's type is constrained."""
+  """The reference property whose target's type is constrained."""
   property: String
 
   """The slug the property names."""

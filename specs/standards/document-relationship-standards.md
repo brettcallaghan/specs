@@ -16,7 +16,7 @@ These requirements govern how one specification document records a
 relationship to another: a peer it observes, a source it derives from, a
 child it composes, or a document it supersedes. They apply to anyone who
 authors or reviews a specification document, and to anyone who adds,
-removes, or configures a reference-bearing frontmatter property.
+removes, or configures a frontmatter reference property.
 
 Their authority rests on a capability of the framework. The
 reference-integrity feature parses every `[[slug]]` link from a document's

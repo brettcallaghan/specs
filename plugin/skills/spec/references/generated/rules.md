@@ -24,7 +24,7 @@ severity it reports at.
 | SlugPatternMismatch | "slug/pattern-mismatch" | Error. The slug doesn't match the pattern the profile registers for the document's type. |
 | SlugDuplicate | "slug/duplicate" | Error. More than one document declares the slug. The finding names the other document. |
 | CorpusEmpty | "corpus/empty" | Error. The spec root holds no corpus member, so a clean report would mean nothing was examined. |
-| ReferenceUnresolved | "reference/unresolved" | Error. A `[[slug]]` in the body, or a slug in a reference-bearing frontmatter property, matches no corpus member. |
+| ReferenceUnresolved | "reference/unresolved" | Error. A `[[slug]]` in the body, or a slug in a frontmatter reference property, matches no corpus member. |
 | ReferenceUnresolvedAnchor | "reference/unresolved-anchor" | Error when an anchor matches no heading of the cited document. Unverified when the cited document's headings aren't recorded, so the check couldn't look. |
 | ReferenceAmbiguousAnchor | "reference/ambiguous-anchor" | Error. An anchor matches more than one heading of the cited document. Qualify it with the parent heading, as in `[[slug#Parent#Heading]]`. |
 | ReferenceRetiredTarget | "reference/retired-target" | Warning. A live document cites a retired one. The finding quotes the target's `superseded_by`, which is what to cite instead. |

@@ -172,7 +172,7 @@ func TestTheExtensionPointNamesNoRegisteredVocabulary(t *testing.T) {
 		read[kind]++
 	}
 	for _, kind := range []string{
-		"document type", "status", "reference-bearing property", "criterion qualifier",
+		"document type", "status", "reference property", "criterion qualifier",
 	} {
 		if read[kind] == 0 {
 			t.Fatalf("read no %s from the generated schema; the check would pass vacuously for that kind", kind)
@@ -246,8 +246,8 @@ func goFilesUnder(t *testing.T, root string) []string {
 }
 
 // identityProperty is the one property typed as a slug that names the
-// document declaring it rather than another document, so it is not
-// reference-bearing and the host's own use of it is not a leak. Every
+// document declaring it rather than another document, so it is not a
+// reference property and the host's own use of it is not a leak. Every
 // other slug-typed property in the vocabulary points somewhere else and
 // is a property a profile registers.
 const identityProperty = "slug"
@@ -259,8 +259,8 @@ const identityProperty = "slug"
 // Four kinds travel through the extension point: the document types
 // DocumentTypes is keyed by, the statuses a lifecycle registration names,
 // the frontmatter properties a document type registers as
-// reference-bearing, and the qualifier tags a feature-tag registration
-// assigns meaning to. The reference-bearing properties are derived the
+// reference properties, and the qualifier tags a feature-tag registration
+// assigns meaning to. The reference properties are derived the
 // same way the profile derives its own registration — every property
 // whose value is a slug or a list of slugs — so a property added to the
 // schema is covered here before anything registers it.
@@ -327,7 +327,7 @@ func registeredVocabulary(t *testing.T) map[string]string {
 				slugTyped = slugTyped || alternative.Ref == slugRef
 			}
 			if slugTyped {
-				vocabulary[name] = "reference-bearing property"
+				vocabulary[name] = "reference property"
 			}
 		}
 	}

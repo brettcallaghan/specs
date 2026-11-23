@@ -605,7 +605,7 @@ identifier, and the spec root resolves beside that file wherever the CLI
 runs from (AC-SPEC-008.1). A `[[type]]` table for `adr` declares
 `slug_pattern = "^adr-[0-9]{3}$"` and points at the schema FEAT-SPEC-003
 validates against. Later features add each type's required headings, its
-line-width limit, and its reference-bearing properties to this same file,
+line-width limit, and its reference properties to this same file,
 which the additive config schema allows (AC-SPEC-008.2).
 
 Run in a repository with no `specs.toml`, the CLI names the file it

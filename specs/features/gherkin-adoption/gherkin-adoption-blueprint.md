@@ -103,7 +103,7 @@ Tracker reconciliation).
 **Intent:** Which tag identifies a feature, which identifies a criterion, and
 which qualifiers carry meaning are facts about a document vocabulary, not about
 Gherkin. The host must hold none of them, exactly as it holds no status and no
-reference-bearing property name today. This block is the widening, reviewed on
+reference property name today. This block is the widening, reviewed on
 its own merits as [[module-spec-profile]]'s Change guidance requires. It's
 framed so that any profile can express a tag vocabulary, not so that this one
 can.

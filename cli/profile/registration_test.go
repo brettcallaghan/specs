@@ -20,7 +20,7 @@ import (
 	"github.com/brettcallaghan/specs/cli/profile"
 )
 
-// registeredReferenceProperties is the complete set of reference-bearing
+// registeredReferenceProperties is the complete set of reference
 // properties this framework registers, transcribed here on purpose: the
 // production set is derived from the schema, so a test that derived it
 // the same way would assert nothing about which properties the
@@ -30,7 +30,7 @@ import (
 // illustrative list omits. Both hold slugs by declaration and both
 // resolve in this corpus today, and leaving them out would leave a
 // contract's two most load-bearing edges unchecked; the criterion is
-// "this framework's own reference-bearing properties", and this is the
+// "this framework's own reference properties", and this is the
 // complete set. That divergence is decided — see the PREG delta in
 // specs/features/reference-integrity/reference-integrity-blueprint.md.
 //
@@ -79,7 +79,7 @@ func TestTheProfileRegistersEverySlugHoldingProperty(t *testing.T) {
 	for value, rules := range types {
 		for _, property := range rules.ReferenceProperties {
 			if property == "slug" {
-				t.Errorf("%q registers its own identity property as reference-bearing", value)
+				t.Errorf("%q registers its own identity property as a reference property", value)
 			}
 		}
 	}
@@ -87,7 +87,7 @@ func TestTheProfileRegistersEverySlugHoldingProperty(t *testing.T) {
 
 // The registered set is derived from the vocabulary rather than
 // transcribed from it, so a property added to schemas/frontmatter.strata
-// is reference-bearing the moment it is declared. This is the same drift
+// is a reference property the moment it is declared. This is the same drift
 // guard the per-type table already carries for document types.
 func TestEveryCitationTypedPropertyInTheVocabularyIsRegistered(t *testing.T) {
 	types := profile.New().DocumentTypes()
@@ -107,7 +107,7 @@ func TestEveryCitationTypedPropertyInTheVocabularyIsRegistered(t *testing.T) {
 		for _, property := range declared {
 			seen++
 			if !registered[property] {
-				t.Errorf("%q declares %q as a citation and does not register it as reference-bearing",
+				t.Errorf("%q declares %q as a citation and does not register it as a reference property",
 					value, property)
 			}
 		}
@@ -167,7 +167,7 @@ func TestTheProfileRegistersOneTypedReference(t *testing.T) {
 	// A typed reference over a property nothing extracts would be checked
 	// against a target nothing resolved.
 	if !contains(blueprint.ReferenceProperties, "frd") {
-		t.Error("frd is registered as a typed reference and not as reference-bearing")
+		t.Error("frd is registered as a typed reference and not as a reference property")
 	}
 }
 
@@ -204,7 +204,7 @@ func TestTheProfileRegistersTheLifecycle(t *testing.T) {
 	// reference.
 	for value, types := range profile.New().DocumentTypes() {
 		if !contains(types.ReferenceProperties, rules.SuccessorProperty) {
-			t.Errorf("%q does not register the successor property %q as reference-bearing",
+			t.Errorf("%q does not register the successor property %q as a reference property",
 				value, rules.SuccessorProperty)
 		}
 	}

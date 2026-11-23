@@ -613,7 +613,7 @@ func TestCheckRaisesNoParseFindingForAFileWithNoFrontmatter(t *testing.T) {
 // single-document check — the inbound edges that no longer resolve.
 
 // referenceCheckProfile is checkProfile(permissiveCheckSchema) with
-// property registered as reference-bearing on both fixture types, so
+// property registered as a reference property on both fixture types, so
 // nothing about a document's schema or slug pattern can produce a
 // finding and only the reference itself can.
 func referenceCheckProfile(property string) corpus.Profile {
@@ -1144,7 +1144,7 @@ func TestCheckRaisesNoRetiredTargetFindingWhenTheReferringDocumentIsAlsoRetired(
 // pairingCheckProfile registers "owner"/"owned_by" as a pairing on "adr"
 // — a relationship this framework's own shipped profile deliberately
 // registers none of (LIFE's Design: "Do not add a pairing to the shipped
-// profile"). "owner" is also registered as reference-bearing, which a
+// profile"). "owner" is also registered as a reference property, which a
 // pairing's Property must be per [corpus.ValidateRegistration].
 func pairingCheckProfile() corpus.Profile {
 	return stubProfile{

@@ -55,7 +55,7 @@ the constructors in `cli/core/finding`.
 
 ### specs registrations in [[module-spec-profile]] (modified) — SREF
 
-**Intent:** A reference-bearing frontmatter property is typed `Slug`
+**Intent:** A frontmatter reference property is typed `Slug`
 today, and the slug pattern admits no `#`, so a citation carrying an
 anchor fails schema validation before anything resolves it. The
 identity a document declares and a citation of someone else's identity
@@ -64,13 +64,13 @@ are two different types wearing one name. This delta separates them.
 **Behavior:**
 - The profile's frontmatter schema SHALL declare a citation type that
   admits a slug optionally followed by `#` and a non-empty anchor.
-- Every reference-bearing property SHALL be typed as a citation.
+- Every reference property SHALL be typed as a citation.
 - A document's own `slug` SHALL remain typed as a slug, so no document
   can declare an anchored identity.
 - The citation type SHALL reject a trailing `#` with no anchor after it.
 
 **Anchors:** `schemas/vocabulary.strata` (the `Slug` alias),
-`schemas/frontmatter.strata` (the reference-bearing properties),
+`schemas/frontmatter.strata` (the reference properties),
 `scripts/generate-schemas.sh`.
 
 ### References in [[module-document-core]] (modified — extraction) — AEX
@@ -86,8 +86,8 @@ acquire an alias splitter or normalize on the way in.
   normalization.
 - The component SHALL divide a reference at no vertical bar, so a bar in
   an anchor is recorded as ordinary text of that anchor.
-- The component SHALL record an anchor from a reference-bearing
-  frontmatter property exactly as it records one written in the body.
+- The component SHALL record an anchor from a frontmatter
+  reference property exactly as it records one written in the body.
 - WHEN a reference is written as an embed, the component SHALL record it
   as it records the equivalent link.
 

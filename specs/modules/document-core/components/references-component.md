@@ -23,7 +23,7 @@ test_paths:
 
 References finds every reference a document makes, such as a `[[slug]]` or
 `[[slug#Anchor]]` wikilink, and records where each one occurs. It reads the
-document's body and its reference-bearing frontmatter properties: the ones
+document's body and its frontmatter reference properties: the ones
 the active profile registers for the document's type.
 
 References then resolves each reference against the index, which records
@@ -99,7 +99,7 @@ inside a Gherkin-tagged fence block, in the same order.
 
 ### Requires
 
-WHEN `Extract` is called, the caller SHALL pass the reference-bearing
+WHEN `Extract` is called, the caller SHALL pass the reference
 property names the active profile registers for the document's type.
 
 WHEN `Resolve` is called, the index SHALL already record every corpus
@@ -151,7 +151,7 @@ A new kind of source — the caller passes the file's bytes to `Extract` with
 no frontmatter, and `Extract` reads the whole file as body. The corpus walk
 does this for `.feature` files. Not by a second wikilink scanner.
 
-A new reference-bearing property — register it in the profile. Not by
+A new reference property — register it in the profile. Not by
 naming the property in this package.
 
 ## Cross-cutting Standards

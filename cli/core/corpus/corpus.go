@@ -1129,8 +1129,8 @@ func (c *Corpus) Slug(slug string) (specmodel.IndexEntry, bool) {
 }
 
 // OutboundReferences returns every reference one document makes: the
-// `[[slug]]` links in its body and the values of the reference-bearing
-// frontmatter properties the active profile registers for its type, in
+// `[[slug]]` links in its body and the values of the frontmatter
+// reference properties the active profile registers for its type, in
 // the order they occur in the document.
 //
 // The result is empty for a document that references nothing, and for one

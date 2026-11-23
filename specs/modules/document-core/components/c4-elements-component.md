@@ -126,7 +126,7 @@ The component SHALL hold no string literal that names registered vocabulary,
 as [[module-document-core]]'s vocabulary invariant requires. Enforced by:
 `TestTheExtensionPointNamesNoRegisteredVocabulary` in
 `cli/core/corpus/profile_test.go` for document types, statuses,
-reference-bearing properties and criterion qualifiers; review only for the
+reference properties and criterion qualifiers; review only for the
 architecture vocabulary.
 
 ### Extension points

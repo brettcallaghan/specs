@@ -36,8 +36,8 @@ them when they carry their ordinary meaning.
 | profile | The configuration that tells the Spec CLI which document types, front matter properties, and rules a corpus uses. This repository's is the Specs Profile. | |
 | record block | A fenced YAML block, tagged with a type the profile registers, that declares an entity inside another document and holds its `entity_name`, `slug`, and `description`. The Specs Profile registers the `component` tag, for a component declared in its host's Components section. | |
 | recovered slug | A slug read from front matter that failed to parse, so the document still counts as declaring it. | recovered, alone |
-| reference | A citation of another document by slug: a wikilink in the body, such as `[[slug]]` or `[[slug#heading]]`, or the value of a front matter property the profile registers as reference-bearing. Resolving it finds the document that declares the slug. | link, for a citation the tool resolves |
-| reference-bearing property | A front matter property that the profile registers as holding references: its value cites other documents by slug. | |
+| reference | A citation of another document by slug: a wikilink in the body, such as `[[slug]]` or `[[slug#heading]]`, or the value of a front matter property the profile registers as a reference property. Resolving it finds the document that declares the slug. | link, for a citation the tool resolves |
+| reference property | A front matter property that the profile registers as holding references: its value cites other documents by slug. | reference-bearing property |
 | span | A contiguous region of a document: a byte offset and a byte length, with the line and column derived from the offset. | extent, byte range |
 
 ## References

@@ -251,7 +251,7 @@ struct ReferenceBodyOrigin {
 
 """
 A reference held by a frontmatter property the active profile registers
-as reference-bearing.
+as a reference property.
 """
 struct ReferenceFrontmatterOrigin {
   """
@@ -275,7 +275,7 @@ union ReferenceOrigin {
   """A reference parsed from the content after the frontmatter block."""
   @tag("body") Body: ReferenceBodyOrigin
 
-  """A value held by a registered reference-bearing frontmatter property."""
+  """A value held by a registered frontmatter reference property."""
   @tag("frontmatter-property") FrontmatterProperty: ReferenceFrontmatterOrigin
 }
 
@@ -449,7 +449,7 @@ struct Reference {
   """
   The reference exactly as written, without the delimiters that enclose
   it — `adr-012`, or `adr-012#Decision`, or the raw value of a
-  reference-bearing frontmatter property.
+  frontmatter reference property.
 
   Recorded alongside the halves it splits into, because the text is what
   a reader sees and what a rewrite replaces, and neither is recoverable

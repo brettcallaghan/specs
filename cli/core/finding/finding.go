@@ -81,7 +81,7 @@ const (
 	RuleFrontmatterParse = specmodel.RuleIdFrontmatterParse
 	// RuleUnresolvedReference covers a reference — written in a
 	// document's body or held by a frontmatter property the active
-	// profile registers as reference-bearing — whose slug matches no
+	// profile registers as a reference property — whose slug matches no
 	// corpus member. One identifier covers all three ways this can
 	// happen (a body reference, a frontmatter reference, and a slug
 	// matching a file that exists but is not a member): they are the
@@ -108,7 +108,7 @@ const (
 	// the resolved target must declare in return — where the target
 	// does not declare it.
 	RuleIncompletePairing = specmodel.RuleIdReferencePairingIncomplete
-	// RuleTypeMismatch covers a reference-bearing property the active
+	// RuleTypeMismatch covers a reference property the active
 	// profile requires a specific target document `type` for, whose
 	// resolved target declares a different one.
 	RuleTypeMismatch = specmodel.RuleIdReferenceTypeMismatch
@@ -499,7 +499,7 @@ func IncompletePairing(path string, at specmodel.Span, property, counterpart, so
 	}
 }
 
-// ReferenceType reports a reference-bearing property whose resolved
+// ReferenceType reports a reference property whose resolved
 // target declares a document `type` other than the one the active
 // profile requires for that property (AC-SPECREF-002.10).
 func ReferenceType(path string, at specmodel.Span, property, slug, expectedType, actualType string) specmodel.Finding {

@@ -129,7 +129,7 @@ Feature: Anchor Extraction in the Index
 
   @AC-SPECANCH-001.6
   Scenario: An anchor in a frontmatter property is recorded like any other
-    Given a reference-bearing frontmatter property whose value carries an anchor
+    Given a frontmatter reference property whose value carries an anchor
     When the CLI builds the index
     Then the CLI records that anchor exactly as it records an anchor written in the body
 ```

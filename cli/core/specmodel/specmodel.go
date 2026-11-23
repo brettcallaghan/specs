@@ -2422,7 +2422,7 @@ type FindingUnresolvedReference struct {
 	// first `#`, whose anchor half is not part of this defect.
 	Slug string `json:"slug"`
 	// Where the reference was written: the document's body, or a named
-	// reference-bearing frontmatter property.
+	// frontmatter reference property.
 	Origin ReferenceOrigin `json:"origin"`
 	// The non-member file the slug matched, with the reason it is not a
 	// member.
@@ -2526,7 +2526,7 @@ func (v *FindingRetiredTarget) UnmarshalJSON(data []byte) error {
 // describe the relationship in the same direction rather than each from its
 // own point of view.
 type FindingIncompletePairing struct {
-	// The reference-bearing property the referring document declares.
+	// The reference property the referring document declares.
 	Property string `json:"property"`
 	// The property the referenced document must declare in return, and does
 	// not.
@@ -2587,7 +2587,7 @@ func (v *FindingIncompletePairing) UnmarshalJSON(data []byte) error {
 // only the index knows what that slug resolves to, so the type half of the
 // constraint is checked here and reported with both types quoted.
 type FindingReferenceType struct {
-	// The reference-bearing property whose target's type is constrained.
+	// The reference property whose target's type is constrained.
 	Property string `json:"property"`
 	// The slug the property names.
 	Slug string `json:"slug"`
@@ -6639,7 +6639,7 @@ func (v *ReferenceBodyOrigin) UnmarshalJSON(data []byte) error {
 }
 
 // A reference held by a frontmatter property the active profile registers
-// as reference-bearing.
+// as a reference property.
 type ReferenceFrontmatterOrigin struct {
 	// The name of the frontmatter property the reference was written in, so
 	// that a finding names the property without the document being reopened.
@@ -7300,7 +7300,7 @@ type Reference struct {
 	Path string `json:"path"`
 	// The reference exactly as written, without the delimiters that enclose
 	// it — `adr-012`, or `adr-012#Decision`, or the raw value of a
-	// reference-bearing frontmatter property.
+	// frontmatter reference property.
 	//
 	// Recorded alongside the halves it splits into, because the text is what
 	// a reader sees and what a rewrite replaces, and neither is recoverable
@@ -7890,14 +7890,14 @@ type DocumentTypeRegistration struct {
 	// A value in one of these properties that matches no corpus member's
 	// slug is reported the same way an unresolved `[[slug]]` in the body is.
 	ReferenceProperties *[]string `json:"reference_properties,omitempty"`
-	// Reference-bearing properties whose target must declare a particular
+	// Reference properties whose target must declare a particular
 	// document `type`, keyed by property name with the required type as the
 	// value.
 	//
 	// A schema can require that `frd` holds exactly one slug; only the index
 	// knows what that slug resolves to, so the type half of the constraint is
 	// registered here. Every key must also appear in `reference_properties`
-	// — a typed property that is not reference-bearing would be checked
+	// — a typed property that is not a reference property would be checked
 	// against a target nothing resolved.
 	TypedReferenceProperties *map[string]string `json:"typed_reference_properties,omitempty"`
 	// Relationship properties that must be declared from both ends.
@@ -8154,7 +8154,7 @@ const (
 	RuleIdSlugDuplicate RuleId = "slug/duplicate"
 	// Error. The spec root holds no corpus member, so a clean report would mean nothing was examined.
 	RuleIdCorpusEmpty RuleId = "corpus/empty"
-	// Error. A `[[slug]]` in the body, or a slug in a reference-bearing frontmatter property, matches no corpus member.
+	// Error. A `[[slug]]` in the body, or a slug in a frontmatter reference property, matches no corpus member.
 	RuleIdReferenceUnresolved RuleId = "reference/unresolved"
 	// Error when an anchor matches no heading of the cited document. Unverified when the cited document's headings aren't recorded, so the check couldn't look.
 	RuleIdReferenceUnresolvedAnchor RuleId = "reference/unresolved-anchor"

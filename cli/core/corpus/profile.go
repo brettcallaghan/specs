@@ -346,7 +346,7 @@ type DocumentTypeRules struct {
 	// its value looks: what is a reference is registered, never guessed.
 	ReferenceProperties []string
 
-	// TypedReferenceProperties are the reference-bearing properties whose
+	// TypedReferenceProperties are the reference properties whose
 	// target must declare a particular document type, keyed by property
 	// name with the required type as the value. The values are keys of
 	// [Profile.DocumentTypes].

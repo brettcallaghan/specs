@@ -43,8 +43,8 @@ type RegistrationDefect struct {
 // ValidateRegistration reports every defect in profile's registration.
 //
 // A profile is data, and data can contradict itself in ways no compiler
-// catches: a pairing over a property nothing registered as
-// reference-bearing checks a value that was never extracted, and reports
+// catches: a pairing over a property nothing registered as a
+// reference property checks a value that was never extracted, and reports
 // success. That is the vacuous pass this validation exists to turn into a
 // finding, and it is why every defect is reported rather than the first,
 // and why nothing here substitutes a default for an offending key — a
@@ -55,7 +55,7 @@ type RegistrationDefect struct {
 // can get wrong on its own terms:
 //
 //   - a pairing or a typed reference naming a property the same document
-//     type does not register as reference-bearing;
+//     type does not register as a reference property;
 //   - a typed reference naming a required target type the profile does
 //     not define;
 //   - a lifecycle registration naming a status outside the profile's own
@@ -381,7 +381,7 @@ func documentTypeDefects(name string, rules DocumentTypeRules, types map[string]
 			defects = append(defects, RegistrationDefect{
 				DocumentType: name,
 				Key:          property,
-				Detail: "is registered as a typed reference but not as a reference-bearing " +
+				Detail: "is registered as a typed reference but not as a reference " +
 					"property of this type, so nothing would resolve for its target type to be checked against",
 			})
 		}
@@ -403,7 +403,7 @@ func documentTypeDefects(name string, rules DocumentTypeRules, types map[string]
 		defects = append(defects, RegistrationDefect{
 			DocumentType: name,
 			Key:          pairing.Property,
-			Detail: fmt.Sprintf("is paired with %q but is not registered as a reference-bearing "+
+			Detail: fmt.Sprintf("is paired with %q but is not registered as a reference "+
 				"property of this type, so the pairing would compare a reference nothing extracted",
 				pairing.Counterpart),
 		})

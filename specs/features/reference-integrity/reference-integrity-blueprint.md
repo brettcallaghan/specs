@@ -2,7 +2,7 @@
 title: "Spec Corpus Reference Integrity"
 description: Builds the References component of Document Core, adds the
   reference edge collection to the index, widens the profile extension
-  point to carry reference-bearing properties and lifecycle facts, and
+  point to carry reference properties and lifecycle facts, and
   exposes the graph as checks and a refs query
 slug: feature-spec-reference-integrity
 type: feature-blueprint
@@ -120,7 +120,7 @@ that this one can.
 **Behavior:**
 
 - `DocumentTypeRules` SHALL carry, per document type, the names of its
-  reference-bearing frontmatter properties, its typed reference
+  frontmatter reference properties, its typed reference
   properties as a mapping from property name to the `type` its target
   must declare, and its property pairings (AC-SPECREF-004.1).
 - The `Profile` interface SHALL additionally supply the lifecycle
@@ -136,7 +136,7 @@ that this one can.
 - WHEN a profile is activated, the module SHALL validate its
   registration (AC-SPECREF-004.3). The defects are: a pairing or a typed
   reference naming a property the same type does not register as
-  reference-bearing; a typed reference naming a `type` the profile does
+  a reference property; a typed reference naming a `type` the profile does
   not define; and a lifecycle registration naming a status outside the
   profile's own vocabulary.
 - IF the registration carries a defect, THEN the module SHALL report
@@ -183,13 +183,13 @@ either is a checker that gets ignored.
   `[[slug|text]]`, so such a reference carries `slug|text` as its slug half and
   reports as unresolved rather than resolving quietly to something the standard
   prohibits.
-- The component SHALL read reference-bearing frontmatter properties
+- The component SHALL read frontmatter reference properties
   from the generic parsed frontmatter — the property tree the
   Frontmatter component retains with raw text and positions — and never
   from the typed `DocumentFrontmatter` envelope, which carries neither
   per-type properties nor positions
   (AC-SPECREF-001.7).
-- WHERE a reference-bearing property holds a sequence, the component
+- WHERE a reference property holds a sequence, the component
   SHALL record one reference per item, each at that item's own span.
   This widens the Frontmatter component, whose `Property` today carries
   the span of a whole value: both AC-SPECREF-002.3's finding and
@@ -271,7 +271,7 @@ component turns out to need no package of its own.
 
 **Behavior (written in [[module-spec-profile]] vocabulary):**
 
-- The profile SHALL register as reference-bearing every frontmatter
+- The profile SHALL register as a reference property every frontmatter
   property in `schemas/frontmatter.strata` that holds a document slug:
   `superseded_by` on every type; `sources` on FRDs; `frd` on
   feature blueprints; `system` on container blueprints; `contained_by`
@@ -282,7 +282,7 @@ component turns out to need no package of its own.
     illustrates the set without `provider` and `consumers`. Both hold
     slugs by declaration, both resolve today in this corpus, and
     omitting them would leave a contract's two most load-bearing edges
-    unchecked. The criterion is "this framework's own reference-bearing
+    unchecked. The criterion is "this framework's own reference
     properties"; the example is illustrative, and this is the complete
     set.
 - The profile SHALL register **no** pairing. Every relationship this
@@ -336,7 +336,7 @@ because a build's exit status depends on it.
   member, the check SHALL report a finding of severity `error` under the
   rule identifier `reference/unresolved`, carrying the file, the span
   and the unresolved slug (AC-SPECREF-002.1).
-- WHEN a value in a reference-bearing frontmatter property matches no
+- WHEN a value in a frontmatter reference property matches no
   corpus member, the check SHALL report the same rule at `error`, with a
   detail naming the property and the value (AC-SPECREF-002.3).
 - WHEN a reference's slug matched an excluded file, the check SHALL
@@ -388,7 +388,7 @@ so the code is framework-agnostic and the judgment is the profile's.
 Nothing here requires a retired document to *have* a successor.
 [[frd-spec-reference-integrity]] has no such criterion, because not every
 retirement is a replacement. The half worth keeping holds without one:
-`superseded_by` is a registered reference-bearing property (PREG), so a
+`superseded_by` is a registered reference property (PREG), so a
 successor naming no corpus member is already an error under AC-SPECREF-002.3,
 which CHK reports.
 
@@ -408,7 +408,7 @@ which CHK reports.
   target is at the span of its frontmatter block, because an absent
   property has no position of its own.
 - WHEN the profile registers a required target `type` for a
-  reference-bearing property and the resolved document declares a
+  reference property and the resolved document declares a
   different `type`, the check SHALL report a finding of severity `error`
   under `reference/type-mismatch`, naming the property, the type
   expected and the type the target declares (AC-SPECREF-002.10).
@@ -493,7 +493,7 @@ under `cli/testdata/cases/`; `scripts/regenerate-cli-snapshots.sh`.
 
 - [[contract-specs-configuration]] (revised, drafted in place) — the
   contract's description of the internal registration surface enumerates
-  what a profile supplies and does not yet mention reference-bearing
+  what a profile supplies and does not yet mention reference
   properties, typed references, pairings, or the lifecycle registration.
   The revision is additive and to the **internal** half only, which that
   contract's own change policy exempts from versioning WHILE both
@@ -528,10 +528,10 @@ under `cli/testdata/cases/`; `scripts/regenerate-cli-snapshots.sh`.
   `deferred`; grooming blocks it on the LIFE work order.
 - **Out-of-scope**: index entries carry only the
   `DocumentFrontmatter` envelope, so per-type properties are lost. REX
-  reads reference-bearing properties from the generic parsed
+  reads reference properties from the generic parsed
   frontmatter, not the typed envelope, so this feature neither depends
   on that issue nor resolves it. The boundary: nothing in these deltas may
-  reach a reference-bearing value through `IndexEntry.frontmatter`,
+  reach a reference property value through `IndexEntry.frontmatter`,
   because the envelope carries neither the per-type properties nor the
   spans AC-SPECREF-001.7 requires.
 - **Out-of-scope** (deferred follow-up): "ADR:
@@ -568,8 +568,8 @@ under `cli/testdata/cases/`; `scripts/regenerate-cli-snapshots.sh`.
   first time — but the issue's blocker is an unrelated skill-length
   warning, and this feature neither resolves nor regresses it.
 - **Out-of-scope**: populate `contracts_consumed`
-  on the committed blueprints. PREG registers the property as
-  reference-bearing; an *unpopulated* property is not an unresolved
+  on the committed blueprints. PREG registers the property as a
+  reference property; an *unpopulated* property is not an unresolved
   reference, so no check here fires on it.
 - **Out-of-scope** (parent): the umbrella under
   which blueprint authoring, grooming and execution are tracked, not a
@@ -729,7 +729,7 @@ and other artifacts, whose citation stands on its own.
         prose reflects the widened module surfaces. (`ContainerBlueprint`
         declares no `version` property, so no bump is possible here.)
 - [x] [[contract-specs-configuration]] — the internal registration
-      surface revised in place to enumerate reference-bearing
+      surface revised in place to enumerate reference
       properties, typed references, pairings and the lifecycle
       registration; `version` unchanged, with the reason recorded.
 - [x] [[adr-018]] status: draft → approved, and referenced from
@@ -761,7 +761,7 @@ because a Feature Blueprint retires when its Definition of done is complete
 rather than because something replaced it. [[frd-spec-reference-integrity]]
 carries no such criterion, and whether retirement should imply a successor for
 some document types is left to a future revision. The half worth keeping needs
-no criterion of its own: `superseded_by` is a registered reference-bearing
+no criterion of its own: `superseded_by` is a registered reference
 property, so a successor naming no corpus member is already an error under
 AC-SPECREF-002.3.
 

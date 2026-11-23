@@ -154,7 +154,7 @@ before you claim a slug. Record-block slugs aren't included.
 
 ### `specs refs <slug>[#<Heading>]`
 
-Every member whose body or reference-bearing frontmatter cites the slug, one
+Every member whose body or frontmatter reference properties cite the slug, one
 entry per document with each reference's line and text. With an anchor, only
 references to that heading. `--full` adds each reference's span, origin, and
 resolution. `--outbound` lists what the document itself cites, grouped by

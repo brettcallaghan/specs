@@ -155,7 +155,7 @@ pattern and numbered flag the profile supplies for it as the authority for
 documents declaring that type.
 
 WHEN a profile registers a document type, the module SHALL treat the
-frontmatter properties that type registers as reference-bearing as the whole
+frontmatter properties that type registers as reference properties as the whole
 of what holds a reference in that type's frontmatter.
 
 The module SHALL take the lifecycle the active profile registers as the
@@ -220,7 +220,7 @@ Enforced by: `TestDocumentCoreImportsNoProfilePackage`.
 
 Non-test source in `cli/core/corpus`, `cli/core/c4elements` and
 `cli/core/c4model` SHALL NOT hold a string literal naming a document type, a
-status, a reference-bearing property or a criterion qualifier that the
+status, a reference property or a criterion qualifier that the
 generated schema declares. Enforced by:
 `TestTheExtensionPointNamesNoRegisteredVocabulary`.
 
@@ -325,7 +325,7 @@ C4Component
     Rel(refs, span, "Locates occurrences with")
     Rel(refs, md, "Selects anchor headings via")
     Rel(refs, gherkin, "Reads the Gherkin fence tags of")
-    Rel(refs, fm, "Reads reference-bearing properties from")
+    Rel(refs, fm, "Reads reference properties from")
     Rel(refs, schema, "Reads each corpus document's declared slug via")
     Rel(schema, fm, "Validates records produced by")
     Rel(schema, find, "Reports through")

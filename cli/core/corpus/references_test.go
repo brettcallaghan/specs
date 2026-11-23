@@ -4,7 +4,7 @@
 //
 // The fixture profile and document renderer are corpus_test.go's, so
 // these tests read the same corpus the discovery tests do. Where a test
-// needs a reference-bearing frontmatter property, it registers one on a
+// needs a frontmatter reference property, it registers one on a
 // copy of that profile rather than on the shared one: what a property
 // holds is a per-type registration, and a fixture that changed it for
 // every test in the package would be changing what the other tests are
@@ -41,7 +41,7 @@ status: approved
 }
 
 // referencingProfile is the fixture profile with one frontmatter property
-// registered as reference-bearing for both of its types.
+// registered as a reference property for both of its types.
 func referencingProfile(property string) corpus.Profile {
 	types := map[string]corpus.DocumentTypeRules{}
 	for name, rules := range indexProfile().DocumentTypes() {
@@ -282,8 +282,8 @@ func TestAnUnresolvedReferenceIsRecordedAndTheIndexIsComplete(t *testing.T) {
 	}
 }
 
-// A value in a frontmatter property the active profile registers as
-// reference-bearing is an outbound reference of that document, resolved
+// A value in a frontmatter property the active profile registers as a
+// reference property is an outbound reference of that document, resolved
 // exactly as a body reference is and distinguishable from one.
 func TestARegisteredFrontmatterPropertyContributesAResolvedReference(t *testing.T) {
 	repo := t.TempDir()

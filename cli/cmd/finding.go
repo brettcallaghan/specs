@@ -105,7 +105,7 @@ const (
 	RuleConfigUnknownProfile = specmodel.RuleIdConfigUnknownProfile
 	// RuleConfigInvalidRegistration covers a defect in the active
 	// profile's own registration — a pairing or typed reference naming a
-	// property never registered as reference-bearing, a typed reference
+	// property never registered as a reference property, a typed reference
 	// naming a target type the profile does not define, or a lifecycle
 	// status outside the profile's own vocabulary — reported per
 	// [corpus.ValidateRegistration]. A registration is compiled in and so

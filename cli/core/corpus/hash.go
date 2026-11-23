@@ -115,7 +115,7 @@ func (h *inputHasher) sum(opts Options) string {
 	for _, name := range names {
 		rules := types[name]
 		field(sum, "type:"+name, fmt.Appendf(nil, "%s\x00%t", rules.SlugPattern, rules.Numbered))
-		// The reference-bearing properties are folded in because they
+		// The reference properties are folded in because they
 		// decide the index's *content*: a property registered today holds
 		// a reference the emitted graph carries and did not carry
 		// yesterday, while every file on disk stands still. Without this a

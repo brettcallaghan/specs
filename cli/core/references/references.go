@@ -2,7 +2,7 @@
 //
 // A reference is written in two places and this package reads both: as a
 // `[[…]]` wikilink in the document's body, and as the value of a
-// frontmatter property the active profile registers as reference-bearing.
+// frontmatter property the active profile registers as a reference property.
 // Each occurrence is recorded with the position a reader must open to fix
 // it, and with the property it came from where it came from one.
 //
@@ -74,16 +74,16 @@ type Options struct {
 	//
 	// The parsed block is taken rather than re-parsed: it is the only
 	// form that carries a property's position, and reading a
-	// reference-bearing value out of a typed frontmatter record instead
+	// reference property's value out of a typed frontmatter record instead
 	// would lose both the position and every property the record's type
 	// does not declare.
 	Frontmatter *frontmatter.Document
 
 	// ReferenceProperties are the frontmatter properties the active
-	// profile registers as reference-bearing for this document's type.
+	// profile registers as a reference property for this document's type.
 	//
-	// Property names rather than the profile itself, because what is
-	// reference-bearing is a per-type answer the caller has already
+	// Property names rather than the profile itself, because what is a
+	// reference property is a per-type answer the caller has already
 	// looked up, and because this package must not learn to ask a profile
 	// anything.
 	ReferenceProperties []string
@@ -113,7 +113,7 @@ func Extract(options Options) []specmodel.Reference {
 }
 
 // frontmatterReferences returns one reference per value held by a
-// registered reference-bearing property.
+// registered reference property.
 //
 // A property holding a sequence contributes one reference per element, at
 // that element's own span rather than at the whole list's: a reader told
@@ -122,7 +122,7 @@ func Extract(options Options) []specmodel.Reference {
 //
 // A value that is not text — a number, a mapping, a nested sequence —
 // contributes nothing. Whether such a value belongs in a
-// reference-bearing property at all is a question for the schema, which
+// reference property at all is a question for the schema, which
 // has the vocabulary to answer it; here it is simply not a slug.
 func frontmatterReferences(options Options) []specmodel.Reference {
 	if options.Frontmatter == nil || len(options.ReferenceProperties) == 0 {

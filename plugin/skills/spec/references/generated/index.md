@@ -171,7 +171,7 @@ another.
 ## ReferenceFrontmatterOrigin
 
 A reference held by a frontmatter property the active profile registers
-as reference-bearing.
+as a reference property.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
@@ -193,7 +193,7 @@ than being inferred from where its span happens to fall.
 | Tag | Type | Documentation |
 |-----|------|---------------|
 | "body" | Body | A reference parsed from the content after the frontmatter block. |
-| "frontmatter-property" | FrontmatterProperty | A value held by a registered reference-bearing frontmatter property. |
+| "frontmatter-property" | FrontmatterProperty | A value held by a registered frontmatter reference property. |
 
 
 ## ReferenceResolved
@@ -338,7 +338,7 @@ the line the reader must open.
 | Property | Type | Documentation |
 |----------|------|---------------|
 | path | String | The path of the document the reference occurs in, relative to the repository root and written with forward slashes on every platform. |
-| text | String | The reference exactly as written, without the delimiters that enclose it — `adr-012`, or `adr-012#Decision`, or the raw value of a reference-bearing frontmatter property.<br><br>Recorded alongside the halves it splits into, because the text is what a reader sees and what a rewrite replaces, and neither is recoverable from the halves once letter case or spacing has been normalized. |
+| text | String | The reference exactly as written, without the delimiters that enclose it — `adr-012`, or `adr-012#Decision`, or the raw value of a frontmatter reference property.<br><br>Recorded alongside the halves it splits into, because the text is what a reader sees and what a rewrite replaces, and neither is recoverable from the halves once letter case or spacing has been normalized. |
 | slug | String | The slug half: everything before the first `#`, or the whole reference where it names no anchor.<br><br>A plain `String` rather than a `Slug`, deliberately. A reference is written by hand and may name something that is not a well-formed slug at all; constraining this property would make such a reference unrepresentable in the index, which is the one place it must be visible in order to be reported. |
 | anchor | String? | The anchor half: everything after the first `#`, absent where the reference names no anchor.<br><br>Recorded and not interpreted: splitting on the first `#` is the whole of what extraction knows about anchors, which is why an anchored reference resolves on its slug rather than reporting as broken. What the anchor itself matched is carried separately, in `anchor_resolution`. |
 | origin | [ReferenceOrigin](#referenceorigin) | Where the reference was written. |

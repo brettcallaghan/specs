@@ -583,7 +583,7 @@ func (c *Corpus) pairingIncompleteFindings() []specmodel.Finding {
 	return findings
 }
 
-// typeMismatchFindings reports, for every reference-bearing property the
+// typeMismatchFindings reports, for every reference property the
 // active profile requires a target document `type` for, a resolved
 // reference whose target declares a different one (AC-SPECREF-002.10).
 //

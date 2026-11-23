@@ -197,7 +197,7 @@ document that is right there.
 | Property | Type | Documentation |
 |----------|------|---------------|
 | slug | String | The slug half of the reference, as written — everything before the first `#`, whose anchor half is not part of this defect. |
-| origin | [ReferenceOrigin](index.md#referenceorigin) | Where the reference was written: the document's body, or a named reference-bearing frontmatter property. |
+| origin | [ReferenceOrigin](index.md#referenceorigin) | Where the reference was written: the document's body, or a named frontmatter reference property. |
 | non_member | [ReferenceNonMember](index.md#referencenonmember)? | The non-member file the slug matched, with the reason it is not a member.<br><br>Absent when the slug matched nothing at all, which is the ordinary case; present when the target exists beneath the spec root and is excluded or unparsable. |
 
 
@@ -228,7 +228,7 @@ own point of view.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| property | String | The reference-bearing property the referring document declares. |
+| property | String | The reference property the referring document declares. |
 | counterpart | String | The property the referenced document must declare in return, and does not. |
 | source_path | String | The referring document's path, relative to the repository root and written with forward slashes on every platform. |
 | target_path | String | The referenced document's path, relative to the repository root and written with forward slashes on every platform. |
@@ -245,7 +245,7 @@ constraint is checked here and reported with both types quoted.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| property | String | The reference-bearing property whose target's type is constrained. |
+| property | String | The reference property whose target's type is constrained. |
 | slug | String | The slug the property names. |
 | expected_type | String | The document `type` the active profile requires the target to declare. |
 | actual_type | String | The `type` the target actually declares. |
