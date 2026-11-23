@@ -105,7 +105,7 @@ overlooked:
   `superseded_by` or `modules`). A profile MAY additionally declare the document
   `type` such a property's target must carry, making the property a *typed*
   reference.
-- **Paired relationship** — two reference-bearing properties that the profile
+- **Paired reference** — two reference-bearing properties that the profile
   declares as counterparts, so that a reference in one document implies a
   matching reference back. An adopting profile that pairs `owner` with
   `owned_by` gets both halves checked. The specs profile registers no pairing:
@@ -284,7 +284,7 @@ Feature: Reference Integrity Checks
 
   @AC-SPECREF-002.5
   Scenario: A pairing with no counterpart is an error against both documents
-    Given the active profile registers a frontmatter property as one half of a paired relationship
+    Given the active profile registers a frontmatter property as one half of a paired reference
     And the document it names does not declare the matching counterpart
     When the CLI checks the corpus
     Then the CLI reports a finding of severity error against both documents
@@ -564,7 +564,7 @@ Feature: Reference Configuration
 
   @AC-SPECREF-004.1
   Scenario: One configuration file carries the reference vocabulary
-    Then the configuration determines which frontmatter properties are reference-bearing and which pairs of properties form a paired relationship
+    Then the configuration determines which frontmatter properties are reference-bearing and which pairs of properties form a paired reference
     And it does so by extending the configuration file of FEAT-SPEC-008 rather than by a separate file
 
   @AC-SPECREF-004.2

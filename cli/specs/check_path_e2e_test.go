@@ -1,5 +1,5 @@
 // End-to-end tests for `check <path>` reporting the references elsewhere
-// that the named document's change broke. The comparison base is git
+// that the named document's change broke. The base revision is git
 // HEAD, which a snapshot case's input cannot hold, so each test builds
 // its repository at test time with the git executable (TestMain in
 // criterion_changed_e2e_test.go isolates it) and runs the real binary.

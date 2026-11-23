@@ -187,9 +187,9 @@ const (
 	// whose diagram type the parser does not read was not looked inside,
 	// which is not the claim that it was looked inside and found sound.
 	RuleC4Parse = specmodel.RuleIdC4Parse
-	// RuleC4UndeclaredNode covers a non-external node that resolves to
-	// no element in the scope of its drawing document and is not a
-	// passive store.
+	// RuleC4UndeclaredNode covers a node, not an external C4 element, that
+	// resolves to no C4 element in the scope of its drawing document and is
+	// not a passive store.
 	RuleC4UndeclaredNode = specmodel.RuleIdC4UndeclaredNode
 	// RuleC4AmbiguousNode covers a node whose label matches the entity
 	// names of more than one element in scope.
@@ -471,7 +471,7 @@ func RetiredTarget(path string, at specmodel.Span, slug string, successor *strin
 	}
 }
 
-// IncompletePairing reports one half of a paired relationship the
+// IncompletePairing reports one half of a paired reference the
 // resolved target does not declare the counterpart of.
 //
 // The caller raises this twice, once against sourcePath and once against
@@ -907,9 +907,9 @@ func C4UnreadDiagram(path string, at specmodel.Span, diagramType string) specmod
 	}
 }
 
-// C4UndeclaredNode reports a non-external node whose label names no
-// element in the scope of its drawing document and which is not a
-// passive store (AC-C4-DIAG-002.3).
+// C4UndeclaredNode reports a node, not an external C4 element, whose label
+// names no C4 element in the scope of its drawing document and which is not
+// a passive store (AC-C4-DIAG-002.3).
 func C4UndeclaredNode(path string, at specmodel.Span, alias, label string) specmodel.Finding {
 	return specmodel.Finding{
 		Rule:     RuleC4UndeclaredNode,

@@ -172,7 +172,7 @@ type Diagram struct {
 	// does not read carries its type and nothing else.
 	Parsed c4diagram.Diagram
 
-	// Nodes are the diagram's element and external node statements, in
+	// Nodes are the diagram's element and external C4 element statements, in
 	// the order written.
 	Nodes []Node
 
@@ -274,7 +274,7 @@ type Node struct {
 	// Span covers the statement.
 	Span specmodel.Span
 
-	// External marks an external node — a person, or any `_Ext` form —
+	// External marks an external C4 element — a person, or any `_Ext` form —
 	// which names no element of the corpus and is not resolved.
 	External bool
 
@@ -794,7 +794,7 @@ func param(statement c4diagram.Statement, name string) string {
 	return arg.Value
 }
 
-// resolve resolves one node statement against scope: an external node
+// resolve resolves one node statement against scope: an external C4 element
 // is not resolved, any other node matches every in-scope element whose
 // name equals its label as written, and a Db or Queue node matching none
 // is a passive store.

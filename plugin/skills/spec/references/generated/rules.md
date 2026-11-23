@@ -28,7 +28,7 @@ severity it reports at.
 | ReferenceUnresolvedAnchor | "reference/unresolved-anchor" | Error when an anchor matches no heading of the cited document. Unverified when the cited document's headings aren't recorded, so the check couldn't look. |
 | ReferenceAmbiguousAnchor | "reference/ambiguous-anchor" | Error. An anchor matches more than one heading of the cited document. Qualify it with the parent heading, as in `[[slug#Parent#Heading]]`. |
 | ReferenceRetiredTarget | "reference/retired-target" | Warning. A live document cites a retired one. The finding quotes the target's `superseded_by`, which is what to cite instead. |
-| ReferencePairingIncomplete | "reference/pairing-incomplete" | Error. A paired relationship is declared from one end, and the target doesn't declare the counterpart. |
+| ReferencePairingIncomplete | "reference/pairing-incomplete" | Error. A paired reference is declared from one end, and the target doesn't declare the counterpart. |
 | ReferenceTypeMismatch | "reference/type-mismatch" | Error. A typed reference resolves to a document of a different `type`, such as a Feature Blueprint's `frd` naming something that isn't an FRD. |
 | LinksUnmapped | "links/unmapped" | Error. `specs links` was given a link map that doesn't cover a slug the corpus resolves. |
 | LinksUnresolved | "links/unresolved" | Warning. `specs links` found a citation whose slug names no corpus document, with or without a link map. |
@@ -47,7 +47,7 @@ severity it reports at.
 | GherkinScenarioProse | "gherkin/scenario-prose" | Warning. A `Scenario` has a description, which usually means an untagged criterion was written as prose. |
 | GherkinExamplesPartiallyTagged | "gherkin/examples-partially-tagged" | Error. Some `Examples` blocks of a `Scenario Outline` carry an identifier and others don't. |
 | C4Parse | "c4/parse" | Error when a C4 diagram statement is outside the subset the parser reads. Unverified when a `mermaid` block's diagram type isn't read at all, such as `C4Dynamic`. |
-| C4UndeclaredNode | "c4/undeclared-node" | Error. A non-external node resolves to no element in its document's scope and isn't a passive store. |
+| C4UndeclaredNode | "c4/undeclared-node" | Error. A node that isn't an external C4 element resolves to no C4 element in its document's scope and isn't a passive store. |
 | C4AmbiguousNode | "c4/ambiguous-node" | Error. A node's label matches the entity names of more than one element in scope. The finding names each. |
 | C4Bidirectional | "c4/bidirectional" | Error. A diagram uses `BiRel`. An arrow states one dependency, in one direction. |
 | C4DuplicateEdge | "c4/duplicate-edge" | Error. One diagram draws two relationships with the same source and target, after `Rel_Back` is normalized. |

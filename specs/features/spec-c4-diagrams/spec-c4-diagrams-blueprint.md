@@ -140,7 +140,7 @@ the corpus or resolve a node.
 - The component SHALL read the macros the FRD's terminology table lists,
   every `Db` and `Queue` form of `System`, `Container` and `Component`,
   and every `_Ext` form, and SHALL classify each statement as an element
-  node, an external node, a boundary, a relationship or an ignored
+  node, an external C4 element, a boundary, a relationship or an ignored
   statement.
 - A boundary statement SHALL end with `{`, and a line holding only `}`
   SHALL be read as closing the innermost open boundary.
@@ -260,7 +260,7 @@ cannot disagree about what a node is.
   at the `system` or `container` level in the corpus.
 - A node SHALL resolve to every element in its drawing document's scope
   whose name equals the node's label exactly, compared as written.
-- An external node SHALL NOT be resolved. A `Db` or `Queue` node whose
+- An external C4 element SHALL NOT be resolved. A `Db` or `Queue` node whose
   label matches no element in scope SHALL resolve to a passive store
   rather than to nothing.
 - WHEN a C4 diagram sits in a member whose type the profile does not
@@ -286,7 +286,7 @@ here.
   technology and description arguments, the tags as parsed, the
   diagram's view, the aliases as written, and the statement's path and
   span.
-- WHEN an endpoint is an external node, a passive store, matches no
+- WHEN an endpoint is an external C4 element, a passive store, matches no
   element in scope, or matches more than one, the component SHALL
   return the statement unresolved with that one reason, checking in that
   order and reporting the source endpoint before the target.
@@ -315,9 +315,9 @@ that can be judged from one statement and the scope it was drawn in.
 - WHEN a `mermaid` block in an architecture blueprint is not a C4
   diagram the parser reads, the check SHALL report `c4/parse` at
   severity unverified at the block's span, naming its diagram type.
-- WHEN a non-external node resolves to no element and is not a passive
-  store, the check SHALL report `c4/undeclared-node` at severity error
-  at the node's span.
+- WHEN a node that isn't an external C4 element resolves to no element
+  and is not a passive store, the check SHALL report `c4/undeclared-node`
+  at severity error at the node's span.
 - WHEN a node resolves to more than one element, the check SHALL report
   `c4/ambiguous-node` at severity error at the node's span, naming every
   element it matched.

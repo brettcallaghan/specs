@@ -777,7 +777,7 @@ func TestCheckForReportsNoFindingLocatedInAnotherDocument(t *testing.T) {
 
 // AC-SPECREF-002.11's own scenario, end to end and through the real cache:
 // an agent renames a document's slug, and the write-time check on that one
-// file — given the slug it declared at the comparison base — reports the
+// file — given the slug it declared at the base revision — reports the
 // reference the rename broke elsewhere, located in the referrer at its own
 // span, exactly as a check of the referrer reports it. Without a former
 // slug (a new document, or no base to read) it reports nothing elsewhere
