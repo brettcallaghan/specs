@@ -10,8 +10,10 @@ status: active
 # Glossary
 
 Each term below has one meaning in this project's specs and docs. Use it only
-in that meaning. When a document needs an internal term that isn't here, add
-it here rather than defining it in the document, or use plain words. The
+in that meaning. When a document needs an internal term that isn't here, use
+plain words first. Define a term that only one document uses in that
+document. Add a term here only when two or more documents use it and a
+reviewer has approved it. The
 Avoid column lists words not to use for that term's meaning; it doesn't ban
 them when they carry their ordinary meaning.
 

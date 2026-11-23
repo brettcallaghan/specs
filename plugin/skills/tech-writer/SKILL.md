@@ -42,9 +42,13 @@ decision. Never leave a marker in the document.
   one you intend ("render," "member," "path," "extent"), qualify it ("heading
   path") or use another word.
 - Use a project term only as the project's glossary defines it, if the
-  project names one in `AGENTS.md` or `CLAUDE.md`. A term the reader can't
-  decode and the glossary doesn't define goes into the glossary, or is
-  replaced with plain words. With no glossary, define it on first use.
+  project names one in `AGENTS.md` or `CLAUDE.md`. For a term the reader
+  can't decode and the glossary doesn't define, use plain words first. If
+  you need a term, qualify a common word by its domain ("link resolution,"
+  "Gherkin qualifier tag") rather than give an ordinary word a private
+  meaning ("settle," "drawing"). Define a term that only one document uses
+  in that document. Propose a glossary entry only for a term that two or
+  more documents use, and add it only when the user approves it.
 - Name the kind of each code identifier on first mention in a section: "the
   `Build` function," "the `Span` type," "the `cli/core/corpus` package."
 - Keep noun clusters to three words or fewer. Keep articles; don't drop them
