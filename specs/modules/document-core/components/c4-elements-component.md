@@ -2,11 +2,11 @@
 title: "C4 Elements"
 entity_name: C4 Elements
 technology: Go package
-description: The corpus's C4 elements, the scope of C4 elements that each
+description: The corpus's C4 elements, the scope of C4 elements that each C4
   drawing document's diagram nodes may name, and the resolution of nodes to C4
-  elements and of relationship statements to drawings or to unresolved
-  statements. Change it to change what declares a C4 element, what a diagram
-  may name, or how a statement resolves.
+  elements and of relationship statements to drawings or to unresolved C4
+  relationships. Change it to change what declares a C4 element, what a
+  diagram may name, or how a statement resolves.
 slug: component-c4-elements
 type: component-blueprint
 status: ready-for-review
@@ -26,7 +26,7 @@ C4 Elements decides what each diagram node names, so the Corpus component's
 checks and the C4 Model component get the same answer. From the index and the
 architecture vocabulary that the profile registers, it decides which
 blueprints declare C4 elements and which record blocks in a Components section
-do. Then it works out which C4 elements each drawing document's diagrams may
+do. Then it works out which C4 elements each C4 drawing document's diagrams may
 name: that document's scope. Each node, other than one that draws an external
 C4 element, is resolved against that scope, and each relationship statement
 against the nodes of its diagram. Apart from the `slug` property, which every
@@ -38,11 +38,13 @@ of its own.
 The set of C4 elements: which corpus documents and record blocks declare a C4
 element, and how declarations of one slug merge.
 
-Each drawing document's scope and the C4 elements that its Components section
+Each C4 drawing document's scope and the C4 elements that its Components section
 declares.
 
 Node resolution, and the resolution of each relationship statement either to
-a drawing or to an unresolved statement that carries its reason.
+a drawing or to an unresolved C4 relationship: a relationship statement with
+an endpoint that doesn't name exactly one C4 element, which carries the
+reason.
 
 The grouping of drawings into relationships.
 
@@ -84,7 +86,7 @@ The `Build` function SHALL return one C4 element per slug, carrying every
 declaration of that slug ordered by path and then by span.
 
 `Build` SHALL resolve every relationship statement to a drawing, to an
-unresolved statement carrying exactly one reason, or, for a `BiRel`
+unresolved C4 relationship carrying exactly one reason, or, for a `BiRel`
 statement, to neither.
 
 `Build` SHALL group drawings whose source element, target element, and label
@@ -116,7 +118,7 @@ only when asked, and it serves tests that supply sources in memory.
 The component SHALL read a corpus document's bytes only through the
 `Input.Source` field. Enforced by: review only.
 
-The component SHALL check the reasons for an unresolved statement in one
+The component SHALL check the reasons for an unresolved C4 relationship in one
 fixed order, checking the source endpoint before the target. Enforced by:
 `TestUnresolvedStatementsCarryOneReasonInOrder`.
 

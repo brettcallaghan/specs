@@ -166,8 +166,8 @@ The module SHALL take the tag vocabulary the active profile registers as the
 authority for reading a Gherkin tag.
 
 WHEN a caller validates a profile's registration, the module SHALL return every
-registration defect that the `corpus.ValidateRegistration` function finds, each
-naming the offending key.
+registration defect (a fault in what the profile registers) that the
+`corpus.ValidateRegistration` function finds, each naming the offending key.
 
 WHEN a profile's registration carries a defect, the module SHALL NOT
 substitute a default for the defective key.
@@ -341,7 +341,7 @@ C4Component
     Rel(corpus, span, "Positions read failures with")
     Rel(num, corpus, "Queries the index of")
     Rel(num, schema, "Reads each corpus document's envelope via")
-    Rel(mdlinks, refs, "Settles targets from the resolved references of")
+    Rel(mdlinks, refs, "Resolves links from the resolved references of")
     Rel(mdlinks, md, "Derives anchor fragments through the heading identifier of")
     Rel(mdlinks, span, "Locates the spans it replaces with")
     Rel(mdlinks, find, "Reports through")

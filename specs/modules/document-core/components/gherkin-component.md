@@ -34,12 +34,12 @@ a feature and which identifies a criterion are facts about one tag
 vocabulary (the tag patterns a profile registers). They reach this
 component as functions its caller supplies.
 
-A qualifier tag is a tag that a profile gives a meaning on a criterion,
-such as marking it a prohibition or one that only a person can verify.
-Which qualifier tags count is the caller's to decide, from the tags this
-component carries. The component never inspects a tag's spelling. That is
-the module's split between general machinery and the vocabulary a profile
-supplies, applied to a notation.
+A Gherkin qualifier tag is a tag that the profile gives a meaning on a
+criterion, such as marking it a prohibition or one that only a person can
+verify. Which Gherkin qualifier tags count is the caller's to decide, from the
+tags this component carries. The component never inspects a tag's spelling.
+That is the module's split between general machinery and the vocabulary a
+profile supplies, applied to a notation.
 
 ### Owns
 

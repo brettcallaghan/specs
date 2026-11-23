@@ -203,7 +203,7 @@ Rules for relationship statements:
   in one diagram is reported; an edge drawn in two diagrams SHALL carry
   the same technology, description and tags in both.
 - **Names are identifiers.** A node's label is matched to an element's
-  `entity_name` within the drawing document's scope: its own element,
+  `entity_name` within the C4 drawing document's scope: its own element,
   the components its roster declares, the modules it lists in `modules`,
   and every system and container in the corpus. Renaming an element means
   updating every diagram label that names it.

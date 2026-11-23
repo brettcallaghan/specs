@@ -35,9 +35,12 @@ and resolution knows the whole corpus.
 
 ### Owns
 
-Extraction: which text counts as a reference, which regions extraction
-skips (the code-region mask), and the span that each reference is recorded
-at.
+Extraction: which text counts as a reference, the code-region mask, and the
+span that each reference is recorded at. The code-region mask is the set of
+regions of a document body that the component ignores when it extracts
+references: code spans, indented code blocks, and fenced blocks other than
+the content lines of a Gherkin-tagged fence block (a fenced block whose info
+string is a tag that the `gherkin.FenceTags` function returns).
 
 Resolution: the resolution state each reference receives, and the heading
 an anchor resolves to.
@@ -92,8 +95,7 @@ WHEN `Resolve` returns, every reference it was given SHALL carry a
 resolution, including a reference that reached nothing.
 
 `OutsideGherkinFences` SHALL return its input without the body references
-inside a Gherkin-tagged fence (a fenced block whose info string is a tag that
-the `gherkin.FenceTags` function returns), in the same order.
+inside a Gherkin-tagged fence block, in the same order.
 
 ### Requires
 

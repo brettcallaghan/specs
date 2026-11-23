@@ -24,19 +24,20 @@ test_paths:
 Markdown Links turns a document's wikilinks into ordinary Markdown links,
 so that the document can be read outside the corpus. A wikilink is a
 `[[slug]]` reference to another corpus document. The work has two halves,
-one function each. The `Resolve` function settles each reference's target:
-it picks the path that the Markdown link points at. Each reference arrives
-already resolved, meaning an earlier step has looked its slug up in the
-corpus. `Resolve` takes the target from the caller's link map (a
+one function each. The `Resolve` function does link resolution: for each
+reference, it picks the path that the Markdown link points at, and the
+result is a resolved link. This is not reference resolution. Each reference
+arrives already resolved, meaning an earlier step has looked its slug up in
+the corpus. `Resolve` takes the target from the caller's link map (a
 slug-to-path map) when the map names the slug, and otherwise from the cited
-document's own path. When a reference settles neither way, `Resolve`
+document's own path. When a link resolves neither way, `Resolve`
 reports it instead of guessing. The `Substitute` function then replaces
-each `[[...]]` construct (the wikilink, brackets included) whose target
-settled, and copies everything else through unchanged.
+each `[[...]]` construct (the wikilink, brackets included) whose link
+resolved, and copies everything else through unchanged.
 
 ### Owns
 
-The target each reference settles to, including its anchor fragment (the
+The resolved link of each reference, including its anchor fragment (the
 `#` part that points at a heading).
 
 The `links/unmapped` and `links/unresolved` findings: the diagnostics
@@ -76,7 +77,7 @@ through the `Resolve` and `Substitute` functions.
 ### Provides
 
 `Resolve` SHALL return one target per reference, aligned by index with its
-input, and no target where none settled.
+input, and no target where the link didn't resolve.
 
 `Resolve` SHALL return every finding a run raises, not only the first.
 
@@ -124,7 +125,7 @@ fragments; review only for the mechanism.
 
 ### Extension points
 
-A new way to settle a target — a new step in `Resolve` that runs before
+A new way to resolve a link — a new step in `Resolve` that runs before
 the target is derived from the cited document's path, as the link-map
 lookup does. Not by a decision inside `Substitute`.
 
@@ -147,7 +148,7 @@ change.
 
 #### Verify conditionally
 
-WHEN target settling or substitution changes, run
+WHEN link resolution or substitution changes, run
 `cd cli && go test ./cmd/ -run 'TestSnapshotCases|Links'`.
 
 ## Key decisions
