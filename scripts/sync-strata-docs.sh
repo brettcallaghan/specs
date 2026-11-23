@@ -64,7 +64,7 @@ done
 # what the schema IS to a user — not merely which upstream file it came from.
 MAP=$(cat <<'EOF'
 public/strata.llm.md	strata-llm-reference.md	raw
-content/docs/lang.mdx	language-reference.md	raw
+docs/reference/language.mdx	language-reference.md	raw
 strata/options.strata	compiler-options.md	strata-fence	Compiler options — the schema of `strata.config.json`
 EOF
 )
@@ -85,7 +85,7 @@ unreachable() {
 # ---- which release ---------------------------------------------------------
 TAG="${TAG:-${STRATA_VERSION:-}}"
 if [ -z "$TAG" ] || [ "$TAG" = latest ]; then
-  version="$(strata --version 2>/dev/null || true)"   # "strata-cli 0.8.0"
+  version="$(strata --version 2>/dev/null || true)"   # "strata-cli 0.9.0"
   [ -n "$version" ] || unreachable "no strata on PATH to take the release from — pass a TAG or run scripts/install-strata-cli.sh."
   TAG="v${version##* }"
 fi
