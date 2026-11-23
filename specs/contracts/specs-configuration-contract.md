@@ -29,6 +29,22 @@ structure a profile hands to Document Core. It crosses the module boundary
 between [[module-spec-profile]] and [[module-document-core]] inside one
 process.
 
+Provided by [[container-spec-cli]]. Visibility: public, on the strength
+of the `specs.toml` half. The registration surface is marked internal
+where it appears below, and nothing outside this repository SHALL treat
+it as an extension point.
+
+## Specification
+
+| Artifact | Location | Normative for |
+|----------|----------|---------------|
+| Configuration JSON Schema | `cli/core/schema/specs-config.schema.json` | Shape of `specs.toml` |
+| `Profile` interface | `cli/core/corpus` (Go) | Shape of the internal registration surface |
+| `Section`, `PropertyPairing` | `schemas/profile.strata`, generated into `cli/core/specmodel` | Shape of the registered section tree and pairings |
+| This document | — | Semantics, resolution order, change policy |
+
+### The public surface: `specs.toml`
+
 **In v1 the public surface selects a profile; it does not modify one.**
 An adopting repository says which repository it is, where its documents
 live, which profile is active, and a small number of house conventions.
@@ -37,27 +53,6 @@ schema, its slug pattern, and the sections it requires), and
 `specs.toml` can't override it. The vocabulary below therefore appears
 once, in the internal surface, and the public surface names it instead
 of redefining it.
-
-The two surfaces are one contract because they're one vocabulary seen
-from two sides, and because the boundary between them is the thing most
-likely to move: a key promoted from internal to public in a later version
-is a change to both halves at once. This document is where that promotion
-is decided.
-
-Provided by [[container-spec-cli]]. Visibility: public, on the strength
-of the `specs.toml` half; the registration surface is marked internal
-where it appears below and SHALL NOT be treated as an extension point
-by anything outside this repository.
-
-## Specification
-
-| Artifact | Location | Normative for |
-|----------|----------|---------------|
-| Configuration JSON Schema | `cli/core/schema/specs-config.schema.json` | Shape of `specs.toml` |
-| `Profile` interface | `cli/core/corpus` (Go) | Shape of the internal registration surface |
-| This document | — | Semantics, resolution order, change policy |
-
-### The public surface: `specs.toml`
 
 ```toml
 # specs.toml — found in the working directory or a directory above it, up to the repository root.
@@ -94,8 +89,8 @@ registers, a profile supplies the type name, the JSON Schema its
 frontmatter satisfies, the slug pattern, whether the type is numbered,
 the section hierarchy it requires, and the named section sets a span
 query can select. It also supplies the fenced block tags to extract and
-any rule that can't be expressed as data. The agreement of an element's
-declarations and supersession integrity are the two current examples.
+any rule that can't be expressed as data, such as the agreement of an
+element's declarations or supersession integrity.
 
 Required sections are a **hierarchy, not a flat list.** A document's
 headings nest, and the rules worth enforcing are about that nesting. A
@@ -103,22 +98,14 @@ missing `## Consequences` and a `### Consequences` misplaced under
 `## Decision` are different defects, and a flat list can't tell them
 apart. Nor can a flat list say that `## Alternatives considered` holds
 one subsection per alternative, which is the shape most likely to be
-gotten wrong. The registered form is therefore a tree, each node naming a
-heading, its level relative to its parent, whether it's required, and
-its own children:
+gotten wrong. The registered form is therefore a tree of `Section`
+records, each node naming a heading, whether it's required, whether it
+repeats, and its own children. A node's level is its depth in the tree.
 
-```go
-type Section struct {
-    Title    string
-    Required bool
-    Repeated bool      // one occurrence per instance, e.g. per alternative
-    Children []Section
-}
-```
-
-`Repeated` distinguishes a heading that appears exactly once from one
-whose count depends on content. Without it, a tree can only express
-fixed documents, and the templates this profile mirrors aren't all fixed.
+`Section`'s `repeated` field distinguishes a heading that appears exactly
+once from one whose count depends on content. Without it, a tree can only
+express fixed documents, and the templates this profile mirrors aren't all
+fixed.
 
 A profile also supplies, per document type, which of its frontmatter
 properties are reference-bearing, which of those are typed, and which are
@@ -148,18 +135,8 @@ about the corpus rather than about the value itself:
   registers an empty pairing set, and the check this feeds is inert for
   it by design.
 
-```go
-type DocumentTypeRules struct {
-    ReferenceProperties      []string
-    TypedReferenceProperties map[string]string // property name -> required type
-    Pairings                 []PropertyPairing
-}
-
-type PropertyPairing struct {
-    Property    string // this type's property
-    Counterpart string // the property the target must declare in return
-}
-```
+`DocumentTypeRules` in `cli/core/corpus` carries the three registrations,
+and `PropertyPairing` is the shape of one pairing.
 
 A profile separately supplies one **lifecycle registration** for its
 whole document vocabulary, not per type, because status is a property of
@@ -170,16 +147,7 @@ which it's no longer in effect (retired), and the frontmatter property in
 which a document at a retired status names its replacement. A profile
 MAY register no lifecycle (the zero value), which describes a corpus
 whose documents have none. The checks that read the registration don't
-run for it.
-
-```go
-type LifecycleRules struct {
-    Statuses          []string
-    LiveStatuses      []string
-    RetiredStatuses   []string
-    SuccessorProperty string
-}
-```
+run for it. `LifecycleRules` in `cli/core/corpus` is its shape.
 
 A profile separately supplies one **tag vocabulary** for all of its
 documents, again not per type, because a feature isn't a document type.
@@ -214,23 +182,8 @@ reported by nothing.
 
 Every member is independent, and a profile MAY register none of them.
 The zero value describes a corpus with no tagged features, and the
-checks that read the registration don't run for it.
-
-```go
-type FeatureTagRules struct {
-    FeaturePattern   string
-    CriterionPattern string
-    OwnerPrefix      string
-    SharedCaptures   []string // capture groups both identifier patterns define
-    Qualifiers       []QualifierTag
-}
-
-type QualifierTag struct {
-    Tag     string
-    Meaning specmodel.QualifierMeaning  // negation, manual verification, verification level
-    Level   specmodel.VerificationLevel // for a verification-level tag and no other
-}
-```
+checks that read the registration don't run for it. `FeatureTagRules`
+and `QualifierTag` in `cli/core/corpus` are its shape.
 
 A profile separately registers **record-block tags**: the fenced-block
 info strings that mark a block as a record. A record is YAML, so a tag
@@ -241,13 +194,13 @@ A profile MAY register none, which describes documents with no record
 blocks. Registration validation reports a pointer that resolves to
 nothing in the profile's schema instead of skipping it. A tag with no
 pointer is valid, and its records aren't schema-validated.
+`RecordBlockTag` in `cli/core/corpus` is its shape.
 
-```go
-type RecordBlockTag struct {
-    Tag    string // fenced-block info string
-    Schema string // optional "#/definitions/<Name>" into Profile.Schema()
-}
-```
+The two surfaces are one contract because they're one vocabulary seen
+from two sides, and because the boundary between them is the thing most
+likely to move: a key promoted from internal to public in a later version
+is a change to both halves at once. This document is where that promotion
+is decided.
 
 Because the public surface doesn't overlap the internal one, the
 relationship that binds them into a single contract is naming, not
@@ -274,15 +227,16 @@ meaning because of them.
   resolve it from the active profile's registered value for that key.
 - The CLI SHALL apply exactly one profile per invocation.
 - The CLI SHALL NOT accept a document-type definition, a block-tag
-  registration or a schema path from `specs.toml` in v1. WHERE such a
-  key appears, it is an undefined key and the checking guarantees below
-  apply to it.
+  registration or a schema path from `specs.toml` in v1.
+- IF `specs.toml` carries a document-type definition, a block-tag
+  registration or a schema path, THEN the CLI SHALL check it as an
+  undefined key, under Checking the configuration.
 - The CLI SHALL resolve `[workspace].root` relative to the directory
   containing `specs.toml`, so a configuration file is portable with its
   repository.
 - The CLI SHALL NOT read configuration from environment variables, a
-  user home directory, or any location outside the repository. A
-  corpus check SHALL produce the same findings for the same repository
+  user home directory, or any location outside the repository.
+- A corpus check SHALL produce the same findings for the same repository
   content on any machine.
 
 ### Checking the configuration
@@ -307,24 +261,28 @@ other defect, not as a bare startup failure.
   ignoring it would let a repository believe it had configured something
   it had not.
 - IF a value fails the configuration schema, THEN the CLI SHALL report a
-  finding naming the offending key and its span, and SHALL NOT fall back
-  to a default for that key.
+  finding naming the offending key and its span.
+- IF a value fails the configuration schema, THEN the CLI SHALL NOT fall
+  back to a default for that key.
 - IF `[profile].name` names no registered profile, THEN the CLI SHALL
   report a finding naming the value and listing the registered profile
   names.
 - WHERE no `--config` option names a file, the CLI SHALL search the
   working directory and then each directory above it, stopping at the
-  repository root — the nearest directory holding a `.git` entry — or,
-  outside any repository, at the filesystem root, and SHALL use the
-  first `specs.toml` it finds. WHERE `--config` names a file, the CLI
-  SHALL read that file and search for no other.
+  repository root (the nearest directory holding a `.git` entry) or,
+  outside any repository, at the filesystem root.
+- WHERE no `--config` option names a file, the CLI SHALL use the first
+  `specs.toml` it finds.
+- WHERE `--config` names a file, the CLI SHALL read that file.
+- WHERE `--config` names a file, the CLI SHALL NOT search for another.
 - WHEN `specs.toml` is absent, the CLI SHALL report every directory it
-  searched — or, for a file `--config` named, that path — and exit with
-  the environment-error status, and SHALL NOT infer a spec root. This is the
-  one configuration failure that is not a finding, because there is no
-  file to carry a span into.
-- The configuration checks SHALL be exercised by snapshot cases under
-  [[testing-standards]] on the same terms as corpus checks, since each
+  searched, or, for a file `--config` named, that path.
+- WHEN `specs.toml` is absent, the CLI SHALL exit with the
+  environment-error status. This is the one configuration failure that
+  is not a finding, because there is no file to carry a span into.
+- WHEN `specs.toml` is absent, the CLI SHALL NOT infer a spec root.
+- Snapshot cases under [[testing-standards]] SHALL exercise the
+  configuration checks on the same terms as corpus checks, since each
   input corpus already carries its own `specs.toml`.
 
 ## Operational expectations
@@ -359,14 +317,17 @@ does apply:
   existing file, which is why v1 holds the type vocabulary back.
 - **Breaking changes:** WHEN a key is removed or renamed, or a value
   constraint is tightened, the provider SHALL bump the major version.
-- **Deprecation:** WHEN a key is deprecated, it SHALL continue to
-  resolve for one major version, and the CLI SHALL report a finding of
-  severity `warning` naming the key and its replacement.
-- The internal registration surface is exempt from this policy WHILE
-  [[module-document-core]] and [[module-spec-profile]] are both
-  `visibility: internal` — they change in lockstep in one repository.
-  WHEN either is published, the registration surface becomes subject to
-  the same policy as the public surface.
+- **Deprecation:** WHEN a key is deprecated, the CLI SHALL continue to
+  resolve it for one major version.
+- **Deprecation:** WHEN a deprecated key appears in `specs.toml`, the CLI
+  SHALL report a finding of severity `warning` naming the key and its
+  replacement.
+- WHILE [[module-document-core]] and [[module-spec-profile]] are both
+  `visibility: internal`, the provider MAY change the internal
+  registration surface without following this policy, because the two
+  modules change in lockstep in one repository.
+- WHEN either module is published, the provider SHALL apply this policy
+  to the registration surface as it does to the public surface.
 
 ## Key decisions
 

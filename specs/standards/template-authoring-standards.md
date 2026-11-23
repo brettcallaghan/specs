@@ -65,14 +65,17 @@ Templates SHALL include instructions that describe:
   a template that gives a backticked path to another
 - Guidance for completing each section
 
-Instructions SHALL be provided in two locations:
+A template SHALL provide instructions in two locations:
 
 1. **Document-level instructions:** Immediately after the frontmatter
 2. **Section-level instructions:** Within each section
 
+---
+
 ### Format
 
-Instructions SHALL be wrapped in HTML comment blocks (`<!-- -->`).
+A template SHALL wrap its instructions in HTML comment blocks
+(`<!-- -->`).
 
 **Document-level example:**
 ```markdown
@@ -131,13 +134,15 @@ Example:
 browsers don't render them. So they're invisible to end users and visible
 to document authors.
 
+---
+
 ### Lifecycle
 
-WHEN a template is used to author a new document, the author SHALL remove 
+WHEN a template is used to author a new document, the author SHALL remove
 HTML comment blocks after reading and completing each section.
 
-Instructions SHALL be deleted from the final document to prevent instruction 
-bloat.
+The final document SHALL NOT carry instruction blocks, which would bloat
+it.
 
 **Rationale:** Final documents stay clean, and authors still get guidance
 while they write.
@@ -161,10 +166,11 @@ template drifts the moment someone forgets to bump it.
 
 ### Format
 
-Placeholders in templates SHALL be wrapped in angle brackets: `<placeholder>`
+A template SHALL wrap each placeholder in angle brackets:
+`<placeholder>`.
 
-Placeholders SHALL contain a human-readable description of the expected 
-content.
+Each placeholder SHALL describe the expected content in human-readable
+words.
 
 **Examples:**
 - `<Feature Name>`
@@ -176,6 +182,8 @@ content.
 (1950s). Technical documentation universally recognizes it as a way to tell
 placeholders apart from literal text.
 
+---
+
 ### Variable naming
 
 Placeholders SHALL use one of these naming conventions:
@@ -184,12 +192,14 @@ Placeholders SHALL use one of these naming conventions:
 2. **Format indicator:** `YYYY-MM-DD`, `NNN` (zero-padded number)
 3. **Variable name:** `<PREFIX>`, `<slug>`, `<TYPE>`
 
-Placeholder names SHALL be self-explanatory without requiring external 
+Each placeholder name SHALL be self-explanatory without external
 documentation.
+
+---
 
 ### Environment variables vs placeholders
 
-Template placeholders are distinct from environment variables injected at 
+Template placeholders are distinct from environment variables injected at
 runtime.
 
 **Template placeholder (manual replacement):**
@@ -204,11 +214,12 @@ last_updated: ${CURRENT_DATE}
 created_by: ${USER_EMAIL}
 ```
 
-Environment variables SHALL use `${VARIABLE_NAME}` syntax when supported by 
-the document generation tool.
+WHERE the document generation tool supports environment variables, a
+template SHALL write each one in `${VARIABLE_NAME}` syntax.
 
-**Note:** Environment variable injection is tool-specific. It should be
-documented in the relevant tooling guide, not in individual templates.
+**Note:** Environment variable injection is tool-specific. Its
+documentation belongs in the relevant tooling guide, not in individual
+templates.
 
 ---
 
@@ -216,19 +227,21 @@ documented in the relevant tooling guide, not in individual templates.
 
 ### Avoid duplication
 
-Templates SHALL instruct authors to cross-reference other documents rather 
-than duplicate content.
+A template SHALL instruct authors to cross-reference other documents
+rather than duplicate content.
 
-WHEN content exists in another document, templates SHALL guide authors to 
+WHEN content exists in another document, a template SHALL guide authors to
 reference that document using `[[document-slug]]` notation.
 
 **Rationale:** When only one copy of duplicated content is updated, the
 copies drift. A cross-reference keeps a single source of truth.
 
+---
+
 ### Living documents
 
-WHEN templates are used for documentation that evolves over time, the template 
-SHALL include instructions that documents are living artifacts.
+WHERE a template's documents evolve over time, the template SHALL instruct
+authors that each document is a living artifact.
 
 **Example instruction:**
 ```markdown

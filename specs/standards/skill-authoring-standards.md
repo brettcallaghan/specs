@@ -73,8 +73,11 @@ and humans see, and silently breaks any cross-skill reference to it.
 
 ---
 
-A skill's `name` SHALL use the verb-object form, EXCEPT where it belongs to
-a named subsystem, in which case it SHALL carry that subsystem's prefix.
+A skill's `name` SHALL use the verb-object form, except where the skill
+belongs to a named subsystem.
+
+WHERE a skill belongs to a named subsystem, its `name` SHALL carry that
+subsystem's prefix.
 
 **Rationale:** Verb-object (`groom-beads`, `triage-issue`, `retro-spec` as
 "retro the spec", `spec` as "spec out the thing") makes a skill's activity
@@ -116,7 +119,7 @@ it.
 
 ---
 
-A skill's `description` SHALL be written in the third person.
+The author SHALL write a skill's `description` in the third person.
 
 **Rationale:** The description is injected into the system prompt.
 First-person or second-person phrasing ("I can help you…", "You can use
@@ -211,9 +214,12 @@ nothing. Naming all eight checks made the same list useful at a glance.
 Every bundled file SHALL be reachable in one hop from its SKILL.md.
 
 **Rationale:** A file reached at the second hop tends to be previewed
-rather than read, so its content arrives incomplete. WHERE a template
-depends on a guide, the SKILL.md SHALL name both as a bundle so they load
-together.
+rather than read, so its content arrives incomplete.
+
+---
+
+WHERE a template depends on a guide, the SKILL.md SHALL name both as a
+bundle so they load together.
 
 ---
 
@@ -221,7 +227,8 @@ together.
 
 ### Path resolution
 
-A backticked path SHALL be written relative to the file that contains it.
+The author SHALL write a backticked path relative to the file that
+contains it.
 
 **Rationale:** *Observed.* Thirty-nine citations inside a `references/`
 directory carried a `references/` prefix. The prefix was correct from the
@@ -242,8 +249,11 @@ own tree.
 
 ---
 
-WHERE two skills must share a reference document, the shared file SHALL be
-authored once and vendored into each consumer by a generator.
+WHERE two skills must share a reference document, the author SHALL write
+the shared file once.
+
+WHERE two skills share a reference document, a generator SHALL vendor the
+shared file into each consumer.
 
 **Rationale:** Both alternatives fail. Hand-copying drifts. *Observed:*
 two copies of one template diverged by 74 lines, including a superseded term
@@ -316,8 +326,8 @@ them is honest when a check was unavailable.
 
 ---
 
-A bundled script's numeric or enumerated constants SHALL be justified in
-place.
+A bundled script SHALL justify each of its numeric or enumerated
+constants in place.
 
 **Rationale:** An unexplained constant cannot be safely changed by anyone
 who did not write it, including the agent that must adapt it.
@@ -420,8 +430,8 @@ checkable: a sentence either names its source or it doesn't.
 
 ## Content discipline
 
-A skill's prose SHALL be written with the `tech-writer` skill, using its
-reader profile for agent-only docs.
+The author SHALL write a skill's prose with the `tech-writer` skill,
+using its reader profile for agent-only docs.
 
 **Rationale:** A skill's reader is an agent that already knows the public
 domain and pays for every sentence in context. The profile says what such a
@@ -456,8 +466,8 @@ a history the reader doesn't have.
 
 ---
 
-WHERE historical context is genuinely needed, it SHALL be confined to a
-collapsed "old patterns" section.
+WHERE historical context is genuinely needed, the skill SHALL confine it
+to a collapsed "old patterns" section.
 
 **Rationale:** The deprecation stays available without diluting the
 current instruction.
@@ -465,8 +475,10 @@ current instruction.
 ---
 
 A skill SHALL NOT describe the output of a command it also instructs the
-reader to run. It SHALL instruct the reader to run the command and read what
-it prints.
+reader to run.
+
+WHERE a skill relies on a command's output, the skill SHALL instruct the
+reader to run the command and read what it prints.
 
 **Rationale:** The description is a second copy of the command's behavior,
 and nobody keeps the two in agreement. It competes for the body budget with
@@ -501,8 +513,10 @@ took.
 ---
 
 A skill SHALL NOT assert what a command, tool or API does unless that
-behaviour was measured, and the assertion SHALL carry the measurement — the
-invocation and the observed output — with it.
+behavior was measured.
+
+WHERE a skill asserts what a command, tool or API does, the assertion SHALL
+carry the measurement (the invocation and the observed output) with it.
 
 **Rationale:** *Observed.* A reference file asserted that `bd`'s
 `--set-metadata` "stores every value as a string." Measured on bd 1.2.2,
@@ -517,8 +531,11 @@ command.
 
 ---
 
-WHERE a behaviour cannot be measured cheaply, a skill SHALL mark the claim
-unverified and state what would settle it.
+IF a behavior cannot be measured cheaply, THEN a skill SHALL mark the
+claim unverified.
+
+IF a skill marks a claim unverified, THEN it SHALL state what would settle
+it.
 
 **Rationale:** An unverified claim a reader can recognize as unverified is
 useful. One that reads as settled and isn't is worse than absent: readers
@@ -527,9 +544,12 @@ the evidence.
 
 ---
 
-WHEN an asserted tool behaviour is found false, the author SHALL sweep every
-surface that carries a copy of it before treating the correction as done, and
-SHALL record any copy that could not be reached.
+WHEN an asserted tool behavior is found false, the author SHALL sweep
+every surface that carries a copy of it before treating the correction as
+done.
+
+WHEN an asserted tool behavior is found false, the author SHALL record any
+copy that the sweep could not reach.
 
 **Rationale:** *Observed.* A tool claim retracted in conversation had already
 been copied into an epic comment and into a durable trigger prompt, where a
@@ -566,7 +586,8 @@ This requirement sets the bar, and the gap is open work.
 
 ---
 
-A skill SHALL be tested against every model tier it dispatches work to.
+The author SHALL test a skill against every model tier it dispatches work
+to.
 
 **Rationale:** A skill is an addition to a model, so its sufficiency is
 model-dependent. This repository's skills deliberately route work to the
@@ -578,8 +599,8 @@ first.
 
 ---
 
-Every invariant a skill asserts about itself SHALL be enforced by an
-automated check.
+An automated check SHALL enforce every invariant a skill asserts about
+itself.
 
 **Rationale:** *Observed, repeatedly.* Eight invariants in this repository
 were enforced only by authorial memory. At least three had silently broken

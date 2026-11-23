@@ -10,7 +10,7 @@ status: draft
 
 # ADR-017: The specs plugin provisions the Spec CLI version it pins
 
-**Status:** draft
+**Status:** draft  
 **Date:** 2026-08-05
 
 ## Context
@@ -41,9 +41,9 @@ reaches a session, and what the skills may assume about it.
 
 ## Decision
 
-The plugin pins the CLI release whose version equals its own, and a
-`SessionStart` hook (`plugin/hooks/install-cli`) provisions it before any
-skill runs:
+We will pin the CLI release whose version equals the plugin's own, and
+provision it with a `SessionStart` hook (`plugin/hooks/install-cli`) before
+any skill runs:
 
 1. With `SPECS_CLI_PROVISION=off`, the hook does nothing, and the skills run the
    user's own `specs`, if any.
@@ -128,7 +128,5 @@ re-run by a reviewer.
   Coding Agent interaction this decision serves
 - `plugin/hooks/install-cli` — the hook, with its lookup order and output
   contract
-- `plugin/skills/spec/references/shared/specs-cli-reference.md` — the
-  command surface the skills call
-- [[specs-cli-reference]] — what `specs check` decides, and the fallback without it
-  recorded
+- [[specs-cli-reference]] — the command surface the skills call, what
+  `specs check` decides, and the fallback without it
