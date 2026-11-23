@@ -27,15 +27,15 @@ them when they carry their ordinary meaning.
 | heading path | Headings from a document's top level down to one section, joined by `/`, such as `Design/Invariants`. It selects that section. | path, when it could be read as a file path |
 | host blueprint | The blueprint of the C4 element that composes another C4 element. A component's host is its container or module. | parent, unless the relationship is the C4 one |
 | index | The model of the corpus that the Spec CLI builds from every document. `specs/specs.json` caches it between runs. | |
-| paired relationship | A relationship that both documents must declare, each naming the other. The `reference/pairing-incomplete` rule reports one declared from only one end. | pairing, alone; mirror; bidirectional |
+| paired reference | Two references that two documents must make to each other, one from each end, such as a property each declares naming the other. The `reference/pairing-incomplete` rule reports a pair with only one end. | paired relationship, pairing, mirror, bidirectional |
 | passive store | A database or queue drawn on a C4 diagram (a `Db` or `Queue` form) that names no C4 element in scope: a data store that the drawn C4 element uses and that has no blueprint. The C4 checks don't report it as undeclared. | |
 | profile | The configuration that tells the Spec CLI which document types, front matter properties, and rules a corpus uses. This repository's is the Specs Profile. | |
 | record block | A fenced YAML block, tagged with a type the profile registers, that declares an entity inside another document and holds its `entity_name`, `slug`, and `description`. The Specs Profile registers the `component` tag, for a component declared in its host's Components section. | |
 | recovered slug | A slug read from front matter that failed to parse, so the document still counts as declaring it. | recovered, alone |
-| reference | A wikilink in a document, such as `[[slug]]` or `[[slug#heading]]`. Resolving it finds the document that declares the slug. | link, for a wikilink the tool resolves |
+| reference | A citation of another document by slug: a wikilink in the body, such as `[[slug]]` or `[[slug#heading]]`, or the value of a front matter property the profile registers as reference-bearing. Resolving it finds the document that declares the slug. | link, for a citation the tool resolves |
 | span | A contiguous region of a document: a byte offset and a byte length, with the line and column derived from the offset. | extent, byte range |
 
 ## References
 
 - [[guide-c4]]: the C4 levels and C4 element kinds
-- [[document-relationship-standards]]: relationships and paired declarations
+- [[document-relationship-standards]]: relationships and paired references
