@@ -7,8 +7,8 @@
 // cases and compares against whatever is committed. This program only
 // produces the committed side, and writes exactly the artifacts each
 // case declares in its own case.toml — a standard-output artifact
-// (expected/checks.log for a human-readable run, expected/checks.json
-// for a --json one) and/or expected/manifest.json for the produced
+// (expected/checks.log for a human-readable run, expected/checks.json,
+// indented, for a --json one) and/or expected/manifest.json for the produced
 // index. A case that declares none gets none.
 //
 // Usage, from the cli module root:
@@ -24,6 +24,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
@@ -64,6 +65,34 @@ type caseManifest struct {
 // checks.log for a human-readable run, checks.json for a --json one. A
 // case declares at most one of them.
 var stdoutArtifacts = []string{"checks.log", "checks.json"}
+
+// checksJSONArtifact is the standard-output artifact of a --json run.
+// The CLI writes it as one compact line; the fixture stores it indented
+// so a change diffs line by line. cli/cmd/snapshot_test.go compacts the
+// fixture again and requires stdout to match it byte for byte.
+const checksJSONArtifact = "checks.json"
+
+// indentChecksJSON returns a --json run's standard output indented two
+// spaces per level, with a trailing newline. It refuses output that does
+// not compact back to exactly what the CLI wrote, so a fixture can never
+// hold a form the harness would then reject.
+func indentChecksJSON(stdout []byte) ([]byte, error) {
+	var indented bytes.Buffer
+	if err := json.Indent(&indented, stdout, "", "  "); err != nil {
+		return nil, fmt.Errorf("%s: standard output is not valid JSON: %w", checksJSONArtifact, err)
+	}
+	indented.WriteByte('\n')
+
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, indented.Bytes()); err != nil {
+		return nil, err
+	}
+	compact.WriteByte('\n')
+	if !bytes.Equal(compact.Bytes(), stdout) {
+		return nil, fmt.Errorf("%s: standard output is not one compact line ending in a newline, so the indented fixture would not round-trip", checksJSONArtifact)
+	}
+	return indented.Bytes(), nil
+}
 
 // stderrArtifact is the name a case gives its standard-error artifact.
 //
@@ -173,7 +202,14 @@ func regenerate(dir, name string) error {
 		if !manifest.declares(artifact) {
 			continue
 		}
-		if err := os.WriteFile(filepath.Join(expectedDir, artifact), []byte(stdout.String()), 0o644); err != nil {
+		data := stdout.Bytes()
+		if artifact == checksJSONArtifact {
+			data, err = indentChecksJSON(data)
+			if err != nil {
+				return err
+			}
+		}
+		if err := os.WriteFile(filepath.Join(expectedDir, artifact), data, 0o644); err != nil {
 			return err
 		}
 	}

@@ -91,11 +91,16 @@ cli/testdata/cases/<case-name>/
   input/                  a complete corpus, including its own specs.toml
   expected/
     checks.log            the check results the run must report
-    checks.json           the same standard output, for a --json run
+    checks.json           the same standard output, for a --json run,
+                          indented two spaces per level
     checks.err            the standard error the run must write
     manifest.json         the corpus manifest the run must produce,
                           whole or partial
 ```
+
+The CLI writes `--json` output as one compact line. `checks.json`
+stores it indented so a change diffs line by line; a harness compacts
+the file and compares the result with standard output byte for byte.
 
 `manifest.json` holds the index that FEAT-SPEC-002 of
 [[frd-spec-index]] defines. These standards use the file name the
