@@ -27,9 +27,11 @@ const pinned = "0.2.0"
 // The plugin directory, relative to this package.
 var pluginDir = filepath.Join("..", "..", "plugin")
 
-// The tools the hook may use, linked into a directory that is the whole of
+// The tools the hook may use, linked into directories that are the whole of
 // its PATH, so nothing on the machine running the tests (a real `specs`)
-// can leak into a case.
+// can leak into a case. A tool's first match on the caller's PATH may be a
+// wrapper that runs the next match, such as a guard in front of `rm`, so
+// every match is linked, the Nth into the Nth tool directory, in PATH order.
 var tools = []string{
 	"bash", "sh", "curl", "tar", "gzip", "sha256sum", "shasum", "awk", "sed",
 	"mkdir", "rm", "mv", "chmod", "ln", "cat", "dirname", "uname", "printf",
@@ -148,9 +150,12 @@ type env struct {
 	script  string
 	data    string
 	envFile string
-	path    string // the PATH directory
-	linkDir string
-	extra   []string
+	path    string // the first PATH directory, where the user's own specs goes
+	// toolPath is the whole PATH: path, then a directory for each further
+	// match of a tool on the caller's PATH.
+	toolPath string
+	linkDir  string
+	extra    []string
 }
 
 func newEnv(t *testing.T, host *fakeHost, version string) *env {
@@ -181,9 +186,17 @@ func newEnv(t *testing.T, host *fakeHost, version string) *env {
 	mustMkdir(t, e.path)
 	mustMkdir(t, e.linkDir)
 	mustWrite(t, e.envFile, "", 0o644)
+	e.toolPath = e.path
+	dirs := []string{e.path}
 	for _, tool := range tools {
-		if p, err := exec.LookPath(tool); err == nil {
-			if err := os.Symlink(p, filepath.Join(e.path, tool)); err != nil {
+		for i, p := range lookPathAll(tool) {
+			if i == len(dirs) {
+				dir := filepath.Join(root, fmt.Sprintf("tools%d", i))
+				mustMkdir(t, dir)
+				dirs = append(dirs, dir)
+				e.toolPath += string(os.PathListSeparator) + dir
+			}
+			if err := os.Symlink(p, filepath.Join(dirs[i], tool)); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -191,12 +204,30 @@ func newEnv(t *testing.T, host *fakeHost, version string) *env {
 	return e
 }
 
+// lookPathAll returns every executable named tool on the caller's PATH, in
+// PATH order, skipping a directory that repeats one already seen.
+func lookPathAll(tool string) []string {
+	var found []string
+	seen := map[string]bool{}
+	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
+		if dir == "" || seen[dir] {
+			continue
+		}
+		seen[dir] = true
+		p := filepath.Join(dir, tool)
+		if info, err := os.Stat(p); err == nil && !info.IsDir() && info.Mode()&0o111 != 0 {
+			found = append(found, p)
+		}
+	}
+	return found
+}
+
 // run runs the hook once and returns its standard output.
 func (e *env) run() string {
 	e.t.Helper()
 	cmd := exec.Command("bash", e.script)
 	cmd.Env = append([]string{
-		"PATH=" + e.path,
+		"PATH=" + e.toolPath,
 		"HOME=" + e.t.TempDir(),
 		"CLAUDE_PLUGIN_DATA=" + e.data,
 		"CLAUDE_ENV_FILE=" + e.envFile,
@@ -219,7 +250,7 @@ func (e *env) installed() string {
 // sourcing the env file, then searching PATH.
 func (e *env) sessionSpecs() string {
 	e.t.Helper()
-	out, err := exec.Command("bash", "-c", `PATH="$1"; . "$2"; specs --version`, "_", e.path, e.envFile).CombinedOutput()
+	out, err := exec.Command("bash", "-c", `PATH="$1"; . "$2"; specs --version`, "_", e.toolPath, e.envFile).CombinedOutput()
 	if err != nil {
 		e.t.Fatalf("specs --version in the session: %v: %s", err, out)
 	}
