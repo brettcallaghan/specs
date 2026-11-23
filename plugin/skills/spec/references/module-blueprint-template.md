@@ -153,8 +153,8 @@ Status vocabulary
 This is a living document — update it when the module changes. Remove
 all HTML comment blocks after completing each section. WHILE status is
 draft, the Open questions section MAY contain open questions or the
-literal text "None."; remove the section when the document becomes
-active.
+literal text "None."; remove the section when the document leaves
+draft.
 -->
 
 # <Module Name>
@@ -287,23 +287,27 @@ How the module is built to stay sound as it changes.
 Each pattern the module follows. Draw on the universal guide, the
 containers guide for how its components and submodules compose, and the
 components guide for the code it holds directly. Name each pattern with
-its progenitor, its roles mapped to this module's types, and the present
-need it serves. State what it rules out as an invariant
+one progenitor and its topic, its roles mapped to this module's types, and
+the present need it serves. State what it rules out as an invariant
 ("Name each pattern with its progenitor, constraint, and need"). Also name
 entries from the components guide that all of the module's code follows.
 -->
 
-<Pattern> (<progenitor>) — <roles mapped to this module's types>; <the
-present need it serves>.
+<Pattern> (<progenitor>, <topic>) — <roles mapped to this module's
+types>; <the present need it serves>.
 
 ### Invariants
 
 <!--
 EARS statements that hold across all operations, each ending "Enforced
 by: <test, check, lint, or review only>" ("Say what enforces each invariant").
+Where a statement needs a reason, put "Rationale:" between the statement
+and "Enforced by:" ("Keep a statement and its reasons together").
 -->
 
 The module SHALL <invariant that holds across all operations>.
+Rationale: <why the rule exists, only where a reader would otherwise
+misapply or remove it>.
 Enforced by: <test, check, lint, or review only>.
 
 ### Extension points
