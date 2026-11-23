@@ -432,39 +432,6 @@
       ],
       "type": "object"
     },
-    "C4Drawing": {
-      "additionalProperties": false,
-      "description": "One place a relationship was drawn.",
-      "properties": {
-        "path": {
-          "description": "Repository-relative path of the document holding the diagram.",
-          "type": "string"
-        },
-        "source_alias": {
-          "description": "The Mermaid aliases of the two endpoints as written. `Rel_Back`\nstatements are recorded after normalisation, so these name the\nsource first.",
-          "type": "string"
-        },
-        "span": {
-          "$ref": "#/definitions/Span",
-          "description": "The `Rel` statement as written."
-        },
-        "target_alias": {
-          "type": "string"
-        },
-        "view": {
-          "$ref": "#/definitions/C4View",
-          "description": "The view the statement's diagram draws."
-        }
-      },
-      "required": [
-        "path",
-        "span",
-        "view",
-        "source_alias",
-        "target_alias"
-      ],
-      "type": "object"
-    },
     "C4Element": {
       "additionalProperties": false,
       "description": "The properties every element carries, whatever its level.",
@@ -813,7 +780,7 @@
     },
     "C4Relationship": {
       "additionalProperties": false,
-      "description": "A dependency edge: the source depends on the target, per the C4\nstandard's arrow rule.\n\nOne relationship may have been drawn in several diagrams — a parent's\ninternal view and a child's context view show the same edge — and is\nrecorded once with every drawing listed. Two drawings are the same\nrelationship when source, target and description agree. Where they\ndisagree on anything else, the relationship carries the values of the\ndrawing that sorts first by path and then by span, and the\n`c4/drawing-conflict` rule reports the disagreement.",
+      "description": "A dependency edge: the source depends on the target, per the C4\nstandard's arrow rule.\n\nOne relationship may have been drawn in several diagrams — a parent's\ninternal view and a child's context view show the same edge — and is\nrecorded once with every statement listed. Two statements are the same\nrelationship when source, target and description agree. Where they\ndisagree on anything else, the relationship carries the values of the\nstatement that sorts first by path and then by span, and the\n`c4/statement-conflict` rule reports the disagreement.",
       "properties": {
         "contract": {
           "oneOf": [
@@ -836,13 +803,6 @@
             "null"
           ]
         },
-        "drawn_in": {
-          "description": "Every place this relationship was drawn, in document order.",
-          "items": {
-            "$ref": "#/definitions/C4Drawing"
-          },
-          "type": "array"
-        },
         "interaction": {
           "oneOf": [
             {
@@ -859,6 +819,13 @@
         "source": {
           "$ref": "#/definitions/Citation",
           "description": "Slug of the element that depends."
+        },
+        "statements": {
+          "description": "Every statement of this relationship, in document order.",
+          "items": {
+            "$ref": "#/definitions/C4RelationshipStatement"
+          },
+          "type": "array"
         },
         "tags": {
           "description": "Tags in the order written, with the reserved ones removed.",
@@ -887,7 +854,40 @@
         "target",
         "level",
         "description",
-        "drawn_in"
+        "statements"
+      ],
+      "type": "object"
+    },
+    "C4RelationshipStatement": {
+      "additionalProperties": false,
+      "description": "One C4 relationship statement: a `Rel` statement on a diagram, one place a\nrelationship was drawn.",
+      "properties": {
+        "path": {
+          "description": "Repository-relative path of the document holding the diagram.",
+          "type": "string"
+        },
+        "source_alias": {
+          "description": "The Mermaid aliases of the two endpoints as written. `Rel_Back`\nstatements are recorded after normalisation, so these name the\nsource first.",
+          "type": "string"
+        },
+        "span": {
+          "$ref": "#/definitions/Span",
+          "description": "The `Rel` statement as written."
+        },
+        "target_alias": {
+          "type": "string"
+        },
+        "view": {
+          "$ref": "#/definitions/C4View",
+          "description": "The view the statement's diagram draws."
+        }
+      },
+      "required": [
+        "path",
+        "span",
+        "view",
+        "source_alias",
+        "target_alias"
       ],
       "type": "object"
     },
@@ -1942,38 +1942,9 @@
       ],
       "type": "object"
     },
-    "FindingC4DrawingConflict": {
-      "additionalProperties": false,
-      "description": "Two drawings of one relationship that disagree in technology,\ndescription or tags.\n\nReported at the drawing that sorts second by path and then by span,\nnaming the first. The other drawing's span is carried beside its path\nbecause a blueprint holds several diagrams and an arrow is not a heading:\nwithout the span the reader is told which file to open and left to search\nit.",
-      "properties": {
-        "other_path": {
-          "description": "The other drawing's path, relative to the repository root and written\nwith forward slashes on every platform.",
-          "type": "string"
-        },
-        "other_span": {
-          "$ref": "#/definitions/Span",
-          "description": "Where in that file the other drawing's statement is written."
-        },
-        "source": {
-          "description": "The alias of the relationship's source in this drawing.",
-          "type": "string"
-        },
-        "target": {
-          "description": "The alias of the relationship's target in this drawing.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "source",
-        "target",
-        "other_path",
-        "other_span"
-      ],
-      "type": "object"
-    },
     "FindingC4Node": {
       "additionalProperties": false,
-      "description": "A C4 diagram node whose label resolves to no element in the scope of its\ndrawing document, or to more than one.\n\nOne shape for both defects, told apart by the rule that raised the\nfinding. The alias and the label are both carried: the alias is what the\ndiagram's relationships name, and the label is what resolution matched\nagainst an element's entity name.",
+      "description": "A C4 diagram node whose label resolves to no element in the scope of its\nC4 drawing document, or to more than one.\n\nOne shape for both defects, told apart by the rule that raised the\nfinding. The alias and the label are both carried: the alias is what the\ndiagram's relationships name, and the label is what resolution matched\nagainst an element's entity name.",
       "properties": {
         "alias": {
           "description": "The node's alias, as written.",
@@ -2033,6 +2004,35 @@
       "required": [
         "source",
         "target"
+      ],
+      "type": "object"
+    },
+    "FindingC4StatementConflict": {
+      "additionalProperties": false,
+      "description": "Two statements of one relationship that disagree in technology,\ndescription or tags.\n\nReported at the statement that sorts second by path and then by span,\nnaming the first. The other statement's span is carried beside its path\nbecause a blueprint holds several diagrams and an arrow is not a heading:\nwithout the span the reader is told which file to open and left to search\nit.",
+      "properties": {
+        "other_path": {
+          "description": "The other statement's path, relative to the repository root and written\nwith forward slashes on every platform.",
+          "type": "string"
+        },
+        "other_span": {
+          "$ref": "#/definitions/Span",
+          "description": "Where in that file the other statement is written."
+        },
+        "source": {
+          "description": "The alias of the relationship's source in this statement.",
+          "type": "string"
+        },
+        "target": {
+          "description": "The alias of the relationship's target in this statement.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "target",
+        "other_path",
+        "other_span"
       ],
       "type": "object"
     },
@@ -2668,7 +2668,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": {
-              "const": "c4-drawing-conflict",
+              "const": "c4-statement-conflict",
               "type": "string"
             },
             "other_path": {
@@ -4039,7 +4039,7 @@
         "c4/ambiguous-node",
         "c4/bidirectional",
         "c4/duplicate-edge",
-        "c4/drawing-conflict",
+        "c4/statement-conflict",
         "c4/interaction-conflict",
         "c4/contract-unresolved",
         "c4/contract-mismatch",

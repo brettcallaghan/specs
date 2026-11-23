@@ -301,7 +301,7 @@ C4Component
         Component(md, "Markdown Structure", "Go package", "Headings, section spans, fenced blocks and heading identifiers")
         Component(gherkin, "Gherkin", "Go package", "Gherkin parsing into feature and criterion records")
         Component(c4, "C4 Diagrams", "Go package", "Mermaid C4 diagram parsing into located statements")
-        Component(c4e, "C4 Elements", "Go package", "Architectural elements, drawing scopes, and node and relationship resolution")
+        Component(c4e, "C4 Elements", "Go package", "Architectural elements, C4 drawing document scopes, and node and relationship resolution")
         Component(c4m, "C4 Model", "Go package", "The corpus's C4 model: element tree, modules, relationships and exclusions")
         Component(refs, "References", "Go package", "Reference extraction, resolution, and the reference graph")
         Component(schema, "Schema Registry", "Go package", "Union-schema validation dispatched by document type")
@@ -438,8 +438,8 @@ text is tokenized. It reads notation only and resolves nothing.
 
 ### C4 Elements
 
-See [[component-c4-elements]]. (Go package) — Architectural elements, drawing
-scopes, and node and relationship resolution.
+See [[component-c4-elements]]. (Go package) — Architectural elements, C4
+drawing document scopes, and node and relationship resolution.
 
 ### C4 Model
 

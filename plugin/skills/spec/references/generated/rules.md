@@ -51,7 +51,7 @@ severity it reports at.
 | C4AmbiguousNode | "c4/ambiguous-node" | Error. A node's label matches the entity names of more than one element in scope. The finding names each. |
 | C4Bidirectional | "c4/bidirectional" | Error. A diagram uses `BiRel`. An arrow states one dependency, in one direction. |
 | C4DuplicateEdge | "c4/duplicate-edge" | Error. One diagram draws two relationships with the same source and target, after `Rel_Back` is normalized. |
-| C4DrawingConflict | "c4/drawing-conflict" | Warning. One relationship is drawn in two places with a different technology, description, or tags. The finding names the other drawing. |
+| C4StatementConflict | "c4/statement-conflict" | Warning. One relationship is drawn in two places with a different technology, description, or tags. The finding names the other statement. |
 | C4InteractionConflict | "c4/interaction-conflict" | Error. A relationship is tagged both `sync` and `async`. |
 | C4ContractUnresolved | "c4/contract-unresolved" | Error. A `contract:` tag names a slug that no Contract declares. |
 | C4ContractMismatch | "c4/contract-mismatch" | Warning. A `contract:` tag names a Contract that the source element doesn't consume or the target element doesn't provide. |

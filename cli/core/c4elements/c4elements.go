@@ -1,5 +1,5 @@
 // Package c4elements holds the corpus's architectural elements, each
-// drawing document's scope, and the resolution of diagram nodes to
+// C4 drawing document's scope, and the resolution of diagram nodes to
 // elements.
 //
 // It owns that judgement once, so the checks that report on a diagram
@@ -7,7 +7,7 @@
 // about what a node is. It reads the index and the architecture
 // vocabulary a profile registers ([ArchitectureRules]), and names no
 // document type, property or heading of its own. Diagrams are read from
-// each drawing document's source at the time of the run; the index does
+// each C4 drawing document's source at the time of the run; the index does
 // not record them.
 package c4elements
 
@@ -32,7 +32,7 @@ const recordSlugKey = "slug"
 // Input is what [Build] reads.
 type Input struct {
 	// Vocabulary is the active profile's architecture registration. Its
-	// zero value yields a set with no elements and no drawing documents.
+	// zero value yields a set with no elements and no C4 drawing documents.
 	Vocabulary ArchitectureRules
 
 	// Entries are the index's entries.
@@ -127,7 +127,7 @@ func (c *Contract) ProvidedBy(element *Element) bool {
 	return false
 }
 
-// Document is one drawing document: a corpus member whose type the
+// Document is one C4 drawing document: a corpus member whose type the
 // profile registers as declaring an element.
 type Document struct {
 	// Path is the member's path.
@@ -163,7 +163,7 @@ type Child struct {
 	Span specmodel.Span
 }
 
-// Diagram is one Mermaid block of a drawing document.
+// Diagram is one Mermaid block of a C4 drawing document.
 type Diagram struct {
 	// Block covers the fenced block, fences included.
 	Block specmodel.Span
@@ -176,20 +176,21 @@ type Diagram struct {
 	// the order written.
 	Nodes []Node
 
-	// Drawings are the relationship statements that resolved, in the
-	// order written.
-	Drawings []Drawing
+	// ResolvedRelationshipStatements are the diagram's resolved C4
+	// relationship statements, in the order written.
+	ResolvedRelationshipStatements []ResolvedRelationshipStatement
 
-	// Unresolved are the relationship statements that did not, in the
-	// order written. A `BiRel` statement is in neither: it states no
-	// single direction, so it draws no relationship and is not an
-	// endpoint failure either.
-	Unresolved []Unresolved
+	// UnresolvedRelationshipStatements are the diagram's unresolved C4
+	// relationship statements, in the order written. A `BiRel` statement
+	// is in neither: it states no single direction, so it draws no
+	// relationship and is not an endpoint failure either.
+	UnresolvedRelationshipStatements []UnresolvedRelationshipStatement
 }
 
-// Drawing is one relationship statement whose two endpoints each name
-// exactly one element.
-type Drawing struct {
+// ResolvedRelationshipStatement is one resolved C4 relationship statement: a
+// directional relationship statement whose two endpoints each name exactly
+// one element.
+type ResolvedRelationshipStatement struct {
 	// Source and Target are the elements at the two ends, in dependency
 	// direction: Source depends on Target, after `Rel_Back` normalisation.
 	Source *Element
@@ -212,7 +213,7 @@ type Drawing struct {
 	SourceAlias string
 	TargetAlias string
 
-	// Path is the drawing document's path, and Span covers the statement.
+	// Path is the C4 drawing document's path, and Span covers the statement.
 	Path string
 	Span specmodel.Span
 
@@ -221,9 +222,10 @@ type Drawing struct {
 	Statement int
 }
 
-// Unresolved is one relationship statement an endpoint of which does not
-// name exactly one element.
-type Unresolved struct {
+// UnresolvedRelationshipStatement is one unresolved C4 relationship
+// statement: a directional relationship statement an endpoint of which does
+// not name exactly one element.
+type UnresolvedRelationshipStatement struct {
 	// Reason is why, as the first failing check finds it: every endpoint
 	// is checked for being external, then for being a passive store, then
 	// for naming no element — an alias with no node in the diagram
@@ -240,7 +242,7 @@ type Unresolved struct {
 	SourceAlias string
 	TargetAlias string
 
-	// Path is the drawing document's path, and Span covers the statement.
+	// Path is the C4 drawing document's path, and Span covers the statement.
 	Path string
 	Span specmodel.Span
 
@@ -249,16 +251,16 @@ type Unresolved struct {
 	Statement int
 }
 
-// Relationship is every drawing of one relationship: drawings whose
+// Relationship is every statement of one relationship: statements whose
 // source element, target element and label are equal.
 type Relationship struct {
 	Source *Element
 	Target *Element
 	Label  string
 
-	// Drawings are the relationship's drawings, ordered by path and then
+	// Statements are the relationship's statements, ordered by path and then
 	// by span.
-	Drawings []Drawing
+	Statements []ResolvedRelationshipStatement
 }
 
 // Node is one node statement of a diagram, resolved.
@@ -288,7 +290,7 @@ type Node struct {
 	Matches []*Element
 }
 
-// Set is the corpus's elements and its drawing documents.
+// Set is the corpus's elements and its C4 drawing documents.
 type Set struct {
 	elements      []*Element
 	bySlug        map[string]*Element
@@ -326,7 +328,7 @@ func (s *Set) Element(slug string) (*Element, bool) {
 	return element, ok
 }
 
-// Documents returns every drawing document, ordered by path.
+// Documents returns every C4 drawing document, ordered by path.
 func (s *Set) Documents() []*Document { return s.documents }
 
 // Relationships returns every relationship drawn anywhere in the corpus,
@@ -348,7 +350,7 @@ type member struct {
 	roster []specmodel.Span
 }
 
-// Build reads the element set, every drawing document's scope, and the
+// Build reads the element set, every C4 drawing document's scope, and the
 // resolution of every node drawn in one.
 //
 // A member whose source cannot be read declares its element without a
@@ -421,7 +423,7 @@ func Build(in Input) (*Set, error) {
 	return set, nil
 }
 
-// group gathers every drawing into the relationship it draws: one per
+// group gathers every statement into the relationship it draws: one per
 // distinct source element, target element and label.
 func group(documents []*Document) []Relationship {
 	type key struct {
@@ -432,23 +434,23 @@ func group(documents []*Document) []Relationship {
 	var relationships []Relationship
 	for _, document := range documents {
 		for _, diagram := range document.Diagrams {
-			for _, drawing := range diagram.Drawings {
-				k := key{drawing.Source, drawing.Target, drawing.Label}
+			for _, statement := range diagram.ResolvedRelationshipStatements {
+				k := key{statement.Source, statement.Target, statement.Label}
 				i, ok := index[k]
 				if !ok {
 					i = len(relationships)
 					index[k] = i
 					relationships = append(relationships, Relationship{
-						Source: drawing.Source, Target: drawing.Target, Label: drawing.Label,
+						Source: statement.Source, Target: statement.Target, Label: statement.Label,
 					})
 				}
-				relationships[i].Drawings = append(relationships[i].Drawings, drawing)
+				relationships[i].Statements = append(relationships[i].Statements, statement)
 			}
 		}
 	}
 	for _, relationship := range relationships {
-		sort.SliceStable(relationship.Drawings, func(i, j int) bool {
-			a, b := relationship.Drawings[i], relationship.Drawings[j]
+		sort.SliceStable(relationship.Statements, func(i, j int) bool {
+			a, b := relationship.Statements[i], relationship.Statements[j]
 			if a.Path != b.Path {
 				return a.Path < b.Path
 			}
@@ -722,7 +724,7 @@ func diagramsOf(path string, src []byte, scope []*Element) []Diagram {
 				}
 			}
 			if reason, source, failed := endpointFailure(ends, many); failed {
-				diagram.Unresolved = append(diagram.Unresolved, Unresolved{
+				diagram.UnresolvedRelationshipStatements = append(diagram.UnresolvedRelationshipStatements, UnresolvedRelationshipStatement{
 					Reason:         reason,
 					SourceEndpoint: source,
 					SourceAlias:    rel.Source.Value,
@@ -733,7 +735,7 @@ func diagramsOf(path string, src []byte, scope []*Element) []Diagram {
 				})
 				continue
 			}
-			diagram.Drawings = append(diagram.Drawings, Drawing{
+			diagram.ResolvedRelationshipStatements = append(diagram.ResolvedRelationshipStatements, ResolvedRelationshipStatement{
 				Source:      ends[0].Matches[0],
 				Target:      ends[1].Matches[0],
 				Label:       param(statement, c4diagram.ParamLabel),

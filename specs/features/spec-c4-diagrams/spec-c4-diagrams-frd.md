@@ -6,7 +6,7 @@ description: Checks that keep the Mermaid C4 diagrams in architecture
   dependency, every reserved relationship tag well formed
 slug: frd-spec-c4-diagrams
 type: frd
-status: approved
+status: ready-for-review
 sources: []
 ---
 
@@ -74,15 +74,15 @@ an element's contract edges. The index carries both:
   | Kind | Macros |
   |---|---|
   | Element node | `System`, `Container`, `Component`, and their `Db` and `Queue` forms |
-  | Passive store | a `Db` or `Queue` node that names no element in scope — a data store the drawing element uses, which [[c4-standards]] gives no blueprint |
+  | Passive store | a `Db` or `Queue` node that names no element in scope — a data store the diagram's own element uses, which [[c4-standards]] gives no blueprint |
   | External C4 element | `Person`, and every `_Ext` form |
   | Boundary | `Boundary`, `Enterprise_Boundary`, `System_Boundary`, `Container_Boundary` — groups nodes and is not itself a node |
   | Relationship | `Rel`; `Rel_U`, `Rel_Up`, `Rel_D`, `Rel_Down`, `Rel_L`, `Rel_Left`, `Rel_R`, `Rel_Right`; `Rel_Back`; `BiRel` |
   | Ignored | `title`, `UpdateElementStyle`, `UpdateRelStyle`, `UpdateLayoutConfig` |
 
-- **Drawing** — one relationship statement. Two drawings are of the same
-  relationship when they resolve to the same source and target and carry
-  the same label.
+- **Relationship statement** — one `Rel` statement. Two relationship
+  statements are of the same relationship when they resolve to the same
+  source and target and carry the same label.
 - **Reserved tag** — a relationship tag with meaning to this framework:
   `sync`, `async`, or `contract:` followed by a slug. Tags are written in
   Mermaid's tags argument, either positionally or as `$tags`, and several
@@ -204,8 +204,9 @@ Feature: Relationship Conformance
   The C4 standard requires an arrow to point one way, in the direction of
   the dependency. The duplicate-edge rule compares statements within one
   diagram only and treats a to b and b to a as different pairs; the
-  drawing-conflict rule compares drawings of one relationship across the
-  whole corpus, since an edge may be drawn in both of its homes.
+  statement-conflict rule compares relationship statements of one
+  relationship across the whole corpus, since an edge may be drawn in both
+  of its homes.
 
   @AC-C4-DIAG-003.1
   Scenario: A bidirectional arrow is an error
@@ -220,10 +221,10 @@ Feature: Relationship Conformance
     Then the report holds a c4/duplicate-edge finding of severity error at the second statement's span
 
   @AC-C4-DIAG-003.3
-  Scenario: Drawings of one relationship that disagree are a warning
+  Scenario: Relationship statements of one relationship that disagree are a warning
     Given one relationship drawn in two diagrams with different technology arguments
     When the user runs specs check
-    Then the report holds a c4/drawing-conflict finding of severity warning at the drawing that sorts second by path and then by span, naming the other
+    Then the report holds a c4/statement-conflict finding of severity warning at the relationship statement that sorts second by path and then by span, naming the other
 ```
 
 ### FEAT-C4-DIAG-004: Reserved Relationship Tags

@@ -27,13 +27,13 @@ checks:
     outcome: passed
   - rule: c4/contract-unresolved
     outcome: passed
-  - rule: c4/drawing-conflict
-    outcome: passed
   - rule: c4/duplicate-edge
     outcome: passed
   - rule: c4/interaction-conflict
     outcome: passed
   - rule: c4/parse
+    outcome: passed
+  - rule: c4/statement-conflict
     outcome: passed
   - rule: c4/tag-separator
     outcome: passed

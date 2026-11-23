@@ -163,7 +163,7 @@ func document(t *testing.T, set *c4elements.Set, path string) *c4elements.Docume
 			return doc
 		}
 	}
-	t.Fatalf("no drawing document %s", path)
+	t.Fatalf("no C4 drawing document %s", path)
 	return nil
 }
 
@@ -304,11 +304,11 @@ func TestOnlyRegisteredTypesDraw(t *testing.T) {
 
 	for _, doc := range set.Documents() {
 		if doc.Path == "feature.md" {
-			t.Error("a member whose type declares no element is a drawing document")
+			t.Error("a member whose type declares no element is a C4 drawing document")
 		}
 	}
 	if got := len(set.Documents()); got != 5 {
-		t.Errorf("drawing documents = %d, want 5", got)
+		t.Errorf("C4 drawing documents = %d, want 5", got)
 	}
 }
 
@@ -338,7 +338,7 @@ func TestADiagramTheParserDoesNotReadIsKept(t *testing.T) {
 }
 
 // relationshipFixture draws relationships of every outcome: in alpha, a
-// component diagram; in beta, a container diagram drawing one of alpha's
+// component diagram; in beta, a container diagram statement one of alpha's
 // relationships again; and two containers both named Twin, so a node
 // naming Twin is ambiguous everywhere.
 func relationshipFixture() map[string]string {
@@ -376,28 +376,28 @@ func relationshipFixture() map[string]string {
 	}
 }
 
-func TestRelationshipStatementsResolveToDrawings(t *testing.T) {
+func TestRelationshipStatementsResolveToElements(t *testing.T) {
 	set := build(t, relationshipFixture(), vocabulary())
 	diagram := document(t, set, "alpha.md").Diagrams[0]
 
 	var got []string
-	for _, drawing := range diagram.Drawings {
-		got = append(got, drawing.Source.Slug+">"+drawing.Target.Slug+":"+drawing.Label)
+	for _, statement := range diagram.ResolvedRelationshipStatements {
+		got = append(got, statement.Source.Slug+">"+statement.Target.Slug+":"+statement.Label)
 	}
 	want := "component-parser>component-lexer:Tokenizes with," +
 		"component-parser>component-lexer:Tokenizes with," +
 		"container-alpha>container-beta:Calls"
 	if strings.Join(got, ",") != want {
-		t.Errorf("drawings = %v\nwant       %s", got, want)
+		t.Errorf("statements = %v\nwant       %s", got, want)
 	}
 
-	first := diagram.Drawings[0]
+	first := diagram.ResolvedRelationshipStatements[0]
 	if first.Technology != "Go" || first.Description != "streams tokens" ||
 		first.View != specmodel.C4ViewComponent || first.Path != "alpha.md" ||
 		first.SourceAlias != "p" || first.TargetAlias != "l" {
-		t.Errorf("first drawing = %+v", first)
+		t.Errorf("first statement = %+v", first)
 	}
-	last := diagram.Drawings[2]
+	last := diagram.ResolvedRelationshipStatements[2]
 	if len(last.Tags.Reserved) != 2 || last.Tags.Reserved[1].Slug != "contract-api" {
 		t.Errorf("tags = %+v", last.Tags)
 	}
@@ -407,7 +407,7 @@ func TestRelationshipStatementsResolveToDrawings(t *testing.T) {
 // that direction.
 func TestRelBackIsReadInDependencyDirection(t *testing.T) {
 	set := build(t, relationshipFixture(), vocabulary())
-	back := document(t, set, "alpha.md").Diagrams[0].Drawings[1]
+	back := document(t, set, "alpha.md").Diagrams[0].ResolvedRelationshipStatements[1]
 
 	if back.Source.Slug != "component-parser" || back.Target.Slug != "component-lexer" {
 		t.Errorf("Rel_Back drew %s > %s", back.Source.Slug, back.Target.Slug)
@@ -417,9 +417,9 @@ func TestRelBackIsReadInDependencyDirection(t *testing.T) {
 	}
 }
 
-func TestUnresolvedStatementsCarryOneReasonInOrder(t *testing.T) {
+func TestUnresolvedRelationshipStatementsCarryOneReasonInOrder(t *testing.T) {
 	set := build(t, relationshipFixture(), vocabulary())
-	unresolved := document(t, set, "alpha.md").Diagrams[0].Unresolved
+	unresolved := document(t, set, "alpha.md").Diagrams[0].UnresolvedRelationshipStatements
 
 	type outcome struct {
 		reason specmodel.C4ExclusionReason
@@ -447,16 +447,16 @@ func TestUnresolvedStatementsCarryOneReasonInOrder(t *testing.T) {
 	}
 }
 
-func TestBiRelResolvesToNoDrawing(t *testing.T) {
+func TestABiRelIsNeitherResolvedNorUnresolved(t *testing.T) {
 	set := build(t, relationshipFixture(), vocabulary())
 	diagram := document(t, set, "alpha.md").Diagrams[0]
 
-	for _, drawing := range diagram.Drawings {
-		if drawing.Label == "Talks" {
-			t.Error("BiRel resolved to a drawing")
+	for _, statement := range diagram.ResolvedRelationshipStatements {
+		if statement.Label == "Talks" {
+			t.Error("BiRel resolved to a statement")
 		}
 	}
-	for _, unresolved := range diagram.Unresolved {
+	for _, unresolved := range diagram.UnresolvedRelationshipStatements {
 		if unresolved.SourceAlias == "p" && unresolved.TargetAlias == "l" {
 			t.Error("BiRel is reported unresolved")
 		}
@@ -464,9 +464,9 @@ func TestBiRelResolvesToNoDrawing(t *testing.T) {
 }
 
 // Alpha's and Beta's diagrams both draw Alpha calling Beta: one
-// relationship with two drawings, ordered by path, each keeping its own
+// relationship with two statements, ordered by path, each keeping its own
 // technology and view.
-func TestDrawingsGroupIntoRelationshipsAcrossDocuments(t *testing.T) {
+func TestStatementsGroupIntoRelationshipsAcrossDocuments(t *testing.T) {
 	set := build(t, relationshipFixture(), vocabulary())
 
 	var calls *c4elements.Relationship
@@ -478,14 +478,14 @@ func TestDrawingsGroupIntoRelationshipsAcrossDocuments(t *testing.T) {
 	if calls == nil {
 		t.Fatalf("no Alpha calls Beta relationship among %+v", set.Relationships())
 	}
-	if len(calls.Drawings) != 2 || calls.Drawings[0].Path != "alpha.md" || calls.Drawings[1].Path != "beta.md" {
-		t.Fatalf("drawings = %+v", calls.Drawings)
+	if len(calls.Statements) != 2 || calls.Statements[0].Path != "alpha.md" || calls.Statements[1].Path != "beta.md" {
+		t.Fatalf("statements = %+v", calls.Statements)
 	}
-	if calls.Drawings[0].Technology != "HTTP" || calls.Drawings[1].Technology != "gRPC" {
-		t.Errorf("technologies = %q, %q", calls.Drawings[0].Technology, calls.Drawings[1].Technology)
+	if calls.Statements[0].Technology != "HTTP" || calls.Statements[1].Technology != "gRPC" {
+		t.Errorf("technologies = %q, %q", calls.Statements[0].Technology, calls.Statements[1].Technology)
 	}
-	if calls.Drawings[1].View != specmodel.C4ViewContainer {
-		t.Errorf("beta's view = %s", calls.Drawings[1].View)
+	if calls.Statements[1].View != specmodel.C4ViewContainer {
+		t.Errorf("beta's view = %s", calls.Statements[1].View)
 	}
 	if got := len(set.Relationships()); got != 2 {
 		t.Errorf("relationships = %d, want 2 (Parser>Lexer and Alpha>Beta)", got)
@@ -519,9 +519,9 @@ func TestAnElementWithNoEntityNameIsNamedByNoNode(t *testing.T) {
 					t.Errorf("node x matched %v, want none", slugs(node.Matches))
 				}
 			}
-			if len(diagram.Unresolved) != 1 ||
-				diagram.Unresolved[0].Reason != specmodel.C4ExclusionReasonUndeclaredNode {
-				t.Errorf("unresolved = %+v, want one undeclared_node", diagram.Unresolved)
+			if len(diagram.UnresolvedRelationshipStatements) != 1 ||
+				diagram.UnresolvedRelationshipStatements[0].Reason != specmodel.C4ExclusionReasonUndeclaredNode {
+				t.Errorf("unresolved = %+v, want one undeclared_node", diagram.UnresolvedRelationshipStatements)
 			}
 		})
 	}
@@ -652,11 +652,11 @@ func TestADuplicatedNodeAliasMakesItsRelationshipsAmbiguous(t *testing.T) {
 				"beta.md": head("container-beta", "container-blueprint", "Beta"),
 			}
 			d := document(t, build(t, files, vocabulary()), "alpha.md").Diagrams[0]
-			if len(d.Drawings) != 0 {
-				t.Errorf("drawings = %+v, want none", d.Drawings)
+			if len(d.ResolvedRelationshipStatements) != 0 {
+				t.Errorf("statements = %+v, want none", d.ResolvedRelationshipStatements)
 			}
-			if len(d.Unresolved) != 1 || d.Unresolved[0].Reason != c.want.reason || d.Unresolved[0].SourceEndpoint != c.want.source {
-				t.Errorf("unresolved = %+v, want %+v", d.Unresolved, c.want)
+			if len(d.UnresolvedRelationshipStatements) != 1 || d.UnresolvedRelationshipStatements[0].Reason != c.want.reason || d.UnresolvedRelationshipStatements[0].SourceEndpoint != c.want.source {
+				t.Errorf("unresolved = %+v, want %+v", d.UnresolvedRelationshipStatements, c.want)
 			}
 		})
 	}

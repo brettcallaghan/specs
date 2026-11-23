@@ -529,7 +529,7 @@ func TestAComponentNoRosterDeclaresIsOrphaned(t *testing.T) {
 func TestTheModelCarriesItsVersionWorkspaceAndEmptyCollections(t *testing.T) {
 	model := build(t, map[string]string{})
 
-	if model.SchemaVersion != "0.1" || model.Workspace != "test" {
+	if model.SchemaVersion != "0.2" || model.Workspace != "test" {
 		t.Errorf("schema_version/workspace = %q/%q", model.SchemaVersion, model.Workspace)
 	}
 	raw, err := json.Marshal(model)
