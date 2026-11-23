@@ -88,9 +88,9 @@ matched is reported, never invented.
 - Diagrams stop being pure views. A `Rel` line is the declaration of an
   edge. This inverts [[c4-standards]]' authority rule for edges and leaves it
   intact for nodes. Its model-in-prose section states this exception.
-- An edge drawn in both of its homes is two drawings that can disagree.
-  The model keeps one relationship and the check reports the disagreement,
-  but nothing prevents an author from writing it.
+- An edge drawn in both of its homes is two relationship statements that
+  can disagree. The model keeps one relationship and the check reports the
+  disagreement, but nothing prevents an author from writing it.
 - The parser covers only the subset the corpus uses and must grow when an
   author uses a macro outside it. Until then, the macro is reported as a
   parse error, not skipped.

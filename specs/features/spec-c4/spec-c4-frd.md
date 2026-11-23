@@ -6,7 +6,7 @@ description: A subcommand that emits the corpus's C4 model — its systems,
   blueprints and their diagrams
 slug: frd-spec-c4
 type: frd
-status: approved
+status: ready-for-review
 sources: []
 ---
 
@@ -69,10 +69,10 @@ which carries every property a document's type defines (AC-SPEC-002.1 of
 ## Terminology
 
 [[frd-spec-c4-diagrams]] defines the terms this feature shares with it, and
-this feature uses them unchanged: architecture blueprint, element, entity
-name, C4 diagram, drawing document, scope of a drawing document, the diagram
-statement kinds, drawing, and reserved tag. This feature also uses these
-terms:
+this feature uses them unchanged: architecture blueprint, element, entity name,
+C4 diagram, drawing document, scope of a drawing document, the diagram
+statement kinds, relationship statement, and reserved tag. This feature also
+uses these terms:
 
 - **Drawing document**, as used for edges: per [[adr-009]], it holds the
   edges among its element's children and draws its element's outward edges
@@ -227,7 +227,7 @@ Feature: Relationships From Blueprint Diagrams
   Scenario: A relationship drawn in both of its homes is one relationship
     Given the same source, target and description drawn in a parent's diagram and in a child's Context view
     When the user runs specs c4
-    Then the model holds one relationship listing both drawings, each with its path, span, diagram type and aliases
+    Then the model holds one relationship listing both relationship statements, each with its path, span, diagram type and aliases
 
   @AC-C4-002.5
   Scenario: A relationship drawn only in a Context view is admitted
@@ -251,11 +251,11 @@ Feature: Relationships From Blueprint Diagrams
       | component   | component   | component |
 
   @AC-C4-002.9
-  Scenario: Drawings of one relationship that disagree keep the first
+  Scenario: Relationship statements of one relationship that disagree keep the first
     Given one relationship drawn twice with different technology arguments
     When the user runs specs c4
-    Then the relationship carries the technology of the drawing that sorts first by path and then by span
-    And both drawings are listed in its drawn_in
+    Then the relationship carries the technology of the relationship statement that sorts first by path and then by span
+    And both relationship statements are listed in its statements
 
   @AC-C4-002.10
   Scenario Outline: Edges the model does not admit are excluded

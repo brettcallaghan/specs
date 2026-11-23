@@ -183,8 +183,11 @@ enum C4View {
   component
 }
 
-"""One place a relationship was drawn."""
-struct C4Drawing {
+"""
+One C4 relationship statement: a `Rel` statement on a diagram, one place a
+relationship was drawn.
+"""
+struct C4RelationshipStatement {
   """Repository-relative path of the document holding the diagram."""
   path: String
 
@@ -247,11 +250,11 @@ standard's arrow rule.
 
 One relationship may have been drawn in several diagrams — a parent's
 internal view and a child's context view show the same edge — and is
-recorded once with every drawing listed. Two drawings are the same
+recorded once with every statement listed. Two statements are the same
 relationship when source, target and description agree. Where they
 disagree on anything else, the relationship carries the values of the
-drawing that sorts first by path and then by span, and the
-`c4/drawing-conflict` rule reports the disagreement.
+statement that sorts first by path and then by span, and the
+`c4/statement-conflict` rule reports the disagreement.
 """
 struct C4Relationship {
   """Slug of the element that depends."""
@@ -280,8 +283,8 @@ struct C4Relationship {
   """Tags in the order written, with the reserved ones removed."""
   tags: [String]?
 
-  """Every place this relationship was drawn, in document order."""
-  drawn_in: [C4Drawing]
+  """Every statement of this relationship, in document order."""
+  statements: [C4RelationshipStatement]
 }
 
 """Why a `Rel` statement was excluded from the model."""
@@ -291,7 +294,7 @@ enum C4ExclusionReason {
 
   """
   An endpoint is a `Db` or `Queue` node naming no element in scope: a
-  data store the drawing element uses, which the C4 standard gives no
+  data store the diagram's own element uses, which the C4 standard gives no
   blueprint of its own.
   """
   passive_store
