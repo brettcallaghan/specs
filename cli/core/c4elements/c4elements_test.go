@@ -381,7 +381,7 @@ func TestRelationshipStatementsResolveToElements(t *testing.T) {
 	diagram := document(t, set, "alpha.md").Diagrams[0]
 
 	var got []string
-	for _, statement := range diagram.Statements {
+	for _, statement := range diagram.Resolved {
 		got = append(got, statement.Source.Slug+">"+statement.Target.Slug+":"+statement.Label)
 	}
 	want := "component-parser>component-lexer:Tokenizes with," +
@@ -391,13 +391,13 @@ func TestRelationshipStatementsResolveToElements(t *testing.T) {
 		t.Errorf("statements = %v\nwant       %s", got, want)
 	}
 
-	first := diagram.Statements[0]
+	first := diagram.Resolved[0]
 	if first.Technology != "Go" || first.Description != "streams tokens" ||
 		first.View != specmodel.C4ViewComponent || first.Path != "alpha.md" ||
 		first.SourceAlias != "p" || first.TargetAlias != "l" {
 		t.Errorf("first statement = %+v", first)
 	}
-	last := diagram.Statements[2]
+	last := diagram.Resolved[2]
 	if len(last.Tags.Reserved) != 2 || last.Tags.Reserved[1].Slug != "contract-api" {
 		t.Errorf("tags = %+v", last.Tags)
 	}
@@ -407,7 +407,7 @@ func TestRelationshipStatementsResolveToElements(t *testing.T) {
 // that direction.
 func TestRelBackIsReadInDependencyDirection(t *testing.T) {
 	set := build(t, relationshipFixture(), vocabulary())
-	back := document(t, set, "alpha.md").Diagrams[0].Statements[1]
+	back := document(t, set, "alpha.md").Diagrams[0].Resolved[1]
 
 	if back.Source.Slug != "component-parser" || back.Target.Slug != "component-lexer" {
 		t.Errorf("Rel_Back drew %s > %s", back.Source.Slug, back.Target.Slug)
@@ -451,7 +451,7 @@ func TestABiRelIsNeitherResolvedNorUnresolved(t *testing.T) {
 	set := build(t, relationshipFixture(), vocabulary())
 	diagram := document(t, set, "alpha.md").Diagrams[0]
 
-	for _, statement := range diagram.Statements {
+	for _, statement := range diagram.Resolved {
 		if statement.Label == "Talks" {
 			t.Error("BiRel resolved to a statement")
 		}
@@ -652,8 +652,8 @@ func TestADuplicatedNodeAliasMakesItsRelationshipsAmbiguous(t *testing.T) {
 				"beta.md": head("container-beta", "container-blueprint", "Beta"),
 			}
 			d := document(t, build(t, files, vocabulary()), "alpha.md").Diagrams[0]
-			if len(d.Statements) != 0 {
-				t.Errorf("statements = %+v, want none", d.Statements)
+			if len(d.Resolved) != 0 {
+				t.Errorf("statements = %+v, want none", d.Resolved)
 			}
 			if len(d.Unresolved) != 1 || d.Unresolved[0].Reason != c.want.reason || d.Unresolved[0].SourceEndpoint != c.want.source {
 				t.Errorf("unresolved = %+v, want %+v", d.Unresolved, c.want)

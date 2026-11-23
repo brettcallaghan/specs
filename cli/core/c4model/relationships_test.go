@@ -135,7 +135,7 @@ func TestDirectionalLayoutVariantsAreTheSameRelationship(t *testing.T) {
 
 	r := relationship(t, model, "component-q", "component-p", "Writes back")
 	if len(r.Statements) != 1 || r.Statements[0].SourceAlias != "q" || r.Statements[0].TargetAlias != "p" {
-		t.Errorf("drawn_in = %+v, want one statement from q to p", r.Statements)
+		t.Errorf("statements = %+v, want one statement from q to p", r.Statements)
 	}
 }
 
@@ -165,7 +165,7 @@ func TestARelationshipDrawnInBothOfItsHomesIsOneRelationship(t *testing.T) {
 	}
 	r := relationship(t, model, "container-alpha", "container-beta", "Calls")
 	if len(r.Statements) != 2 {
-		t.Fatalf("drawn_in holds %d statements, want 2", len(r.Statements))
+		t.Fatalf("statements holds %d statements, want 2", len(r.Statements))
 	}
 	want := []struct {
 		path   string
@@ -180,12 +180,12 @@ func TestARelationshipDrawnInBothOfItsHomesIsOneRelationship(t *testing.T) {
 	for i, w := range want {
 		got := r.Statements[i]
 		if got.Path != w.path || got.View != w.view || got.SourceAlias != w.source || got.TargetAlias != w.target {
-			t.Errorf("drawn_in[%d] = %s %s %s->%s, want %s %s %s->%s",
+			t.Errorf("statements[%d] = %s %s %s->%s, want %s %s %s->%s",
 				i, got.Path, got.View, got.SourceAlias, got.TargetAlias, w.path, w.view, w.source, w.target)
 		}
 		written := files[got.Path][got.Span.Offset : got.Span.Offset+got.Span.Length]
 		if !strings.HasPrefix(written, w.prefix) {
-			t.Errorf("drawn_in[%d] span covers %q, want the statement %s…", i, written, w.prefix)
+			t.Errorf("statements[%d] span covers %q, want the statement %s…", i, written, w.prefix)
 		}
 	}
 }
@@ -196,7 +196,7 @@ func TestARelationshipDrawnOnlyInAContextViewIsAdmitted(t *testing.T) {
 
 	r := relationship(t, model, "container-beta", "container-alpha", "Reports to")
 	if len(r.Statements) != 1 || r.Statements[0].View != specmodel.C4ViewContext {
-		t.Errorf("drawn_in = %+v, want one Context statement", r.Statements)
+		t.Errorf("statements = %+v, want one Context statement", r.Statements)
 	}
 }
 
@@ -234,7 +234,7 @@ func TestStatementsOfOneRelationshipThatDisagreeKeepTheFirst(t *testing.T) {
 		t.Errorf("detail = %s, want On demand from alpha.md", got)
 	}
 	if len(r.Statements) != 2 {
-		t.Errorf("drawn_in holds %d statements, want both", len(r.Statements))
+		t.Errorf("statements holds %d statements, want both", len(r.Statements))
 	}
 }
 

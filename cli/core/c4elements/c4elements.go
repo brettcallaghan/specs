@@ -176,9 +176,9 @@ type Diagram struct {
 	// the order written.
 	Nodes []Node
 
-	// Statements are the relationship statements that resolved, in the
+	// Resolved are the relationship statements that resolved, in the
 	// order written.
-	Statements []RelationshipStatement
+	Resolved []ResolvedStatement
 
 	// Unresolved are the relationship statements that did not, in the
 	// order written. A `BiRel` statement is in neither: it states no
@@ -187,9 +187,9 @@ type Diagram struct {
 	Unresolved []Unresolved
 }
 
-// RelationshipStatement is one resolved C4 relationship statement: a
+// ResolvedStatement is one resolved C4 relationship statement: a
 // relationship statement whose two endpoints each name exactly one element.
-type RelationshipStatement struct {
+type ResolvedStatement struct {
 	// Source and Target are the elements at the two ends, in dependency
 	// direction: Source depends on Target, after `Rel_Back` normalisation.
 	Source *Element
@@ -258,7 +258,7 @@ type Relationship struct {
 
 	// Statements are the relationship's statements, ordered by path and then
 	// by span.
-	Statements []RelationshipStatement
+	Statements []ResolvedStatement
 }
 
 // Node is one node statement of a diagram, resolved.
@@ -432,7 +432,7 @@ func group(documents []*Document) []Relationship {
 	var relationships []Relationship
 	for _, document := range documents {
 		for _, diagram := range document.Diagrams {
-			for _, statement := range diagram.Statements {
+			for _, statement := range diagram.Resolved {
 				k := key{statement.Source, statement.Target, statement.Label}
 				i, ok := index[k]
 				if !ok {
@@ -733,7 +733,7 @@ func diagramsOf(path string, src []byte, scope []*Element) []Diagram {
 				})
 				continue
 			}
-			diagram.Statements = append(diagram.Statements, RelationshipStatement{
+			diagram.Resolved = append(diagram.Resolved, ResolvedStatement{
 				Source:      ends[0].Matches[0],
 				Target:      ends[1].Matches[0],
 				Label:       param(statement, c4diagram.ParamLabel),

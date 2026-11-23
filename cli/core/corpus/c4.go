@@ -120,7 +120,7 @@ func c4RelationshipFindings(set *c4elements.Set) []specmodel.Finding {
 	for _, document := range set.Documents() {
 		for _, diagram := range document.Diagrams {
 			findings = append(findings, statementFindings(set, document.Path, diagram)...)
-			for _, statement := range diagram.Statements {
+			for _, statement := range diagram.Resolved {
 				findings = append(findings, contractMismatchFindings(set, statement)...)
 			}
 		}
@@ -179,7 +179,7 @@ func statementFindings(set *c4elements.Set, path string, diagram c4elements.Diag
 // element does not provide. An unresolved contract tag is
 // c4/contract-unresolved's, and a statement whose endpoints do not
 // resolve is not a resolved statement, so neither is reported here.
-func contractMismatchFindings(set *c4elements.Set, statement c4elements.RelationshipStatement) []specmodel.Finding {
+func contractMismatchFindings(set *c4elements.Set, statement c4elements.ResolvedStatement) []specmodel.Finding {
 	var findings []specmodel.Finding
 	for _, tag := range statement.Tags.Reserved {
 		if tag.Name != c4diagram.TagContract {
