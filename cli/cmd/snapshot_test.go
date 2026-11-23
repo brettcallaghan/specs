@@ -12,6 +12,7 @@ package cmd_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -312,8 +313,45 @@ func checkChecksLog(t *testing.T, dir, stdout string, manifest caseManifest) {
 	if err != nil {
 		t.Fatalf("reading expected/%s: %v", name, err)
 	}
+	if name == "checks.json" {
+		checkChecksJSON(t, stdout, want)
+		return
+	}
 	if stdout != string(want) {
 		t.Errorf("stdout does not match expected/%s.\n--- got ---\n%s\n--- want ---\n%s", name, stdout, want)
+	}
+}
+
+// checkChecksJSON compares a --json run's standard output against
+// expected/checks.json.
+//
+// The CLI writes one compact line; the fixture stores the same document
+// indented two spaces per level so a change to it diffs line by line.
+// The comparison is still exact in both directions: the indented stdout
+// must equal the fixture, and the compacted fixture plus a newline must
+// equal stdout byte for byte, so a change to the CLI's own formatting
+// fails here rather than being normalised away.
+func checkChecksJSON(t *testing.T, stdout string, want []byte) {
+	t.Helper()
+
+	var got bytes.Buffer
+	if err := json.Indent(&got, []byte(stdout), "", "  "); err != nil {
+		t.Errorf("stdout is not valid JSON, so it cannot match expected/checks.json: %v\n--- got ---\n%s", err, stdout)
+		return
+	}
+	got.WriteByte('\n')
+	if got.String() != string(want) {
+		t.Errorf("stdout does not match expected/checks.json.\n--- got (indented) ---\n%s\n--- want ---\n%s", got.String(), want)
+		return
+	}
+
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, want); err != nil {
+		t.Fatalf("expected/checks.json is not valid JSON: %v", err)
+	}
+	compact.WriteByte('\n')
+	if stdout != compact.String() {
+		t.Errorf("stdout has the expected content but not the CLI's single-line form.\n--- got ---\n%q\n--- want ---\n%q", stdout, compact.String())
 	}
 }
 

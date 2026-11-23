@@ -4,8 +4,9 @@
 # cli/testdata/cases/, per specs/standards/testing-standards.md's "a
 # script that regenerates every expected artifact... SHALL be provided."
 #
-# This only writes expected/checks.log and expected/manifest.json for
-# each case, from the current cli/cmd implementation. It does not judge
+# This only writes the expected artifacts each case declares (checks.log,
+# checks.json indented, checks.err, manifest.json), from the current
+# cli/cmd implementation. It does not judge
 # whether the resulting diff is correct — that review is the author's,
 # per the same standard's "WHEN a regenerated snapshot differs from the
 # committed one, the author SHALL confirm the difference was intended

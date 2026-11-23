@@ -1,1 +1,92 @@
-{"summary":{"errors":3,"warnings":1,"unverified":0},"findings":[{"rule":"gherkin/parse","severity":"error","path":"docs/features/broken.feature","span":{"offset":45,"length":15,"start_line":4,"start_column":1,"end_line":4,"end_column":16},"message":"Gherkin source could not be parsed: unexpected end of file, expected: #TagLine, #RuleLine, #Comment, #Empty","detail":{"kind":"gherkin-parse","expected":"unexpected end of file, expected: #TagLine, #RuleLine, #Comment, #Empty"}},{"rule":"gherkin/criterion-empty","severity":"error","path":"docs/features/checkout.feature","span":{"offset":121,"length":65,"start_line":8,"start_column":1,"end_line":9,"end_column":50},"message":"criterion carries no steps","detail":{"kind":"missing-property","pointer":"","property":"steps"}},{"rule":"gherkin/scenario-prose","severity":"warning","path":"docs/features/checkout.feature","span":{"offset":188,"length":206,"start_line":11,"start_column":1,"end_line":18,"end_column":28},"message":"Scenario description reads as a normative statement, which is a probable untagged criterion","detail":{"kind":"identifier-pattern","pattern":"^AC-(?P\u003ccode\u003e[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*)-(?P\u003cnumber\u003e[0-9]{3})\\.[0-9]+$"}},{"rule":"gherkin/examples-partially-tagged","severity":"error","path":"docs/features/checkout.feature","span":{"offset":715,"length":155,"start_line":30,"start_column":1,"end_line":32,"end_column":53},"message":"Scenario Outline is partially tagged: 1 Examples block(s) carry no identifier while at least one sibling does","detail":{"kind":"partially-tagged-outline","untagged":[{"offset":715,"length":155,"start_line":30,"start_column":1,"end_line":32,"end_column":53}]}}]}
+{
+  "summary": {
+    "errors": 3,
+    "warnings": 1,
+    "unverified": 0
+  },
+  "findings": [
+    {
+      "rule": "gherkin/parse",
+      "severity": "error",
+      "path": "docs/features/broken.feature",
+      "span": {
+        "offset": 45,
+        "length": 15,
+        "start_line": 4,
+        "start_column": 1,
+        "end_line": 4,
+        "end_column": 16
+      },
+      "message": "Gherkin source could not be parsed: unexpected end of file, expected: #TagLine, #RuleLine, #Comment, #Empty",
+      "detail": {
+        "kind": "gherkin-parse",
+        "expected": "unexpected end of file, expected: #TagLine, #RuleLine, #Comment, #Empty"
+      }
+    },
+    {
+      "rule": "gherkin/criterion-empty",
+      "severity": "error",
+      "path": "docs/features/checkout.feature",
+      "span": {
+        "offset": 121,
+        "length": 65,
+        "start_line": 8,
+        "start_column": 1,
+        "end_line": 9,
+        "end_column": 50
+      },
+      "message": "criterion carries no steps",
+      "detail": {
+        "kind": "missing-property",
+        "pointer": "",
+        "property": "steps"
+      }
+    },
+    {
+      "rule": "gherkin/scenario-prose",
+      "severity": "warning",
+      "path": "docs/features/checkout.feature",
+      "span": {
+        "offset": 188,
+        "length": 206,
+        "start_line": 11,
+        "start_column": 1,
+        "end_line": 18,
+        "end_column": 28
+      },
+      "message": "Scenario description reads as a normative statement, which is a probable untagged criterion",
+      "detail": {
+        "kind": "identifier-pattern",
+        "pattern": "^AC-(?P\u003ccode\u003e[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*)-(?P\u003cnumber\u003e[0-9]{3})\\.[0-9]+$"
+      }
+    },
+    {
+      "rule": "gherkin/examples-partially-tagged",
+      "severity": "error",
+      "path": "docs/features/checkout.feature",
+      "span": {
+        "offset": 715,
+        "length": 155,
+        "start_line": 30,
+        "start_column": 1,
+        "end_line": 32,
+        "end_column": 53
+      },
+      "message": "Scenario Outline is partially tagged: 1 Examples block(s) carry no identifier while at least one sibling does",
+      "detail": {
+        "kind": "partially-tagged-outline",
+        "untagged": [
+          {
+            "offset": 715,
+            "length": 155,
+            "start_line": 30,
+            "start_column": 1,
+            "end_line": 32,
+            "end_column": 53
+          }
+        ]
+      }
+    }
+  ]
+}
+
