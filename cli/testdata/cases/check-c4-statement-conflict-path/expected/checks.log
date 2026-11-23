@@ -3,7 +3,7 @@ summary:
   warnings: 1
   unverified: 0
 findings:
-  - rule: c4/drawing-conflict
+  - rule: c4/statement-conflict
     severity: warning
     path: docs/containers/beta.md
     span:
@@ -13,9 +13,9 @@ findings:
       start_column: 5
       end_line: 19
       end_column: 81
-    message: a -> b differs in technology from its drawing at docs/containers/alpha.md:24
+    message: a -> b differs in technology from its statement at docs/containers/alpha.md:24
     detail:
-      kind: c4-drawing-conflict
+      kind: c4-statement-conflict
       source: a
       target: b
       other_path: docs/containers/alpha.md

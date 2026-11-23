@@ -15,7 +15,11 @@ the `tech-writer` skill requires.
 - Give every editor the same terms file. An editor records each terminology
   decision there and reads it before choosing a term. A term the project
   glossary defines doesn't go in the file: the glossary wins. When the
-  editors finish, the orchestrator moves the file's terms into the glossary.
+  editors finish, the orchestrator sorts the file's terms. A term that only
+  one document uses stays defined in that document. For each term that two
+  or more documents use, the orchestrator shows the user the term, its
+  meaning, the documents that use it, and why plain words didn't serve, and
+  adds to the glossary only the terms the user approves.
 
 ## Brief each editor
 

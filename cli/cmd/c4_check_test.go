@@ -155,7 +155,7 @@ func TestOnlySelectsEachC4Rule(t *testing.T) {
 		"c4/ambiguous-node":       nodeCase,
 		"c4/bidirectional":        relationshipCase,
 		"c4/duplicate-edge":       relationshipCase,
-		"c4/drawing-conflict":     relationshipCase,
+		"c4/statement-conflict":   relationshipCase,
 		"c4/interaction-conflict": relationshipCase,
 		"c4/contract-unresolved":  relationshipCase,
 		"c4/contract-mismatch":    relationshipCase,
@@ -193,9 +193,9 @@ func TestOnlySelectsEachC4Rule(t *testing.T) {
 // c4RuleSeverity is the severity each relationship rule reports at; a
 // warning-only run exits zero without --strict.
 var c4RuleSeverity = map[string]string{
-	"c4/drawing-conflict":  "warning",
-	"c4/contract-mismatch": "warning",
-	"c4/tag-separator":     "warning",
+	"c4/statement-conflict": "warning",
+	"c4/contract-mismatch":  "warning",
+	"c4/tag-separator":      "warning",
 }
 
 // relationshipFinding returns the one finding of rule in the relationship
@@ -243,16 +243,16 @@ func TestAnEdgeDrawnTwiceInOneDiagramIsAnError(t *testing.T) {
 }
 
 // AC: AC-C4-DIAG-003.3
-func TestDrawingsThatDisagreeAreAWarningOnTheSecond(t *testing.T) {
+func TestStatementsThatDisagreeAreAWarningOnTheSecond(t *testing.T) {
 	for _, args := range [][]string{nil, {"docs/containers/beta.md"}} {
 		code := 1
 		if args != nil {
 			code = 0 // the named file holds only the warning
 		}
 		report := c4RunCase(t, relationshipCase, code, args...)
-		f := relationshipFinding(t, report, "c4/drawing-conflict")
+		f := relationshipFinding(t, report, "c4/statement-conflict")
 		at(t, f, "docs/containers/beta.md", 19, "warning")
-		detail, _ := f.Detail.AsC4DrawingConflict()
+		detail, _ := f.Detail.AsC4StatementConflict()
 		if detail.OtherPath != "docs/containers/alpha.md" || detail.OtherSpan.StartLine != 24 {
 			t.Errorf("args %v: detail = %+v, want alpha.md:24 named", args, detail)
 		}

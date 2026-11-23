@@ -25,8 +25,8 @@ test_paths:
 
 Corpus turns the spec root (the one directory of specification documents
 the CLI reads) into the index that every other capability reads. It walks
-the root once, decides which files are members of the corpus, has a parsing
-component parse each member, and resolves the reference graph over the
+the root once, decides which files are corpus documents, has a parsing
+component parse each one, and resolves the reference graph over the
 finished index. It then persists the index, so the next CLI invocation can
 serve it warm: answer from the persisted index instead of walking the root
 again. Every query and check the CLI offers is a function or method of this
@@ -36,9 +36,9 @@ orchestrates parsing and holds no parsing logic of its own.
 ### Owns
 
 The walk of the spec root and the membership decision: which Markdown
-files are entries (members the index records), which are exclusions
-(candidates the index rejects, with the reason), and which `.feature` files
-are feature sources.
+files are entries (corpus documents, which the index records), which are
+exclusions (candidates the index rejects, with the reason), and which
+`.feature` files are feature sources.
 
 The index: populating `specmodel.SpecIndex` (the struct generated from
 the index schema), and the `schema_version` property it declares, whose
@@ -81,9 +81,9 @@ owns it, and also owns whether the emitted index becomes a Contract.
 
 ### Composed into
 
-[[module-document-core]] — a Go package that Command Surface (the CLI's
-command layer, `cli/cmd`) calls into; see that blueprint for this
-component's relationships.
+[[module-document-core]] — a Go package that
+[[container-spec-cli#Command Surface]] (the CLI's command layer, `cli/cmd`)
+calls into; see that blueprint for this component's relationships.
 
 ## Interface
 
@@ -104,8 +104,8 @@ repository-relative path and then by position within the file.
 The component SHALL return every check's findings in one list, ordered by
 `finding.Report`.
 
-IF `CheckFor` is given a path no member occupies, THEN the component SHALL
-return `ErrNotAMember` rather than an empty result.
+IF `CheckFor` is given a path no corpus document occupies, THEN the
+component SHALL return `ErrNotAMember` rather than an empty result.
 
 IF a query is given a document type or qualifier the active profile doesn't
 register, THEN the component SHALL return `ErrUnregisteredType` or
@@ -136,13 +136,12 @@ domain logic.
 
 The component SHALL decide whether a persisted index is current by a
 content hash over every source file's repository-relative path and bytes,
-never by modification time or absolute path. Enforced by:
+never by modification time or absolute path ([[adr-035]]).
+**Rationale:** a fresh clone or checkout changes every modification time and
+no bytes, and an edit can keep a file's modification time.
+Enforced by:
 `TestAModificationTimeChangeWithIdenticalContentIsStillServedWarm` and
 `TestTheSameContentAtADifferentAbsolutePathIsServedWarm`.
-**Rationale:** a fresh CI checkout gives every file a new modification
-time and identical bytes. A cache keyed on modification time would rebuild
-on every CI run, the environment where the warm-index latency of
-AC-SPEC-009.1 is claimed.
 
 `Fingerprint` SHALL hash exactly the sources and profile inputs the build
 records a hash over. Enforced by:
@@ -150,26 +149,25 @@ records a hash over. Enforced by:
 `TestTheBuildRecordsTheHashFingerprintComputesOverBothKindsOfSource`.
 
 IF a persisted index wasn't built from exactly the current inputs, THEN
-`Open` SHALL rebuild rather than serve it. Enforced by:
-`TestAnAbsentIndexRebuilds`, `TestAChangedInputRebuilds` and
+`Open` SHALL rebuild rather than serve it.
+**Rationale:** a rebuild costs one walk of the corpus, and invalidating single
+entries would add a way to serve a subtly wrong index ([[adr-035]]).
+Enforced by: `TestAnAbsentIndexRebuilds`, `TestAChangedInputRebuilds` and
 `TestAnIndexThatCannotBeTrustedRebuilds`.
-**Rationale:** the whole index is invalidated, never a single entry. A
-rebuild costs one walk of the corpus. Invalidating only the changed entries
-would save a fraction of that and add a way to be subtly wrong.
 
 WHILE serving a persisted index, the component SHALL answer reference and
 heading queries without reading a document. Enforced by:
 `TestAWarmCorpusServesTheGraphFromThePersistedIndex` and
 `TestAWarmCorpusAnswersForHeadingsWithoutReadingTheDocument`.
 
-The component SHALL read every source through one choke point that rewrites
-CRLF line endings to LF before any other component sees the bytes. Enforced
-by: `TestCRLFCheckoutProducesIdenticalOutput`.
+The component SHALL read every source through one read function that rewrites
+CRLF line endings to LF before any other component sees the bytes.
 **Rationale:** with every read normalized, a checkout under Git's
-`core.autocrlf` setting can't move a span (the recorded position of a region
-in a file) or change the content hash. The consequence is deliberate: where
-a file on disk has CRLF endings, a reported byte offset indexes the
-normalized text, not the file. Line and column are unaffected.
+`core.autocrlf` setting can't move a span or change the content hash. The
+consequence is deliberate: where a file on disk has CRLF endings, a reported
+byte offset indexes the normalized text, not the file. Line and column are
+unaffected.
+Enforced by: `TestCRLFCheckoutProducesIdenticalOutput`.
 
 The component SHALL read only regular files beneath the spec root, through
 an `os.Root` handle. Enforced by: `TestBuildReadsNothingOutsideTheSpecRoot`
@@ -182,11 +180,12 @@ directory iteration order. Enforced by:
 
 WHEN a check needs Gherkin facts the index doesn't record, the component
 SHALL parse every Gherkin source once per `Check` or `CheckFor` call, with
-the same extraction functions the build uses. Enforced by: review only.
+the same extraction functions the build uses.
 **Rationale:** the cost is real and grows with the corpus, not with the one
 file `CheckFor` names. Confining the parse to a cold build (one that walks
 the corpus) would leave these checks reporting nothing when the index is
 served warm, the common case. That is a worse defect than the cost.
+Enforced by: review only.
 
 The component SHALL hold no parsing logic: every parse is a call into a
 parsing component. Enforced by: review only.
@@ -200,9 +199,9 @@ A new check rule — a function whose findings the `Check` and `CheckFor`
 methods add to the report they build. Its rule identifier goes in
 `schemas/rules.strata`, its detail variant in `schemas/finding.strata`, and
 its finding constructor in [[module-document-core#Findings]]. The same
-change SHALL add its identifier to `checkRules` in `cli/cmd/check.go`, so
-`--only` can name it and a clean run reports it as passed. Not by a second
-walk of the spec root.
+change SHALL add its identifier to the `checkRules` variable in
+`cli/cmd/check.go`, so `--only` can name it and a clean run reports it as
+passed. Not by a second walk of the spec root.
 
 A new index property — an additive change to `schemas/index.strata`,
 populated during the existing walk. Not by a separate file written beside
@@ -219,9 +218,9 @@ WHEN the index starts recording something derived from an input other than
 a source file's bytes, that input SHALL be folded into the input hash in the
 same change.
 
-WHEN a profile registration member is read only by checks that run against
-the live profile, it SHOULD stay out of the input hash, so a change to it
-doesn't force a rebuild.
+WHEN a part of a profile's registration is read only by checks that run
+against the live profile, it SHOULD stay out of the input hash, so a change
+to it doesn't force a rebuild.
 
 WHEN the index changes what it already carries, `specindex.SchemaVersion`
 SHALL change in the same change, under [[module-document-core]]'s Change
@@ -238,7 +237,7 @@ guidance.
 WHEN a change alters what a command prints, run
 `cd cli && go test ./cmd/ -run TestSnapshotCases`.
 
-WHEN a change alters the walk, a check or the registration, run
+WHEN a change alters the walk, a check or what a profile registers, run
 `cd cli && go test ./profile/` over this repository's corpus.
 
 ## Key decisions
@@ -248,18 +247,14 @@ WHEN a change alters the walk, a check or the registration, run
 [[adr-018]] — references are one top-level edge collection on the index,
 with both directions derived when it's read.
 
-[[adr-008]] — element record blocks (fenced blocks of machine-readable
-element data) are recorded by tag and span, and decoded on demand.
+[[adr-008]] — record blocks are recorded by tag and span, and decoded on
+demand.
 
 [[adr-030]] — the architecture vocabulary the C4 checks read arrives through
 `Profile`.
 
-## Open questions
-
-- [ ] Whether to record as an ADR that the index cache is invalidated by
-      content hash, never by modification time. The rule and its rationale
-      are settled under Invariants; only the record is open. Blocks
-      nothing; the module's owner decides.
+[[adr-035]] — a persisted index is served only while a content hash of every
+source file's repository-relative path and bytes matches the hash it records.
 
 ## References
 

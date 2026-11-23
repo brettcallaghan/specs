@@ -155,9 +155,9 @@ and diagrams can be rendered from the declarations.
 WHEN a diagram node and an element's declaration disagree, the
 declaration is authoritative — fix the node. A relationship statement has
 no separate declaration to yield to. WHEN the same edge is drawn in more
-than one diagram and the drawings differ in technology, description or
-tags, the drawings disagree with each other and the author reconciles
-them.
+than one diagram and the relationship statements differ in technology,
+description or tags, the statements disagree with each other and the
+author reconciles them.
 
 ### Relationship statements
 
@@ -177,7 +177,7 @@ blueprints, such as a Feature Blueprint's proposed architecture.
 | Ignored | `title`, `UpdateElementStyle`, `UpdateRelStyle`, `UpdateLayoutConfig` |
 
 A `Db` or `Queue` node that names no element in scope is a passive store
-that the drawing element uses. It needs no blueprint.
+that the diagram's own element uses. It needs no blueprint.
 
 Rules for relationship statements:
 
@@ -196,11 +196,11 @@ Rules for relationship statements:
 - **Contract tags.** A `contract:<slug>` tag SHALL name a contract
   document; the source element SHOULD consume it and the target element
   SHOULD provide it.
-- **One drawing per edge, or drawings that agree.** An edge drawn twice
-  in one diagram is reported; an edge drawn in two diagrams SHALL carry
-  the same technology, description and tags in both.
+- **One relationship statement per edge, or statements that agree.** An
+  edge drawn twice in one diagram is reported; an edge drawn in two
+  diagrams SHALL carry the same technology, description and tags in both.
 - **Names are identifiers.** A node's label is matched to an element's
-  `entity_name` within the drawing document's scope: its own element,
+  `entity_name` within the C4 drawing document's scope: its own element,
   the components its roster declares, the modules it lists in `modules`,
   and every system and container in the corpus. Renaming an element means
   updating every diagram label that names it.
