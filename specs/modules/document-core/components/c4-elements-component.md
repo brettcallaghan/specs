@@ -21,33 +21,45 @@ test_paths:
 
 ## Responsibility
 
-C4 Elements owns the judgment of what a diagram node names, so the C4
-checks and the C4 model read one answer. It reads the index and the
-architecture vocabulary the profile registers, decides which blueprints and
-roster record blocks declare elements, works out which elements each
-drawing document's diagrams may name, and resolves every node and
-relationship statement against that scope. It names no document type,
-property or heading of its own.
+C4 Elements decides what each diagram node names, so that the Corpus
+component's C4 checks and the C4 Model component work from one answer. It
+reads the corpus index and the architecture vocabulary that the active
+profile registers. From them, it decides which blueprints and roster record
+blocks declare elements. It then works out which elements each drawing
+document's diagrams may name, and resolves every node and relationship
+statement against that scope.
+
+A drawing document is a corpus document whose type the profile registers as
+declaring an element. Only drawing documents' diagrams are resolved. A roster
+is the section, under a heading the profile registers, in which a parent
+document lists its children. A record block in a roster is a fenced block
+that holds one child's element fields. The component names no document type,
+property, or heading of its own, apart from the `slug` property that every
+document carries.
 
 ### Owns
 
-The element set: which members and record blocks declare an element, and
-how declarations of one slug merge.
+The element set: which corpus documents and record blocks declare an
+element, and how several declarations of one slug merge into one element.
 
-Each drawing document's scope and roster.
+Each drawing document's scope (the elements its diagram nodes may name)
+and its roster (the children it declares).
 
-Node resolution, and the resolution of each relationship statement to a
-drawing or to an unresolved statement with its reason.
+Node resolution: matching each node's label to the elements in scope.
+Relationship resolution: turning each relationship statement into a drawing
+(a statement whose two endpoints each name one element) or into an
+unresolved statement with its reason.
 
 The grouping of drawings into relationships.
 
-The architecture vocabulary's types, which the `Profile` extension point
-names.
+The Go types of the architecture vocabulary, such as the
+`ArchitectureRules` struct, which package `corpus` aliases for its
+`Profile` extension point.
 
 ### Hides
 
 How a roster heading is matched and how merged declarations are ordered.
-Callers see elements, nodes, drawings and relationships.
+Callers see elements, nodes, drawings, and relationships.
 
 ### Does not own
 
@@ -62,14 +74,17 @@ The architecture vocabulary itself — [[module-spec-profile]] registers it.
 
 ### Composed into
 
-[[module-document-core]] — a Go package the Corpus checks and the C4 Model
-call; see that blueprint for this component's relationships.
+[[module-document-core]] — a Go package that the Corpus component's checks
+and the C4 Model component call; see that blueprint for this component's
+relationships.
 
 ## Interface
 
 ### Surface
 
-The exported identifiers of `cli/core/c4elements`, entered through `Build`.
+The exported identifiers of package `cli/core/c4elements`. Callers enter
+through the `Build` function, which takes an `Input` struct and returns a
+`*Set` and an error.
 
 ### Provides
 
@@ -96,10 +111,11 @@ record-block decoding function.
 
 ### Patterns and principles
 
-Dependency Inversion (Martin, 1996) — the component reads sources and record
-blocks only through the functions its caller passes in `Input`. It serves
-the warm corpus, which reads a member off disk only when asked, and tests
-that supply sources in memory.
+Dependency Inversion (Martin, 1996) — the component reads source bytes and
+record blocks only through the functions its caller passes in the `Input`
+struct's `Source` and `Decode` fields. This serves a corpus loaded from its
+cached index, which reads a document's file only when asked, and tests that
+supply sources in memory.
 
 ### Invariants
 
@@ -107,21 +123,26 @@ The component SHALL read a member's bytes only through `Input.Source`.
 Enforced by: review only.
 
 The component SHALL check an unresolved statement's reasons in one fixed
-order, source endpoint before target. Enforced by:
+order, checking the source endpoint before the target for each reason.
+Enforced by:
 `TestUnresolvedStatementsCarryOneReasonInOrder`.
 
-The component SHALL hold no literal naming registered vocabulary, under
-[[module-document-core]]'s vocabulary invariant. Enforced by:
+The component SHALL hold no string literal naming a document type, a
+status, a reference-bearing property or a criterion qualifier that the
+generated schema declares, under [[module-document-core]]'s vocabulary
+invariant. Enforced by:
 `TestTheExtensionPointNamesNoRegisteredVocabulary` in
 `cli/core/corpus/profile_test.go`.
 
 ### Extension points
 
-A new architecture property — a member of `ArchitectureRules` the profile
-registers, with `ValidateRegistration` checking it against the union
-schema. Not by a property name in this package.
+A new architecture property — a new field of the `ArchitectureRules`
+struct, which the profile fills in, never a property name in this package.
+The `corpus.ValidateRegistration` function checks that the profile's union
+schema declares the property on each document type it applies to.
 
-The C4 levels are closed: they're notation, fixed in `ElementLevel`.
+The C4 levels are closed: they're C4 notation, fixed as the constants of
+the `ElementLevel` string type.
 
 ## Cross-cutting Standards
 
@@ -147,13 +168,14 @@ WHEN scope, resolution or grouping changes, run
 
 ## Key decisions
 
-[[adr-029]] — relationships are read from blueprint diagrams, with reserved
-tags.
+[[adr-029]] — relationships are read from blueprint diagrams, and a set of
+relationship tags is reserved for edge properties.
 
 [[adr-030]] — the architecture vocabulary arrives as a profile
 registration.
 
-[[adr-008]] — un-promoted elements are declared by record blocks.
+[[adr-008]] — an element with no blueprint of its own is declared by a
+record block in its parent's roster.
 
 [[adr-009]] — a parent owns the edges among its children.
 

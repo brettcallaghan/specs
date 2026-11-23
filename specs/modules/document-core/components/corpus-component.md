@@ -23,35 +23,44 @@ test_paths:
 
 ## Responsibility
 
-Corpus turns a spec root into the index every other capability reads. It
-walks the root once, decides which files are members, has each member
-parsed, resolves the reference graph over the finished index, and persists
-the result so the next invocation can serve it warm. Every query and check
-the CLI offers is a method here, so every caller asks the same question the
-same way. It orchestrates parsing and holds no parsing logic of its own.
+Corpus turns the spec root (the one directory of specification documents
+the CLI reads) into the index that every other capability reads. It walks
+the root once, decides which files are members of the corpus, has a parsing
+component parse each member, and resolves the reference graph over the
+finished index. It then persists the index, so the next CLI invocation can
+serve it warm: answer from the persisted index instead of walking the root
+again. Every query and check the CLI offers is a function or method of this
+package, so every caller asks the same question the same way. It
+orchestrates parsing and holds no parsing logic of its own.
 
 ### Owns
 
-The walk of the spec root and the membership decision: which files are
-entries, which are exclusions and why, and which are feature sources.
+The walk of the spec root and the membership decision: which Markdown
+files are entries (members the index records), which are exclusions
+(candidates the index rejects, with the reason), and which `.feature` files
+are feature sources.
 
-The index: populating the generated `specmodel.SpecIndex`, and the
-`schema_version` it declares, held in `cli/core/specindex`.
+The index: populating `specmodel.SpecIndex` (the struct generated from
+the index schema), and the `schema_version` property it declares, whose
+value is the `specindex.SchemaVersion` constant in `cli/core/specindex`.
 
 The warm cache: where the index is written, when a persisted index is
-served, and the input hash that decides it.
+served instead of rebuilt, and the input hash (a content hash over every
+input the index is built from) that decides it.
 
 The corpus queries and the check rules, and the order of what they return.
 
-The `Profile` extension point and the validation of a profile's
-registration.
+The `Profile` interface, through which the caller supplies a profile (the
+document vocabulary the walk and the checks read), and validation of what a
+profile registers.
 
 ### Hides
 
 Whether an answer came from a fresh walk or a persisted index. A caller
-asks `Open` for a corpus and can't tell the two apart; the hash inputs, the
-rebuild conditions and the on-demand reads of a warm corpus are all
-internal.
+asks the `Open` function for a corpus and gets the same answers either way.
+`Open` reports which path it took, and no answer the corpus gives depends
+on it. The hash inputs, the rebuild conditions, and the files a warm corpus
+reads on demand are all internal.
 
 ### Does not own
 
@@ -72,15 +81,17 @@ owns it, and also owns whether the emitted index becomes a Contract.
 
 ### Composed into
 
-[[module-document-core]] — a Go package the command surface calls into; see
-that blueprint for this component's relationships.
+[[module-document-core]] — a Go package that Command Surface (the CLI's
+command layer, `cli/cmd`) calls into; see that blueprint for this
+component's relationships.
 
 ## Interface
 
 ### Surface
 
-The exported identifiers of `cli/core/corpus`, entered through `Build` and
-`Open`; the extension point is `Profile` in `cli/core/corpus/profile.go`.
+The exported identifiers of the `cli/core/corpus` package, entered through
+the `Build` and `Open` functions. The extension point is the `Profile`
+interface in `cli/core/corpus/profile.go`.
 
 ### Provides
 
@@ -90,7 +101,8 @@ and check exactly as `Build` over the same inputs would.
 The component SHALL order entries, exclusions, references and features by
 repository-relative path and then by position within the file.
 
-The component SHALL return every check's findings in one `finding.Report`.
+The component SHALL return every check's findings in one list, ordered by
+`finding.Report`.
 
 IF `CheckFor` is given a path no member occupies, THEN the component SHALL
 return `ErrNotAMember` rather than an empty result.
@@ -113,10 +125,11 @@ comparison base.
 
 ### Patterns and principles
 
-Service Layer (Fowler, *PoEAA*, 2002) — `Corpus` is the service layer: each
-application operation (build, open, query, check) starts and ends in one of
-its methods, with the parsing components behind it. It serves the command
-surface today, which by [[container-spec-cli]]'s Change guidance may hold no
+Service Layer (Fowler, *PoEAA*, 2002) — the `corpus` package is the
+service layer: each application operation (build, open, query, check)
+starts and ends in its `Build` or `Open` function or a method on the
+`Corpus` type, with the parsing components behind it. It serves Command
+Surface, which by [[container-spec-cli]]'s Change guidance may hold no
 domain logic.
 
 ### Invariants
@@ -127,8 +140,9 @@ never by modification time or absolute path. Enforced by:
 `TestAModificationTimeChangeWithIdenticalContentIsStillServedWarm` and
 `TestTheSameContentAtADifferentAbsolutePathIsServedWarm`.
 **Rationale:** a fresh CI checkout gives every file a new modification
-time and identical bytes, so a cache keyed on it would be cold on every CI
-run, where the warm-index latency of AC-SPEC-009.1 is claimed.
+time and identical bytes. A cache keyed on modification time would rebuild
+on every CI run, the environment where the warm-index latency of
+AC-SPEC-009.1 is claimed.
 
 `Fingerprint` SHALL hash exactly the sources and profile inputs the build
 records a hash over. Enforced by:
@@ -139,9 +153,9 @@ IF a persisted index wasn't built from exactly the current inputs, THEN
 `Open` SHALL rebuild rather than serve it. Enforced by:
 `TestAnAbsentIndexRebuilds`, `TestAChangedInputRebuilds` and
 `TestAnIndexThatCannotBeTrustedRebuilds`.
-**Rationale:** invalidation is whole-index, never per entry. A rebuild
-costs one corpus walk, and a partial invalidation would save a fraction of
-that while adding a way to be subtly wrong.
+**Rationale:** the whole index is invalidated, never a single entry. A
+rebuild costs one walk of the corpus. Invalidating only the changed entries
+would save a fraction of that and add a way to be subtly wrong.
 
 WHILE serving a persisted index, the component SHALL answer reference and
 heading queries without reading a document. Enforced by:
@@ -151,10 +165,11 @@ heading queries without reading a document. Enforced by:
 The component SHALL read every source through one choke point that rewrites
 CRLF line endings to LF before any other component sees the bytes. Enforced
 by: `TestCRLFCheckoutProducesIdenticalOutput`.
-**Rationale:** so a checkout under `core.autocrlf` can't move a span or the
-content hash. The consequence is deliberate: where the two differ, a
-reported byte offset indexes the normalized text rather than the file on
-disk, while line and column are unaffected.
+**Rationale:** with every read normalized, a checkout under Git's
+`core.autocrlf` setting can't move a span (the recorded position of a region
+in a file) or change the content hash. The consequence is deliberate: where
+a file on disk has CRLF endings, a reported byte offset indexes the
+normalized text, not the file. Line and column are unaffected.
 
 The component SHALL read only regular files beneath the spec root, through
 an `os.Root` handle. Enforced by: `TestBuildReadsNothingOutsideTheSpecRoot`
@@ -169,26 +184,29 @@ WHEN a check needs Gherkin facts the index doesn't record, the component
 SHALL parse every Gherkin source once per `Check` or `CheckFor` call, with
 the same extraction functions the build uses. Enforced by: review only.
 **Rationale:** the cost is real and grows with the corpus, not with the one
-file `CheckFor` names. Confining the parse to the cold path would report
-nothing in the common warm case, which is a worse defect than the cost.
+file `CheckFor` names. Confining the parse to a cold build (one that walks
+the corpus) would leave these checks reporting nothing when the index is
+served warm, the common case. That is a worse defect than the cost.
 
 The component SHALL hold no parsing logic: every parse is a call into a
 parsing component. Enforced by: review only.
 
 ### Extension points
 
-A new query — a method on `Corpus` that reads the index. Not by a filter or
-a projection written in the command surface.
+A new query — a method on the `Corpus` type that reads the index. Not by a
+filter or a projection written in Command Surface.
 
-A new check rule — a function folded into the report `Check` and `CheckFor`
-build, with its rule identifier in `schemas/rules.strata`, its detail variant
-in `schemas/finding.strata`, and its constructor in
-[[module-document-core#Findings]]. The same change SHALL add its identifier
-to `checkRules` in `cli/cmd/check.go`, so `--only` can name it and a clean
-run reports it as passed. Not by a second walk of the spec root.
+A new check rule — a function whose findings the `Check` and `CheckFor`
+methods add to the report they build. Its rule identifier goes in
+`schemas/rules.strata`, its detail variant in `schemas/finding.strata`, and
+its finding constructor in [[module-document-core#Findings]]. The same
+change SHALL add its identifier to `checkRules` in `cli/cmd/check.go`, so
+`--only` can name it and a clean run reports it as passed. Not by a second
+walk of the spec root.
 
 A new index property — an additive change to `schemas/index.strata`,
-populated on the existing walk. Not by a side file beside the index.
+populated during the existing walk. Not by a separate file written beside
+the index.
 
 ## Cross-cutting Standards
 
@@ -230,8 +248,8 @@ WHEN a change alters the walk, a check or the registration, run
 [[adr-018]] — references are one top-level edge collection on the index,
 with both directions derived when it's read.
 
-[[adr-008]] — record blocks are recorded by tag and span, and decoded on
-demand.
+[[adr-008]] — element record blocks (fenced blocks of machine-readable
+element data) are recorded by tag and span, and decoded on demand.
 
 [[adr-030]] — the architecture vocabulary the C4 checks read arrives through
 `Profile`.

@@ -24,34 +24,45 @@ test_paths:
 
 ## Responsibility
 
-Document Core is the general half of the CLI: everything that's true of any
-corpus of Markdown documents that carry YAML frontmatter and cite each other
-by slug. It knows nothing of this framework. It doesn't know that `adr` is a
-document type, that ADR slugs are numbered, or that a component record block
-exists. That vocabulary arrives through the Profile extension point. The
-test for whether a capability belongs here: could an Obsidian vault with
-nothing to do with C4 use it? Holding that line lets an enterprise with a
-different document taxonomy reuse the engine, and lets the engine sit behind
+Document Core is the general half of the Spec CLI. It holds everything that's
+true of any corpus. A corpus is the Markdown documents under one directory (the
+spec root) that carry YAML frontmatter and cite each other by slug, the
+identifier a document declares in its frontmatter. It knows nothing of this
+framework. It doesn't know that `adr` is a document type, that ADR slugs are
+numbered, or that a component record block (a fenced YAML block declaring an
+architecture element) exists. That vocabulary arrives through the Profile
+extension point: the `Profile` Go interface, which the caller implements to
+register its document types, its JSON Schema and the rest of its vocabulary. A
+capability belongs here only if an Obsidian vault with nothing to do with C4
+architecture diagrams could use it. Holding that line lets an enterprise with a
+different document taxonomy reuse the engine. It also lets the engine sit behind
 an HTTP API or an MCP server without first being extracted from a CLI.
 
 ### Owns
 
-Corpus discovery and membership, and the index of the corpus: its model,
-its emission, and the warm cache that serves it.
+Corpus discovery and membership (which files count as documents, called
+members), and the corpus index: its model, its emission, and the warm cache
+that serves it. The index is the JSON description of the corpus that the
+module emits. The warm cache reuses an emitted index while the hash of the
+corpus's input files still matches the hash that index records.
 
 Parsing of frontmatter, Markdown structure, Gherkin sources and Mermaid C4
-diagrams, and the `Span` every parsed position is expressed in.
+diagrams. Also the `Span` type, which expresses every parsed position as a
+byte offset and length, with start and end lines and columns.
 
-The reference graph: extraction, resolution against the corpus, and both
-directions of lookup.
+The reference graph: extracting references, resolving them against the
+corpus, and looking them up in both directions (from a document and to it).
 
-Conformance: frontmatter validation against the profile's union schema, the
-check rules that run over the corpus, and the finding model they report in.
+Conformance: validating frontmatter against the profile's union schema (one
+JSON Schema whose branch each document's `type` selects), the check rules
+that run over the corpus, and the finding model they report in. A finding is
+one reported defect, with its rule, severity and position.
 
 The C4 model assembled from the corpus's blueprints and diagrams.
 
-Next-number derivation, wikilink-to-Markdown-link rewriting, and reading the
-spec root as a Git commit holds it.
+Deriving the next number for a numbered document type, rewriting `[[slug]]`
+wikilinks as Markdown links, and reading the spec root as a Git commit holds
+it.
 
 The Profile extension point: the interface through which all document
 vocabulary enters.
@@ -59,10 +70,11 @@ vocabulary enters.
 ### Hides
 
 Which parsers read the corpus, and how the index is persisted and
-invalidated. A host sees generated records from `cli/core/specmodel`,
-`Span` positions and findings. It never sees a YAML, Markdown or Gherkin
-library type, and never learns whether an answer came from a warm index or a
-fresh walk of the spec root.
+invalidated. A host (the program that imports this module) sees the
+generated record types in the `cli/core/specmodel` package, `Span`
+positions and findings. It never sees a YAML, Markdown or Gherkin library
+type. It gets the same answer from a warm index as from a fresh walk of the
+spec root.
 
 ### Does not own
 
@@ -84,7 +96,8 @@ to its sibling components.
 ### Vended as
 
 Go packages under `cli/core`, inside the CLI's own Go module (`cli/go.mod`),
-imported directly by the host. The module isn't published.
+imported directly by the host. Document Core isn't published to a package
+registry.
 
 ## Tech stack
 
@@ -96,31 +109,34 @@ imported directly by the host. The module isn't published.
 **Schema validation:** `santhosh-tekuri/jsonschema` — validates frontmatter
 against the union schema a profile registers. [[adr-015]]
 
-**Markdown structure:** `yuin/goldmark` — headings, fenced blocks, and the
-code regions reference extraction skips. [[adr-015]]
+**Markdown structure:** `yuin/goldmark` — finds headings, fenced blocks, and
+the code regions that reference extraction skips. [[adr-015]]
 
 **Gherkin:** `cucumber/gherkin` and `cucumber/messages` — parse features and
 acceptance criteria. [[adr-021]]
 
-**C4 diagrams:** a parser of the module's own — reads the Mermaid C4
-statement subset. [[adr-029]]
+**C4 diagrams:** a parser of the module's own — reads the subset of Mermaid
+C4 statements the framework uses. [[adr-029]]
 
-**Generated models:** Strata — generates the index, finding and C4 model
-types in `cli/core/specmodel`, and the schema bundle in `cli/core/schema`,
-from `schemas/*.strata`. [[adr-016]]
+**Generated models:** Strata, a schema language that compiles to Go types
+and JSON Schema — generates the index, finding and C4 model types in
+`cli/core/specmodel`, and the schema bundle in `cli/core/schema`, from
+`schemas/*.strata`. [[adr-016]]
 
-**Base revisions:** the `git` executable — read by the Revisions component
+**Base revisions:** the `git` executable — run by the Revisions component
 instead of a linked Git library. [[adr-031]]
 
 ## Interface
 
 ### Surface
 
-The exported identifiers of the packages under `cli/core`. The extension
-point is the `Profile` interface in `cli/core/corpus/profile.go`; the
-corpus's queries and checks are the methods of `corpus.Corpus`, reached
-through `corpus.Build` and `corpus.Open`; the records they return are the
-generated types in `cli/core/specmodel`.
+The surface is the exported identifiers of the packages under `cli/core`.
+The extension point is the `Profile` interface in
+`cli/core/corpus/profile.go`. The corpus's queries and checks are methods of
+the `corpus.Corpus` type. The functions `corpus.Build` and `corpus.Open`
+return one: `Build` walks the spec root, and `Open` serves the warm index
+when it's current and builds otherwise. The records the methods return are
+the generated types in `cli/core/specmodel`.
 
 ### Provides
 
@@ -184,17 +200,17 @@ on `PATH`.
 ### Patterns and principles
 
 Plugin, Microkernel (Buschmann et al., *POSA Vol. 1*, 1996) — Document Core
-is the core and a profile is the plugin; `Profile` is the one named
+is the core and a profile is the plugin. `Profile` is the one named
 extension point, and the core calls it, never the reverse. It serves the
-variation that exists today: the framework's profile in `cli/profile` and
-the stub profiles the module's own tests register.
+variation that exists today: this framework's profile in the `cli/profile`
+package, and the stub profiles the module's own tests register.
 
 Single Source of Truth (Codd, 1970; Hunt and Thomas, 1999) — each
-derivation a check depends on has one home: Spans computes every position,
-Markdown Structure derives every heading identifier and locates every fence,
-and Strata declares every record that crosses the JSON boundary. It serves
-the need that a finding's position, an anchor's resolution and an emitted
-link agree with each other.
+derivation a check depends on has one home. Spans computes every position.
+Markdown Structure derives every heading identifier (the anchor text a
+heading's words reduce to) and locates every fence. Strata declares every
+record serialized to JSON. It serves the need for a finding's position, an
+anchor's resolution and an emitted link to agree with each other.
 
 ### Invariants
 
@@ -255,7 +271,7 @@ directory, HEAD, the Git index, or the working tree. Enforced by:
 `TestOperationsLeaveTheRepositoryUntouched`.
 
 The packages `cli/core/specmodel` and `cli/core/schema` SHALL hold only
-output generated from `schemas/*.strata`. Enforced by:
+output `scripts/generate-schemas.sh` generates. Enforced by:
 `scripts/generate-schemas.sh --check`.
 
 ### Extension points
@@ -264,10 +280,10 @@ A new document vocabulary — the intended way in is a new `Profile`
 implementation outside `cli/core`. Not by a branch in the core that tests
 for a type, status, property or tag name.
 
-A new kind of registered vocabulary — the intended way in is a new member
-of `Profile` that carries the vocabulary as data, with
-`ValidateRegistration` reporting its defects. Not by a member that only one
-profile can satisfy.
+A new kind of registered vocabulary — the intended way in is a new method
+of `Profile` that carries the vocabulary as data, with the
+`corpus.ValidateRegistration` function reporting its defects. Not by a
+method that only one profile can satisfy.
 
 A new parsing capability — the intended way in is a new component that
 computes its positions through Spans and is called from the Corpus walk.
@@ -340,21 +356,24 @@ Gherkin → Spans, C4 Diagrams → Spans: a position inside a fenced block is a
 `Span` in the containing document's coordinates, not the block's.
 
 C4 Elements → C4 Diagrams: elements are resolved from the statements the
-parser returns; C4 Elements never reads Mermaid text itself.
+parser returns. C4 Elements never reads Mermaid text itself.
 
-C4 Elements → Markdown Structure: roster headings are matched on the heading
-identifier Markdown Structure derives, and diagram blocks are found by its
-fence search.
+C4 Elements → Markdown Structure: roster headings (the headings under which
+a blueprint declares its child elements) are matched on the heading
+identifier Markdown Structure derives. Diagram blocks are found by its fence
+search.
 
-C4 Elements, References, Numbering → Schema Registry: decoding a member's
-typed envelope belongs to Schema Registry (`cli/core/envelope`), including
-the rule that decides which member holds a shared slug.
+C4 Elements, References, Numbering → Schema Registry: Schema Registry owns
+decoding a member's typed envelope (the frontmatter properties every
+document type shares), in the `cli/core/envelope` package. That includes the
+rule that decides which member holds a slug that two members declare.
 
 C4 Model → C4 Elements: the model nests and groups what C4 Elements resolved,
 and decides nothing C4 Elements owns.
 
 References → Markdown Structure: an anchor is matched by the same heading
-path selection that the `headings` query uses, so the two can't disagree.
+path selection that the `specs headings` command uses, so the two can't
+disagree.
 
 References → Gherkin: the fence tags that mark Gherkin content come from the
 Gherkin component, so extraction and discovery read one list.
@@ -386,7 +405,7 @@ technology: Go package
 
 (Go package) — Position type and delimited-region scanning. Spans owns how a
 position is computed from text, and is the one place a `Span` is computed
-from source bytes; it hides how byte offsets become lines and columns.
+from source bytes. It hides how byte offsets become lines and columns.
 
 ### Frontmatter
 
@@ -414,7 +433,7 @@ technology: Go package
 
 (Go package) — Mermaid C4 diagram parsing into located statements. It owns
 the statement subset the framework reads ([[adr-029]]) and hides how Mermaid
-text is tokenized; it's pure notation and resolves nothing.
+text is tokenized. It reads notation only and resolves nothing.
 
 ### C4 Elements
 
@@ -451,8 +470,9 @@ technology: Go package
 ```
 
 (Go package) — Next-number derivation for numbered document types. It owns
-the rule that numbering is global per type and hides how a number is read
-out of a slug.
+the rule that numbering is global per type: the next number follows the
+highest in use for that type anywhere in the corpus, whatever its directory.
+It hides how a number is read out of a slug.
 
 ### Findings
 
@@ -465,9 +485,9 @@ technology: Go package
 
 (Go package) — The finding and severity model, and the report. It owns the
 constructor for every finding kind, which derives the message from the
-structured detail, and the `Report` that accounts for every requested
-check; it hides how a message is worded, so a consumer branches on the
-detail instead.
+finding's structured detail. It also owns the `Report` type, which accounts
+for every requested check. It hides how a message is worded, so a consumer
+branches on the detail instead.
 
 ### Markdown Links
 
@@ -484,9 +504,9 @@ technology: Go package
 ```
 
 (Go package) — Git base revisions and directories as a commit holds them.
-It owns reading the spec root at a base commit ([[adr-031]]) and hides that
-it does so through the `git` executable. No other component of this module
-depends on it.
+It owns reading the spec root at a base commit, the commit a change is
+compared against ([[adr-031]]). It hides that it does so through the `git`
+executable. No other component of this module depends on it.
 
 ## Cross-cutting Standards
 

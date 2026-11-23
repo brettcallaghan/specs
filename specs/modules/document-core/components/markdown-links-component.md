@@ -22,25 +22,35 @@ test_paths:
 ## Responsibility
 
 Markdown Links turns a document's wikilinks into ordinary Markdown links,
-so a document can be read outside the corpus. It works in two halves.
-`Resolve` decides what each already-resolved reference should point at,
-from a caller's link map where one names the slug or from the cited
-document's own path, and reports a reference that settles neither way
-instead of guessing. `Substitute` then replaces each `[[...]]` construct
-whose target settled, and copies everything else through unchanged.
+so that the document can be read outside the corpus. A wikilink is a
+`[[slug]]` reference to another corpus document, and the corpus is the set
+of spec documents the CLI indexes. The work has two halves, one function
+each. The `Resolve` function settles each reference's target: it picks
+the path that the Markdown link points at. Each reference arrives already
+resolved, meaning an earlier step has looked its slug up in the corpus.
+`Resolve` takes the target from the caller's link map (a slug-to-path
+map) when the map names the slug, and otherwise from the cited document's
+own path. When a reference settles neither way, `Resolve` reports it
+instead of guessing. The `Substitute` function then replaces each `[[...]]`
+construct (the wikilink, brackets included) whose target settled, and
+copies everything else through unchanged.
 
 ### Owns
 
-The target each reference settles to, including its anchor fragment.
+The target each reference settles to, including its anchor fragment (the
+`#` part that points at a heading).
 
-The `links/unmapped` and `links/unresolved` findings.
+The `links/unmapped` and `links/unresolved` findings: the diagnostics
+`Resolve` raises when a link map leaves out a corpus document, and when a
+slug names no corpus document and no link map entry.
 
-The substitution of a wikilink construct by a Markdown link.
+Replacing a wikilink construct with a Markdown link.
 
 ### Hides
 
-The path arithmetic that makes a target relative to the citing document,
-and how a construct's extent is widened from a reference's span.
+How a target path is made relative to the citing document, and how a
+construct's extent is computed by widening the reference's span (the byte
+range of the text between the brackets) by the brackets on each side.
 
 ### Does not own
 
@@ -54,15 +64,15 @@ the `links` command.
 
 ### Composed into
 
-[[module-document-core]] — a Go package the `links` command calls; see that
-blueprint for this component's relationships.
+[[module-document-core]] — as a Go package that the `links` command
+calls; see that Module Blueprint for this component's relationships.
 
 ## Interface
 
 ### Surface
 
-The exported identifiers of `cli/core/mdlinks`, entered through `Resolve`
-and `Substitute`.
+The exported identifiers of the `cli/core/mdlinks` package. Callers enter
+through the `Resolve` and `Substitute` functions.
 
 ### Provides
 
@@ -91,9 +101,10 @@ filtered through `references.OutsideGherkinFences`.
 ### Patterns and principles
 
 Functional Core, Imperative Shell (Bernhardt, 2012) — `Resolve` and
-`Substitute` are pure functions over bytes and records; the command surface
-is the shell that reads the document and writes the result. It serves the
-`links` command, which writes no file.
+`Substitute` are the core: pure functions over the document's bytes and its
+reference records. The shell is Command Surface, the spec CLI's command
+layer, which reads the document and writes the result to standard output.
+The component serves the `links` command, which writes no file.
 
 ### Invariants
 
@@ -102,17 +113,20 @@ only.
 
 `Substitute` SHALL derive each construct's extent from the reference's
 `Span`, never by scanning the document again. Enforced by:
-`TestAWikilinkInsideACodeRegionIsNeverRewritten` for the result; review only
-for the mechanism.
+`TestNothingButTheWikilinksIsAltered` for the result; review only for the
+mechanism.
 
 The component SHALL derive every anchor fragment through
 `markdown.Identifier`, holding no derivation of its own. Enforced by:
-`TestAResolvedAnchorTakesItsFragmentFromTheResolvedHeading`.
+`TestTheAnchorRuleKeepsUnicodeLettersAndDigitsAndDropsTheRest` and
+`TestAResolvedAnchorTakesItsFragmentFromTheResolvedHeading` for the
+fragments; review only for the mechanism.
 
 ### Extension points
 
-A new way to settle a target — a step in `Resolve` ahead of derivation, as
-the link map is. Not by a decision inside `Substitute`.
+A new way to settle a target — a new step in `Resolve` that runs before
+the target is derived from the cited document's path, as the link-map
+lookup does. Not by a decision inside `Substitute`.
 
 ## Cross-cutting Standards
 

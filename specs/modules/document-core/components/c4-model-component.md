@@ -22,32 +22,47 @@ test_paths:
 
 ## Responsibility
 
-C4 Model assembles the C4 model the corpus declares: the element tree, the
-module collection, the relationships and the statements excluded from them.
-It decides nothing about which elements exist or what a node names, and
-returns the generated `specmodel.C4Model` without rendering it. It names no
-document type, property or heading of its own.
+C4 Model assembles the C4 model that the corpus declares. The model is one
+record holding the element tree (each system's containers and each container's
+components), the module collection, the relationships between elements, and the
+diagram statements excluded from those relationships. An element is a system,
+container, module or component that a document in the corpus declares.
+
+C4 Model decides nothing about which elements exist or what a diagram node
+names. It returns the model as `specmodel.C4Model`, a struct type generated
+from `schemas/c4.strata`, and doesn't render it. It names no document type,
+property or heading of its own: it reads them through the vocabulary that the
+active profile registers. A profile is the plug-in that supplies a framework's
+document types and property names.
 
 ### Owns
 
-Where each element is placed: under its parent, among the modules, or in an
-orphaned collection.
+Where each element is placed: among the systems, under its parent, among
+the modules, or in an orphaned collection. An orphaned collection is a
+top-level list for a container that names no declared system, or a component
+that no parent's roster declares. A roster is the list of child components in a
+container's or module's blueprint.
 
-The edges the model derives over the whole corpus: composed modules, the
-hosts that contain a module, and the contracts an element provides.
+The edges that the model derives over the whole corpus: the hosts that
+contain a module, read from the modules each host composes, and the
+contracts an element provides. A host is a container or module that
+composes a module.
 
 Which declaration and which drawing an element's or a relationship's
-properties are taken from.
+properties are taken from. A declaration is a blueprint's front matter or
+a record block in another document. A drawing is one statement of a
+relationship in a Mermaid C4 diagram.
 
-The reading of reserved relationship tags into an interaction and a
-governing contract.
+How the reserved relationship tags (`sync`, `async` and `contract:<slug>`)
+are read into an interaction and a governing contract.
 
-Narrowing the model to one root and its descendants.
+Narrowing the model to one root element and its descendants.
 
 ### Hides
 
-How ties between several declarations or drawings are broken. Callers see
-one element per slug and one relationship per group of drawings.
+How ties between several declarations or drawings are broken. Callers see one
+element per slug (an element's identifier) and one relationship per group of
+drawings.
 
 ### Does not own
 
@@ -61,15 +76,16 @@ Rendering the model — [[container-spec-cli]] owns the `c4` command.
 
 ### Composed into
 
-[[module-document-core]] — a Go package the Corpus calls to answer the `c4`
-query; see that blueprint for this component's relationships.
+[[module-document-core]] — a Go package that the Corpus component calls to
+answer the `c4` query; see that blueprint for this component's
+relationships.
 
 ## Interface
 
 ### Surface
 
-The exported identifiers of `cli/core/c4model`, entered through `Build`; the
-record it returns is `specmodel.C4Model`.
+The exported identifiers of the `cli/core/c4model` package. The entry point
+is the `Build` function, and it returns a `specmodel.C4Model`.
 
 ### Provides
 
@@ -79,7 +95,8 @@ directory layout or a diagram.
 `Build` SHALL NOT create an element from a diagram node.
 
 WHERE several declarations or drawings could supply a property, `Build`
-SHALL take it from the one that sorts first by path and then by span.
+SHALL take it from the element's blueprint where it has one, and otherwise
+from the one that sorts first by path and then by span.
 
 WHEN the model is narrowed to a root, its derived properties SHALL keep
 their whole-corpus values.
@@ -96,9 +113,10 @@ input C4 Elements resolves from, and the configured workspace name.
 ### Patterns and principles
 
 Functional Core, Imperative Shell (Bernhardt, 2012) — `Build` is a pure
-assembly over the records it's given; reading sources is the caller's,
-through the functions in its input. It serves the `c4` query and the tests
-that build models from in-memory corpora.
+assembly over the records it's given. The caller does the reading, through
+the `Source` and `Decode` function fields it passes in `Input.Elements`.
+`Build` serves the `c4` query and the tests that build models from
+in-memory corpora.
 
 ### Invariants
 
@@ -115,9 +133,9 @@ The component SHALL hold no literal naming registered vocabulary, under
 
 ### Extension points
 
-A new element or relationship property — a field in `schemas/c4.strata`,
-copied from a declaration or a drawing by the first-by-path rule. Not by a
-second resolution of nodes in this package.
+A new element or relationship property — add a field in `schemas/c4.strata`
+and copy it from the same declaration or drawing as the existing
+properties. Not by a second resolution of nodes in this package.
 
 ## Cross-cutting Standards
 

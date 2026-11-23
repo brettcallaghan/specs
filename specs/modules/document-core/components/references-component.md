@@ -21,30 +21,36 @@ test_paths:
 
 ## Responsibility
 
-References finds every `[[slug]]` and `[[slug#Anchor]]` a document makes,
-in its body and in the frontmatter properties its type registers as
-reference-bearing, and records where each occurs. It then resolves each one
-against the index: to a member, to a file that isn't a member, or to
-nothing, and for an anchor, to the heading it names. The two halves are
-separate because they know different things: extraction knows one
-document, and resolution knows the corpus.
+References finds every `[[slug]]` and `[[slug#Anchor]]` wikilink a
+document makes and records where each one occurs. It reads the document's
+body and its reference-bearing frontmatter properties: the ones the active
+profile registers for the document's type. The active profile is the set of
+document-type rules the CLI runs with.
+
+References then resolves each reference against the index, the record of
+every file the corpus walk read. A reference resolves to a member (a file
+indexed as a spec document), to a file that isn't a member, or to nothing.
+An anchor also resolves to the heading it names. The two halves are
+separate because they know different things: extraction knows one document,
+and resolution knows the whole corpus.
 
 ### Owns
 
-Extraction: which constructs are references, the regions extraction skips,
-and the span each reference is recorded at.
+Extraction: which text counts as a reference, which regions extraction
+skips (the code-region mask), and the span (the byte range, lines, and
+columns in the source) that each reference is recorded at.
 
-Resolution: the state each reference resolves to, and the heading an anchor
-resolves to.
+Resolution: the resolution state each reference receives, and the heading
+an anchor resolves to.
 
-The split between references the index keeps and references a renderer
-rewrites (`OutsideGherkinFences`).
+The split between the references the index keeps and the ones a renderer
+rewrites, made by the `OutsideGherkinFences` function.
 
 ### Hides
 
 How code regions are located, and how a slug is matched against a file that
-isn't a member. Callers see only a `specmodel.Reference` carrying its span
-and its resolution.
+isn't a member. Callers see only the `specmodel.Reference` struct, which
+carries the reference's span and resolution.
 
 ### Does not own
 
@@ -59,15 +65,17 @@ reference checks.
 
 ### Composed into
 
-[[module-document-core]] — a Go package the Corpus walk calls for each
-member; see that blueprint for this component's relationships.
+[[module-document-core]] — a Go package that the Corpus component's walk
+calls: `Extract` for each member and `.feature` file it reads, and `Resolve`
+once after the last file. See that blueprint for this component's
+relationships.
 
 ## Interface
 
 ### Surface
 
-The exported identifiers of `cli/core/references`, entered through
-`Extract` and `Resolve`.
+The exported identifiers of the `cli/core/references` package, entered
+through the `Extract` and `Resolve` functions.
 
 ### Provides
 
@@ -99,10 +107,11 @@ headings.
 
 ### Patterns and principles
 
-Separation of Concerns (Dijkstra, 1974) — extraction (`Extract`) works on one
-document, and resolution (`Resolve`) works on one index. It serves the walk
-as it exists: references are extracted as each file is read, and resolved
-once the last file has been read, because the first file may cite the last.
+Separation of Concerns (Dijkstra, 1974) — extraction (`Extract`) works on
+one document, and resolution (`Resolve`) works on one index. The split fits
+how the corpus walk runs. The walk extracts each file's references as it
+reads the file. It resolves them all after it reads the last file, because
+the first file may cite the last.
 
 ### Invariants
 
@@ -110,8 +119,10 @@ once the last file has been read, because the first file may cite the last.
 `TestExtractionResolvesNothing`.
 
 `Extract` SHALL read frontmatter references from the parsed frontmatter
-block, never from an index entry. Enforced by:
-`TestExtractionReadsNoIndexEntry`.
+block, never from an index entry. Enforced by: review only.
+`TestExtractionReadsNoIndexEntry` checks only that the package doesn't
+import `specindex`. The index entry type, `specmodel.IndexEntry`, is in the
+`specmodel` package, which this package does import.
 
 `Resolve` SHALL compute each resolution from the references and the index it
 is given, reading no file. Enforced by: `TestEveryReferenceIsGivenAResolution`
@@ -121,7 +132,8 @@ reading no file.
 The component SHALL select an anchor's headings through the heading paths
 and selection rule of [[component-markdown-structure]], never a derivation
 of its own. Enforced by:
-`TestAnAnchorMatchesAHeadingByIdentifierNotByExactText`.
+`TestAnAnchorMatchesAHeadingByIdentifierNotByExactText` for the result;
+review only for using no derivation of its own.
 
 The component SHALL read the Gherkin fence tags from `gherkin.FenceTags`,
 never from a literal. Enforced by: review only.
@@ -131,12 +143,12 @@ walk, so they agree on where a fence ends. Enforced by: review only.
 
 ### Extension points
 
-A new kind of source — a caller passing a file's bytes to `Extract` as body
-with no frontmatter, as `.feature` sources are. Not by a second wikilink
-scanner.
+A new kind of source — the caller passes the file's bytes to `Extract` with
+no frontmatter, and `Extract` reads the whole file as body. The corpus walk
+does this for `.feature` files. Not by a second wikilink scanner.
 
-A new reference-bearing property — a profile registration. Not by a property
-name in this package.
+A new reference-bearing property — register it in the profile. Not by
+naming the property in this package.
 
 ## Cross-cutting Standards
 

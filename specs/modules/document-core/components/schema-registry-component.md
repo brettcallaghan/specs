@@ -24,24 +24,31 @@ test_paths:
 
 ## Responsibility
 
-A profile registers one schema: a discriminated union over every document
-type it defines. Schema Registry compiles that union once and validates each
-document's frontmatter against the branch its declared `type` selects,
-reporting every violation in one pass. It also carries frontmatter across
-the boundary into the generated union variant the index records, and back
-out, without naming a document type in either direction.
+A profile is the set of document types a corpus uses, with their rules. It
+registers one JSON Schema: a discriminated union with one branch per
+document type, selected by the value of the document's `type` property.
+Schema Registry compiles that union once and validates each document's
+frontmatter against the branch its `type` selects. It reports every
+violation in one pass. It also decodes frontmatter into a variant of the Go
+union type generated from the same Strata source as the schema (one struct
+per document type), and encodes a variant to the JSON the corpus index
+stores. Neither direction hard-codes a document type.
 
 ### Owns
 
-Branch selection, validation, and the slug-pattern check.
+Branch selection, validation, and the slug-pattern check
+(`CheckSlugPattern`).
 
-Questions about the union: whether a type declares a property, and which
-values an enum property allows.
+Answers about the union: whether a type's branch declares a property
+(`Registry.Declares`), and which values an enum property allows
+(`Registry.Enum`).
 
-Decoding parsed frontmatter into its typed union variant, encoding it for
-the index, and reading the shared envelope out of a variant.
+Decoding parsed frontmatter into its union variant, encoding a variant for
+the index, and reading a variant's envelope: its type and the properties
+every document type shares, such as `slug` and `status`.
 
-The rule for which member holds a slug two members declare.
+The rule for which corpus member (a document in the corpus) answers
+lookups for a slug that two members declare.
 
 ### Hides
 
@@ -58,15 +65,19 @@ The finding model — [[module-document-core#Findings]] owns it.
 
 ### Composed into
 
-[[module-document-core]] — Go packages the Corpus checks and the model
-components call; see that blueprint for this component's relationships.
+[[module-document-core]] — Go packages that the Corpus component and other
+Document Core components call; see that blueprint for this component's
+relationships.
 
 ## Interface
 
 ### Surface
 
-The exported identifiers of `cli/core/schemaregistry`, entered through
-`New`, and of `cli/core/envelope`.
+The exported identifiers of the Go packages `cli/core/schemaregistry` and
+`cli/core/envelope`. In `schemaregistry`, the `New` function returns a
+`Registry`, and `Validate` is a method of that type. `Decode`, `Encode`,
+and `HoldsSlugOver` are functions in `envelope`, and `PropertyError` is a
+type there.
 
 ### Provides
 
@@ -103,10 +114,10 @@ document type's branch can be selected from the value of `type`.
 
 ### Patterns and principles
 
-Adapter (Gamma et al., 1994) — `Registry` adapts the JSON Schema library to
-the module's own types: it takes a parsed `frontmatter.Document` and returns
-`specmodel.Finding` values. It serves the need [[adr-015]] records: the
-validator is a replaceable choice.
+Adapter (Gamma et al., 1994) — the `Registry` type adapts the JSON Schema
+library to the module's own types: it takes a parsed `frontmatter.Document`
+and returns `specmodel.Finding` values. It keeps the validator that
+[[adr-015]] chose replaceable.
 
 ### Invariants
 
@@ -115,8 +126,10 @@ surface. Enforced by: review only.
 
 The component SHALL discover the union's variants from the generated union
 itself, with no table naming a type. Enforced by:
-`TestEveryUnionVariantIsDiscoveredUnderItsGeneratedTag` and
-`TestNoDocumentTypeInPackageSource`.
+`TestEveryUnionVariantIsDiscoveredUnderItsGeneratedTag`, which fails when
+`envelope` misses a variant, and `TestNoDocumentTypeInPackageSource`, which
+scans only `cli/core/schemaregistry`. A type named in `cli/core/envelope` is
+caught by review only.
 
 Every site that chooses between two members declaring one slug SHALL decide
 through `HoldsSlugOver`. Enforced by:
@@ -125,7 +138,7 @@ call sites.
 
 ### Extension points
 
-A new document type — a branch in the profile's union schema. Not by a
+A new document type — a branch in the profile's union schema, not a
 per-type schema pointer or a type name in this component.
 
 ## Cross-cutting Standards
@@ -148,7 +161,8 @@ rather than read the schema itself.
 #### Verify conditionally
 
 WHEN `Encode` or `Decode` changes, run `cd cli && go test ./profile/`, which
-encodes this repository's corpus with the generated encoder.
+checks that the index of this repository's corpus encodes to the same bytes
+as the generated encoder writes.
 
 ## Key decisions
 

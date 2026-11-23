@@ -21,47 +21,60 @@ test_paths:
 
 ## Responsibility
 
-Frontmatter splits a document's YAML block from its body and parses it once
-into a generic value tree. That one tree serves both schema validation and,
-converted to JSON, decoding into the generated typed records. Each property
-keeps its raw source text beside its parsed value, because a check has to
-validate what the author wrote, not what a YAML parser inferred from it.
+Frontmatter splits a Markdown document's frontmatter block (the YAML
+between `---` lines at the top of the file) from its body. It parses the
+block once into a value tree of generic Go maps, slices, and scalars. Schema
+validation reads that tree directly. Typed decoding converts the same tree to
+JSON and decodes that into the Go record types generated from the project's
+schemas. Each property keeps its raw source text beside its parsed value,
+because a check has to validate what the author wrote, not what a YAML
+parser inferred from it.
 
 ### Owns
 
 Where a frontmatter block begins and ends.
 
-The parsed block: each top-level property's name, key and value positions,
-raw text and value, with per-element positions for a sequence.
+The parsed block: for each top-level property, its name, the positions of
+its key and value, its raw text, and its parsed value. A sequence-valued
+property also carries the position of each element.
 
-Comments that trail a value on its line, which cut the value short.
+Inline comments: a `#` comment after an unquoted scalar value on the same
+line, which YAML reads as the end of the value.
 
-Reading one top-level scalar from a block that doesn't parse.
+Reading one top-level scalar value, line by line, from a block that doesn't
+parse as YAML.
 
 ### Hides
 
-The YAML library, and how its token positions become byte offsets. Callers
-see byte-accurate `Span` values and a JSON-compatible tree.
+The YAML library (`goccy/go-yaml`), and how its token positions become
+byte offsets. Callers see byte-accurate spans (the `specmodel.Span` type: a
+byte offset and length, plus start and end line and column) and a tree of
+values that JSON can carry.
 
 ### Does not own
 
-Validating a block against a schema, and decoding it into a typed envelope
-— [[component-schema-registry]] owns both.
+Validating a block against a schema, and decoding it into the typed
+envelope (the generated Go record for the document's type, which carries the
+properties every document type shares) — [[component-schema-registry]] owns
+both.
 
-Which properties a document type declares, and which hold references —
-[[module-spec-profile]] registers them.
+Which properties a document type declares, and which of them hold
+references to other documents — [[module-spec-profile]] registers them.
 
 ### Composed into
 
-[[module-document-core]] — a Go package the parsing and model components
-call; see that blueprint for this component's relationships.
+[[module-document-core]] — a Go package that the module's parsing and model
+components call; see that blueprint for this component's relationships.
 
 ## Interface
 
 ### Surface
 
-The exported identifiers of `cli/core/frontmatter`, entered through `Parse`
-and `Locate`.
+The exported identifiers of the `cli/core/frontmatter` package. Callers
+enter through the functions `Parse`, `Locate`, and `TopLevelScalarAt` (or
+its value-only form, `TopLevelScalar`). An error from `Parse` is a located
+error: a `*specmodel.ParseError` that holds a message and the span of the
+text it is about.
 
 ### Provides
 
@@ -93,20 +106,22 @@ its first byte, because a block is recognized only there.
 
 ### Patterns and principles
 
-Single Source of Truth (Codd, 1970; Hunt and Thomas, 1999) — `Locate` is
-the one place a block's extent is decided, and `Parse` is written on it. It
-serves the callers that need a block's extent without its values: the
-Corpus walk for a member whose frontmatter didn't parse, and the C4
-components.
+Single Source of Truth (Codd, 1970; Hunt and Thomas, 1999) — the function
+`Locate` is the one place that decides a block's extent, and `Parse` and
+`TopLevelScalarAt` call it. It also serves callers that need a block's
+extent without its values: the Corpus component, to find where a
+document's body starts, and the C4 Elements component, to find a
+blueprint's frontmatter and body.
 
 ### Invariants
 
 The component SHALL decide a block's extent only in `Locate`. Enforced by:
 `TestParseAndLocateAgreeOnTheRegion` and
-`TestTheImplementationCallsTheSharedScanner`.
+`TestTheImplementationCallsTheSharedScanner` for `frontmatter.go`, and by
+review only for `scalar.go`, which that test doesn't read.
 
 The component SHALL derive every byte offset from the block's own bytes,
-not from the YAML library's token positions. Enforced by:
+not from the YAML library's token offsets. Enforced by:
 `TestAMultiByteCharacterEarlierInTheBlockDoesNotShiftALaterProperty` and
 `TestSpansSurviveCommentsAndMultiByteText`.
 
@@ -118,8 +133,9 @@ no value or span `Parse` reports depends on them. Enforced by: review only.
 
 ### Extension points
 
-A new read of a block that didn't parse — a function written on `Locate`,
-as `TopLevelScalar` is. Not by re-deriving the block's delimiters.
+A new way to read a block that didn't parse — a function that calls
+`Locate`, as `TopLevelScalarAt` does. Not by re-deriving the block's
+delimiters.
 
 ## Cross-cutting Standards
 
