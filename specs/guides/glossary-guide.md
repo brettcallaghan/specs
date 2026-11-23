@@ -23,6 +23,7 @@ them when they carry their ordinary meaning.
 | C4 drawing document | A corpus document that contains a C4 diagram and whose type the profile registers as declaring a C4 element. The C4 checks resolve the nodes and relationship statements of its diagrams. | drawing document, alone |
 | C4 element | A system, container, component, or module, declared by its own blueprint or by a record block, or drawn on a C4 diagram. | element, alone |
 | C4 model | The C4 elements a corpus declares and the relationships among them, as data. A diagram is a view drawn from it. | rendering, for building the model |
+| C4 relationship statement | A relationship statement on a C4 diagram: `Rel`, `BiRel`, or one of their directional forms. A directional statement is resolved when each endpoint names exactly one C4 element, and unresolved otherwise; a `BiRel` states no direction, so it is neither. A relationship in the C4 model groups the resolved statements that share a source, target, and label; an unresolved statement never becomes a relationship. | drawing |
 | Components section | The section of a Container or Module Blueprint that declares each component it composes. | roster |
 | corpus | The spec documents that the index includes. A document the index includes is a corpus document. | member, corpus member |
 | criterion qualifier | A criterion property or verification level that a Gherkin tag can set, as the generated schema declares it. | |

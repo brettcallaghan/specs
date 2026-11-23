@@ -820,8 +820,9 @@ func (e C4View) String() string {
 	return string(e)
 }
 
-// One place a relationship was drawn.
-type C4Drawing struct {
+// One C4 relationship statement: a `Rel` statement on a diagram, one place a
+// relationship was drawn.
+type C4RelationshipStatement struct {
 	// Repository-relative path of the document holding the diagram.
 	Path string `json:"path"`
 	// The `Rel` statement as written.
@@ -835,33 +836,33 @@ type C4Drawing struct {
 	TargetAlias string `json:"target_alias"`
 }
 
-func (v *C4Drawing) UnmarshalJSON(data []byte) error {
+func (v *C4RelationshipStatement) UnmarshalJSON(data []byte) error {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
 	if m, ok := raw["path"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Drawing: required field \"path\" is missing or null")
+		return fmt.Errorf("C4RelationshipStatement: required field \"path\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Path); err != nil {
 		return prefixField("path", err)
 	}
 	if m, ok := raw["span"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Drawing: required field \"span\" is missing or null")
+		return fmt.Errorf("C4RelationshipStatement: required field \"span\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Span); err != nil {
 		return prefixField("span", err)
 	}
 	if m, ok := raw["view"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Drawing: required field \"view\" is missing or null")
+		return fmt.Errorf("C4RelationshipStatement: required field \"view\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.View); err != nil {
 		return prefixField("view", err)
 	}
 	if m, ok := raw["source_alias"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Drawing: required field \"source_alias\" is missing or null")
+		return fmt.Errorf("C4RelationshipStatement: required field \"source_alias\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.SourceAlias); err != nil {
 		return prefixField("source_alias", err)
 	}
 	if m, ok := raw["target_alias"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Drawing: required field \"target_alias\" is missing or null")
+		return fmt.Errorf("C4RelationshipStatement: required field \"target_alias\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.TargetAlias); err != nil {
 		return prefixField("target_alias", err)
 	}
@@ -876,7 +877,7 @@ func (v *C4Drawing) UnmarshalJSON(data []byte) error {
 		}
 	}
 	if unknown != "" {
-		return &unknownFieldError{Struct: "C4Drawing", Field: unknown}
+		return &unknownFieldError{Struct: "C4RelationshipStatement", Field: unknown}
 	}
 	return nil
 }
@@ -1029,11 +1030,11 @@ func (v *C4ContractLink) UnmarshalJSON(data []byte) error {
 //
 // One relationship may have been drawn in several diagrams — a parent's
 // internal view and a child's context view show the same edge — and is
-// recorded once with every drawing listed. Two drawings are the same
+// recorded once with every statement listed. Two statements are the same
 // relationship when source, target and description agree. Where they
 // disagree on anything else, the relationship carries the values of the
-// drawing that sorts first by path and then by span, and the
-// `c4/drawing-conflict` rule reports the disagreement.
+// statement that sorts first by path and then by span, and the
+// `c4/statement-conflict` rule reports the disagreement.
 type C4Relationship struct {
 	// Slug of the element that depends.
 	Source Citation `json:"source"`
@@ -1051,8 +1052,8 @@ type C4Relationship struct {
 	Contract    *C4ContractLink `json:"contract,omitempty"`
 	// Tags in the order written, with the reserved ones removed.
 	Tags *[]string `json:"tags,omitempty"`
-	// Every place this relationship was drawn, in document order.
-	DrawnIn []C4Drawing `json:"drawn_in"`
+	// Every statement of this relationship, in document order.
+	Statements []C4RelationshipStatement `json:"statements"`
 }
 
 func (v *C4Relationship) UnmarshalJSON(data []byte) error {
@@ -1105,15 +1106,15 @@ func (v *C4Relationship) UnmarshalJSON(data []byte) error {
 			return prefixField("tags", err)
 		}
 	}
-	if m, ok := raw["drawn_in"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Relationship: required field \"drawn_in\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.DrawnIn); err != nil {
-		return prefixField("drawn_in", err)
+	if m, ok := raw["statements"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Relationship: required field \"statements\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Statements); err != nil {
+		return prefixField("statements", err)
 	}
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "source", "target", "level", "description", "technology", "detail", "interaction", "contract", "tags", "drawn_in":
+		case "source", "target", "level", "description", "technology", "detail", "interaction", "contract", "tags", "statements":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -1133,7 +1134,7 @@ const (
 	// An endpoint is a `Person` or an `_Ext` node.
 	C4ExclusionReasonExternalEndpoint C4ExclusionReason = "external_endpoint"
 	// An endpoint is a `Db` or `Queue` node naming no element in scope: a
-	// data store the drawing element uses, which the C4 standard gives no
+	// data store the diagram's own element uses, which the C4 standard gives no
 	// blueprint of its own.
 	C4ExclusionReasonPassiveStore C4ExclusionReason = "passive_store"
 	// An endpoint's label matches no element in scope.
@@ -3265,7 +3266,7 @@ func (v *FindingC4UnreadDiagram) UnmarshalJSON(data []byte) error {
 }
 
 // A C4 diagram node whose label resolves to no element in the scope of its
-// drawing document, or to more than one.
+// C4 drawing document, or to more than one.
 //
 // One shape for both defects, told apart by the rule that raised the
 // finding. The alias and the label are both carried: the alias is what the
@@ -3367,48 +3368,48 @@ func (v *FindingC4Relationship) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Two drawings of one relationship that disagree in technology,
+// Two statements of one relationship that disagree in technology,
 // description or tags.
 //
-// Reported at the drawing that sorts second by path and then by span,
-// naming the first. The other drawing's span is carried beside its path
+// Reported at the statement that sorts second by path and then by span,
+// naming the first. The other statement's span is carried beside its path
 // because a blueprint holds several diagrams and an arrow is not a heading:
 // without the span the reader is told which file to open and left to search
 // it.
-type FindingC4DrawingConflict struct {
-	// The alias of the relationship's source in this drawing.
+type FindingC4StatementConflict struct {
+	// The alias of the relationship's source in this statement.
 	Source string `json:"source"`
-	// The alias of the relationship's target in this drawing.
+	// The alias of the relationship's target in this statement.
 	Target string `json:"target"`
-	// The other drawing's path, relative to the repository root and written
+	// The other statement's path, relative to the repository root and written
 	// with forward slashes on every platform.
 	OtherPath string `json:"other_path"`
-	// Where in that file the other drawing's statement is written.
+	// Where in that file the other statement is written.
 	OtherSpan Span `json:"other_span"`
 }
 
-func (v *FindingC4DrawingConflict) UnmarshalJSON(data []byte) error {
+func (v *FindingC4StatementConflict) UnmarshalJSON(data []byte) error {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
 	if m, ok := raw["source"]; !ok || string(m) == "null" {
-		return fmt.Errorf("FindingC4DrawingConflict: required field \"source\" is missing or null")
+		return fmt.Errorf("FindingC4StatementConflict: required field \"source\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Source); err != nil {
 		return prefixField("source", err)
 	}
 	if m, ok := raw["target"]; !ok || string(m) == "null" {
-		return fmt.Errorf("FindingC4DrawingConflict: required field \"target\" is missing or null")
+		return fmt.Errorf("FindingC4StatementConflict: required field \"target\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Target); err != nil {
 		return prefixField("target", err)
 	}
 	if m, ok := raw["other_path"]; !ok || string(m) == "null" {
-		return fmt.Errorf("FindingC4DrawingConflict: required field \"other_path\" is missing or null")
+		return fmt.Errorf("FindingC4StatementConflict: required field \"other_path\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.OtherPath); err != nil {
 		return prefixField("other_path", err)
 	}
 	if m, ok := raw["other_span"]; !ok || string(m) == "null" {
-		return fmt.Errorf("FindingC4DrawingConflict: required field \"other_span\" is missing or null")
+		return fmt.Errorf("FindingC4StatementConflict: required field \"other_span\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.OtherSpan); err != nil {
 		return prefixField("other_span", err)
 	}
@@ -3423,7 +3424,7 @@ func (v *FindingC4DrawingConflict) UnmarshalJSON(data []byte) error {
 		}
 	}
 	if unknown != "" {
-		return &unknownFieldError{Struct: "FindingC4DrawingConflict", Field: unknown}
+		return &unknownFieldError{Struct: "FindingC4StatementConflict", Field: unknown}
 	}
 	return nil
 }
@@ -3558,7 +3559,7 @@ func (FindingC4Parse) isFindingDetailVariant()                {}
 func (FindingC4UnreadDiagram) isFindingDetailVariant()        {}
 func (FindingC4Node) isFindingDetailVariant()                 {}
 func (FindingC4Relationship) isFindingDetailVariant()         {}
-func (FindingC4DrawingConflict) isFindingDetailVariant()      {}
+func (FindingC4StatementConflict) isFindingDetailVariant()    {}
 func (FindingC4Contract) isFindingDetailVariant()             {}
 func (FindingC4TagSeparator) isFindingDetailVariant()         {}
 
@@ -3666,7 +3667,7 @@ func NewFindingDetailC4RelationshipDefect(v FindingC4Relationship) FindingDetail
 	return FindingDetail{Value: v}
 }
 
-func NewFindingDetailC4DrawingConflict(v FindingC4DrawingConflict) FindingDetail {
+func NewFindingDetailC4StatementConflict(v FindingC4StatementConflict) FindingDetail {
 	return FindingDetail{Value: v}
 }
 
@@ -3808,8 +3809,8 @@ func (u FindingDetail) AsC4RelationshipDefect() (FindingC4Relationship, bool) {
 	return v, ok
 }
 
-func (u FindingDetail) AsC4DrawingConflict() (FindingC4DrawingConflict, bool) {
-	v, ok := u.Value.(FindingC4DrawingConflict)
+func (u FindingDetail) AsC4StatementConflict() (FindingC4StatementConflict, bool) {
+	v, ok := u.Value.(FindingC4StatementConflict)
 	return v, ok
 }
 
@@ -3906,8 +3907,8 @@ func (u FindingDetail) MarshalJSON() ([]byte, error) {
 	case FindingC4Relationship:
 		tag = "c4-relationship"
 		payload, err = json.Marshal(v)
-	case FindingC4DrawingConflict:
-		tag = "c4-drawing-conflict"
+	case FindingC4StatementConflict:
+		tag = "c4-statement-conflict"
 		payload, err = json.Marshal(v)
 	case FindingC4Contract:
 		tag = "c4-contract"
@@ -4135,8 +4136,8 @@ func (u *FindingDetail) UnmarshalJSON(data []byte) error {
 		}
 		u.Value = v
 		return nil
-	case "c4-drawing-conflict":
-		var v FindingC4DrawingConflict
+	case "c4-statement-conflict":
+		var v FindingC4StatementConflict
 		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
@@ -8208,8 +8209,8 @@ const (
 	RuleIdC4Bidirectional RuleId = "c4/bidirectional"
 	// Error. One diagram draws two relationships with the same source and target, after `Rel_Back` is normalized.
 	RuleIdC4DuplicateEdge RuleId = "c4/duplicate-edge"
-	// Warning. One relationship is drawn in two places with a different technology, description, or tags. The finding names the other drawing.
-	RuleIdC4DrawingConflict RuleId = "c4/drawing-conflict"
+	// Warning. One relationship is drawn in two places with a different technology, description, or tags. The finding names the other statement.
+	RuleIdC4StatementConflict RuleId = "c4/statement-conflict"
 	// Error. A relationship is tagged both `sync` and `async`.
 	RuleIdC4InteractionConflict RuleId = "c4/interaction-conflict"
 	// Error. A `contract:` tag names a slug that no Contract declares.
@@ -8238,7 +8239,7 @@ const (
 
 func (e RuleId) MarshalJSON() ([]byte, error) {
 	switch e {
-	case RuleIdFrontmatterParse, RuleIdFrontmatterSchema, RuleIdFrontmatterMissingProperty, RuleIdFrontmatterInlineComment, RuleIdSlugPatternMismatch, RuleIdSlugDuplicate, RuleIdCorpusEmpty, RuleIdReferenceUnresolved, RuleIdReferenceUnresolvedAnchor, RuleIdReferenceAmbiguousAnchor, RuleIdReferenceRetiredTarget, RuleIdReferencePairingIncomplete, RuleIdReferenceTypeMismatch, RuleIdLinksUnmapped, RuleIdLinksUnresolved, RuleIdGherkinParse, RuleIdGherkinFeatureUntagged, RuleIdGherkinCriterionUntagged, RuleIdGherkinIdentifierMalformed, RuleIdGherkinIdentifierMultiple, RuleIdGherkinIdentifierDuplicate, RuleIdGherkinCriterionCodeMismatch, RuleIdGherkinOwnerMissing, RuleIdGherkinOwnerMismatch, RuleIdGherkinOwnerUnresolved, RuleIdGherkinTagUnregistered, RuleIdGherkinCriterionEmpty, RuleIdGherkinScenarioProse, RuleIdGherkinExamplesPartiallyTagged, RuleIdC4Parse, RuleIdC4UndeclaredNode, RuleIdC4AmbiguousNode, RuleIdC4Bidirectional, RuleIdC4DuplicateEdge, RuleIdC4DrawingConflict, RuleIdC4InteractionConflict, RuleIdC4ContractUnresolved, RuleIdC4ContractMismatch, RuleIdC4TagSeparator, RuleIdConfigSchema, RuleIdConfigMissingProperty, RuleIdConfigUndeclaredKey, RuleIdConfigUnknownProfile, RuleIdConfigInvalidRegistration, RuleIdLinkmapInvalid, RuleIdLinkmapMissingPath, RuleIdDocumentUnreadable:
+	case RuleIdFrontmatterParse, RuleIdFrontmatterSchema, RuleIdFrontmatterMissingProperty, RuleIdFrontmatterInlineComment, RuleIdSlugPatternMismatch, RuleIdSlugDuplicate, RuleIdCorpusEmpty, RuleIdReferenceUnresolved, RuleIdReferenceUnresolvedAnchor, RuleIdReferenceAmbiguousAnchor, RuleIdReferenceRetiredTarget, RuleIdReferencePairingIncomplete, RuleIdReferenceTypeMismatch, RuleIdLinksUnmapped, RuleIdLinksUnresolved, RuleIdGherkinParse, RuleIdGherkinFeatureUntagged, RuleIdGherkinCriterionUntagged, RuleIdGherkinIdentifierMalformed, RuleIdGherkinIdentifierMultiple, RuleIdGherkinIdentifierDuplicate, RuleIdGherkinCriterionCodeMismatch, RuleIdGherkinOwnerMissing, RuleIdGherkinOwnerMismatch, RuleIdGherkinOwnerUnresolved, RuleIdGherkinTagUnregistered, RuleIdGherkinCriterionEmpty, RuleIdGherkinScenarioProse, RuleIdGherkinExamplesPartiallyTagged, RuleIdC4Parse, RuleIdC4UndeclaredNode, RuleIdC4AmbiguousNode, RuleIdC4Bidirectional, RuleIdC4DuplicateEdge, RuleIdC4StatementConflict, RuleIdC4InteractionConflict, RuleIdC4ContractUnresolved, RuleIdC4ContractMismatch, RuleIdC4TagSeparator, RuleIdConfigSchema, RuleIdConfigMissingProperty, RuleIdConfigUndeclaredKey, RuleIdConfigUnknownProfile, RuleIdConfigInvalidRegistration, RuleIdLinkmapInvalid, RuleIdLinkmapMissingPath, RuleIdDocumentUnreadable:
 		return json.Marshal(string(e))
 	}
 	return nil, fmt.Errorf("RuleId: unknown value %q", string(e))
@@ -8250,7 +8251,7 @@ func (e *RuleId) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	switch RuleId(s) {
-	case RuleIdFrontmatterParse, RuleIdFrontmatterSchema, RuleIdFrontmatterMissingProperty, RuleIdFrontmatterInlineComment, RuleIdSlugPatternMismatch, RuleIdSlugDuplicate, RuleIdCorpusEmpty, RuleIdReferenceUnresolved, RuleIdReferenceUnresolvedAnchor, RuleIdReferenceAmbiguousAnchor, RuleIdReferenceRetiredTarget, RuleIdReferencePairingIncomplete, RuleIdReferenceTypeMismatch, RuleIdLinksUnmapped, RuleIdLinksUnresolved, RuleIdGherkinParse, RuleIdGherkinFeatureUntagged, RuleIdGherkinCriterionUntagged, RuleIdGherkinIdentifierMalformed, RuleIdGherkinIdentifierMultiple, RuleIdGherkinIdentifierDuplicate, RuleIdGherkinCriterionCodeMismatch, RuleIdGherkinOwnerMissing, RuleIdGherkinOwnerMismatch, RuleIdGherkinOwnerUnresolved, RuleIdGherkinTagUnregistered, RuleIdGherkinCriterionEmpty, RuleIdGherkinScenarioProse, RuleIdGherkinExamplesPartiallyTagged, RuleIdC4Parse, RuleIdC4UndeclaredNode, RuleIdC4AmbiguousNode, RuleIdC4Bidirectional, RuleIdC4DuplicateEdge, RuleIdC4DrawingConflict, RuleIdC4InteractionConflict, RuleIdC4ContractUnresolved, RuleIdC4ContractMismatch, RuleIdC4TagSeparator, RuleIdConfigSchema, RuleIdConfigMissingProperty, RuleIdConfigUndeclaredKey, RuleIdConfigUnknownProfile, RuleIdConfigInvalidRegistration, RuleIdLinkmapInvalid, RuleIdLinkmapMissingPath, RuleIdDocumentUnreadable:
+	case RuleIdFrontmatterParse, RuleIdFrontmatterSchema, RuleIdFrontmatterMissingProperty, RuleIdFrontmatterInlineComment, RuleIdSlugPatternMismatch, RuleIdSlugDuplicate, RuleIdCorpusEmpty, RuleIdReferenceUnresolved, RuleIdReferenceUnresolvedAnchor, RuleIdReferenceAmbiguousAnchor, RuleIdReferenceRetiredTarget, RuleIdReferencePairingIncomplete, RuleIdReferenceTypeMismatch, RuleIdLinksUnmapped, RuleIdLinksUnresolved, RuleIdGherkinParse, RuleIdGherkinFeatureUntagged, RuleIdGherkinCriterionUntagged, RuleIdGherkinIdentifierMalformed, RuleIdGherkinIdentifierMultiple, RuleIdGherkinIdentifierDuplicate, RuleIdGherkinCriterionCodeMismatch, RuleIdGherkinOwnerMissing, RuleIdGherkinOwnerMismatch, RuleIdGherkinOwnerUnresolved, RuleIdGherkinTagUnregistered, RuleIdGherkinCriterionEmpty, RuleIdGherkinScenarioProse, RuleIdGherkinExamplesPartiallyTagged, RuleIdC4Parse, RuleIdC4UndeclaredNode, RuleIdC4AmbiguousNode, RuleIdC4Bidirectional, RuleIdC4DuplicateEdge, RuleIdC4StatementConflict, RuleIdC4InteractionConflict, RuleIdC4ContractUnresolved, RuleIdC4ContractMismatch, RuleIdC4TagSeparator, RuleIdConfigSchema, RuleIdConfigMissingProperty, RuleIdConfigUndeclaredKey, RuleIdConfigUnknownProfile, RuleIdConfigInvalidRegistration, RuleIdLinkmapInvalid, RuleIdLinkmapMissingPath, RuleIdDocumentUnreadable:
 		*e = RuleId(s)
 		return nil
 	}

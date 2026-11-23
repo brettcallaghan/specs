@@ -30,7 +30,7 @@
 - [FindingC4UnreadDiagram](#findingc4unreaddiagram)
 - [FindingC4Node](#findingc4node)
 - [FindingC4Relationship](#findingc4relationship)
-- [FindingC4DrawingConflict](#findingc4drawingconflict)
+- [FindingC4StatementConflict](#findingc4statementconflict)
 - [FindingC4Contract](#findingc4contract)
 - [FindingC4TagSeparator](#findingc4tagseparator)
 - [FindingDetail](#findingdetail)
@@ -474,7 +474,7 @@ reader can tell a deliberate non-C4 diagram from a misspelt C4 header.
 ## FindingC4Node
 
 A C4 diagram node whose label resolves to no element in the scope of its
-drawing document, or to more than one.
+C4 drawing document, or to more than one.
 
 One shape for both defects, told apart by the rule that raised the
 finding. The alias and the label are both carried: the alias is what the
@@ -506,23 +506,23 @@ as written.
 | target | String | The alias of the relationship's target, in dependency direction; for a `BiRel`, its second alias. |
 
 
-## FindingC4DrawingConflict
+## FindingC4StatementConflict
 
-Two drawings of one relationship that disagree in technology,
+Two statements of one relationship that disagree in technology,
 description or tags.
 
-Reported at the drawing that sorts second by path and then by span,
-naming the first. The other drawing's span is carried beside its path
+Reported at the statement that sorts second by path and then by span,
+naming the first. The other statement's span is carried beside its path
 because a blueprint holds several diagrams and an arrow is not a heading:
 without the span the reader is told which file to open and left to search
 it.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| source | String | The alias of the relationship's source in this drawing. |
-| target | String | The alias of the relationship's target in this drawing. |
-| other_path | String | The other drawing's path, relative to the repository root and written with forward slashes on every platform. |
-| other_span | [Span](index.md#span) | Where in that file the other drawing's statement is written. |
+| source | String | The alias of the relationship's source in this statement. |
+| target | String | The alias of the relationship's target in this statement. |
+| other_path | String | The other statement's path, relative to the repository root and written with forward slashes on every platform. |
+| other_span | [Span](index.md#span) | Where in that file the other statement is written. |
 
 
 ## FindingC4Contract
@@ -598,7 +598,7 @@ identifier, the severity, the path, the span and the message.
 | "c4-unread-diagram" | C4UnreadDiagram | A mermaid block whose diagram type the C4 parser does not read. |
 | "c4-node" | C4Node | A C4 node resolving to no element in scope, or to several. |
 | "c4-relationship" | C4RelationshipDefect | A C4 relationship drawn both ways, drawn twice, or tagged sync and async. |
-| "c4-drawing-conflict" | C4DrawingConflict | Two drawings of one relationship that disagree. |
+| "c4-statement-conflict" | C4StatementConflict | Two statements of one relationship that disagree. |
 | "c4-contract" | C4Contract | A contract tag naming no contract, or one the endpoints do not declare. |
 | "c4-tag-separator" | C4TagSeparator | A relationship tags argument joined with a comma. |
 

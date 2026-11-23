@@ -188,7 +188,7 @@ const (
 	// which is not the claim that it was looked inside and found sound.
 	RuleC4Parse = specmodel.RuleIdC4Parse
 	// RuleC4UndeclaredNode covers a node, not an external C4 element, that
-	// resolves to no C4 element in the scope of its drawing document and is
+	// resolves to no C4 element in the scope of its C4 drawing document and is
 	// not a passive store.
 	RuleC4UndeclaredNode = specmodel.RuleIdC4UndeclaredNode
 	// RuleC4AmbiguousNode covers a node whose label matches the entity
@@ -201,10 +201,10 @@ const (
 	// diagram with the same source and target after `Rel_Back`
 	// normalisation.
 	RuleC4DuplicateEdge = specmodel.RuleIdC4DuplicateEdge
-	// RuleC4DrawingConflict covers two drawings of one relationship,
+	// RuleC4StatementConflict covers two statements of one relationship,
 	// anywhere in the corpus, that differ in technology, description or
 	// tags.
-	RuleC4DrawingConflict = specmodel.RuleIdC4DrawingConflict
+	RuleC4StatementConflict = specmodel.RuleIdC4StatementConflict
 	// RuleC4InteractionConflict covers a relationship tagged both `sync`
 	// and `async`.
 	RuleC4InteractionConflict = specmodel.RuleIdC4InteractionConflict
@@ -908,7 +908,7 @@ func C4UnreadDiagram(path string, at specmodel.Span, diagramType string) specmod
 }
 
 // C4UndeclaredNode reports a node, not an external C4 element, whose label
-// names no C4 element in the scope of its drawing document and which is not
+// names no C4 element in the scope of its C4 drawing document and which is not
 // a passive store (AC-C4-DIAG-002.3).
 func C4UndeclaredNode(path string, at specmodel.Span, alias, label string) specmodel.Finding {
 	return specmodel.Finding{
@@ -981,20 +981,20 @@ func c4Relationship(rule specmodel.RuleId, severity specmodel.Severity, path str
 	}
 }
 
-// C4DrawingConflict reports a drawing of a relationship that differs in
-// technology, description or tags from the relationship's first drawing
+// C4StatementConflict reports a statement of a relationship that differs in
+// technology, description or tags from the relationship's first statement
 // by path and then by span, which it names (AC-C4-DIAG-003.3). It is a
-// warning: the relationship is declared, and which drawing is right is
+// warning: the relationship is declared, and which statement is right is
 // the author's call.
-func C4DrawingConflict(path string, at specmodel.Span, source, target, otherPath string, otherSpan specmodel.Span, differs string) specmodel.Finding {
+func C4StatementConflict(path string, at specmodel.Span, source, target, otherPath string, otherSpan specmodel.Span, differs string) specmodel.Finding {
 	return specmodel.Finding{
-		Rule:     RuleC4DrawingConflict,
+		Rule:     RuleC4StatementConflict,
 		Severity: SeverityWarning,
 		Path:     path,
 		Span:     at,
-		Message: fmt.Sprintf("%s -> %s differs in %s from its drawing at %s:%d",
+		Message: fmt.Sprintf("%s -> %s differs in %s from its statement at %s:%d",
 			source, target, differs, otherPath, otherSpan.StartLine),
-		Detail: specmodel.NewFindingDetailC4DrawingConflict(specmodel.FindingC4DrawingConflict{
+		Detail: specmodel.NewFindingDetailC4StatementConflict(specmodel.FindingC4StatementConflict{
 			Source:    source,
 			Target:    target,
 			OtherPath: otherPath,
