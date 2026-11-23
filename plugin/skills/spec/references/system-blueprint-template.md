@@ -104,7 +104,8 @@ This is a living document. Update it when the architecture changes — a
 system blueprint describes the system as it is, not as it was planned.
 Remove all HTML comment blocks after completing each section. WHILE status
 is draft, the Open questions section MAY contain open questions or the
-literal text "None."; remove the section when the document becomes active.
+literal text "None."; remove the section when the document leaves
+draft.
 -->
 
 # <System Name>
@@ -188,12 +189,12 @@ How the system is built to stay sound as its containers change.
 How the containers interact and stay consistent, for example
 Event-Driven Architecture, with a Saga for each transaction that spans
 containers. Draw on the universal guide and the systems guide. Name each
-pattern with its progenitor, the roles its containers play, and the
-present need it serves. State what it rules out as an invariant
+pattern with one progenitor and its topic, the roles its containers play,
+and the present need it serves. State what it rules out as an invariant
 ("Name each pattern with its progenitor, constraint, and need").
 -->
 
-<Pattern> (<progenitor>) — <the roles its containers play>; <the
+<Pattern> (<progenitor>, <topic>) — <the roles its containers play>; <the
 present need it serves>.
 
 ### Invariants
@@ -201,9 +202,13 @@ present need it serves>.
 <!--
 EARS statements that hold across the system, each ending "Enforced by:
 <test, check, lint, or review only>" ("Say what enforces each invariant").
+Where a statement needs a reason, put "Rationale:" between the statement
+and "Enforced by:" ("Keep a statement and its reasons together").
 -->
 
 The system SHALL <invariant that holds across containers>.
+Rationale: <why the rule exists, only where a reader would otherwise
+misapply or remove it>.
 Enforced by: <test, check, lint, or review only>.
 
 ### Extension points

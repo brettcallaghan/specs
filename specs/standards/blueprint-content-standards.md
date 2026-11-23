@@ -79,10 +79,22 @@ that tests cite. Element-to-AC traceability comes from test citations
 ### Say what enforces each invariant
 
 Each invariant SHALL end with "Enforced by:" naming a test, a check, a lint,
-or "review only".
+or "review only". A named test SHALL check the invariant it is cited for.
 
 **Rationale:** Readers know which rules to trust and which to verify. "Review
-only" marks a missing test.
+only" marks a missing test, and a test that checks something else hides one.
+
+---
+
+### Keep a statement and its reasons together
+
+WHEN a statement has a rationale or an "Enforced by:" line, the blueprint
+SHALL place them directly after the statement, in this order: the
+statement, its rationale, then "Enforced by:". No other statement SHALL come
+between them.
+
+**Rationale:** A reason separated from its rule is read as belonging to its
+neighbor, and moves without it when the rule is edited.
 
 ---
 
@@ -119,10 +131,12 @@ restated ([[c4-standards]]).
 
 ### Name each pattern with its progenitor, constraint, and need
 
-A blueprint SHALL name each pattern it adopts, with its progenitor, as the
-universal guide ([[guide-design-principles]]) or the level guide for the
-blueprint's C4 level names it. A pattern the guides don't list SHALL be named
-with its own progenitor. For each pattern, the blueprint SHALL state:
+A blueprint SHALL name each pattern it adopts with one progenitor, the source
+and the topic within it, as the universal guide ([[guide-design-principles]])
+or the level guide for the blueprint's C4 level names it. A pattern the guides
+don't list SHALL be named with the one source that fixes the meaning the
+blueprint intends, and its topic. For each pattern, the blueprint SHALL
+state:
 
 - The constraint the pattern implies and what it rules out, as an EARS
   invariant that ends with "Enforced by:"
@@ -131,9 +145,10 @@ with its own progenitor. For each pattern, the blueprint SHALL state:
   stated extension point. An anticipated need doesn't qualify.
 
 **Rationale:** A name alone drifts: "Decorator" is also Python syntax, and
-"Repository" is confused with a data access object. The progenitor fixes the
-meaning, and the constraint is what a reviewer or a check can verify. The
-need keeps a pattern from being adopted for its own sake.
+"Repository" is confused with a data access object. One progenitor and its
+topic fix the meaning; a second progenitor reintroduces the ambiguity. The
+constraint is what a reviewer or a check can verify. The need keeps a pattern
+from being adopted for its own sake.
 
 ---
 
@@ -161,6 +176,17 @@ condition says when the slow suite is owed.
 ---
 
 ## Rules for Component and Module Blueprints
+
+### Promote a component that has its own invariants
+
+WHEN a component has an invariant that its host blueprint doesn't state, the
+component SHALL have its own Component Blueprint.
+
+**Rationale:** An invariant needs a Design section and an "Enforced by:"
+line, and a host's Components entry has room for neither. Left in the entry,
+the invariant is either dropped or restated in prose nobody checks.
+
+---
 
 ### Own a disjoint branch of the source tree
 
@@ -198,13 +224,15 @@ Run this audit on an architecture blueprint before you set it to
 `ready-for-review`:
 
 1. Run `specs check <path>` and fix what it reports.
-2. Classify each statement as a rule, a fact, a behavior, or an edge. Keep
-   the rules. Replace each fact with a link to the code, move each behavior
-   to the FRD, and leave each edge to the host's blueprint.
+2. Classify each statement as a rule, a rationale, a fact, a behavior, or an
+   edge. Keep the rules, and keep each rationale with the rule it explains.
+   Replace each fact with a link to the code, move each behavior to the FRD,
+   and leave each edge to the host's blueprint.
 3. Apply every rule in each section whose heading covers the blueprint.
 4. Confirm that the extension points and an "Enforced by:" note on each
-   invariant exist. In a Component or Module Blueprint, confirm the Hides
-   section too.
+   invariant exist. Open each test an "Enforced by:" note names, and confirm
+   that it checks that invariant. In a Component or Module Blueprint, confirm
+   the Hides section too.
 5. Confirm that every section the template requires is present, and that
    every backticked path names a tracked file.
 6. For each named pattern, ask what breaks if you remove it. Remove a pattern

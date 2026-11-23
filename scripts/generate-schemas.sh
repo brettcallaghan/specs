@@ -40,7 +40,7 @@ strata build "$SRC" --target ast --output "$WORK/ast" --error-format json
 
 # 2. Bundled JSON Schema covering every type. The profile registers each
 #    document type against a JSON Pointer into this bundle.
-strata build "$SRC" --target json-schema --output "$WORK/schema"
+strata build "$SRC" --target json-schema --layout single-file --output "$WORK/schema"
 mv "$WORK/schema/SpecModel.schema.json" "$WORK/schema/spec-model.schema.json"
 
 # 2.5. Sanity assertion: every document-type struct must retain a non-empty
@@ -99,7 +99,7 @@ if broken:
         "error: generated schema has document type(s) with an empty or "
         f"missing 'required' list: {', '.join(broken)}\n"
         "  Struct inheritance was dropped from the emitted schema while strata "
-        "exited 0. Check `strata --version` is v0.8.0 or later, and reinstall "
+        "exited 0. Check `strata --version` is v0.9.0 or later, and reinstall "
         "with scripts/install-strata-cli.sh.",
         file=sys.stderr,
     )
@@ -147,7 +147,7 @@ var SpecsConfig []byte
 GOFILE
 
 # 4. Go structs for the CLI and its modules.
-strata build "$SRC" --target go --output "$WORK/go"
+strata build "$SRC" --target go --layout single-file --output "$WORK/go"
 
 # 5. Markdown reference shipped with the plugin, describing the shape of
 #    frontmatter to anyone authoring a document by hand.

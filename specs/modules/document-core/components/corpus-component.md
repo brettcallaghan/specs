@@ -119,7 +119,7 @@ profile in `Options`.
 
 WHEN `CheckFor` is to report findings the named document's change caused
 elsewhere, the caller SHALL pass the slugs that document declared at the
-comparison base.
+base revision.
 
 ## Design
 

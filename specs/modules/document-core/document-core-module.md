@@ -190,7 +190,7 @@ WHEN a corpus operation starts, the caller SHALL supply one `Profile` whose
 
 WHEN the caller asks a single-document check for findings its change caused
 in other documents, the caller SHALL supply the slugs that document declared
-at the comparison base.
+at the base revision.
 
 WHEN a caller reads a base revision, the `git` executable SHALL be runnable
 on `PATH`.

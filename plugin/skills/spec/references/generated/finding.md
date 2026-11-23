@@ -219,7 +219,7 @@ an author what to cite instead.
 
 ## FindingIncompletePairing
 
-One half of a paired relationship the counterpart does not declare.
+One half of a paired reference the counterpart does not declare.
 
 Reported against both documents, each carrying this same detail, so that
 checking either one surfaces the half-built edge and the two copies
@@ -582,7 +582,7 @@ identifier, the severity, the path, the span and the message.
 | "unverified" | Unverified | A requested check that could not run. |
 | "unresolved-reference" | UnresolvedReference | A reference whose slug matches no corpus member. |
 | "retired-target" | RetiredTarget | A reference from a live document to a retired one. |
-| "incomplete-pairing" | IncompletePairing | A paired relationship declared from one end only. |
+| "incomplete-pairing" | IncompletePairing | A paired reference declared from one end only. |
 | "reference-type" | ReferenceType | A typed reference whose target declares a different document type. |
 | "unmapped-citation" | UnmappedCitation | A citation whose slug names a corpus document the link map does not cover. |
 | "unresolved-citation" | UnresolvedCitation | A citation whose slug names no corpus document. |

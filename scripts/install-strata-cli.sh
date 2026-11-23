@@ -8,7 +8,7 @@
 #
 # Usage:
 #   scripts/install-strata-cli.sh            # latest release
-#   scripts/install-strata-cli.sh v0.8.0     # a specific tag
+#   scripts/install-strata-cli.sh v0.9.0     # a specific tag
 #
 # Environment:
 #   STRATA_ACCESS_TOKEN  GitHub token with read access to strata-lang/strata.

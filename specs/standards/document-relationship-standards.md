@@ -3,7 +3,7 @@ title: Document Relationship Standards
 description: How formal relationships between specification documents are
   declared — declare once and let the index derive the reverse, when a
   frontmatter relationship property earns its maintenance cost, which end
-  of a relationship retains the edge, and when a paired declaration is
+  of a relationship retains the edge, and when a paired reference is
   justified
 slug: document-relationship-standards
 type: standards
@@ -172,10 +172,10 @@ outward list on the module is correct.
 
 ---
 
-## Paired declarations
+## Paired references
 
-A profile SHALL register a paired relationship (one the tool requires
-from both ends and reports as broken when only one is present) only for a
+A profile SHALL register a paired reference (one the tool requires from
+both ends and reports as broken when only one is present) only for a
 relationship a reader of one document must see **without consulting the
 index**.
 

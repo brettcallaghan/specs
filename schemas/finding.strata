@@ -227,7 +227,7 @@ struct FindingRetiredTarget {
 }
 
 """
-One half of a paired relationship the counterpart does not declare.
+One half of a paired reference the counterpart does not declare.
 
 Reported against both documents, each carrying this same detail, so that
 checking either one surfaces the half-built edge and the two copies
@@ -723,7 +723,7 @@ union FindingDetail {
   """A reference from a live document to a retired one."""
   @tag("retired-target") RetiredTarget: FindingRetiredTarget
 
-  """A paired relationship declared from one end only."""
+  """A paired reference declared from one end only."""
   @tag("incomplete-pairing") IncompletePairing: FindingIncompletePairing
 
   """A typed reference whose target declares a different document type."""

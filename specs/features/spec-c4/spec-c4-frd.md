@@ -266,7 +266,7 @@ Feature: Relationships From Blueprint Diagrams
 
     Examples:
       | condition                                           | reason            |
-      | an endpoint is an external node                     | external_endpoint |
+      | an endpoint is an external C4 element               | external_endpoint |
       | an endpoint is a passive store                      | passive_store     |
       | an endpoint's label matches no element in scope     | undeclared_node   |
       | an endpoint's label matches two elements in scope   | ambiguous_node    |
