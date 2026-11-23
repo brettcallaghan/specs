@@ -104,8 +104,8 @@ specification text.
 ## Tags
 
 Tags address every requirement and criterion. Give each `Feature` and each
-criterion exactly one identifier tag, and add qualifier tags (prohibition,
-manual verification, test level) as your conventions define them.
+criterion exactly one identifier tag, and add Gherkin qualifier tags
+(prohibition, manual verification, test level) as your conventions define them.
 
 **Derive a criterion's identifier from its feature's.** `AC-CHK-003.1`
 belongs to `REQ-CHK-003` without any lookup. Tags permit `/`, `.`, and `:`,
@@ -241,7 +241,7 @@ A checker can verify structure and identifiers. Review these by reading,
 because no parser sees intent:
 
 - [ ] Each `Examples` block meant as its own criterion carries its own tag.
-- [ ] Each criterion carries the qualifier tags that apply to it.
+- [ ] Each criterion carries the Gherkin qualifier tags that apply to it.
 - [ ] No step was shortened to fit a margin.
 - [ ] None of the mistakes under Seven ways to break a document silently
   appears.

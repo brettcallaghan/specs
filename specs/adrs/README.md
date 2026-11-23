@@ -30,6 +30,7 @@ This directory contains Architecture Decision Records documenting significant de
 - [ADR-032: Architecture Blueprints State Rules, Not Code Facts](adr-032-blueprints-state-rules-not-code-facts.md) — a blueprint states what must stay true and links the code for everything else, and each rule has one owning blueprint
 - [ADR-033: Behavior Belongs to the FRD](adr-033-behavior-belongs-to-the-frd.md) — a blueprint cites an AC id only as the reason for a rule; element-to-AC traceability comes from test citations, not blueprint lists
 - [ADR-034: Design Principles Come from Curated Guides by C4 Level](adr-034-design-principles-guides-by-c4-level.md) — blueprints draw principles and patterns from a universal guide plus one guide per C4 level, naming each adopted pattern with its progenitor
+- [ADR-035: Key the Index Cache on a Content Hash](adr-035-key-index-cache-on-content-hash.md) — a persisted index is served only when a SHA-256 hash of every source file's repository-relative path and bytes matches the one it records, never by modification time
 
 ADR-019 and ADR-022 through ADR-027 moved to [brettcallaghan/swarm](https://github.com/brettcallaghan/swarm) with the `swarm` CLI and its plugin.
  They decide things about that codebase and are maintained in its corpus.
