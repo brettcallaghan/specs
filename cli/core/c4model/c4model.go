@@ -278,7 +278,7 @@ func (a *assembly) excluded() []specmodel.C4ExcludedRelationship {
 	excluded := []specmodel.C4ExcludedRelationship{}
 	for _, document := range a.set.Documents() {
 		for _, diagram := range document.Diagrams {
-			for _, unresolved := range diagram.Unresolved {
+			for _, unresolved := range diagram.UnresolvedRelationshipStatements {
 				excluded = append(excluded, a.exclusion(document.Path, unresolved.Span, unresolved.Reason))
 			}
 			for _, statement := range diagram.Parsed.Statements {

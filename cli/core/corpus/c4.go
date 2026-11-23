@@ -109,10 +109,10 @@ func c4NodeFindings(set *c4elements.Set) []specmodel.Finding {
 // normalisation; c4/interaction-conflict at a statement tagged both
 // `sync` and `async`; c4/contract-unresolved for a `contract:` tag naming
 // no member of the registered contract type; and c4/tag-separator for a
-// tags argument holding a comma. Per resolved statement — one whose two
-// endpoints each name exactly one element — c4/contract-mismatch for a
-// resolved contract tag the source does not consume or the target does
-// not provide. Per relationship, across the whole corpus,
+// tags argument holding a comma. Per resolved C4 relationship statement —
+// one whose two endpoints each name exactly one element —
+// c4/contract-mismatch for a resolved contract tag the source does not
+// consume or the target does not provide. Per relationship, across the whole corpus,
 // c4/statement-conflict for each statement that differs from the first in
 // technology, description or tags.
 func c4RelationshipFindings(set *c4elements.Set) []specmodel.Finding {
@@ -120,7 +120,7 @@ func c4RelationshipFindings(set *c4elements.Set) []specmodel.Finding {
 	for _, document := range set.Documents() {
 		for _, diagram := range document.Diagrams {
 			findings = append(findings, statementFindings(set, document.Path, diagram)...)
-			for _, statement := range diagram.Resolved {
+			for _, statement := range diagram.ResolvedRelationshipStatements {
 				findings = append(findings, contractMismatchFindings(set, statement)...)
 			}
 		}
@@ -178,8 +178,9 @@ func statementFindings(set *c4elements.Set, path string, diagram c4elements.Diag
 // statement that its source element does not consume or its target
 // element does not provide. An unresolved contract tag is
 // c4/contract-unresolved's, and a statement whose endpoints do not
-// resolve is not a resolved statement, so neither is reported here.
-func contractMismatchFindings(set *c4elements.Set, statement c4elements.ResolvedStatement) []specmodel.Finding {
+// resolve is not a resolved C4 relationship statement, so neither is
+// reported here.
+func contractMismatchFindings(set *c4elements.Set, statement c4elements.ResolvedRelationshipStatement) []specmodel.Finding {
 	var findings []specmodel.Finding
 	for _, tag := range statement.Tags.Reserved {
 		if tag.Name != c4diagram.TagContract {

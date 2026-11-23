@@ -176,20 +176,21 @@ type Diagram struct {
 	// the order written.
 	Nodes []Node
 
-	// Resolved are the relationship statements that resolved, in the
-	// order written.
-	Resolved []ResolvedStatement
+	// ResolvedRelationshipStatements are the diagram's resolved C4
+	// relationship statements, in the order written.
+	ResolvedRelationshipStatements []ResolvedRelationshipStatement
 
-	// Unresolved are the relationship statements that did not, in the
-	// order written. A `BiRel` statement is in neither: it states no
-	// single direction, so it draws no relationship and is not an
-	// endpoint failure either.
-	Unresolved []Unresolved
+	// UnresolvedRelationshipStatements are the diagram's unresolved C4
+	// relationship statements, in the order written. A `BiRel` statement
+	// is in neither: it states no single direction, so it draws no
+	// relationship and is not an endpoint failure either.
+	UnresolvedRelationshipStatements []UnresolvedRelationshipStatement
 }
 
-// ResolvedStatement is one resolved C4 relationship statement: a
-// relationship statement whose two endpoints each name exactly one element.
-type ResolvedStatement struct {
+// ResolvedRelationshipStatement is one resolved C4 relationship statement: a
+// directional relationship statement whose two endpoints each name exactly
+// one element.
+type ResolvedRelationshipStatement struct {
 	// Source and Target are the elements at the two ends, in dependency
 	// direction: Source depends on Target, after `Rel_Back` normalisation.
 	Source *Element
@@ -221,9 +222,10 @@ type ResolvedStatement struct {
 	Statement int
 }
 
-// Unresolved is one relationship statement an endpoint of which does not
-// name exactly one element.
-type Unresolved struct {
+// UnresolvedRelationshipStatement is one unresolved C4 relationship
+// statement: a directional relationship statement an endpoint of which does
+// not name exactly one element.
+type UnresolvedRelationshipStatement struct {
 	// Reason is why, as the first failing check finds it: every endpoint
 	// is checked for being external, then for being a passive store, then
 	// for naming no element — an alias with no node in the diagram
@@ -258,7 +260,7 @@ type Relationship struct {
 
 	// Statements are the relationship's statements, ordered by path and then
 	// by span.
-	Statements []ResolvedStatement
+	Statements []ResolvedRelationshipStatement
 }
 
 // Node is one node statement of a diagram, resolved.
@@ -432,7 +434,7 @@ func group(documents []*Document) []Relationship {
 	var relationships []Relationship
 	for _, document := range documents {
 		for _, diagram := range document.Diagrams {
-			for _, statement := range diagram.Resolved {
+			for _, statement := range diagram.ResolvedRelationshipStatements {
 				k := key{statement.Source, statement.Target, statement.Label}
 				i, ok := index[k]
 				if !ok {
@@ -722,7 +724,7 @@ func diagramsOf(path string, src []byte, scope []*Element) []Diagram {
 				}
 			}
 			if reason, source, failed := endpointFailure(ends, many); failed {
-				diagram.Unresolved = append(diagram.Unresolved, Unresolved{
+				diagram.UnresolvedRelationshipStatements = append(diagram.UnresolvedRelationshipStatements, UnresolvedRelationshipStatement{
 					Reason:         reason,
 					SourceEndpoint: source,
 					SourceAlias:    rel.Source.Value,
@@ -733,7 +735,7 @@ func diagramsOf(path string, src []byte, scope []*Element) []Diagram {
 				})
 				continue
 			}
-			diagram.Resolved = append(diagram.Resolved, ResolvedStatement{
+			diagram.ResolvedRelationshipStatements = append(diagram.ResolvedRelationshipStatements, ResolvedRelationshipStatement{
 				Source:      ends[0].Matches[0],
 				Target:      ends[1].Matches[0],
 				Label:       param(statement, c4diagram.ParamLabel),

@@ -48,11 +48,11 @@ contain a module, read from the modules each host composes, and the
 contracts a C4 element provides. A host is a container or module that
 composes a module.
 
-Which declaration and which resolved statement a C4 element's or a
-relationship's properties are taken from. A declaration is a blueprint's front
-matter or a record block in another document. A resolved statement is one
-relationship statement in a Mermaid C4 diagram whose two endpoints each name
-exactly one C4 element.
+Which declaration and which resolved C4 relationship statement a C4 element's
+or a relationship's properties are taken from. A declaration is a blueprint's
+front matter or a record block in another document. A resolved C4
+relationship statement is one whose two endpoints each name exactly one C4
+element.
 
 How the reserved relationship tags (`sync`, `async` and `contract:<slug>`)
 are read into an interaction and a governing contract.
@@ -61,9 +61,9 @@ Narrowing the model to one root C4 element and its descendants.
 
 ### Hides
 
-How ties between several declarations or resolved statements are broken.
-Callers see one C4 element per slug (a C4 element's identifier) and one
-relationship per group of resolved statements.
+How ties between several declarations or resolved C4 relationship statements
+are broken. Callers see one C4 element per slug (a C4 element's identifier)
+and one relationship per group of resolved C4 relationship statements.
 
 ### Does not own
 
