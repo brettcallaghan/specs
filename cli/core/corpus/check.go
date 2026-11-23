@@ -71,7 +71,7 @@ func (c *Corpus) Check() ([]specmodel.Finding, error) {
 //
 //   - every reference/unresolved finding of a reference citing one of
 //     formerSlugs that the document no longer declares — formerSlugs being
-//     the slugs it declared at the comparison base, which the caller reads
+//     the slugs it declared at the base revision, which the caller reads
 //     (the command surface reads git HEAD); and
 //   - every reference/unresolved-anchor finding of a reference that
 //     resolves to the document.
@@ -161,7 +161,7 @@ func (c *Corpus) notAMember(normalized string) error {
 // when non-nil, is a normalized path: schema and slug-pattern checking run
 // for that member alone, and the result is narrowed after folding to it
 // and to the findings elsewhere its change caused (see CheckFor), formerSlugs
-// being the slugs it declared at the comparison base.
+// being the slugs it declared at the base revision.
 func (c *Corpus) check(only *string, formerSlugs []string) ([]specmodel.Finding, error) {
 	registry, err := c.schemaRegistry()
 	if err != nil {

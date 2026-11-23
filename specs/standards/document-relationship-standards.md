@@ -165,9 +165,9 @@ outward list on the module is correct.
 
 ---
 
-## Paired declarations
+## Paired references
 
-A paired relationship — one the tool requires from both ends and reports as
+A paired reference — one the tool requires from both ends and reports as
 broken when only one is present — SHALL be reserved for a relationship a
 reader of one document must see **without consulting the index**.
 

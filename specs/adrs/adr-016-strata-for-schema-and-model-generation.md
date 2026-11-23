@@ -102,7 +102,8 @@ repository remains buildable and correct if Strata is removed.
   `scripts/generate-schemas.sh` stand in for it. The assertion catches only
   that one regression, and `specs check` covers only what a stock JSON Schema
   validator can see.
-- **The schemas need Strata `0.8.0` or later.** Earlier releases carry the
+- **The schemas need Strata `0.9.0` or later.** The manifest uses the 0.9.0
+  option names, and releases before `0.8.0` carry the
   `allowAdditionalProperties` bug, so `scripts/generate-schemas.sh` checks the
   emitted shape rather than trusting a version string.
 - **Running Strata requires a release binary from a private repository.**

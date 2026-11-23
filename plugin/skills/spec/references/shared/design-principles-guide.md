@@ -19,10 +19,13 @@ Ask these questions when you design a software element or review its design.
 This universal guide holds the principles for every level of the C4 model. Use
 it with the guide for the element's level.
 
-When you record a pattern a design adopts, name it with its progenitor, the
-source that fixes its meaning. "Decorator" is also Python syntax, and
-"Repository" is often confused with a data access object; "Decorator (Gamma et
-al.)" is not.
+When you record a pattern a design adopts, name it with its progenitor: the one
+source, and the topic within it, that fixes its meaning. "Decorator" is also
+Python syntax, and "Repository" is often confused with a data access object;
+"Decorator (Gamma et al., *Design Patterns*, Decorator)" is not. Each entry
+below names one progenitor. Where an idea has two origins with different
+meanings, it has one entry for each context, so pick the entry whose context
+matches the design.
 
 The lists are a starting point, not a catalog. They hold the principles and
 patterns that apply most widely in current architectures, with priority given to
@@ -48,24 +51,26 @@ A question with no answer means the pattern doesn't belong.
 
 ## Universal principles
 
-| Entry | Progenitors | Questions it answers |
+| Entry | Progenitor | Questions it answers |
 |-------|-------------|----------------------|
 | Information Hiding | Parnas, "On the Criteria To Be Used in Decomposing Systems into Modules" (1972) | What design decision likely to change does this element hide? |
-| Open-Closed | Meyer, *Object-Oriented Software Construction* (1988); Martin (1996) | Can a new case be added without editing what exists? Where are the extension points? |
-| Dependency Inversion | Martin, *C++ Report* (1996) | Does each element depend on abstractions that the policy side owns, rather than on concrete details? |
+| Open-Closed | Meyer, *Object-Oriented Software Construction* (1988), the Open-Closed principle | Can a new case be added without editing what exists? Where are the extension points? |
+| Dependency Inversion | Martin, "The Dependency Inversion Principle", *C++ Report* (1996) | Does each element depend on abstractions that the policy side owns, rather than on concrete details? |
 | Separation of Concerns | Dijkstra, "On the role of scientific thought" (1974) | Does each part deal with one concern that can be reasoned about alone? |
-| High Cohesion, Low Coupling | Stevens, Myers, and Constantine (1974); Constantine and Yourdon, *Structured Design* (1979) | Do things that change together sit together, and do the rest know little about each other? |
-| Deep Modules | Ousterhout, *A Philosophy of Software Design* (2018) | Is the interface much simpler than what it hides? |
-| Acyclic and Stable Dependencies | Martin, *Agile Software Development* (2002) | Are there dependency cycles? Does each element depend on something more stable than itself? |
-| Design by Contract | Meyer (1986) | What are the preconditions, postconditions, and invariants, and where is each stated? |
-| Single Source of Truth | Codd, normalization (1970); Hunt and Thomas, DRY (1999) | Which element is the one authority for each piece of data or knowledge? |
-| Parse, Don't Validate | King (2019) | Where is untrusted input parsed into trusted types? Is each rule a type can't express checked once, at that boundary or by the domain object that owns it, rather than checked again downstream? |
-| Idempotence | HTTP/1.1, RFC 2068 (1997), now RFC 9110 | Can this operation be repeated or retried safely? |
-| Least Privilege | Saltzer and Schroeder (1975) | Does the element get only the access it needs? |
-| Fail Fast | Shore, *IEEE Software* (2004) | Is bad state detected at the earliest point, and loudly? |
-| Gall's Law and YAGNI | Gall, *Systemantics* (1975); Beck, *Extreme Programming Explained* (1999); Jeffries | Is this built for a need that exists now? Did it grow from a simpler version that worked? |
-| Architecturally Evident Code | Fairbanks, *Just Enough Software Architecture* (2010); Brown, *Software Architecture for Developers* (2012) | Can someone find this element from a directory listing? |
-| Strangler Fig | Fowler (2004) | How is this element replaced in steps, with old and new running side by side? |
+| High Cohesion, Low Coupling | Stevens, Myers, and Constantine, "Structured Design", *IBM Systems Journal* (1974) | Do things that change together sit together, and do the rest know little about each other? |
+| Deep Modules | Ousterhout, *A Philosophy of Software Design* (2018), "Modules Should Be Deep" | Is the interface much simpler than what it hides? |
+| Acyclic and Stable Dependencies | Martin, *Agile Software Development* (2002), the Acyclic Dependencies and Stable Dependencies principles | Are there dependency cycles? Does each element depend on something more stable than itself? |
+| Design by Contract | Meyer, "Applying 'Design by Contract'", *IEEE Computer* (1992) | What are the preconditions, postconditions, and invariants, and where is each stated? |
+| Single Source of Truth, for knowledge in code | Hunt and Thomas, *The Pragmatic Programmer* (1999), "The Evils of Duplication" | Which element is the one authority for each piece of knowledge, such as a rule, a format, or a list of cases? |
+| Single Source of Truth, for stored data | Codd, "A Relational Model of Data for Large Shared Data Banks" (1970), normalization | Is each stored fact recorded once, with every other copy derived from it? |
+| Parse, Don't Validate | King, "Parse, Don't Validate" (2019) | Where is untrusted input parsed into trusted types? Is each rule a type can't express checked once, at that boundary or by the domain object that owns it, rather than checked again downstream? |
+| Idempotence | RFC 9110 (2022), "Idempotent Methods" | Can this operation be repeated or retried safely? |
+| Least Privilege | Saltzer and Schroeder, "The Protection of Information in Computer Systems" (1975) | Does the element get only the access it needs? |
+| Fail Fast | Shore, "Fail Fast", *IEEE Software* (2004) | Is bad state detected at the earliest point, and loudly? |
+| Gall's Law | Gall, *Systemantics* (1975) | Did this grow from a simpler version that worked? |
+| YAGNI | Beck, *Extreme Programming Explained* (1999) | Is this built for a need that exists now? |
+| Architecturally Evident Code | Fairbanks, *Just Enough Software Architecture* (2010), the architecturally-evident coding style | Can someone find this element from a directory listing? |
+| Strangler Fig | Fowler, "StranglerFigApplication" (2004) | How is this element replaced in steps, with old and new running side by side? |
 
 ## Same idea, different level
 

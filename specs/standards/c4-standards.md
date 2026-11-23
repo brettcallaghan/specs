@@ -169,7 +169,7 @@ blueprints, such as a Feature Blueprint's proposed architecture.
 | Kind | Macros |
 |------|--------|
 | Element node | `System`, `Container`, `Component`, and their `Db` and `Queue` forms |
-| External node | `Person`, and every `_Ext` form |
+| External C4 element | `Person`, and every `_Ext` form |
 | Boundary | `Boundary`, `Enterprise_Boundary`, `System_Boundary`, `Container_Boundary` — groups nodes and is not itself a node |
 | Relationship | `Rel`; `Rel_U`, `Rel_Up`, `Rel_D`, `Rel_Down`, `Rel_L`, `Rel_Left`, `Rel_R`, `Rel_Right`; `Rel_Back`; `BiRel` |
 | Ignored | `title`, `UpdateElementStyle`, `UpdateRelStyle`, `UpdateLayoutConfig` |

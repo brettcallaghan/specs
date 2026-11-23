@@ -802,7 +802,7 @@ system-level and container-level element in the corpus.
 
 **Resolution.** A node resolves to every in-scope element whose name equals
 its label exactly, as written. An element with no entity name is named by no
-node. An external node isn't resolved, and a `Db` or `Queue` node matching
+node. An external C4 element isn't resolved, and a `Db` or `Queue` node matching
 nothing in scope is a passive store, not an undeclared node. A member whose
 type declares no element has no drawing document, so its diagrams yield no
 node.
@@ -1601,7 +1601,7 @@ reports it (AC-SPECREF-002.11). Of the findings located in other documents,
 `CheckFor` reports exactly those that the named document's change caused, and
 nothing else (AC-SPECREF-002.9). They fall in two sets. The first is every
 `reference/unresolved` finding of a reference citing a slug that the caller
-passes as one the document declared at the comparison base and no longer
+passes as one the document declared at the base revision and no longer
 declares (compared without regard to letter case, as resolution compares).
 The second is every `reference/unresolved-anchor` finding of a reference
 resolving to the document. Each is the finding a corpus check reports for
@@ -1809,8 +1809,8 @@ node that's neither external nor a passive store and names no element in its
 drawing document's scope. `c4/ambiguous-node` reports a node naming several,
 listing every match in slug order (AC-C4-DIAG-002.3, AC-C4-DIAG-002.4). Both
 are errors at the node's span, and a node naming one element raises nothing
-(AC-C4-DIAG-002.1, AC-C4-DIAG-002.2). External nodes and passive stores are
-never reported undeclared (AC-C4-DIAG-002.5). Only a member whose type the
+(AC-C4-DIAG-002.1, AC-C4-DIAG-002.2). External C4 elements and passive stores
+are never reported undeclared (AC-C4-DIAG-002.5). Only a member whose type the
 profile registers as declaring an element is examined. So a diagram in a
 Feature Blueprint raises nothing (AC-C4-DIAG-001.4), and a profile
 registering no architecture vocabulary raises nothing at all. The element

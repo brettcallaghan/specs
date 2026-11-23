@@ -2832,7 +2832,7 @@
     },
     "FindingIncompletePairing": {
       "additionalProperties": false,
-      "description": "One half of a paired relationship the counterpart does not declare.\n\nReported against both documents, each carrying this same detail, so that\nchecking either one surfaces the half-built edge and the two copies\ndescribe the relationship in the same direction rather than each from its\nown point of view.",
+      "description": "One half of a paired reference the counterpart does not declare.\n\nReported against both documents, each carrying this same detail, so that\nchecking either one surfaces the half-built edge and the two copies\ndescribe the relationship in the same direction rather than each from its\nown point of view.",
       "properties": {
         "counterpart": {
           "description": "The property the referenced document must declare in return, and does\nnot.",

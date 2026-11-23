@@ -310,7 +310,9 @@ scope for this run's beads" tells a future reader nothing they can act on.
   of times and refuse to commit a closure the export does not carry — rather
   than trusting one export. (`swarm`'s `bb-close-bead.sh` does exactly this;
   the trap is `bd`'s, not that script's, so it applies here too.)
-- **`strata` must be v0.8.0 or later.**
+- **`strata` must be v0.9.0 or later.** `schemas/strata.config.json` uses
+  the 0.9.0 manifest keys (`jsonSchema.version`, `generateInterfaces`), which
+  earlier releases reject.
 - `bd`: not preinstalled. `.claude/hooks/session-start.sh` installs it via the
   official installer, which needs `libicu-dev` for the Dolt/ICU cgo dependency
   — without those headers the build fails at `unicode/uregex.h: No such file`.
@@ -403,7 +405,7 @@ cloud sessions, and anyone can run it locally. It is a no-op when
   tried first so an environment that does grant access through it still works.
 - **Verified before install**: against the `sha256:` digest GitHub publishes
   for the asset, then by running `strata --version`. Pin a release with an
-  argument (`scripts/install-strata-cli.sh v0.8.0`) or `STRATA_VERSION`.
+  argument (`scripts/install-strata-cli.sh v0.9.0`) or `STRATA_VERSION`.
 - **v0.8.0 publishes no `aarch64-unknown-linux-gnu` asset** (measured from the
   release's asset list); the script names the missing asset and exits 1.
 - **A failed install is fatal in the hook**, because a session without the
@@ -436,6 +438,11 @@ keeping and is not worth an ADR.
 
 Research documents are not corpus members. They live outside `specs/`,
 carry no slug, and are cited by path.
+
+## Glossary
+
+The project glossary is `specs/guides/glossary-guide.md`. Use its terms in
+specs, docs and skills, and add a term there before using it anywhere else.
 
 ## Historical prose: don't
 
