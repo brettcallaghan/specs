@@ -4,10 +4,10 @@ entity_name: C4 Model
 technology: Go package
 description: Assembly of the corpus's C4 model (the element tree, the module
   collection, the edges derived over the whole corpus, the relationships, and
-  the excluded relationships) from the resolved C4 elements and drawings, and
-  its narrowing to a root. Change it to change where a C4 element is placed,
-  what a C4 element or relationship carries, or how the model is narrowed to
-  a root.
+  the excluded relationships) from the resolved C4 elements and relationship
+  statements, and its narrowing to a root. Change it to change where a C4
+  element is placed, what a C4 element or relationship carries, or how the
+  model is narrowed to a root.
 slug: component-c4-model
 type: component-blueprint
 status: ready-for-review
@@ -48,10 +48,11 @@ contain a module, read from the modules each host composes, and the
 contracts a C4 element provides. A host is a container or module that
 composes a module.
 
-Which declaration and which drawing a C4 element's or a relationship's
-properties are taken from. A declaration is a blueprint's front matter or
-a record block in another document. A drawing is one relationship statement
-in a Mermaid C4 diagram whose two endpoints each name exactly one C4 element.
+Which declaration and which resolved statement a C4 element's or a
+relationship's properties are taken from. A declaration is a blueprint's front
+matter or a record block in another document. A resolved statement is one
+relationship statement in a Mermaid C4 diagram whose two endpoints each name
+exactly one C4 element.
 
 How the reserved relationship tags (`sync`, `async` and `contract:<slug>`)
 are read into an interaction and a governing contract.
@@ -60,9 +61,9 @@ Narrowing the model to one root C4 element and its descendants.
 
 ### Hides
 
-How ties between several declarations or drawings are broken. Callers see one
-C4 element per slug (a C4 element's identifier) and one relationship per group
-of drawings.
+How ties between several declarations or resolved statements are broken.
+Callers see one C4 element per slug (a C4 element's identifier) and one
+relationship per group of resolved statements.
 
 ### Does not own
 
@@ -94,9 +95,9 @@ by directory layout or a diagram.
 
 `Build` SHALL NOT create a C4 element from a diagram node.
 
-WHERE several declarations or drawings could supply a property, `Build`
-SHALL take it from the C4 element's blueprint where it has one, and otherwise
-from the one that sorts first by path and then by span.
+WHERE several declarations or relationship statements could supply a property,
+`Build` SHALL take it from the C4 element's blueprint where it has one, and
+otherwise from the one that sorts first by path and then by span.
 
 WHEN the model is narrowed to a root, its derived properties SHALL keep
 their whole-corpus values.
@@ -140,7 +141,7 @@ for the rest.
 ### Extension points
 
 A new C4 element or relationship property — add a field in `schemas/c4.strata`
-and copy it from the same declaration or drawing as the existing
+and copy it from the same declaration or relationship statement as the existing
 properties. Not by a second resolution of nodes in this package.
 
 ## Cross-cutting Standards

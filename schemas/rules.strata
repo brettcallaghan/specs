@@ -109,8 +109,8 @@ enum RuleId {
   """Error. One diagram draws two relationships with the same source and target, after `Rel_Back` is normalized."""
   C4DuplicateEdge: "c4/duplicate-edge"
 
-  """Warning. One relationship is drawn in two places with a different technology, description, or tags. The finding names the other drawing."""
-  C4DrawingConflict: "c4/drawing-conflict"
+  """Warning. One relationship is drawn in two places with a different technology, description, or tags. The finding names the other statement."""
+  C4StatementConflict: "c4/statement-conflict"
 
   """Error. A relationship is tagged both `sync` and `async`."""
   C4InteractionConflict: "c4/interaction-conflict"

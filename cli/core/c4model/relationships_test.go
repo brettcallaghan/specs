@@ -13,7 +13,7 @@ func mermaid(diagramType string, lines ...string) string {
 	return "```mermaid\n" + diagramType + "\n" + strings.Join(lines, "\n") + "\n```\n"
 }
 
-// drawings is a corpus whose diagrams draw every kind of statement the
+// statements is a corpus whose diagrams draw every kind of statement the
 // model reads:
 //
 //   - alpha.md, a container in system-one composing module-mu, draws
@@ -24,7 +24,7 @@ func mermaid(diagramType string, lines ...string) string {
 //     relationship alpha.md also draws, with a different technology, and
 //     one only it draws;
 //   - feature.md, a feature blueprint, draws a diagram of its own.
-func drawings() map[string]string {
+func statements() map[string]string {
 	return map[string]string{
 		"one.md": head("system-one", "system-blueprint", "One"),
 		"two.md": head("system-two", "system-blueprint", "Two"),
@@ -131,27 +131,27 @@ func TestRelArgumentsBecomeRelationshipProperties(t *testing.T) {
 
 // AC: AC-C4-002.2
 func TestDirectionalLayoutVariantsAreTheSameRelationship(t *testing.T) {
-	model := build(t, drawings())
+	model := build(t, statements())
 
 	r := relationship(t, model, "component-q", "component-p", "Writes back")
-	if len(r.DrawnIn) != 1 || r.DrawnIn[0].SourceAlias != "q" || r.DrawnIn[0].TargetAlias != "p" {
-		t.Errorf("drawn_in = %+v, want one drawing from q to p", r.DrawnIn)
+	if len(r.Statements) != 1 || r.Statements[0].SourceAlias != "q" || r.Statements[0].TargetAlias != "p" {
+		t.Errorf("drawn_in = %+v, want one statement from q to p", r.Statements)
 	}
 }
 
 // AC: AC-C4-002.3
 func TestRelBackReversesTheDependency(t *testing.T) {
-	model := build(t, drawings())
+	model := build(t, statements())
 
 	r := relationship(t, model, "component-q", "component-p", "Notifies")
-	if got := r.DrawnIn[0]; got.SourceAlias != "q" || got.TargetAlias != "p" {
+	if got := r.Statements[0]; got.SourceAlias != "q" || got.TargetAlias != "p" {
 		t.Errorf("aliases = %s -> %s, want q -> p after normalisation", got.SourceAlias, got.TargetAlias)
 	}
 }
 
 // AC: AC-C4-002.4
 func TestARelationshipDrawnInBothOfItsHomesIsOneRelationship(t *testing.T) {
-	files := drawings()
+	files := statements()
 	model := build(t, files)
 
 	count := 0
@@ -164,8 +164,8 @@ func TestARelationshipDrawnInBothOfItsHomesIsOneRelationship(t *testing.T) {
 		t.Fatalf("container-alpha -> container-beta is held %d times, want once", count)
 	}
 	r := relationship(t, model, "container-alpha", "container-beta", "Calls")
-	if len(r.DrawnIn) != 2 {
-		t.Fatalf("drawn_in holds %d drawings, want 2", len(r.DrawnIn))
+	if len(r.Statements) != 2 {
+		t.Fatalf("drawn_in holds %d statements, want 2", len(r.Statements))
 	}
 	want := []struct {
 		path   string
@@ -178,7 +178,7 @@ func TestARelationshipDrawnInBothOfItsHomesIsOneRelationship(t *testing.T) {
 		{"beta.md", specmodel.C4ViewContext, "a", "b", "Rel_Back(b, a,"},
 	}
 	for i, w := range want {
-		got := r.DrawnIn[i]
+		got := r.Statements[i]
 		if got.Path != w.path || got.View != w.view || got.SourceAlias != w.source || got.TargetAlias != w.target {
 			t.Errorf("drawn_in[%d] = %s %s %s->%s, want %s %s %s->%s",
 				i, got.Path, got.View, got.SourceAlias, got.TargetAlias, w.path, w.view, w.source, w.target)
@@ -192,17 +192,17 @@ func TestARelationshipDrawnInBothOfItsHomesIsOneRelationship(t *testing.T) {
 
 // AC: AC-C4-002.5
 func TestARelationshipDrawnOnlyInAContextViewIsAdmitted(t *testing.T) {
-	model := build(t, drawings())
+	model := build(t, statements())
 
 	r := relationship(t, model, "container-beta", "container-alpha", "Reports to")
-	if len(r.DrawnIn) != 1 || r.DrawnIn[0].View != specmodel.C4ViewContext {
-		t.Errorf("drawn_in = %+v, want one Context drawing", r.DrawnIn)
+	if len(r.Statements) != 1 || r.Statements[0].View != specmodel.C4ViewContext {
+		t.Errorf("drawn_in = %+v, want one Context statement", r.Statements)
 	}
 }
 
 // AC: AC-C4-002.6
 func TestARelationshipRecordsItsLevelFromItsEndpoints(t *testing.T) {
-	model := build(t, drawings())
+	model := build(t, statements())
 
 	for _, example := range []struct {
 		source, target, description string
@@ -223,8 +223,8 @@ func TestARelationshipRecordsItsLevelFromItsEndpoints(t *testing.T) {
 }
 
 // AC: AC-C4-002.9
-func TestDrawingsOfOneRelationshipThatDisagreeKeepTheFirst(t *testing.T) {
-	model := build(t, drawings())
+func TestStatementsOfOneRelationshipThatDisagreeKeepTheFirst(t *testing.T) {
+	model := build(t, statements())
 
 	r := relationship(t, model, "container-alpha", "container-beta", "Calls")
 	if got := text(r.Technology); got != "HTTP" {
@@ -233,14 +233,14 @@ func TestDrawingsOfOneRelationshipThatDisagreeKeepTheFirst(t *testing.T) {
 	if got := text(r.Detail); got != "On demand" {
 		t.Errorf("detail = %s, want On demand from alpha.md", got)
 	}
-	if len(r.DrawnIn) != 2 {
-		t.Errorf("drawn_in holds %d drawings, want both", len(r.DrawnIn))
+	if len(r.Statements) != 2 {
+		t.Errorf("drawn_in holds %d statements, want both", len(r.Statements))
 	}
 }
 
 // AC: AC-C4-002.10
 func TestEdgesTheModelDoesNotAdmitAreExcluded(t *testing.T) {
-	files := drawings()
+	files := statements()
 	model := build(t, files)
 
 	want := map[string]specmodel.C4ExclusionReason{
@@ -286,7 +286,7 @@ func TestEdgesTheModelDoesNotAdmitAreExcluded(t *testing.T) {
 
 // AC: AC-C4-002.11
 func TestDynamicAndDeploymentDiagramsContributeNoRelationships(t *testing.T) {
-	model := build(t, drawings())
+	model := build(t, statements())
 
 	for _, r := range model.Relationships {
 		if r.Description == "Dynamically" || r.Description == "Deployed" {
@@ -302,10 +302,10 @@ func TestDynamicAndDeploymentDiagramsContributeNoRelationships(t *testing.T) {
 
 // AC: AC-C4-002.12
 func TestDiagramsOutsideArchitectureBlueprintsContributeNoRelationships(t *testing.T) {
-	model := build(t, drawings())
+	model := build(t, statements())
 
 	for _, r := range model.Relationships {
-		for _, d := range r.DrawnIn {
+		for _, d := range r.Statements {
 			if d.Path == "feature.md" {
 				t.Errorf("relationship %q drawn in the feature blueprint", r.Description)
 			}
@@ -321,7 +321,7 @@ func TestDiagramsOutsideArchitectureBlueprintsContributeNoRelationships(t *testi
 // Relationships are ordered by source slug, then target slug, then
 // description.
 func TestRelationshipsAreOrderedBySourceTargetAndDescription(t *testing.T) {
-	model := build(t, drawings())
+	model := build(t, statements())
 
 	if len(model.Relationships) < 2 {
 		t.Fatalf("model holds %d relationships; the check would pass vacuously", len(model.Relationships))

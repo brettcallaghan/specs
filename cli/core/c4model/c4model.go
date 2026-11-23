@@ -29,7 +29,7 @@ import (
 )
 
 // SchemaVersion is the version of the model's shape this package emits.
-const SchemaVersion = "0.1"
+const SchemaVersion = "0.2"
 
 // Input is what [Build] reads.
 type Input struct {
@@ -168,17 +168,17 @@ func (a *assembly) model() *specmodel.C4Model {
 	return model
 }
 
-// relationships returns one relationship for each group of drawings C4
+// relationships returns one relationship for each group of statements C4
 // Elements reports as one relationship, ordered by source slug, then
-// target slug, then description. Its arguments are those of the drawing
+// target slug, then description. Its arguments are those of the statement
 // that sorts first by path and then by span.
 func (a *assembly) relationships() []specmodel.C4Relationship {
 	relationships := []specmodel.C4Relationship{}
 	for _, group := range a.set.Relationships() {
-		if len(group.Drawings) == 0 || group.Source.Slug == "" || group.Target.Slug == "" {
+		if len(group.Statements) == 0 || group.Source.Slug == "" || group.Target.Slug == "" {
 			continue
 		}
-		first := group.Drawings[0]
+		first := group.Statements[0]
 		relationship := specmodel.C4Relationship{
 			Source:      specmodel.Citation(group.Source.Slug),
 			Target:      specmodel.Citation(group.Target.Slug),
@@ -186,7 +186,7 @@ func (a *assembly) relationships() []specmodel.C4Relationship {
 			Description: first.Label,
 			Technology:  present(first.Technology),
 			Detail:      present(first.Description),
-			DrawnIn:     []specmodel.C4Drawing{},
+			Statements:  []specmodel.C4RelationshipStatement{},
 			Interaction: interactionOf(first.Tags),
 			Contract:    a.contractOf(group.Source, group.Target, first.Tags),
 		}
@@ -194,13 +194,13 @@ func (a *assembly) relationships() []specmodel.C4Relationship {
 			tags := append([]string{}, first.Tags.Unreserved...)
 			relationship.Tags = &tags
 		}
-		for _, drawing := range group.Drawings {
-			relationship.DrawnIn = append(relationship.DrawnIn, specmodel.C4Drawing{
-				Path:        drawing.Path,
-				Span:        drawing.Span,
-				View:        drawing.View,
-				SourceAlias: drawing.SourceAlias,
-				TargetAlias: drawing.TargetAlias,
+		for _, statement := range group.Statements {
+			relationship.Statements = append(relationship.Statements, specmodel.C4RelationshipStatement{
+				Path:        statement.Path,
+				Span:        statement.Span,
+				View:        statement.View,
+				SourceAlias: statement.SourceAlias,
+				TargetAlias: statement.TargetAlias,
 			})
 		}
 		relationships = append(relationships, relationship)
@@ -208,7 +208,7 @@ func (a *assembly) relationships() []specmodel.C4Relationship {
 	return relationships
 }
 
-// interactionOf returns the interaction a drawing's reserved tags state:
+// interactionOf returns the interaction a statement's reserved tags state:
 // sync or async when it carries exactly one of them, and none when it
 // carries both or neither.
 func interactionOf(tags c4diagram.Tags) *specmodel.C4Interaction {
@@ -234,7 +234,7 @@ func interactionOf(tags c4diagram.Tags) *specmodel.C4Interaction {
 }
 
 // contractOf returns the contract a relationship runs over: the slug the
-// first contract tag of its first drawing names, whether or not it
+// first contract tag of its first statement names, whether or not it
 // resolves; or, with no such tag, the one contract the source consumes
 // whose provider is the target. Zero or several such contracts yield
 // none.

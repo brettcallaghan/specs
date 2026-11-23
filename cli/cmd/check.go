@@ -74,7 +74,7 @@ var checkRules = []specmodel.RuleId{
 	finding.RuleC4AmbiguousNode,
 	finding.RuleC4Bidirectional,
 	finding.RuleC4DuplicateEdge,
-	finding.RuleC4DrawingConflict,
+	finding.RuleC4StatementConflict,
 	finding.RuleC4InteractionConflict,
 	finding.RuleC4ContractUnresolved,
 	finding.RuleC4ContractMismatch,

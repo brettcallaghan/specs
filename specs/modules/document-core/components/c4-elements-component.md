@@ -4,9 +4,9 @@ entity_name: C4 Elements
 technology: Go package
 description: The corpus's C4 elements, the scope of C4 elements that each C4
   drawing document's diagram nodes may name, and the resolution of nodes to C4
-  elements and of relationship statements to drawings or to unresolved C4
-  relationships. Change it to change what declares a C4 element, what a
-  diagram may name, or how a statement resolves.
+  elements and of relationship statements to resolved statements or to
+  unresolved C4 relationships. Change it to change what declares a C4 element,
+  what a diagram may name, or how a statement resolves.
 slug: component-c4-elements
 type: component-blueprint
 status: ready-for-review
@@ -41,12 +41,12 @@ element, and how declarations of one slug merge.
 Each C4 drawing document's scope and the C4 elements that its Components section
 declares.
 
-Node resolution, and the resolution of each relationship statement either to
-a drawing or to an unresolved C4 relationship: a relationship statement with
-an endpoint that doesn't name exactly one C4 element, which carries the
-reason.
+Node resolution, and the resolution of each relationship statement either to a
+resolved statement or to an unresolved C4 relationship: a relationship
+statement with an endpoint that doesn't name exactly one C4 element, which
+carries the reason.
 
-The grouping of drawings into relationships.
+The grouping of resolved statements into relationships.
 
 The Go types that define the shape of the architecture vocabulary, which the
 `Profile` extension point names.
@@ -54,7 +54,7 @@ The Go types that define the shape of the architecture vocabulary, which the
 ### Hides
 
 How the heading of a Components section is matched. Callers see C4 elements,
-nodes, drawings, and relationships.
+nodes, resolved statements, and relationships.
 
 ### Does not own
 
@@ -85,12 +85,13 @@ the `Build` function.
 The `Build` function SHALL return one C4 element per slug, carrying every
 declaration of that slug ordered by path and then by span.
 
-`Build` SHALL resolve every relationship statement to a drawing, to an
+`Build` SHALL resolve every relationship statement to a resolved statement,
+to an
 unresolved C4 relationship carrying exactly one reason, or, for a `BiRel`
 statement, to neither.
 
-`Build` SHALL group drawings whose source element, target element, and label
-are equal into one relationship, wherever each is drawn.
+`Build` SHALL group resolved statements whose source element, target element,
+and label are equal into one relationship, wherever each is drawn.
 
 IF the profile registers no architecture vocabulary, THEN `Build` SHALL
 return a set with no C4 elements.

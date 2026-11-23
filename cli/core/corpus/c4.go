@@ -12,11 +12,11 @@ import (
 	"github.com/brettcallaghan/specs/cli/core/specmodel"
 )
 
-// C4Elements returns the corpus's architectural elements, each drawing
+// C4Elements returns the corpus's architectural elements, each C4 drawing
 // document's scope and the resolution of every node drawn in one, read
 // through the active profile's architecture vocabulary.
 //
-// Diagrams are read from each drawing document's source as it stands at
+// Diagrams are read from each C4 drawing document's source as it stands at
 // the time of the call, since the index does not record them. A profile
 // registering no architecture vocabulary yields an empty set and no
 // error.
@@ -54,7 +54,7 @@ func (c *Corpus) c4Input() c4elements.Input {
 }
 
 // c4NodeFindings raises the first half of the c4 rule family over every
-// drawing document: c4/parse for a statement the parser could not read
+// C4 drawing document: c4/parse for a statement the parser could not read
 // and, unverified, for a `mermaid` block that is not a C4 diagram it
 // reads; c4/undeclared-node for a node naming no element in scope that
 // is neither external nor a passive store; and c4/ambiguous-node for one
@@ -103,30 +103,30 @@ func c4NodeFindings(set *c4elements.Set) []specmodel.Finding {
 // c4RelationshipFindings raises the second half of the c4 rule family:
 // every rule about an arrow and the tags on it.
 //
-// Per statement, in every C4 diagram a drawing document holds:
+// Per statement, in every C4 diagram a C4 drawing document holds:
 // c4/bidirectional at a `BiRel`; c4/duplicate-edge at the later of two
 // statements with one source alias and one target alias after `Rel_Back`
 // normalisation; c4/interaction-conflict at a statement tagged both
 // `sync` and `async`; c4/contract-unresolved for a `contract:` tag naming
 // no member of the registered contract type; and c4/tag-separator for a
-// tags argument holding a comma. Per drawing — a statement whose two
+// tags argument holding a comma. Per resolved statement — one whose two
 // endpoints each name exactly one element — c4/contract-mismatch for a
 // resolved contract tag the source does not consume or the target does
 // not provide. Per relationship, across the whole corpus,
-// c4/drawing-conflict for each drawing that differs from the first in
+// c4/statement-conflict for each statement that differs from the first in
 // technology, description or tags.
 func c4RelationshipFindings(set *c4elements.Set) []specmodel.Finding {
 	var findings []specmodel.Finding
 	for _, document := range set.Documents() {
 		for _, diagram := range document.Diagrams {
 			findings = append(findings, statementFindings(set, document.Path, diagram)...)
-			for _, drawing := range diagram.Drawings {
-				findings = append(findings, contractMismatchFindings(set, drawing)...)
+			for _, statement := range diagram.Statements {
+				findings = append(findings, contractMismatchFindings(set, statement)...)
 			}
 		}
 	}
 	for _, relationship := range set.Relationships() {
-		findings = append(findings, drawingConflictFindings(relationship)...)
+		findings = append(findings, statementConflictFindings(relationship)...)
 	}
 	return findings
 }
@@ -175,13 +175,13 @@ func statementFindings(set *c4elements.Set, path string, diagram c4elements.Diag
 }
 
 // contractMismatchFindings reports each resolved contract tag on a
-// drawing that its source element does not consume or its target
+// statement that its source element does not consume or its target
 // element does not provide. An unresolved contract tag is
 // c4/contract-unresolved's, and a statement whose endpoints do not
-// resolve is not a drawing, so neither is reported here.
-func contractMismatchFindings(set *c4elements.Set, drawing c4elements.Drawing) []specmodel.Finding {
+// resolve is not a resolved statement, so neither is reported here.
+func contractMismatchFindings(set *c4elements.Set, statement c4elements.RelationshipStatement) []specmodel.Finding {
 	var findings []specmodel.Finding
-	for _, tag := range drawing.Tags.Reserved {
+	for _, tag := range statement.Tags.Reserved {
 		if tag.Name != c4diagram.TagContract {
 			continue
 		}
@@ -190,46 +190,46 @@ func contractMismatchFindings(set *c4elements.Set, drawing c4elements.Drawing) [
 			continue
 		}
 		var why []string
-		if !drawing.Source.Consumes(tag.Slug) {
-			why = append(why, fmt.Sprintf("%s does not list it among the contracts it consumes", drawing.Source.Slug))
+		if !statement.Source.Consumes(tag.Slug) {
+			why = append(why, fmt.Sprintf("%s does not list it among the contracts it consumes", statement.Source.Slug))
 		}
-		if !contract.ProvidedBy(drawing.Target) {
-			why = append(why, fmt.Sprintf("its provider is not %s", drawing.Target.Slug))
+		if !contract.ProvidedBy(statement.Target) {
+			why = append(why, fmt.Sprintf("its provider is not %s", statement.Target.Slug))
 		}
 		if len(why) == 0 {
 			continue
 		}
-		findings = append(findings, finding.C4ContractMismatch(drawing.Path, drawing.Span, tag.Slug,
-			drawing.SourceAlias, drawing.TargetAlias, strings.Join(why, ", and ")))
+		findings = append(findings, finding.C4ContractMismatch(statement.Path, statement.Span, tag.Slug,
+			statement.SourceAlias, statement.TargetAlias, strings.Join(why, ", and ")))
 	}
 	return findings
 }
 
-// drawingConflictFindings reports every drawing of a relationship that
-// differs from its first drawing — by path, then by span — in
+// statementConflictFindings reports every statement of a relationship that
+// differs from its first statement — by path, then by span — in
 // technology, description or tags, naming the first.
-func drawingConflictFindings(relationship c4elements.Relationship) []specmodel.Finding {
-	if len(relationship.Drawings) < 2 {
+func statementConflictFindings(relationship c4elements.Relationship) []specmodel.Finding {
+	if len(relationship.Statements) < 2 {
 		return nil
 	}
-	first := relationship.Drawings[0]
+	first := relationship.Statements[0]
 	var findings []specmodel.Finding
-	for _, drawing := range relationship.Drawings[1:] {
+	for _, statement := range relationship.Statements[1:] {
 		var differs []string
-		if drawing.Technology != first.Technology {
+		if statement.Technology != first.Technology {
 			differs = append(differs, "technology")
 		}
-		if drawing.Description != first.Description {
+		if statement.Description != first.Description {
 			differs = append(differs, "description")
 		}
-		if !sameTags(drawing.Tags, first.Tags) {
+		if !sameTags(statement.Tags, first.Tags) {
 			differs = append(differs, "tags")
 		}
 		if len(differs) == 0 {
 			continue
 		}
-		findings = append(findings, finding.C4DrawingConflict(drawing.Path, drawing.Span,
-			drawing.SourceAlias, drawing.TargetAlias, first.Path, first.Span, strings.Join(differs, ", ")))
+		findings = append(findings, finding.C4StatementConflict(statement.Path, statement.Span,
+			statement.SourceAlias, statement.TargetAlias, first.Path, first.Span, strings.Join(differs, ", ")))
 	}
 	return findings
 }
