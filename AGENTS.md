@@ -437,6 +437,11 @@ keeping and is not worth an ADR.
 Research documents are not corpus members. They live outside `specs/`,
 carry no slug, and are cited by path.
 
+## Glossary
+
+The project glossary is `specs/guides/glossary-guide.md`. Use its terms in
+specs, docs and skills, and add a term there before using it anywhere else.
+
 ## Historical prose: don't
 
 Every skill file, reference, config comment and script header is loaded into an
