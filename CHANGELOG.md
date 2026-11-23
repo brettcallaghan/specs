@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.3.0
+
+**Blueprints that state rules, not code.**
+
+This release reframes architecture blueprints around what an agent can't read from the code: boundaries, invariants, design patterns by C4 level and extension points. Templates now name everything their document type needs, and the C4 model's "drawing" is renamed "relationship statement", which changes one rule id and one output field.
+
+### 💥 Breaking changes
+
+- **cli:** The C4 model calls a relationship's evidence its statements: rule `c4/drawing-conflict` is now `c4/statement-conflict`, and a relationship in `specs c4` output lists `statements` instead of `drawn_in`. ([#92](https://github.com/brettcallaghan/specs/pull/92), [399df6a](https://github.com/brettcallaghan/specs/commit/399df6a8026a5ba38831a64cc2e2395220821a1d))
+
+  The finding tag `c4-drawing-conflict` is now `c4-statement-conflict`, and the C4 model's `schema_version` moves from `0.1` to `0.2`.
+
+  Migration: Replace `c4/drawing-conflict` with `c4/statement-conflict` wherever you select or filter rules, and `c4-drawing-conflict` with `c4-statement-conflict` for finding tags. Read a relationship's `statements` instead of `drawn_in`, and accept C4 model `schema_version` `0.2`.
+
+### 🚀 Features
+
+- **skills/spec:** Component Blueprints now state the rules an agent can't read from the code: what the component owns, hides and does not own, the patterns it follows, the invariants every change keeps, and where it is designed to grow. ([#85](https://github.com/brettcallaghan/specs/pull/85), [7185b05](https://github.com/brettcallaghan/specs/commit/7185b0518084c9ff995bfc4f575f5bc99e2b693d))
+
+  The Component, Module, Container, System and Feature Blueprint templates are revised to match. Responsibility, Interface and Design use subheadings, verification gates split into Verify always and Verify conditionally, and the System Blueprint gains a Design section. Blueprints no longer restate code facts or the FRD's behavior and acceptance criteria. A new blueprint content standard holds the rules and ends with an audit the `spec` skill runs before review.
+
+- **skills/spec:** The `spec` skill ships design-principles guides for every C4 level, and a blueprint names each pattern it adopts with its progenitor and the invariant it implies. ([#85](https://github.com/brettcallaghan/specs/pull/85), [7185b05](https://github.com/brettcallaghan/specs/commit/7185b0518084c9ff995bfc4f575f5bc99e2b693d), [#90](https://github.com/brettcallaghan/specs/pull/90), [12610ce](https://github.com/brettcallaghan/specs/commit/12610cecaddf206c1b655680669bbb657236b95c))
+
+  There is one universal guide and one each for systems, containers and components. Each is a curated list that gives every entry one progenitor and the questions it answers, and the skill loads them only when an element's design changes.
+
+- **skills/spec:** Each template now names everything its document type needs under "Load before authoring", so the `spec` skill loads less and reaches what it needs in one step. ([#87](https://github.com/brettcallaghan/specs/pull/87), [affa3a2](https://github.com/brettcallaghan/specs/commit/affa3a208fb4f51771208f14356dfa8a76a73766))
+
+  The skill always loads only the `tech-writer` skill, the Specs CLI reference and the EARS guide. It also gains a generated reference describing every `specs check` rule, a standalone C4 guide beside the C4 standard, a standalone Gherkin guide, and a spec-authoring standard for line length, titles, slugs, prefixes and filenames. The readiness checklists are folded into the templates and the Feature Blueprint template.
+
+- **cli:** Container Blueprints accept optional `source_paths` and `test_paths`, and `groom-beads` derives a work order's changes from them. ([#85](https://github.com/brettcallaghan/specs/pull/85), [7185b05](https://github.com/brettcallaghan/specs/commit/7185b0518084c9ff995bfc4f575f5bc99e2b693d))
+- **skills/groom-feature-blueprint:** `groom-feature-blueprint` rejects a delta that restates FRD behavior, flags a delta that bypasses a declared extension point, and assigns verification gates by tier. ([#85](https://github.com/brettcallaghan/specs/pull/85), [7185b05](https://github.com/brettcallaghan/specs/commit/7185b0518084c9ff995bfc4f575f5bc99e2b693d))
+- **skills/tech-writer:** `tech-writer` keeps prose stable and terms plain: it rules out counts, numbered citations and volatile figures, and it adds a glossary term only when two or more documents use it and you approve it. ([#85](https://github.com/brettcallaghan/specs/pull/85), [7185b05](https://github.com/brettcallaghan/specs/commit/7185b0518084c9ff995bfc4f575f5bc99e2b693d), [#90](https://github.com/brettcallaghan/specs/pull/90), [12610ce](https://github.com/brettcallaghan/specs/commit/12610cecaddf206c1b655680669bbb657236b95c), [#94](https://github.com/brettcallaghan/specs/pull/94), [b26df3b](https://github.com/brettcallaghan/specs/commit/b26df3b2b9f04777cfe1cd7f7cef1793feebd592))
+
+  It may also make clarity edits to requirement statements without changing their modal, actor, trigger, condition, scope or EARS pattern, and evidence-backed factual fixes in blueprints. Terminology rules follow ASD-STE100. The skill is about a quarter smaller, with the human-voice guidance moved into its reader profiles.
+
+- **skills/spec:** The `spec` skill has a copy-edit workflow for revising many documents at once: editors grouped by host blueprint, a diff-only reviewer for each editor, and new glossary terms shown to you for approval. ([#90](https://github.com/brettcallaghan/specs/pull/90), [12610ce](https://github.com/brettcallaghan/specs/commit/12610cecaddf206c1b655680669bbb657236b95c), [#94](https://github.com/brettcallaghan/specs/pull/94), [b26df3b](https://github.com/brettcallaghan/specs/commit/b26df3b2b9f04777cfe1cd7f7cef1793feebd592))
+
 ## 0.2.0
 
 **Specs now write in a developer documentation style, with a new tech-writer skill.**
